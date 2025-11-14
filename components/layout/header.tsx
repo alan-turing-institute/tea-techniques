@@ -43,6 +43,12 @@ export function Header() {
             </Link>
             <Link
               className="text-foreground transition-colors hover:text-primary"
+              href="/compare"
+            >
+              Compare
+            </Link>
+            <Link
+              className="text-foreground transition-colors hover:text-primary"
               href="/about"
             >
               About

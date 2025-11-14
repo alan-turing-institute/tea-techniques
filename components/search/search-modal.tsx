@@ -5,18 +5,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { ArrowRight, Search, X } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import GoalIcon from '@/components/ui/goal-icon';
-import { getAssetPath } from '@/lib/config';
+import { useFuseSearch } from '@/lib/hooks/use-fuse-search';
 import type { Technique } from '@/lib/types';
 
 interface SearchResult {
   item: Technique;
   score?: number;
 }
-
-// Type for Fuse.js instance
-type FuseInstance = {
-  search: (query: string) => SearchResult[];
-};
 
 interface SearchModalProps {
   category?: string;
@@ -27,56 +22,8 @@ export function SearchModal({ category }: SearchModalProps = {}) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [fuse, setFuse] = useState<FuseInstance | null>(null);
+  const { search, isLoading } = useFuseSearch({ category });
   const router = useRouter();
-
-  // Load Fuse.js and search data on first open
-  useEffect(() => {
-    if (isOpen && !fuse) {
-      setIsLoading(true);
-
-      // Determine which search index to load
-      const loadSearchData = async () => {
-        let searchIndexUrl = getAssetPath('/data/search-index.json');
-
-        // If category is specified, try to load category-specific index
-        if (category) {
-          try {
-            const manifest = await fetch(
-              getAssetPath('/data/search-manifest.json')
-            ).then((res) => res.json());
-            const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
-            if (manifest.categories?.[categorySlug]) {
-              searchIndexUrl = getAssetPath(manifest.categories[categorySlug]);
-            }
-          } catch {
-            // Fall back to global index if manifest doesn't exist
-          }
-        }
-
-        return fetch(searchIndexUrl).then((res) => res.json());
-      };
-
-      Promise.all([import('fuse.js'), loadSearchData()]).then(
-        ([{ default: Fuse }, searchData]) => {
-          const fuseInstance = new Fuse(searchData, {
-            keys: [
-              { name: 'name', weight: 0.4 },
-              { name: 'description', weight: 0.3 },
-              { name: 'tags', weight: 0.2 },
-              { name: 'assurance_goals', weight: 0.1 },
-            ],
-            threshold: 0.3,
-            includeScore: true,
-            minMatchCharLength: 2,
-          });
-          setFuse(fuseInstance);
-          setIsLoading(false);
-        }
-      );
-    }
-  }, [isOpen, fuse, category]);
 
   // Keyboard shortcut (Cmd/Ctrl + K)
   useEffect(() => {
@@ -96,14 +43,14 @@ export function SearchModal({ category }: SearchModalProps = {}) {
 
   // Search when query changes
   useEffect(() => {
-    if (fuse && query) {
-      const searchResults = fuse.search(query).slice(0, 10);
+    if (query) {
+      const searchResults = search(query, 10);
       setResults(searchResults);
       setSelectedIndex(0);
     } else {
       setResults([]);
     }
-  }, [query, fuse]);
+  }, [query, search]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(

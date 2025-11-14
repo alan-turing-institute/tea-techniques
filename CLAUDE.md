@@ -44,6 +44,16 @@ NODE_ENV=production pnpm build
 - **Fuse.js** for client-side search
 - **XState** for wizard state machine
 
+### Navigation Architecture
+
+The site uses different navigation components based on route:
+
+- **`nav-main.tsx`** - Sidebar navigation (most pages via SidebarLayout)
+- **`header.tsx`** - Top navigation (some docs/about pages via PageLayout)
+- **`homepage-header.tsx`** - Homepage only
+
+When adding new routes, verify which layout is used and add navigation to the correct component.
+
 ### Static Export Requirements
 
 - Everything pre-computed at build time

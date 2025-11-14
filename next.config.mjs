@@ -18,8 +18,15 @@ const UTILITIES_REGEX =
 // Check if we're in development mode
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Determine base path for GitHub Pages
+const basePath = process.env.SKIP_BASE_PATH ? '' : '/tea-techniques';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Make base path available to client-side code
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+  },
   // Configure MDX
   pageExtensions: ['js', 'jsx', 'mdx', 'ts', 'tsx'],
 
@@ -41,12 +48,12 @@ const nextConfig = {
   poweredByHeader: false,
 
   // Configure for GitHub Pages deployment (skip for local builds)
-  ...(process.env.SKIP_BASE_PATH
-    ? {}
-    : {
-        basePath: '/tea-techniques',
-        assetPrefix: '/tea-techniques',
-      }),
+  ...(basePath
+    ? {
+        basePath,
+        assetPrefix: basePath,
+      }
+    : {}),
 
   // Performance budgets and optimizations
   experimental: {
