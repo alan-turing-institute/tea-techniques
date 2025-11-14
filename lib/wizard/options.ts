@@ -36,6 +36,7 @@ function getAssuranceGoalOptions(techniques: Technique[]): QuestionOption[] {
     ['Privacy', 'Protecting personal information'],
     ['Reliability', 'Consistent and predictable performance'],
     ['Safety', 'Preventing harm and ensuring safe operation'],
+    ['Security', 'Protection from attacks and vulnerabilities'],
     ['Transparency', 'Being open about capabilities and limitations'],
   ]);
 

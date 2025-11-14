@@ -263,6 +263,38 @@ structure, frontmatter, layouts, and MDX component usage.
 
 ## Development Workflow
 
+### Quick Fix Workflow (Lightweight)
+
+**For small, specific changes without planning:**
+
+```bash
+/quickfix "Fix typo in header component"
+```
+
+- Launches `quickfix-agent`
+- Agent clarifies requirements if needed (AskUserQuestion)
+- Agent implements fix following project patterns
+- Auto-activates relevant skills (nextjs-development-standards, ui-design-system, code-quality-checklist, tea-docs)
+- Runs validation (type-check, lint)
+- Escalates to `/debug` if complex errors (6+)
+- Optionally runs `/validate` for comprehensive checks
+- Reports completion with file:line references
+
+**Use for:**
+- Typo fixes and text updates
+- Simple bugs (1-3 files)
+- Quick refactors
+- Configuration tweaks
+- Documentation updates
+- Minor UI adjustments
+
+**Use feature workflow for:**
+- New features requiring planning
+- Complex multi-component changes
+- Architectural changes
+
+---
+
 ### PM → Planning → Implementation → Validation → Commit
 
 **Complete Feature Development Workflow:**
@@ -334,6 +366,9 @@ All three files use identical Phase → Task structure for synchronization.
 ### Quick Commands Summary
 
 ```bash
+# Quick fix (typos, bugs, small refactors)
+/quickfix "Description of fix needed"
+
 # Start new feature
 /feature-request "Feature description here"
 
