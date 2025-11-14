@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
+  ArrowUpDown,
   BookOpen,
   ChevronRight,
   ExternalLink,
@@ -104,6 +105,11 @@ export function NavMain() {
       title: 'Browse Techniques',
       url: '/techniques',
       icon: Library,
+    },
+    {
+      title: 'Compare Techniques',
+      url: '/compare',
+      icon: ArrowUpDown,
     },
     {
       title: 'Categories',
