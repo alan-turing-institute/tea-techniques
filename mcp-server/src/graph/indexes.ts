@@ -37,6 +37,7 @@ function parseTechnique(node: JsonLdNode): TechniqueNode {
     exampleUseCases:
       (node.exampleUseCases as TechniqueNode['exampleUseCases']) ?? [],
     limitations: (node.limitations as TechniqueNode['limitations']) ?? [],
+    sampleClaims: (node.sampleClaims as TechniqueNode['sampleClaims']) ?? [],
   };
 }
 

@@ -259,11 +259,36 @@ export function buildAutoExclusions(
   return exclusions;
 }
 
+interface ClaimEntry {
+  text: string;
+  slug: string;
+  techniqueId: string;
+}
+
 export class KnowledgeGraph {
   private index: GraphIndex;
+  private claimsFuse: Fuse<ClaimEntry>;
 
   constructor(graphData: JsonLdGraph) {
     this.index = buildGraphIndex(graphData['@graph']);
+
+    // Build flattened claims index for semantic matching
+    const claimEntries: ClaimEntry[] = [];
+    for (const technique of this.index.techniques.values()) {
+      for (const claim of technique.sampleClaims) {
+        claimEntries.push({
+          text: claim.text,
+          slug: technique.slug,
+          techniqueId: technique.id,
+        });
+      }
+    }
+    this.claimsFuse = new Fuse(claimEntries, {
+      keys: ['text'],
+      threshold: 0.4,
+      distance: 1000,
+      includeScore: true,
+    });
   }
 
   // --- Accessors ---
@@ -485,13 +510,54 @@ export class KnowledgeGraph {
       limit: 50,
     });
 
-    // Stage 2: Narrow by concept tags, with Fuse.js fallback
-    results = this.narrowByConceptTags(results, claimText);
+    // Stage 2a: Narrow by concept tags, with Fuse.js fallback
+    const narrowed = this.narrowByConceptTags(results, claimText);
+
+    // Stage 2b: Claims search (parallel path)
+    const candidateIds = new Set(results.map((t) => t.id));
+    const claimsMatched = this.searchClaims(claimText, candidateIds, 10);
+
+    // Stage 2c: Merge (union, deduplicate, claims-matched first)
+    const mergedIds = new Set<string>();
+    const merged: TechniqueNode[] = [];
+    for (const t of [...claimsMatched, ...narrowed]) {
+      if (!mergedIds.has(t.id)) {
+        mergedIds.add(t.id);
+        merged.push(t);
+      }
+    }
+    results = merged;
 
     // Stage 3: Apply context filters (include)
     results = this.applyClaimContextFilters(results, context);
 
     return results.slice(0, 10);
+  }
+
+  /** Search the flattened claims index, scoped to candidate techniques. */
+  private searchClaims(
+    claimText: string,
+    candidateIds: Set<string>,
+    limit: number
+  ): TechniqueNode[] {
+    const results = this.claimsFuse.search(claimText);
+    const seen = new Set<string>();
+    const techniques: TechniqueNode[] = [];
+    for (const r of results) {
+      const id = r.item.techniqueId;
+      if (seen.has(id) || !candidateIds.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      const t = this.index.techniques.get(id);
+      if (t) {
+        techniques.push(t);
+      }
+      if (techniques.length >= limit) {
+        break;
+      }
+    }
+    return techniques;
   }
 
   /** Narrow results by concept-tag matching with Fuse.js fallback. */

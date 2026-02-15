@@ -197,6 +197,31 @@ describe('KnowledgeGraph', () => {
       // Should have fewer or equal results
       expect(withExclude.length).toBeLessThanOrEqual(withAll.length);
     });
+
+    it('finds technique via claims search when claim text matches sample claim', () => {
+      // SHAP has a sample claim about "decomposed into quantified contributions"
+      const results = graph.suggestForClaim(
+        'predictions decomposed into quantified contributions from each input feature'
+      );
+      const slugs = results.map((t) => t.slug);
+      expect(slugs).toContain('shapley-additive-explanations');
+    });
+
+    it('claims search does not break when techniques have no claims', () => {
+      // Permutation Importance and MDI have empty sampleClaims
+      const results = graph.suggestForClaim('feature importance ranking');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('deduplicates results from claims and concept-tag paths', () => {
+      // SHAP should appear at most once even if both paths find it
+      const results = graph.suggestForClaim(
+        'explain the contributions from each feature'
+      );
+      const slugs = results.map((t) => t.slug);
+      const uniqueSlugs = new Set(slugs);
+      expect(slugs.length).toBe(uniqueSlugs.size);
+    });
   });
 
   describe('findEvidenceTypes', () => {

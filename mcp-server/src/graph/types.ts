@@ -16,6 +16,7 @@ export interface TechniqueNode {
   resources: string[];
   exampleUseCases: Array<{ description: string; goal: string }>;
   limitations: Array<{ description: string }>;
+  sampleClaims: Array<{ text: string; domain: string; assuranceGoal: string }>;
 }
 
 export interface GoalNode {
