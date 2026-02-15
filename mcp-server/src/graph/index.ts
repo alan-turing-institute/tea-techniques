@@ -116,7 +116,7 @@ function buildTagCategoryCoverage(
 }
 
 /** Extract concept tags from claim text using substring matching. */
-function extractConceptTags(claimText: string): string[] {
+export function extractConceptTags(claimText: string): string[] {
   const lower = claimText.toLowerCase();
   const tags = new Set<string>();
   for (const [concept, mappedTags] of Object.entries(CONCEPT_TAGS)) {
@@ -224,7 +224,7 @@ const GOAL_KEYWORDS: Record<string, string[]> = {
 };
 
 /** Infer assurance goals from claim text using keyword matching. */
-function inferGoals(claimText: string): string[] {
+export function inferGoals(claimText: string): string[] {
   const lower = claimText.toLowerCase();
   const goals: string[] = [];
   for (const [goal, keywords] of Object.entries(GOAL_KEYWORDS)) {
@@ -240,7 +240,7 @@ function inferGoals(claimText: string): string[] {
  * If the claim is not about fairness, exclude fairness-metric noise.
  * Always exclude neural-networks unless modelType suggests otherwise.
  */
-function buildAutoExclusions(
+export function buildAutoExclusions(
   matchedGoals: string[],
   modelType?: string
 ): string[] {
