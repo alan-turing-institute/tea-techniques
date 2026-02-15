@@ -479,9 +479,8 @@ export class KnowledgeGraph {
     // Stage 2a: Narrow by concept tags, with Fuse.js fallback
     const narrowed = this.narrowByConceptTags(results, claimText);
 
-    // Stage 2b: Claims search (parallel path)
-    const candidateIds = new Set(results.map((t) => t.id));
-    const claimsMatched = this.searchClaims(claimText, candidateIds, 10);
+    // Stage 2b: Claims search (unconstrained across all techniques)
+    const claimsMatched = this.searchClaims(claimText, 10);
 
     // Stage 2c: Merge (union, deduplicate, claims-matched first)
     const mergedIds = new Set<string>();
@@ -500,18 +499,14 @@ export class KnowledgeGraph {
     return results.slice(0, 10);
   }
 
-  /** Search the flattened claims index, scoped to candidate techniques. */
-  private searchClaims(
-    claimText: string,
-    candidateIds: Set<string>,
-    limit: number
-  ): TechniqueNode[] {
+  /** Search the flattened claims index across all techniques. */
+  private searchClaims(claimText: string, limit: number): TechniqueNode[] {
     const results = this.claimsFuse.search(claimText);
     const seen = new Set<string>();
     const techniques: TechniqueNode[] = [];
     for (const r of results) {
       const id = r.item.techniqueId;
-      if (seen.has(id) || !candidateIds.has(id)) {
+      if (seen.has(id)) {
         continue;
       }
       seen.add(id);
