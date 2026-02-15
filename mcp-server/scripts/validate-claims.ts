@@ -12,7 +12,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadGraphData } from '../src/data/loader.js';
 import {
-  buildAutoExclusions,
   extractConceptTags,
   inferGoals,
   KnowledgeGraph,
@@ -231,7 +230,6 @@ function evaluateClaims(
         matchPath,
         inferredGoals: inferGoals(claim.text),
         conceptTags: extractConceptTags(claim.text),
-        autoExclusions: buildAutoExclusions(inferGoals(claim.text)),
         returnedSlugs,
       });
 

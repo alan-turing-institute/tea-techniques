@@ -235,30 +235,6 @@ export function inferGoals(claimText: string): string[] {
   return goals;
 }
 
-/**
- * Build auto-exclusion tags based on which goals were NOT matched.
- * If the claim is not about fairness, exclude fairness-metric noise.
- * Always exclude neural-networks unless modelType suggests otherwise.
- */
-export function buildAutoExclusions(
-  matchedGoals: string[],
-  modelType?: string
-): string[] {
-  const exclusions: string[] = [];
-  // Exclude NN techniques unless the user explicitly specified a NN model type
-  const isNnContext =
-    modelType?.toLowerCase().includes('neural') ||
-    modelType?.toLowerCase().includes('deep');
-  if (!isNnContext) {
-    exclusions.push('neural-networks');
-  }
-  // Exclude fairness-metric noise unless the claim is about fairness
-  if (!matchedGoals.includes('fairness')) {
-    exclusions.push('fairness-metric');
-  }
-  return exclusions;
-}
-
 interface ClaimEntry {
   text: string;
   slug: string;
@@ -492,21 +468,11 @@ export class KnowledgeGraph {
     }
   ): TechniqueNode[] {
     const matchedGoals = inferGoals(claimText);
-    const autoExclusions = buildAutoExclusions(
-      matchedGoals,
-      context?.modelType
-    );
+    const exclusions = context?.excludeModelTypes ?? [];
 
-    // Combine auto-exclusions with explicit exclusions
-    const allExclusions = [
-      ...autoExclusions,
-      ...(context?.excludeModelTypes ?? []),
-    ];
-
-    // Get goal-filtered base set with auto-exclusions applied
     let results = this.findTechniques({
       goals: matchedGoals.length > 0 ? matchedGoals : undefined,
-      excludeTags: allExclusions.length > 0 ? allExclusions : undefined,
+      excludeTags: exclusions.length > 0 ? exclusions : undefined,
       limit: 50,
     });
 
