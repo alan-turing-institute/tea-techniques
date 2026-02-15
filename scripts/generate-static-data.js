@@ -74,6 +74,7 @@ async function generateStaticData() {
       description: technique.description,
       assurance_goals: technique.assurance_goals,
       tags: technique.tags,
+      sample_claims: technique.sample_claims,
     }));
     await fs.writeFile(
       path.join(dataDir, 'techniques-metadata.json'),
@@ -187,6 +188,7 @@ function generateSearchIndex(techniques) {
       technique.description,
       ...(technique.assurance_goals || []),
       ...(technique.tags || []),
+      ...(technique.sample_claims?.map((c) => c.text) || []),
     ]
       .join(' ')
       .toLowerCase(),

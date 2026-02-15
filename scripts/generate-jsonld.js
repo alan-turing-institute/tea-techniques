@@ -98,6 +98,10 @@ function transformTechnique(technique) {
     node.limitations = technique.limitations;
   }
 
+  if (technique.sample_claims?.length) {
+    node.sampleClaims = technique.sample_claims;
+  }
+
   return node;
 }
 
