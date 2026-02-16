@@ -482,10 +482,11 @@ export class KnowledgeGraph {
     // Stage 2b: Claims search (unconstrained across all techniques)
     const claimsMatched = this.searchClaims(claimText, 10);
 
-    // Stage 2c: Merge (union, deduplicate, claims-matched first)
+    // Stage 2c: Merge (union, deduplicate, concept-tag results first)
+    // Concept-tag matching is structural/semantic; claims matching is fuzzy text.
     const mergedIds = new Set<string>();
     const merged: TechniqueNode[] = [];
-    for (const t of [...claimsMatched, ...narrowed]) {
+    for (const t of [...narrowed, ...claimsMatched]) {
       if (!mergedIds.has(t.id)) {
         mergedIds.add(t.id);
         merged.push(t);
