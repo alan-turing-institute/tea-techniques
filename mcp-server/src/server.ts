@@ -268,7 +268,9 @@ export function createServer(graph: KnowledgeGraph): McpServer {
         modelType: z
           .string()
           .optional()
-          .describe('Model type context (e.g. neural-network, tree-based)'),
+          .describe(
+            'Model type context. ML types: neural-network, tree-based, linear-models, probabilistic, ensemble. Non-ML types: physics-based, simulation, mechanistic, statistical, other (excludes architecture-specific techniques).'
+          ),
         dataType: z
           .string()
           .optional()

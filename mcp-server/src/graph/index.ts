@@ -159,15 +159,43 @@ function applyExcludeTags(
   );
 }
 
-/** Filter by context tag (include only techniques matching the tag fragment). */
+// Map informal model types to tag-based filtering strategies.
+// Keys that map to `null` trigger exclude-based filtering instead.
+const MODEL_TYPE_MAP: Record<string, string | null> = {
+  'physics-based': null,
+  simulation: null,
+  mechanistic: null,
+  statistical: null,
+  other: null,
+};
+
+// Architecture-specific tags to exclude for non-ML model types.
+const NON_ML_EXCLUDE_TAGS = ['neural-networks', 'tree-based', 'linear-models'];
+
+/** Filter by context tag (include only techniques matching the tag fragment).
+ *  Degrades gracefully: if the filter would eliminate all results, skip it. */
 function applyContextFilter(
   techniques: TechniqueNode[],
   term: string
 ): TechniqueNode[] {
   const lower = term.toLowerCase();
-  return techniques.filter((t) =>
+
+  // Check for mapped model types (physics-based, simulation, etc.)
+  if (lower in MODEL_TYPE_MAP) {
+    const mapped = MODEL_TYPE_MAP[lower];
+    if (mapped === null) {
+      // Exclude architecture-specific techniques instead of include-filtering
+      return applyExcludeTags(techniques, NON_ML_EXCLUDE_TAGS);
+    }
+    // Use the mapped term for include-filtering
+    return applyContextFilter(techniques, mapped);
+  }
+
+  const filtered = techniques.filter((t) =>
     t.tags.some((tag) => tag.toLowerCase().includes(lower))
   );
+  // Graceful degradation: if filter eliminates everything, skip it
+  return filtered.length > 0 ? filtered : techniques;
 }
 
 // --- Goal inference from claim keywords ---
