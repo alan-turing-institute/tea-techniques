@@ -50,7 +50,13 @@ const CONCEPT_TAGS: Record<string, string[]> = {
   audit: ['documentation', 'governance-disclosure'],
   // Sensitivity & fidelity (sensitivity-testing is a real tag path)
   sensitiv: ['sensitivity-testing'],
-  fidelity: ['sensitivity-testing'],
+  fidelity: ['sensitivity-testing', 'model-evaluation'],
+  // Validation, verification & testing
+  validat: ['model-evaluation'],
+  verif: ['model-evaluation', 'testing'],
+  endpoint: ['model-evaluation'],
+  // Robustness
+  perturb: ['testing', 'sensitivity-testing'],
 };
 
 // --- Helpers to reduce cognitive complexity ---
