@@ -25,7 +25,42 @@ interface ClaimRubric {
   text: string;
   good: string[];
   acceptable: string[];
+  bad: string[];
 }
+
+// Techniques that are clearly wrong for a lumped-parameter physics model.
+// NN-specific, tree-specific, linear-model-specific, or topically irrelevant.
+const NN_SPECIFIC = [
+  'deeplift',
+  'layer-wise-relevance-propagation',
+  'gradient-weighted-class-activation-mapping',
+  'integrated-gradients',
+  'saliency-maps',
+  'contextual-decomposition',
+  'taylor-decomposition',
+  'attention-visualisation-in-transformers',
+  'neuron-activation-analysis',
+  'concept-activation-vectors',
+  'monte-carlo-dropout',
+  'out-of-distribution-detector-for-neural-networks',
+  'adversarial-debiasing',
+  'causal-mediation-analysis-in-language-models',
+  'chain-of-thought-faithfulness-evaluation',
+];
+const TREE_SPECIFIC = ['mean-decrease-impurity'];
+const LINEAR_SPECIFIC = ['coefficient-magnitudes-in-linear-models'];
+const ARCHITECTURE_BAD = [...NN_SPECIFIC, ...TREE_SPECIFIC, ...LINEAR_SPECIFIC];
+
+// Fairness techniques irrelevant to physics model validation.
+const FAIRNESS_IRRELEVANT = [
+  'equalised-odds-post-processing',
+  'reweighing',
+  'reject-option-classification',
+  'prejudice-remover-regulariser',
+  'calibration-with-equality-of-opportunity',
+  'sensitivity-analysis-for-fairness',
+  'adversarial-debiasing',
+];
 
 const RUBRIC: ClaimRubric[] = [
   {
@@ -42,7 +77,10 @@ const RUBRIC: ClaimRubric[] = [
       'jackknife-resampling',
       'permutation-importance',
       'partial-dependence-plots',
+      'quantile-regression',
+      'empirical-calibration',
     ],
+    bad: [...ARCHITECTURE_BAD, ...FAIRNESS_IRRELEVANT],
   },
   {
     id: 'P2.2',
@@ -54,8 +92,14 @@ const RUBRIC: ClaimRubric[] = [
       'prediction-intervals',
       'conformal-prediction',
       'jackknife-resampling',
+      'sobol-indices',
     ],
-    acceptable: ['confidence-thresholding', 'sobol-indices'],
+    acceptable: [
+      'confidence-thresholding',
+      'quantile-regression',
+      'deep-ensembles',
+    ],
+    bad: [...ARCHITECTURE_BAD, ...FAIRNESS_IRRELEVANT],
   },
   {
     id: 'P3.2',
@@ -68,7 +112,14 @@ const RUBRIC: ClaimRubric[] = [
       'runtime-monitoring-and-circuit-breakers',
       'epistemic-uncertainty-quantification',
     ],
-    acceptable: ['red-teaming', 'jackknife-resampling', 'bootstrapping'],
+    acceptable: [
+      'red-teaming',
+      'jackknife-resampling',
+      'bootstrapping',
+      'quantile-regression',
+      'out-of-domain-detection',
+    ],
+    bad: [...ARCHITECTURE_BAD, ...FAIRNESS_IRRELEVANT],
   },
   {
     id: 'P4.1',
@@ -82,6 +133,19 @@ const RUBRIC: ClaimRubric[] = [
       'prediction-intervals',
       'partial-dependence-plots',
       'sobol-indices',
+      'local-interpretable-model-agnostic-explanations',
+      'empirical-calibration',
+      'internal-review-boards',
+      'shapley-additive-explanations',
+    ],
+    bad: [
+      ...NN_SPECIFIC,
+      ...TREE_SPECIFIC,
+      ...LINEAR_SPECIFIC,
+      ...FAIRNESS_IRRELEVANT,
+      'prompt-injection-testing',
+      'jailbreak-resistance-testing',
+      'prompt-robustness-testing',
     ],
   },
   {
@@ -98,6 +162,17 @@ const RUBRIC: ClaimRubric[] = [
       'conformal-prediction',
       'jackknife-resampling',
       'sobol-indices',
+      'shapley-additive-explanations',
+      'permutation-importance',
+    ],
+    bad: [
+      ...NN_SPECIFIC,
+      ...TREE_SPECIFIC,
+      ...LINEAR_SPECIFIC,
+      ...FAIRNESS_IRRELEVANT,
+      'data-version-control',
+      'synthetic-data-generation',
+      'agent-goal-misalignment-testing',
     ],
   },
 ];
@@ -133,10 +208,12 @@ function scoreTechnique(slug: string, rubric: ClaimRubric): 1 | 0 | -1 {
   if (rubric.good.includes(slug)) {
     return 1;
   }
-  if (rubric.acceptable.includes(slug)) {
-    return 0;
+  if (rubric.bad.includes(slug)) {
+    return -1;
   }
-  return -1;
+  // Acceptable and unlisted techniques both score 0.
+  // Only explicitly bad techniques (architecture-specific, topically irrelevant) penalise.
+  return 0;
 }
 
 // --- Types ---
@@ -157,6 +234,58 @@ interface EvaluationReport {
     averageScore: number;
     grades: Record<string, string>;
   };
+}
+
+// --- Helpers ---
+
+// Build lookup: claim id → set of acceptable slugs (for display markers).
+const ACCEPTABLE_LOOKUP = new Map(
+  RUBRIC.map((r) => [r.id, new Set(r.acceptable)])
+);
+
+function getMarker(claimId: string, slug: string, score: 1 | 0 | -1): string {
+  if (score === 1) {
+    return '  +';
+  }
+  if (score === -1) {
+    return '  -';
+  }
+  const acceptable = ACCEPTABLE_LOOKUP.get(claimId);
+  return acceptable?.has(slug) ? '  ~' : '  .';
+}
+
+function printReport(
+  claims: ClaimEvaluation[],
+  grades: Record<string, string>,
+  scoreSum: number
+): void {
+  // biome-ignore lint/suspicious/noConsole: CLI script output
+  const log = console.log.bind(console);
+
+  log('');
+  log('Cardiac Digital Twin (PAH) — Claims Evaluation');
+  log('================================================');
+  log('  Legend: + good, ~ acceptable, . neutral, - bad');
+  log('');
+
+  for (const claim of claims) {
+    log(`${claim.id}: ${claim.grade}  (score: ${claim.totalScore})`);
+    log(`  "${claim.text.slice(0, 80)}..."`);
+    log('  Top 10 results:');
+    for (const s of claim.scores) {
+      log(`  ${getMarker(claim.id, s.slug, s.score)} ${s.slug}`);
+    }
+    log('');
+  }
+
+  log('Summary');
+  log('-------');
+  for (const [id, grade] of Object.entries(grades)) {
+    log(`  ${id}: ${grade}`);
+  }
+  log(`  Average score: ${(scoreSum / claims.length).toFixed(1)}`);
+  log('');
+  log(`Report written to: ${REPORT_PATH}`);
 }
 
 // --- Main ---
@@ -206,40 +335,7 @@ async function main(): Promise<void> {
 
   await fs.mkdir(CLAIMS_DIR, { recursive: true });
   await fs.writeFile(REPORT_PATH, JSON.stringify(report, null, 2));
-
-  // Print readable report
-  // biome-ignore lint/suspicious/noConsole: CLI script output
-  const log = console.log.bind(console);
-
-  log('');
-  log('Cardiac Digital Twin (PAH) — Claims Evaluation');
-  log('================================================');
-  log('');
-
-  for (const claim of claims) {
-    log(`${claim.id}: ${claim.grade}  (score: ${claim.totalScore})`);
-    log(`  "${claim.text.slice(0, 80)}..."`);
-    log('  Top 10 results:');
-    for (const s of claim.scores) {
-      let marker = '  -';
-      if (s.score === 1) {
-        marker = '  +';
-      } else if (s.score === 0) {
-        marker = '  ~';
-      }
-      log(`  ${marker} ${s.slug}`);
-    }
-    log('');
-  }
-
-  log('Summary');
-  log('-------');
-  for (const [id, grade] of Object.entries(grades)) {
-    log(`  ${id}: ${grade}`);
-  }
-  log(`  Average score: ${(scoreSum / claims.length).toFixed(1)}`);
-  log('');
-  log(`Report written to: ${REPORT_PATH}`);
+  printReport(claims, grades, scoreSum);
 }
 
 main().catch((err) => {
