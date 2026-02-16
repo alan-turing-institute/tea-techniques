@@ -261,8 +261,8 @@ export class KnowledgeGraph {
     }
     this.claimsFuse = new Fuse(claimEntries, {
       keys: ['text'],
-      threshold: 0.4,
-      distance: 1000,
+      threshold: 0.3,
+      distance: 200,
       includeScore: true,
     });
   }
@@ -505,6 +505,11 @@ export class KnowledgeGraph {
     const seen = new Set<string>();
     const techniques: TechniqueNode[] = [];
     for (const r of results) {
+      // Discard weak matches — Fuse.js scores where lower = better.
+      // Scores above 0.6 indicate near-garbage fuzzy matches on common words.
+      if (r.score !== undefined && r.score > 0.6) {
+        continue;
+      }
       const id = r.item.techniqueId;
       if (seen.has(id)) {
         continue;
