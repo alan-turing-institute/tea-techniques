@@ -470,14 +470,14 @@ export class KnowledgeGraph {
     const matchedGoals = inferGoals(claimText);
     const exclusions = context?.excludeModelTypes ?? [];
 
-    let results = this.findTechniques({
+    const goalFiltered = this.findTechniques({
       goals: matchedGoals.length > 0 ? matchedGoals : undefined,
       excludeTags: exclusions.length > 0 ? exclusions : undefined,
       limit: 50,
     });
 
     // Stage 2a: Narrow by concept tags, with Fuse.js fallback
-    const narrowed = this.narrowByConceptTags(results, claimText);
+    const narrowed = this.narrowByConceptTags(goalFiltered, claimText);
 
     // Stage 2b: Claims search (unconstrained across all techniques)
     const claimsMatched = this.searchClaims(claimText, 10);
@@ -492,7 +492,13 @@ export class KnowledgeGraph {
         merged.push(t);
       }
     }
-    results = merged;
+
+    // If both paths found nothing, fall back to the goal-filtered set ranked
+    // by loose Fuse.js similarity (avoids arbitrary Map insertion order).
+    let results =
+      merged.length > 0
+        ? merged
+        : this.fuseRankFallback(goalFiltered, claimText);
 
     // Stage 3: Apply context filters (include)
     results = this.applyClaimContextFilters(results, context);
@@ -533,7 +539,6 @@ export class KnowledgeGraph {
     claimText: string
   ): TechniqueNode[] {
     const conceptTags = extractConceptTags(claimText);
-    const goalFiltered = results;
 
     if (conceptTags.length > 0) {
       const conceptMatched = results.filter((t) =>
@@ -544,9 +549,14 @@ export class KnowledgeGraph {
       }
     }
 
-    // Fall back to Fuse.js search; if nothing matches, keep goal-filtered set
+    // Fall back to Fuse.js search with standard threshold
     const fuseResults = this.fuseSearchWithin(results, claimText);
-    return fuseResults.length > 0 ? fuseResults : goalFiltered;
+    if (fuseResults.length > 0) {
+      return fuseResults;
+    }
+
+    // No specific signal — return empty so claims-search can fill in via merge.
+    return [];
   }
 
   /** Apply include-style context filters from claim context. */
@@ -586,6 +596,33 @@ export class KnowledgeGraph {
       minMatchCharLength: 2,
     });
     return scopedFuse.search(query).map((r) => r.item);
+  }
+
+  /**
+   * Rank techniques by loose Fuse.js similarity as a last-resort fallback.
+   * Uses a generous threshold so most techniques get a score, producing a
+   * relevance-ranked list instead of arbitrary Map insertion order.
+   */
+  private fuseRankFallback(
+    techniques: TechniqueNode[],
+    query: string
+  ): TechniqueNode[] {
+    if (techniques.length === 0) {
+      return [];
+    }
+    const scopedFuse = new Fuse(techniques, {
+      keys: [
+        { name: 'name', weight: 0.4 },
+        { name: 'description', weight: 0.3 },
+        { name: 'acronym', weight: 0.1 },
+      ],
+      threshold: 0.8,
+      includeScore: true,
+      minMatchCharLength: 2,
+    });
+    const ranked = scopedFuse.search(query).map((r) => r.item);
+    // If even the generous threshold finds nothing, return original order
+    return ranked.length > 0 ? ranked : techniques;
   }
 
   findEvidenceTypes(): Array<{
