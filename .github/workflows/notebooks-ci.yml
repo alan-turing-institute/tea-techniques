@@ -1,0 +1,41 @@
+name: Notebook CI
+
+on:
+  push:
+    paths:
+      - 'tutorials/**'
+  pull_request:
+    paths:
+      - 'tutorials/**'
+
+jobs:
+  run-notebooks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        notebook:
+          - tutorials/notebooks/shap/shap-tutorial.ipynb
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install papermill jupyter
+          # Install notebook-specific requirements
+          NOTEBOOK_DIR=$(dirname "${{ matrix.notebook }}")
+          if [ -f "$NOTEBOOK_DIR/requirements.txt" ]; then
+            pip install -r "$NOTEBOOK_DIR/requirements.txt"
+          fi
+
+      - name: Run notebook
+        run: |
+          papermill "${{ matrix.notebook }}" /dev/null --no-progress-bar -k python3

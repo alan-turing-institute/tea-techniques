@@ -6,7 +6,7 @@ Hands-on Jupyter notebook tutorials that help you understand how AI assurance te
 
 | Assurance Goal | Technique | Status | Colab |
 |----------------|-----------|--------|-------|
-| Explainability | [SHAP](notebooks/shap/) | Planned | - |
+| Explainability | [SHAP](notebooks/shap/) | Draft | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/alan-turing-institute/tea-techniques/blob/main/tutorials/notebooks/shap/shap-tutorial.ipynb) |
 | Transparency | [LIME](notebooks/lime/) | Planned | - |
 | Privacy | [Differential Privacy](notebooks/differential-privacy/) | Planned | - |
 | Reliability | [Conformal Prediction](notebooks/conformal-prediction/) | Planned | - |

@@ -2,9 +2,9 @@
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/alan-turing-institute/tea-techniques/blob/main/tutorials/notebooks/shap/shap-tutorial.ipynb)
 
-**Assurance Goal:** Explainability
+**Assurance Goals:** Explainability, Fairness, Reliability
 **Difficulty:** Intermediate
-**Time:** ~45 minutes
+**Time:** ~60-90 minutes
 
 ## Overview
 
@@ -18,6 +18,8 @@ This interactive tutorial teaches you how to use SHAP to explain machine learnin
 4. **When SHAP may be unreliable** (correlated features, small background datasets)
 5. **How to generate assurance evidence** including stability testing
 6. **Limitations** of SHAP for assurance purposes
+7. **Fairness and Reliability** applications of SHAP for assurance
+8. **KernelSHAP** for explaining black-box models
 
 ## Prerequisites
 
@@ -50,8 +52,9 @@ jupyter notebook shap-tutorial.ipynb
 - **Shapley values**: Fair attribution of predictions to features
 - **Base value**: The average prediction that SHAP values are relative to
 - **TreeSHAP**: Exact, fast algorithm for tree-based models
+- **KernelSHAP**: Model-agnostic approximate algorithm for any black-box model
 - **Stability testing**: Ensuring explanations are reliable across runs
-- **Evidence artifacts**: Generating auditable documentation
+- **Evidence artefacts**: Generating auditable documentation
 
 ## Assurance Focus
 
@@ -59,15 +62,17 @@ Unlike generic SHAP tutorials, this one specifically addresses:
 
 - What claims SHAP can and cannot support
 - How to test explanation stability (critical for audits)
-- Generating structured evidence artifacts
+- Generating structured evidence artefacts
 - Documenting limitations appropriately
 - The "Failed Audit" scenario - why stability matters
+- Fairness assurance via subgroup SHAP comparison
+- Reliability assurance via domain-informed feature ranking
 
 ## Files
 
 - `shap-tutorial.ipynb` - Main tutorial notebook
 - `requirements.txt` - Python dependencies
-- `resources.md` - Pre-fetched reference materials
+- `_resources.md` - Pre-fetched reference materials (developer scaffolding)
 
 ## Related Resources
 
