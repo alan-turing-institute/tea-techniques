@@ -374,15 +374,11 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/reliability':
     'Techniques that ensure consistent and dependable performance',
   'assurance-goal-category/reliability/uncertainty-quantification':
-    'Quantifies prediction uncertainty and confidence',
+    'Techniques that estimate how far a prediction could be wrong, as intervals, sets or spread across models.',
   'assurance-goal-category/reliability/robustness':
-    'Assesses or improves performance under noise, perturbation, or distribution shift',
-  'assurance-goal-category/reliability/cross-group-consistency':
-    'Checks that performance holds across sub-groups of the population',
-  'assurance-goal-category/reliability/model-behavior-understanding':
-    'Builds understanding of how the model behaves so reliability can be judged',
+    'Techniques that test or improve whether performance holds when inputs, prompts, data or conditions change.',
   'assurance-goal-category/reliability/performance-assessment':
-    'Measures model performance against defined criteria',
+    'Techniques that measure how well a model performs and whether the measured result is real and repeatable.',
   'assurance-goal-category/safety':
     'Techniques that prevent harmful or dangerous outcomes',
   'assurance-goal-category/safety/hazard-analysis':
@@ -426,4 +422,10 @@ export const tagDefinitions: Record<string, string> = {
     'Techniques that spot attacks, tampering or misuse of a model or its training data, whether in operation or before training.',
   'assurance-goal-category/security/threat-analysis':
     'Techniques that map who might attack a system, how, and what they could gain, so defences can be chosen to fit.',
+  'assurance-goal-category/reliability/calibration':
+    "Techniques that check or correct whether a model's stated confidence matches how often it is right.",
+  'assurance-goal-category/reliability/shift-detection':
+    'Techniques that detect when inputs or conditions move outside what the model was built and tested for.',
+  'assurance-goal-category/reliability/behavioural-consistency':
+    'Techniques that check or enforce that a system keeps behaving as specified across scenarios, not just scoring well.',
 };
