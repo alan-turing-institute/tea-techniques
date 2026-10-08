@@ -374,15 +374,9 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/transparency':
     'Techniques that increase system openness and clarity',
   'assurance-goal-category/transparency/documentation':
-    'Creates clear documentation of system behaviour',
-  'assurance-goal-category/transparency/documentation/model-card':
-    'Standardized model documentation format',
-  'assurance-goal-category/transparency/process-transparency':
-    'Makes the process by which the system was built or decides visible',
+    'Techniques that produce a written disclosure about a model, dataset or system, such as a model card, datasheet or system card.',
   'assurance-goal-category/transparency/audit-trail':
-    'Produces records that let a third party reconstruct what the system did',
-  'assurance-goal-category/transparency/algorithmic-transparency':
-    'Makes the algorithm itself inspectable',
+    'Produces a dated record of what was done to a system or its data, so a third party can reconstruct it later.',
   'assurance-goal-category/security':
     'Techniques that protect the system from malicious attacks or unauthorized access',
 
@@ -432,4 +426,16 @@ export const tagDefinitions: Record<string, string> = {
     'Techniques that build a fairness constraint, penalty or adversary into model training.',
   'assurance-goal-category/fairness/post-processing':
     'Techniques that adjust decisions or thresholds after training so that outcomes or error rates match across groups.',
+  'assurance-goal-category/transparency/assessment-results':
+    'Produces measured findings on how a system performs or behaves, in a form that can be reported to those who rely on or oversee it.',
+  'assurance-goal-category/transparency/confidence-and-limits':
+    'Techniques that show users how far to trust each output and when a request falls outside what the system can handle.',
+  'assurance-goal-category/transparency/decision-reasons':
+    "Techniques that give people outside the build team the reasons, rules or sources behind a model's outputs, so they can check them.",
+  'assurance-goal-category/transparency/notice-and-recourse':
+    'Techniques that tell an affected person what a decision rested on and what they could change or challenge to get another outcome.',
+  'assurance-goal-category/transparency/readable-by-design':
+    'Techniques that make a model or its inputs readable as they stand, so a reviewer needs no separate explanation step.',
+  'assurance-goal-category/transparency/confidential-verification':
+    'Techniques that let an outside party check a claim about a system or its data without being handed the data or the model.',
 };
