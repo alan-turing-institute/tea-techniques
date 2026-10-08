@@ -444,4 +444,10 @@ export const tagDefinitions: Record<string, string> = {
     'Requires knowledge of privacy-enhancing methods and privacy threat modelling: disclosure and re-identification risk, privacy budgets, and the utility cost of protection.',
   'expertise-needed/deep-learning':
     "Requires access to and understanding of a neural network's internals: gradients, activations, attention weights and layers. Narrower than ml-engineering, which would keep training, adaptation and operation.",
+  'evidence-type/model-artefact':
+    "The technique's main artefact is a trained, retrained, compressed, constrained or re-thresholded model (or decision rule), delivered with the measurements showing the change had the intended effect.",
+  'evidence-type/modified-dataset':
+    "The technique's main artefact is a training dataset that has been re-weighted, re-labelled, re-sampled, transformed or had features removed, delivered with a record of what changed.",
+  'evidence-type/audit-record':
+    'The technique produces a time-stamped, versioned or tamper-evident record of what was done, with which data and code, and by whom, from which events can be reconstructed.',
 };
