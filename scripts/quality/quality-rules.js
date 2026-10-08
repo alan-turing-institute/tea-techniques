@@ -38,36 +38,36 @@ export const REQUIRED_SUBTAG_RULES = {
  */
 export const GOAL_CONDITIONAL_RULES = {
   Explainability: {
-    must: ['explanatory-scope/'],
-    should: ['assurance-goal-category/explainability/'],
+    must: ['explanatory-scope/', 'assurance-goal-category/explainability/'],
+    should: [],
   },
   Fairness: {
-    must: [],
-    should: ['fairness-approach/', 'assurance-goal-category/fairness/'],
+    must: ['assurance-goal-category/fairness/'],
+    should: [],
   },
   Privacy: {
-    must: [],
-    should: ['assurance-goal-category/privacy/'],
+    must: ['assurance-goal-category/privacy/'],
+    should: [],
   },
   Reliability: {
-    must: [],
-    should: ['assurance-goal-category/reliability/'],
+    must: ['assurance-goal-category/reliability/'],
+    should: [],
   },
   Safety: {
-    must: [],
-    should: ['assurance-goal-category/safety/'],
+    must: ['assurance-goal-category/safety/'],
+    should: [],
   },
   Security: {
-    must: [],
-    should: ['assurance-goal-category/security/'],
+    must: ['assurance-goal-category/security/'],
+    should: [],
   },
   Transparency: {
-    must: [],
-    should: ['assurance-goal-category/transparency/'],
+    must: ['assurance-goal-category/transparency/'],
+    should: [],
   },
   General: {
-    must: [],
-    should: ['assurance-goal-category/general'],
+    must: ['assurance-goal-category/general/'],
+    should: [],
   },
 };
 

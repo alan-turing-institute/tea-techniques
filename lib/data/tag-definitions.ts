@@ -22,8 +22,6 @@ export const tagDefinitions: Record<string, string> = {
     'Primary assurance goal that the technique helps achieve',
   'explanatory-scope':
     'Whether the explanation is instance-specific (local) or model-wide (global)',
-  'fairness-approach':
-    'Underlying approach to fairness for fairness-related techniques',
 
   // Applicable Models - Architecture Dimension
   'applicable-models/architecture/model-agnostic':
@@ -352,7 +350,7 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/fairness':
     'Techniques that assess or improve fairness in AI systems',
   'assurance-goal-category/general':
-    'Techniques that support assurance across all goals rather than one in particular',
+    'Techniques that govern, record or control the work of building and running an AI system, rather than assess one property of the model',
   'assurance-goal-category/privacy':
     'Techniques that protect data privacy and confidentiality',
   'assurance-goal-category/privacy/formal-guarantee':
@@ -385,9 +383,6 @@ export const tagDefinitions: Record<string, string> = {
   'explanatory-scope/global':
     'Provides explanations for overall model behaviour',
 
-  // Fairness Approach
-  'fairness-approach/group': 'Focuses on statistical parity between groups',
-  'fairness-approach/causal': 'Uses causal models to define fairness',
   'assurance-goal-category/safety/hazard-identification':
     'Techniques that find how a system could fail or cause harm, by probing it for unsafe behaviours, failure modes and rare scenarios.',
   'assurance-goal-category/safety/verification':

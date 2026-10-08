@@ -125,12 +125,14 @@ Rules:
 - For every listed assurance goal the record carries one sub-category tag under
   `assurance-goal-category/<goal>/...`, so a reader can see not just that the
   technique serves fairness but which kind of fairness work it does.
-- Explainability techniques carry an `explanatory-scope` tag. Fairness
-  techniques carry a `fairness-approach` tag.
+- Explainability techniques carry an `explanatory-scope` tag.
 - Tags exist for discovery. A record carries a tag when a practitioner filtering
-  by it would expect to find this technique, and not otherwise. Catch-all tags
-  (`data-type/any`, `lifecycle-stage/all`) belong only on a technique that is
-  genuinely indifferent to that dimension.
+  by it would expect to find this technique, and not otherwise. The catch-all
+  `data-type/any` belongs only on a technique that is genuinely indifferent to
+  data type. A technique carries one to three lifecycle stage tags (each with
+  its phase tag); `lifecycle-stage/other/cross-cutting` marks a practice that
+  runs throughout the lifecycle and is carried alongside the stages where its
+  evidence is produced, never alone.
 
 ## 7. Related techniques
 
