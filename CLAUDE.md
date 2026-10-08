@@ -33,7 +33,7 @@ NODE_ENV=production pnpm build
 
 - **Source:** `/public/data/techniques.json` (ground truth)
 - **Generated:** ~280+ JSON files for optimal performance
-- **Structure:** 7 Assurance Goals, 92 Techniques, 184 Filter combinations
+- **Structure:** 8 assurance goals, 115 techniques, generated filter files for every tag
 
 ### Tech Stack
 

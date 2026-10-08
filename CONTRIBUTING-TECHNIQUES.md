@@ -1,6 +1,6 @@
 # Guide to Developing a New Technique
 
-This guide provides best practices for adding new techniques to the TEA Techniques database. All techniques are stored in `/public/data/techniques.json` and must follow the structure and standards outlined below.
+This guide explains how to write a technique record, field by field. All techniques are stored in `/public/data/techniques.json`. What a complete, good record must contain is defined in [`docs/technique-quality-standard.md`](docs/technique-quality-standard.md); where this guide and the standard disagree, the standard wins.
 
 ## JSON Schema Reference
 
@@ -15,11 +15,12 @@ Each technique in `techniques.json` follows this structure:
   tags: string[];                     // Required: Categorisation tags
   example_use_cases: UseCase[];       // Required: Real-world examples
   limitations: Limitation[];          // Required: Known constraints
-  resources: Resource[];              // Required: Supporting materials
+  resources: string[];                // Required: Zotero citation keys (see 8)
+  sample_claims?: SampleClaim[];      // Assurance claims the technique can support
   acronym?: string;                   // Optional: Common abbreviation
-  complexity_rating?: number;         // Optional: 1-5 difficulty scale
-  computational_cost_rating?: number; // Optional: 1-5 resource scale
-  related_techniques?: string[];      // Optional: Slugs of related techniques
+  complexity_rating?: number;         // Optional: 1-5 scale (not currently audited)
+  computational_cost_rating?: number; // Optional: 1-5 scale (not currently audited)
+  related_techniques?: string[];      // Generated at build time; do not hand-edit
 }
 ```
 
@@ -35,12 +36,22 @@ interface Limitation {
   description: string;  // Constraint or caveat
 }
 
+interface SampleClaim {
+  text: string;         // A claim as it would appear in an assurance case
+  assuranceGoal: string; // Lowercase goal name, e.g. "explainability"
+  domain?: string;      // Optional application domain
+}
+
+// Resources are Zotero citation keys. At build time each key is resolved from
+// public/data/zotero-resources.json into this shape:
 interface Resource {
   title: string;               // Resource name
   url: string;                 // Link to resource
-  source_type: string;         // Type: software_package | tutorial | technical_paper | documentation | blog_post
-  authors?: string[];          // For technical papers
-  publication_date?: string;   // For technical papers (YYYY-MM-DD)
+  source_type: string;         // documentation | software_package | technical_paper | tutorial | application_paper
+  authors?: string[];          // From the Zotero creators
+  publication_date?: string;   // From the Zotero date
+  citationKey: string;         // The key used in techniques.json
+  abstract?: string;           // From the Zotero abstract
 }
 ```
 
@@ -80,7 +91,9 @@ A comprehensive explanation of what the technique does and how it works.
 
 An array of assurance goals that the technique addresses.
 
-**Valid Values:** `["Explainability", "Fairness", "Privacy", "Reliability", "Safety", "Security", "Transparency"]`
+**Valid Values:** `["Explainability", "Fairness", "General", "Privacy", "Reliability", "Safety", "Security", "Transparency"]`
+
+`General` is for techniques that apply across goals (for example internal review boards) and should be listed on its own, not alongside the specific goals.
 
 **Guidelines:**
 - **Include all relevant goals**: A technique can address multiple goals; include all that apply (e.g., SHAP addresses Explainability, Fairness, and Reliability)
@@ -95,18 +108,19 @@ Hierarchical categorisation tags following the structured taxonomy.
 
 **Tag Categories:**
 1. `assurance-goal-category/*` — Goals and sub-categories (e.g., `explainability/attribution-methods/perturbation-based`)
-2. `applicable-models/*` — Model types (e.g., `architecture/neural-network`)
+2. `applicable-models/*` — Model types (e.g., `architecture/neural-networks`, `requirements/model-internals`)
 3. `lifecycle-stage/*` — Project phases (e.g., `model-development`, `deployment`)
-4. `expertise-needed/*` — Required expertise (e.g., `statistics`, `domain-knowledge`)
+4. `expertise-needed/*` — Required expertise (e.g., `statistics`, `domain-expertise`)
 5. `evidence-type/*` — Output types (e.g., `quantitative-metric`, `documentation`)
 6. `data-type/*` — Applicable data (e.g., `tabular`, `text`, `image`)
-7. `data-requirements/*` — Data dependencies (e.g., `model-internals`, `no-special-requirements`)
+7. `data-requirements/*` — Data dependencies (e.g., `access-to-model-internals`, `no-special-requirements`)
 8. `technique-type/*` — Fundamental approach (e.g., `algorithmic`, `stakeholder-engagement`)
 9. `explanatory-scope/*` — Explanation level (e.g., `local`, `global`)
-10. `fairness-approach/*` — Fairness perspective (e.g., `individual-fairness`, `group-fairness`)
+10. `fairness-approach/*` — Fairness perspective (e.g., `individual`, `group`, `causal`)
 
 **Guidelines:**
-- **Follow the established taxonomy**: Refer to [/docs/tag-reference](/docs/tag-reference) for all available tags; propose new tags only when existing ones do not fit
+- **Follow the established taxonomy**: every tag must be defined in `lib/data/tag-definitions.ts` (shown at [/docs/tag-reference](/docs/tag-reference)); a tag that is not defined there fails validation. Propose a new tag by adding its definition in the same change
+- **One sub-category per goal**: for each listed assurance goal, include one `assurance-goal-category/<goal>/...` tag that says which kind of work under that goal the technique does
 - **Use appropriate granularity**: Include both broad category tags and specific hierarchical tags (e.g., both `assurance-goal-category/explainability` and `assurance-goal-category/explainability/attribution-methods/perturbation-based`)
 - **Tag comprehensively**: Apply all relevant tags across all categories to maximise discoverability and accurate filtering
 
@@ -145,29 +159,31 @@ Known constraints, assumptions, or scenarios where the technique may not be suit
 
 ### 8. `resources` (Required)
 
-Supporting materials including software packages, tutorials, papers, and documentation.
+Supporting materials. Each entry is a **Zotero citation key** for an item in the TEA Techniques group library; the build resolves keys into full records from `public/data/zotero-resources.json`, which Better BibTeX keeps up to date from that library. Do not write resource objects into `techniques.json`.
 
-**Source Types:**
-- `software_package` — Official implementations, libraries, or tools
-- `tutorial` — Step-by-step guides, blog posts, or educational content
-- `technical_paper` — Academic papers, research articles, or whitepapers
-- `documentation` — Official docs, standards, or specifications
-- `blog_post` — Informal articles or community posts
+**The five slots** (from the quality standard):
+
+| Slot | Zotero tag | What qualifies |
+|---|---|---|
+| Official documentation | `type:documentation` | The maintained documentation for the technique or its reference implementation; for a technique defined by a standard, the standard itself |
+| Software package | `type:software-package` | An official or widely used implementation, linked at the repository or package-index page |
+| Original paper | `type:technical-paper` | The work that proposed the technique, or its earliest standard reference; linked by DOI where one exists |
+| Tutorial | `type:tutorial` | A step-by-step guide; the documentation's own tutorial page is acceptable; an official or peer-maintained tutorial beats a blog post |
+| Application papers (0–2, optional) | `type:application-paper` | Peer-reviewed work that applies the technique in a real setting |
 
 **Guidelines:**
-- **Prioritise quality over quantity**: Include 3-7 high-quality resources; start with official implementations, foundational papers, and accessible tutorials
-- **Provide complete citations for papers**: Include `authors` array and `publication_date` (YYYY-MM-DD format) for all technical papers
-- **Link to stable URLs**: Use DOI links for papers, official repositories for software, and permanent documentation URLs when available
+- **Tag the Zotero item, not the JSON**: each item carries `technique:<slug>` and one `type:` tag from the table. An item with no `type:` tag falls back to a guess from its Zotero item type and is reported as a warning at build time
+- **A slot may be empty only when nothing suitable exists**; record the search that was made. The software slot is usually empty for process and documentation techniques, and that is not a defect
+- **Link to stable URLs**: DOI links for papers, the canonical repository or package page for software, the maintained site for documentation
+- **Three to seven resources** is the normal range
 
-**Example:**
+**Example** (in `techniques.json`):
 ```json
-{
-  "title": "An empirical study of the effect of background data size on SHAP",
-  "url": "http://arxiv.org/pdf/2204.11351v3",
-  "source_type": "technical_paper",
-  "authors": ["Han Yuan", "Mingxuan Liu", "Lican Kang"],
-  "publication_date": "2022-04-24"
-}
+"resources": [
+  "yuanEmpiricalStudyEffect2022",
+  "xai-tutorialsdevelopersIntroductionSHapleyAdditive2023",
+  "shapShap2016"
+]
 ```
 
 ### 9. `acronym` (Optional)
@@ -181,7 +197,7 @@ Common abbreviation or acronym for the technique.
 
 ### 10. `complexity_rating` (Optional)
 
-Difficulty level for understanding and implementing the technique (1-5 scale).
+Difficulty level for understanding and implementing the technique (1-5 scale). The scale below has no defined measure behind it, so these ratings are not part of the quality standard and are not audited; include one only if you are confident of it relative to existing techniques.
 
 **Scale:**
 - `1` — Basic understanding; minimal prerequisites
@@ -197,7 +213,7 @@ Difficulty level for understanding and implementing the technique (1-5 scale).
 
 ### 11. `computational_cost_rating` (Optional)
 
-Resource intensity for running the technique (1-5 scale).
+Resource intensity for running the technique (1-5 scale). As with `complexity_rating`, not audited; include only if confident.
 
 **Scale:**
 - `1` — Negligible; runs instantly on small datasets
@@ -211,14 +227,9 @@ Resource intensity for running the technique (1-5 scale).
 - **Account for model size**: Techniques that are cheap for small models but expensive for large ones should be rated higher
 - **Distinguish from implementation efficiency**: Rate the technique's inherent cost, not poor implementations
 
-### 12. `related_techniques` (Optional)
+### 12. `related_techniques` (Generated)
 
-Array of slugs for techniques with similar purposes, approaches, or complementary use cases.
-
-**Guidelines:**
-- **Include 3-6 related techniques**: Provide enough alternatives without overwhelming users
-- **Prioritise close relationships**: Include techniques that are direct alternatives, use similar methods, or serve complementary purposes
-- **Ensure reciprocity**: When adding a new technique, consider updating related techniques to reference it back
+Slugs of related techniques, at most three. This field is computed when the data is generated, from tag overlap and embedding similarity, and should not be hand-edited; a hand-written list is overwritten on the next `pnpm generate-data`. Until the computation lands, leave the field as it is on existing records and omit it on new ones.
 
 ## Pre-Submission Checklist
 
@@ -230,7 +241,9 @@ Before submitting a new technique, verify:
 - [ ] Tags follow the established taxonomy (see `/docs/tag-reference`)
 - [ ] Use cases cover diverse domains and are specific/concrete
 - [ ] Limitations are honest, balanced, and explain impact
-- [ ] Resources include stable URLs and complete citations for papers
+- [ ] Resources are Zotero citation keys; each item is tagged `technique:<slug>` and one `type:` tag; every slot is filled or its absence recorded
+- [ ] Every listed assurance goal has an `assurance-goal-category/<goal>/...` sub-category tag
+- [ ] The record meets [`docs/technique-quality-standard.md`](docs/technique-quality-standard.md)
 - [ ] Technique has been evaluated against [evaluation criteria](/about/technique-evaluation)
 - [ ] JSON is valid and properly formatted
 - [ ] `slug` is unique and doesn't conflict with existing techniques
