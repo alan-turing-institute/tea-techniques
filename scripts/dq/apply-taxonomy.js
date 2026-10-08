@@ -161,27 +161,40 @@ async function buildProposals(taxonomy, techniques, author) {
   return proposals;
 }
 
+// A TypeScript string literal: single quotes unless the text has one.
+function quote(text) {
+  return text.includes("'") ? JSON.stringify(text) : `'${text}'`;
+}
+
 function definitionsAfter(source, taxonomy, pruneSet) {
   const defined = new Set(
     [...source.matchAll(DEFINITION_KEY)].map((m) => m[1])
   );
-  const additions = (taxonomy.values || []).filter((v) => !defined.has(v.tag));
-  let output = source;
-  if (pruneSet.size > 0) {
-    output = output.replace(DEFINITION_ENTRY, (whole, _indent, key) =>
-      pruneSet.has(key) ? '' : whole
-    );
-  }
+  const values = taxonomy.values || [];
+  const additions = values.filter((v) => !defined.has(v.tag));
+  const byTag = new Map(values.map((v) => [v.tag, v.definition]));
+  const updated = [];
+  let output = source.replace(
+    DEFINITION_ENTRY,
+    (whole, indent, key, current) => {
+      if (pruneSet.has(key)) {
+        return '';
+      }
+      const wanted = byTag.get(key);
+      if (wanted === undefined || quote(wanted) === current) {
+        return whole;
+      }
+      updated.push(key);
+      return `${indent}'${key}':\n${indent}  ${quote(wanted)},\n`;
+    }
+  );
   if (additions.length > 0) {
     const block = additions
-      .map(
-        (v) =>
-          `  '${v.tag}':\n    ${JSON.stringify(v.definition).replace(/^"|"$/g, "'")},\n`
-      )
+      .map((v) => `  '${v.tag}':\n    ${quote(v.definition)},\n`)
       .join('');
     output = output.replace(CLOSING, `\n${block}};\n`);
   }
-  return { output, additions };
+  return { output, additions, updated };
 }
 
 function tagsUnusedAfter(taxonomy, techniques, proposals) {
@@ -224,7 +237,11 @@ async function main() {
     .map((m) => m[1])
     .filter((key) => key.startsWith(prefix) && !inUse.has(key));
   const pruneSet = new Set(opts.prune ? definedUnderGoal : []);
-  const { output, additions } = definitionsAfter(source, taxonomy, pruneSet);
+  const { output, additions, updated } = definitionsAfter(
+    source,
+    taxonomy,
+    pruneSet
+  );
 
   const changed = proposals.filter((p) => p.changed).length;
   log(
@@ -233,6 +250,10 @@ async function main() {
   log(`Definitions to add: ${additions.length}`);
   for (const v of additions) {
     log(`  + ${v.tag}`);
+  }
+  log(`Definitions reworded: ${updated.length}`);
+  for (const key of updated) {
+    log(`  ~ ${key}`);
   }
   log(
     `Definitions under ${prefix} unused afterwards: ${definedUnderGoal.length}${opts.prune ? ' (pruned)' : ' (keep; pass --prune to remove)'}`
