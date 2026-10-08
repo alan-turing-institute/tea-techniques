@@ -50,7 +50,7 @@ After configuring, restart Claude. You should see tools prefixed with `mcp__tea-
 
 - **10 tools** for searching, filtering, comparing, and exploring AI assurance techniques
 - **Semantic search** — embedding-based claim matching with hybrid RRF ranking
-- **Knowledge graph** with 92 techniques, 7 assurance goals, and 450+ academic resources
+- **Knowledge graph** with 115 techniques, 8 assurance goals, and 440+ resources
 - **Zero configuration** — fetches data remotely from GitHub Pages with 24h caching
 
 ## How It Works

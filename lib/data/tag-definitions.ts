@@ -22,8 +22,6 @@ export const tagDefinitions: Record<string, string> = {
     'Primary assurance goal that the technique helps achieve',
   'explanatory-scope':
     'Whether the explanation is instance-specific (local) or model-wide (global)',
-  'fairness-approach':
-    'Underlying approach to fairness for fairness-related techniques',
 
   // Applicable Models - Architecture Dimension
   'applicable-models/architecture/model-agnostic':
@@ -82,8 +80,6 @@ export const tagDefinitions: Record<string, string> = {
     'Requires access to model gradients',
   'applicable-models/requirements/model-internals':
     'Requires access to weights, neurons, or internal representations',
-  'applicable-models/requirements/training-data':
-    'Requires access to the original training dataset',
   'applicable-models/requirements/architecture-specific':
     'Requires specific architectural components to function',
   'applicable-models/requirements/white-box':
@@ -138,76 +134,22 @@ export const tagDefinitions: Record<string, string> = {
   // Lifecycle Stage - Other Category
   'lifecycle-stage/other/cross-cutting':
     'Techniques that apply across multiple lifecycle stages',
-  'lifecycle-stage/other/governance':
-    'Ongoing governance and oversight activities',
-  'lifecycle-stage/other/continuous':
-    'Continuous processes that operate throughout the lifecycle',
-
-  // Legacy lifecycle-stage tags (kept for backward compatibility during migration)
-  // Note: lifecycle-stage/project-design, /model-development, and /system-deployment
-  // are now primary tags (not legacy) as they're valid category-level tags
-  'lifecycle-stage/project-planning':
-    'Legacy: Techniques for early project planning and requirement gathering',
-  'lifecycle-stage/data-handling':
-    'Legacy: Techniques for data collection, preparation, and preprocessing',
-  'lifecycle-stage/data-collection':
-    'Legacy: Techniques specific to gathering and collecting data',
-  'lifecycle-stage/data-collection/data-augmentation':
-    'Legacy: Techniques for expanding or enhancing datasets',
-  'lifecycle-stage/data-collection/data-preprocessing':
-    'Legacy: Techniques for cleaning and preparing collected data',
-  'lifecycle-stage/data-handling/collection':
-    'Legacy: Techniques for the data collection phase',
-  'lifecycle-stage/data-handling/preparation':
-    'Legacy: Techniques for preparing data for model training',
-  'lifecycle-stage/data-handling/preprocessing':
-    'Legacy: Techniques for data transformation and cleaning',
-  'lifecycle-stage/model-development/training':
-    'Legacy: Techniques applied during the model training process',
-  'lifecycle-stage/model-development/testing':
-    'Legacy: Techniques for testing model performance',
-  'lifecycle-stage/model-development/fine-tuning':
-    'Legacy: Techniques for optimising model parameters',
-  'lifecycle-stage/model-evaluation':
-    'Legacy: Techniques for assessing model performance and behavior',
-  'lifecycle-stage/model-optimization':
-    'Legacy: Techniques for improving model efficiency and performance',
-  'lifecycle-stage/deployment':
-    'Legacy: Techniques for deploying models to production',
-  'lifecycle-stage/system-deployment-and-use':
-    'Legacy: Techniques for deployed systems in production',
-  'lifecycle-stage/system-deployment-and-use/monitoring':
-    'Legacy: Techniques for monitoring deployed models',
-  'lifecycle-stage/system-deployment-and-use/auditing':
-    'Legacy: Techniques for auditing deployed systems',
-  'lifecycle-stage/monitoring':
-    'Legacy: Techniques for continuous model monitoring',
-  'lifecycle-stage/post-deployment':
-    'Legacy: Techniques applied after model deployment',
-  'lifecycle-stage/post-processing':
-    'Legacy: Techniques for processing model outputs',
-  'lifecycle-stage/testing':
-    'Legacy: Techniques for testing models and systems',
 
   // Expertise Needed
   'expertise-needed/statistics':
     'Requires knowledge of statistical methods and analysis',
   'expertise-needed/causal-inference':
     'Requires understanding of causal relationships and inference',
-  'expertise-needed/domain-knowledge':
-    'Requires expertise in the specific application domain',
   'expertise-needed/domain-expertise':
     'Requires deep understanding of the problem domain',
   'expertise-needed/ml-engineering':
-    'Requires machine learning engineering skills',
+    'Requires hands-on machine-learning engineering: training, adapting, evaluating or serving models',
   'expertise-needed/software-engineering':
     'Requires general programming and system design skills',
-  'expertise-needed/legal':
-    'Requires understanding of legal frameworks and regulations',
   'expertise-needed/ethics':
     'Requires knowledge of ethical principles and frameworks',
   'expertise-needed/regulatory-compliance':
-    'Requires understanding of regulatory requirements',
+    'Requires understanding of the legal and regulatory requirements that apply to the system',
   'expertise-needed/cryptography':
     'Requires cryptographic knowledge for privacy-preserving techniques',
   'expertise-needed/security':
@@ -216,12 +158,8 @@ export const tagDefinitions: Record<string, string> = {
     'Requires safety engineering principles and practices',
   'expertise-needed/linguistics':
     'Requires linguistic knowledge for language-based techniques',
-  'expertise-needed/experimental-design':
-    'Requires knowledge of experimental design and testing',
   'expertise-needed/stakeholder-engagement':
     'Requires skills in stakeholder communication and engagement',
-  'expertise-needed/low':
-    'Can be applied with basic technical knowledge and standard tools',
 
   // Evidence Type
   'evidence-type/quantitative-metric':
@@ -249,17 +187,18 @@ export const tagDefinitions: Record<string, string> = {
   'evidence-type/synthetic-data': 'Generates synthetic or simulated data',
   'evidence-type/governance-framework':
     'Establishes governance structures and processes',
+  'evidence-type/decision-record':
+    'Produces a documented record of a decision and the reasoning behind it',
+  'evidence-type/statistical-test':
+    'Produces a hypothesis test result with a test statistic and significance level',
 
   // Data Requirements
   'data-requirements/labelled-data':
     'Requires datasets with ground truth labels',
   'data-requirements/no-special-requirements':
     'Works with standard inputs without special requirements',
-  'data-requirements/access-to-model-internals':
-    'Needs access to model gradients, weights, or activations',
   'data-requirements/access-to-training-data':
     'Requires the original training dataset',
-  'data-requirements/validation-set': 'Needs a separate validation dataset',
   'data-requirements/calibration-set':
     'Requires a calibration dataset for adjustment',
   'data-requirements/sensitive-attributes':
@@ -268,10 +207,6 @@ export const tagDefinitions: Record<string, string> = {
     'Requires a predefined causal structure or graph',
   'data-requirements/reference-dataset':
     'Needs a baseline or reference dataset for comparison',
-  'data-requirements/pre-trained-model':
-    'Requires an existing trained model as input',
-  'data-requirements/prediction-probabilities':
-    'Needs probabilistic predictions from the model',
   'data-requirements/test-scenarios':
     'Requires predefined test cases or scenarios',
 
@@ -280,21 +215,16 @@ export const tagDefinitions: Record<string, string> = {
   'data-type/tabular': 'Designed for structured tabular data',
   'data-type/text': 'Designed for text and natural language data',
   'data-type/image': 'Designed for image and visual data',
+  'data-type/time-series': 'Designed for sequential or time-indexed data',
 
   // Technique Type
   'technique-type/algorithmic': 'A specific algorithm or computational method',
-  'technique-type/procedural': 'A defined process or series of steps',
   'technique-type/documentation': 'A template or standard for documentation',
   'technique-type/metric': 'A specific measure or calculation method',
   'technique-type/process': 'An organizational or workflow approach',
-  'technique-type/visualization': 'A method focused on visual representation',
-  'technique-type/experimental':
-    'Techniques based on experimental testing and validation',
-  'technique-type/gradient-based':
-    'Techniques that utilize gradient information',
-  'technique-type/mechanistic-interpretability':
-    'Techniques for understanding model mechanisms',
-  'technique-type/testing': 'Techniques focused on testing and validation',
+  'technique-type/visualisation': 'A method focused on visual representation',
+  'technique-type/testing':
+    'A test or evaluation protocol run against a model or system',
 
   // Assurance Goal Categories
   'assurance-goal-category/explainability':
@@ -411,39 +341,34 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/explainability/property/counterfactual-validity':
     'Can show what changes would alter outcomes',
 
-  // Legacy feature analysis tags (kept for compatibility)
-  'assurance-goal-category/explainability/feature-analysis':
-    'Analyses the role and importance of features',
-  'assurance-goal-category/explainability/feature-analysis/importance-and-attribution':
-    'Attributes model decisions to specific features',
   'assurance-goal-category/fairness':
     'Techniques that assess or improve fairness in AI systems',
-  'assurance-goal-category/fairness/group':
-    'Focuses on fairness between demographic groups',
-  'assurance-goal-category/fairness/group/statistical-parity':
-    'Ensures equal outcomes across groups',
-  'assurance-goal-category/fairness/causal':
-    'Uses causal reasoning to define and ensure fairness',
+  'assurance-goal-category/general':
+    'Techniques that govern, record or control the work of building and running an AI system, rather than assess one property of the model',
   'assurance-goal-category/privacy':
     'Techniques that protect data privacy and confidentiality',
   'assurance-goal-category/privacy/formal-guarantee':
-    'Provides mathematically proven privacy guarantees',
-  'assurance-goal-category/privacy/formal-guarantee/differential-privacy':
-    'Implements differential privacy mechanisms',
+    'Produces a mathematical or cryptographic guarantee about what an observer can learn about individuals.',
   'assurance-goal-category/reliability':
     'Techniques that ensure consistent and dependable performance',
   'assurance-goal-category/reliability/uncertainty-quantification':
-    'Quantifies prediction uncertainty and confidence',
+    'Techniques that estimate how far a prediction could be wrong, as intervals, sets or spread across models.',
+  'assurance-goal-category/reliability/robustness':
+    'Techniques that test or improve whether performance holds when inputs, prompts, data or conditions change.',
+  'assurance-goal-category/reliability/performance-assessment':
+    'Techniques that measure how well a model performs and whether the measured result is real and repeatable.',
   'assurance-goal-category/safety':
     'Techniques that prevent harmful or dangerous outcomes',
-  'assurance-goal-category/safety/monitoring/anomaly-detection':
-    'Detects unusual or potentially unsafe behaviour',
+  'assurance-goal-category/safety/hazard-analysis':
+    'Techniques that work out why unsafe behaviour arises, by tracing it to causes inside the model, its data or its design.',
+  'assurance-goal-category/safety/monitoring':
+    "Techniques that watch a running system's inputs and usage and flag what is unusual, out of scope or misused.",
   'assurance-goal-category/transparency':
     'Techniques that increase system openness and clarity',
   'assurance-goal-category/transparency/documentation':
-    'Creates clear documentation of system behaviour',
-  'assurance-goal-category/transparency/documentation/model-card':
-    'Standardized model documentation format',
+    'Techniques that produce a written disclosure about a model, dataset or system, such as a model card, datasheet or system card.',
+  'assurance-goal-category/transparency/audit-trail':
+    'Produces a dated record of what was done to a system or its data, so a third party can reconstruct it later.',
   'assurance-goal-category/security':
     'Techniques that protect the system from malicious attacks or unauthorized access',
 
@@ -452,7 +377,78 @@ export const tagDefinitions: Record<string, string> = {
   'explanatory-scope/global':
     'Provides explanations for overall model behaviour',
 
-  // Fairness Approach
-  'fairness-approach/group': 'Focuses on statistical parity between groups',
-  'fairness-approach/causal': 'Uses causal models to define fairness',
+  'assurance-goal-category/safety/hazard-identification':
+    'Techniques that find how a system could fail or cause harm, by probing it for unsafe behaviours, failure modes and rare scenarios.',
+  'assurance-goal-category/safety/verification':
+    'Techniques that test a system against a stated safety requirement, such as refusing harmful requests or holding up at its limits.',
+  'assurance-goal-category/safety/safeguards':
+    'Techniques that lower the chance or impact of harm, such as redundancy, data screening, human oversight or documented limits of use.',
+  'assurance-goal-category/security/vulnerability-testing':
+    'Techniques that attack a model or its defences to measure how well they hold, such as jailbreak, injection or extraction tests.',
+  'assurance-goal-category/security/protection':
+    'Techniques that protect a model or its data from attack, theft or exposure, such as encryption or ownership marking.',
+  'assurance-goal-category/security/detection':
+    'Techniques that spot attacks, tampering or misuse of a model or its training data, whether in operation or before training.',
+  'assurance-goal-category/security/threat-analysis':
+    'Techniques that map who might attack a system, how, and what they could gain, so defences can be chosen to fit.',
+  'assurance-goal-category/reliability/calibration':
+    "Techniques that check or correct whether a model's stated confidence matches how often it is right.",
+  'assurance-goal-category/reliability/shift-detection':
+    'Techniques that detect when inputs or conditions move outside what the model was built and tested for.',
+  'assurance-goal-category/reliability/behavioural-consistency':
+    'Techniques that check or enforce that a system keeps behaving as specified across scenarios, not just scoring well.',
+  'assurance-goal-category/privacy/exposure-reduction':
+    'Techniques that reduce how much real personal data is collected, shared or retained, without proving a bound on what remains.',
+  'assurance-goal-category/privacy/leakage-testing':
+    'Techniques that test whether a model, dataset or output reveals information about the individuals behind the data.',
+  'assurance-goal-category/privacy/exposure-reduction/data-minimisation':
+    'Techniques that collect, share or retain no more personal data than the purpose needs (the data-minimisation principle).',
+  'assurance-goal-category/fairness/bias-measurement':
+    'Techniques that test for and quantify unequal treatment linked to protected attributes, in outputs, inputs or representations.',
+  'assurance-goal-category/fairness/bias-diagnosis':
+    'Techniques that show which features, concepts or training examples make a model treat groups differently.',
+  'assurance-goal-category/fairness/performance-by-group':
+    'Techniques that estimate or report accuracy, calibration or uncertainty separately for each group so gaps can be seen or closed.',
+  'assurance-goal-category/fairness/pre-processing':
+    'Techniques that change the training data or its features before training so that the model learns less bias.',
+  'assurance-goal-category/fairness/in-processing':
+    'Techniques that build a fairness constraint, penalty or adversary into model training.',
+  'assurance-goal-category/fairness/post-processing':
+    'Techniques that adjust decisions or thresholds after training so that outcomes or error rates match across groups.',
+  'assurance-goal-category/transparency/assessment-results':
+    'Produces measured findings on how a system performs or behaves, in a form that can be reported to those who rely on or oversee it.',
+  'assurance-goal-category/transparency/confidence-and-limits':
+    'Techniques that show users how far to trust each output and when a request falls outside what the system can handle.',
+  'assurance-goal-category/transparency/decision-reasons':
+    "Techniques that give people outside the build team the reasons, rules or sources behind a model's outputs, so they can check them.",
+  'assurance-goal-category/transparency/notice-and-recourse':
+    'Techniques that tell an affected person what a decision rested on and what they could change or challenge to get another outcome.',
+  'assurance-goal-category/transparency/readable-by-design':
+    'Techniques that make a model or its inputs readable as they stand, so a reviewer needs no separate explanation step.',
+  'assurance-goal-category/transparency/confidential-verification':
+    'Techniques that let an outside party check a claim about a system or its data without being handed the data or the model.',
+  'assurance-goal-category/general/governance-and-review':
+    'Techniques that give a review body, named person or independent team the job of examining, challenging, approving or stopping an AI system.',
+  'assurance-goal-category/general/documentation-and-records':
+    'Techniques that keep an inspectable record of what an AI system and its data are, how they were built and what changed.',
+  'assurance-goal-category/general/runtime-safeguards':
+    'Techniques that watch a running system and limit, reroute or stop it when it leaves expected bounds.',
+  'expertise-needed/governance-and-audit':
+    'Requires organisational governance and audit practice: running review or oversight processes, keeping accountable records, and writing documentation that an auditor or regulator relies on.',
+  'expertise-needed/human-factors':
+    'Requires knowledge of how people oversee, rely on and interact with AI systems: designing human review workflows, managing reviewer workload and fatigue, and communicating model confidence and limits to users.',
+  'expertise-needed/evaluation-design':
+    'Requires skill in designing test suites, benchmarks, adversarial scenarios and rating or annotation protocols to judge model behaviour, including building ground-truth sets and deciding what counts as a pass.',
+  'expertise-needed/data-engineering':
+    'Requires skills in building and maintaining data pipelines, storage, versioning, lineage and logging infrastructure.',
+  'expertise-needed/privacy-engineering':
+    'Requires knowledge of privacy-enhancing methods and privacy threat modelling: disclosure and re-identification risk, privacy budgets, and the utility cost of protection.',
+  'expertise-needed/deep-learning':
+    "Requires access to and understanding of a neural network's internals: gradients, activations, attention weights and layers. Narrower than ml-engineering, which would keep training, adaptation and operation.",
+  'evidence-type/model-artefact':
+    "The technique's main artefact is a trained, retrained, compressed, constrained or re-thresholded model (or decision rule), delivered with the measurements showing the change had the intended effect.",
+  'evidence-type/modified-dataset':
+    "The technique's main artefact is a training dataset that has been re-weighted, re-labelled, re-sampled, transformed or had features removed, delivered with a record of what changed.",
+  'evidence-type/audit-record':
+    'The technique produces a time-stamped, versioned or tamper-evident record of what was done, with which data and code, and by whom, from which events can be reconstructed.',
 };

@@ -14,6 +14,18 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const dataDir = path.join(rootDir, 'public', 'data');
 const schemasDir = path.join(rootDir, 'schemas');
+const tagDefinitionsPath = path.join(
+  rootDir,
+  'lib',
+  'data',
+  'tag-definitions.ts'
+);
+
+// Every tag in use must be defined in lib/data/tag-definitions.ts, which is
+// the single source of the vocabulary. Keys there look like  'a/b/c':
+const DEFINITION_KEY = /^\s+'([^']+)':/gm;
+const GOAL_TAG_PREFIX = 'assurance-goal-category/';
+const LIFECYCLE_PREFIX = 'lifecycle-stage/';
 
 // Initialize AJV with strict mode
 const ajv = new Ajv({
@@ -204,6 +216,129 @@ function processValidationResults(results, rootPath) {
   return { totalErrors, failedFiles };
 }
 
+// ---------------------------------------------------------------------------
+// Tag vocabulary: every tag in use is defined; goal tags match assurance_goals
+// ---------------------------------------------------------------------------
+
+async function loadDefinedTags() {
+  const source = await fs.readFile(tagDefinitionsPath, 'utf-8');
+  return new Set([...source.matchAll(DEFINITION_KEY)].map((m) => m[1]));
+}
+
+function goalTagProblems(technique) {
+  const problems = [];
+  const listed = new Set(
+    (technique.assurance_goals || []).map((g) => g.toLowerCase())
+  );
+  const tagged = new Set(
+    (technique.tags || [])
+      .filter((tag) => tag.startsWith(GOAL_TAG_PREFIX))
+      .map((tag) => tag.slice(GOAL_TAG_PREFIX.length).split('/')[0])
+  );
+  for (const goal of listed) {
+    if (!tagged.has(goal)) {
+      problems.push(
+        `lists goal "${goal}" but has no ${GOAL_TAG_PREFIX}${goal} tag`
+      );
+    }
+  }
+  for (const goal of tagged) {
+    if (!listed.has(goal)) {
+      problems.push(
+        `carries ${GOAL_TAG_PREFIX}${goal} but "${goal}" is not in assurance_goals`
+      );
+    }
+  }
+  return problems;
+}
+
+// A lifecycle stage tag implies its phase tag (other/... has no phase).
+function lifecycleProblems(technique) {
+  const tags = new Set(technique.tags || []);
+  const problems = [];
+  for (const tag of tags) {
+    if (!tag.startsWith(LIFECYCLE_PREFIX)) {
+      continue;
+    }
+    const parts = tag.slice(LIFECYCLE_PREFIX.length).split('/');
+    const phase = `${LIFECYCLE_PREFIX}${parts[0]}`;
+    if (parts.length >= 2 && parts[0] !== 'other' && !tags.has(phase)) {
+      problems.push(`carries ${tag} without its phase tag ${phase}`);
+    }
+    const isBarePhase = parts.length === 1 && parts[0] !== 'other';
+    if (isBarePhase && ![...tags].some((t) => t.startsWith(`${tag}/`))) {
+      problems.push(`carries the phase tag ${tag} with no stage beneath it`);
+    }
+  }
+  return problems;
+}
+
+function collectTagProblems(techniques, defined) {
+  const undefinedTags = new Map();
+  const goalProblems = [];
+  for (const technique of techniques) {
+    for (const problem of lifecycleProblems(technique)) {
+      goalProblems.push(`${technique.slug}: ${problem}`);
+    }
+    for (const tag of technique.tags || []) {
+      if (!defined.has(tag)) {
+        const slugs = undefinedTags.get(tag) || [];
+        slugs.push(technique.slug);
+        undefinedTags.set(tag, slugs);
+      }
+    }
+    for (const problem of goalTagProblems(technique)) {
+      goalProblems.push(`${technique.slug}: ${problem}`);
+    }
+  }
+  return { undefinedTags, goalProblems };
+}
+
+async function validateTagVocabulary() {
+  const techniques = JSON.parse(
+    await fs.readFile(path.join(dataDir, 'techniques.json'), 'utf-8')
+  );
+  const defined = await loadDefinedTags();
+  const { undefinedTags, goalProblems } = collectTagProblems(
+    techniques,
+    defined
+  );
+
+  if (undefinedTags.size === 0 && goalProblems.length === 0) {
+    logger.info(
+      chalk.green(
+        `✓ tag vocabulary: every tag in use is defined in lib/data/tag-definitions.ts (${defined.size} definitions)`
+      )
+    );
+    return true;
+  }
+  if (undefinedTags.size > 0) {
+    logger.info(
+      chalk.red(
+        `✗ tag vocabulary: ${undefinedTags.size} tag(s) in use are not defined in lib/data/tag-definitions.ts`
+      )
+    );
+    for (const [tag, slugs] of [...undefinedTags].sort()) {
+      logger.info(
+        chalk.red(
+          `  ✗ ${tag} (${slugs.length}: ${slugs.slice(0, 3).join(', ')}${slugs.length > 3 ? ', …' : ''})`
+        )
+      );
+    }
+  }
+  if (goalProblems.length > 0) {
+    logger.info(
+      chalk.red(
+        `✗ goal and lifecycle tags: ${goalProblems.length} problem(s) (goal tags vs assurance_goals; stage tags without their phase)`
+      )
+    );
+    for (const problem of goalProblems) {
+      logger.info(chalk.red(`  ✗ ${problem}`));
+    }
+  }
+  return false;
+}
+
 async function validateAllData() {
   logger.info(chalk.blue('\n📋 Validating TEA Techniques data files...\n'));
 
@@ -249,6 +384,9 @@ async function validateAllData() {
 
   await Promise.all(processPromises);
 
+  logger.info('');
+  const vocabularyOk = await validateTagVocabulary();
+
   // Summary
   logger.info(chalk.blue('\n📊 Validation Summary:'));
   logger.info(`  Total files checked: ${totalFiles}`);
@@ -260,8 +398,11 @@ async function validateAllData() {
     logger.info(`  ${chalk.red(`✗ Invalid files: ${totalFailedFiles}`)}`);
     logger.info(`  ${chalk.red(`Total errors: ${totalErrorCount}`)}`);
   }
+  if (!vocabularyOk) {
+    logger.info(`  ${chalk.red('✗ Tag vocabulary check failed (see above)')}`);
+  }
 
-  return totalFailedFiles === 0;
+  return totalFailedFiles === 0 && vocabularyOk;
 }
 
 // Parse command line arguments

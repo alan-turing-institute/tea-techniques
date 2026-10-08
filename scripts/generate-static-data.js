@@ -105,6 +105,14 @@ async function generateStaticData() {
       JSON.stringify(tags, null, 2)
     );
 
+    // Remove generated directories first so files for retired techniques or
+    // renamed tags do not linger. Everything in them is regenerated below.
+    await Promise.all(
+      ['techniques', 'categories', 'filters', 'search'].map((generated) =>
+        fs.rm(path.join(dataDir, generated), { recursive: true, force: true })
+      )
+    );
+
     // Generate individual technique files
     const techniquesDir = path.join(dataDir, 'techniques');
     await fs.mkdir(techniquesDir, { recursive: true });
@@ -490,6 +498,14 @@ function getGoalDescription(goal) {
   return descriptions[goal] || `Techniques related to ${goal.toLowerCase()}.`;
 }
 
+const SOURCE_TYPES = new Set([
+  'technical_paper',
+  'software_package',
+  'documentation',
+  'tutorial',
+  'application_paper',
+]);
+
 function mapZoteroItemToResource(item) {
   // Check for type override tag
   const typeTag = item.tags?.find((t) => t.tag.startsWith('type:'));
@@ -498,7 +514,16 @@ function mapZoteroItemToResource(item) {
   if (typeTag) {
     // Convert tag format (e.g. type:technical-paper) to enum format (technical_paper)
     sourceType = typeTag.tag.replace('type:', '').replace(/-/g, '_');
-  } else {
+    if (!SOURCE_TYPES.has(sourceType)) {
+      // biome-ignore lint/suspicious/noConsole: build script warning output
+      console.warn(
+        `Warning: Unknown resource type tag "${typeTag.tag}" on Zotero item "${item.citationKey}"; falling back to item type`
+      );
+      sourceType = undefined;
+    }
+  }
+
+  if (!sourceType) {
     // Fallback to itemType mapping
     const typeMapping = {
       journalArticle: 'technical_paper',
@@ -515,7 +540,14 @@ function mapZoteroItemToResource(item) {
       presentation: 'tutorial',
       videoRecording: 'tutorial',
     };
-    sourceType = typeMapping[item.itemType] || 'other';
+    sourceType = typeMapping[item.itemType];
+    if (!sourceType) {
+      // biome-ignore lint/suspicious/noConsole: build script warning output
+      console.warn(
+        `Warning: No resource type for Zotero item "${item.citationKey}" (itemType ${item.itemType}); add a type: tag in Zotero. Using "documentation".`
+      );
+      sourceType = 'documentation';
+    }
   }
 
   // Extract authors
