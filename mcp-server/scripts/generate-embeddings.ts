@@ -1,93 +1,79 @@
-/**
- * Generate pre-computed embeddings for all techniques.
- *
- * Builds a corpus of "{name}: {description}" + sample claims, embeds with
- * Xenova/all-MiniLM-L12-v2, and writes public/data/ld/embeddings.json.
- *
- * Usage: cd mcp-server && pnpm generate-embeddings
- */
-
+/** Generate EmbeddingGemma 2 vectors from graph.jsonld, never from an existing embeddings file. */
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pipeline } from '@huggingface/transformers';
 import { loadGraphData } from '../src/data/loader.js';
-import { batchEmbed, buildCorpus } from '../src/embedding/model.js';
-import type { EmbeddingsFile } from '../src/embedding/types.js';
+import {
+  batchEmbed,
+  buildCorpus,
+  DOCUMENT_FORMAT,
+  EMBEDDING_DIMENSIONS,
+  EMBEDDING_PRECISION,
+  getEmbeddingModel,
+  MODEL_ID,
+  MODEL_REVISION,
+  QUERY_PREFIX,
+} from '../src/embedding/model.js';
+import {
+  type EmbeddingsFile,
+  EmbeddingsFileSchema,
+} from '../src/embedding/types.js';
 import { KnowledgeGraph } from '../src/graph/index.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
-const DATA_DIR = path.join(PROJECT_ROOT, 'public', 'data');
-const OUTPUT_PATH = path.join(DATA_DIR, 'ld', 'embeddings.json');
-
-const MODEL_ID = 'Xenova/all-MiniLM-L12-v2';
-
-// biome-ignore lint/suspicious/noConsole: CLI script output
-const log = console.log.bind(console);
-
+const root = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..'
+);
+const args = process.argv.slice(2);
+const arg = (key: string, fallback: string) =>
+  args.find((a) => a.startsWith(`--${key}=`))?.slice(key.length + 3) ??
+  fallback;
+const dataDir = path.resolve(arg('data-dir', path.join(root, 'public/data')));
+const output = path.resolve(
+  arg('output', path.join(root, 'mcp-server/generated/embeddings.json'))
+);
 async function main(): Promise<void> {
-  log('Generate Embeddings for TEA Techniques');
-  log('=======================================');
-  log('');
-
-  log('Loading knowledge graph...');
-  const graphData = await loadGraphData({ local: true, dataDir: DATA_DIR });
-  const graph = new KnowledgeGraph(graphData);
-
-  log('Building corpus...');
+  const started = performance.now();
+  const graph = new KnowledgeGraph(
+    await loadGraphData({ local: true, dataDir })
+  );
   const corpus = buildCorpus(graph.getAllTechniques());
-  const techniqueCount = graph.getAllTechniques().length;
-  const claimCount = corpus.length - techniqueCount;
-  log(
-    `  ${corpus.length} entries (${techniqueCount} descriptions + ${claimCount} claims)`
-  );
-
-  log(`Loading model: ${MODEL_ID}...`);
-  const loadStart = performance.now();
-  const extractor = await pipeline('feature-extraction', MODEL_ID);
-  log(
-    `  Model loaded in ${((performance.now() - loadStart) / 1000).toFixed(1)}s`
-  );
-
-  log(`Embedding ${corpus.length} entries...`);
-  const embedStart = performance.now();
+  if (!corpus.length) {
+    throw new Error('Empty corpus');
+  }
+  // biome-ignore lint/suspicious/noConsole: CLI progress output
+  console.log(`Embedding ${corpus.length} entries with ${MODEL_ID}`);
+  const model = await getEmbeddingModel({ allowDownload: true });
+  if (!model) {
+    throw new Error('Embedding model did not load');
+  }
   const vectors = await batchEmbed(
-    extractor,
+    model,
     corpus.map((e) => e.text)
   );
-  log(`  Embedded in ${((performance.now() - embedStart) / 1000).toFixed(1)}s`);
-
-  const dimensions = vectors[0]?.length ?? 0;
-
-  const embeddingsFile: EmbeddingsFile = {
+  const file: EmbeddingsFile = {
     modelId: MODEL_ID,
-    dimensions,
+    dimensions: EMBEDDING_DIMENSIONS,
     corpusSize: corpus.length,
+    queryPrefix: QUERY_PREFIX,
+    documentFormat: DOCUMENT_FORMAT,
+    modelRevision: MODEL_REVISION,
+    dtype: EMBEDDING_PRECISION,
     entries: corpus.map((entry, i) => ({
       slug: entry.slug,
       vector: Array.from(vectors[i]),
     })),
   };
-
-  const json = JSON.stringify(embeddingsFile);
-  await fs.writeFile(OUTPUT_PATH, json);
-
-  const sizeMB = (Buffer.byteLength(json) / 1024 / 1024).toFixed(1);
-  log('');
-  log(`Written: ${OUTPUT_PATH}`);
-  log(`  Corpus: ${corpus.length} entries, ${dimensions} dimensions`);
-  log(`  File size: ${sizeMB} MB`);
-
-  try {
-    await extractor.dispose?.();
-  } catch {
-    // ignore
-  }
+  EmbeddingsFileSchema.parse(file);
+  await fs.mkdir(path.dirname(output), { recursive: true });
+  await fs.writeFile(output, JSON.stringify(file));
+  // biome-ignore lint/suspicious/noConsole: CLI progress output
+  console.log(
+    `Written ${output}; ${((performance.now() - started) / 1000).toFixed(1)}s; ${Buffer.byteLength(JSON.stringify(file))} bytes`
+  );
 }
-
-main().catch((err) => {
-  // biome-ignore lint/suspicious/noConsole: CLI script error output
-  console.error('Generation failed:', err);
-  process.exit(1);
+main().catch((error) => {
+  // biome-ignore lint/suspicious/noConsole: CLI error output
+  console.error(error);
+  process.exitCode = 1;
 });

@@ -180,10 +180,10 @@ function updateAggregates(
   }
 }
 
-function evaluateClaims(
+async function evaluateClaims(
   claimsFiles: ClaimFile[],
   graph: KnowledgeGraph
-): { techniqueReports: TechniqueReport[]; agg: Aggregates } {
+): Promise<{ techniqueReports: TechniqueReport[]; agg: Aggregates }> {
   const agg: Aggregates = {
     totalClaims: 0,
     top1: 0,
@@ -209,8 +209,9 @@ function evaluateClaims(
     };
 
     for (const claim of file.claims) {
-      const results = graph.suggestForClaim(claim.text);
-      const returnedSlugs = results.map((t) => t.slug);
+      // biome-ignore lint/nursery/noAwaitInLoop: sequential to avoid overloading the ranker
+      const results = await graph.suggestForClaim(claim.text);
+      const returnedSlugs = results.results.map((t) => t.slug);
       const rankIndex = returnedSlugs.indexOf(file.slug);
       const rank = rankIndex >= 0 ? rankIndex + 1 : null;
 
@@ -303,7 +304,7 @@ async function main(): Promise<void> {
   const graph = new KnowledgeGraph(graphData);
   const claimsFiles = await loadClaimsFiles();
 
-  const { techniqueReports, agg } = evaluateClaims(claimsFiles, graph);
+  const { techniqueReports, agg } = await evaluateClaims(claimsFiles, graph);
 
   const sortedByWorst = [...techniqueReports].sort(
     (a, b) =>

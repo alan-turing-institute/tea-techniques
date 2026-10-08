@@ -317,18 +317,10 @@ export function createServer(graph: KnowledgeGraph): McpServer {
         lifecycleStage,
         excludeModelTypes,
       });
-      if (results.length === 0) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: 'No techniques found matching this claim. Try broadening the claim text or removing context filters.',
-            },
-          ],
-        };
-      }
-      const text = results.map(formatTechniqueSummary).join('\n\n---\n\n');
-      return { content: [{ type: 'text' as const, text }] };
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(results) }],
+        structuredContent: { ...results },
+      };
     }
   );
 

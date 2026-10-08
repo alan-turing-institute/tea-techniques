@@ -3,9 +3,15 @@
  */
 
 import Fuse from 'fuse.js';
-import { embedQuery, getEmbeddingModel } from '../embedding/model.js';
-import { computeRRF, rankBySimilarity } from '../embedding/search.js';
+import {
+  EMBEDDING_DIMENSIONS,
+  embedQuery,
+  getEmbeddingModel,
+  MODEL_ID,
+} from '../embedding/model.js';
+import { computeRRFScores, rankBySimilarity } from '../embedding/search.js';
 import type { EmbeddingsIndex } from '../embedding/types.js';
+import { ClefRanker, RANKING_MODEL, type Ranker } from '../ranking/clef.js';
 import { buildGraphIndex } from './indexes.js';
 import type {
   GoalNode,
@@ -380,12 +386,46 @@ interface ClaimEntry {
   techniqueId: string;
 }
 
+export interface ClaimContext {
+  modelType?: string;
+  dataType?: string;
+  lifecycleStage?: string;
+  excludeModelTypes?: string[];
+}
+export interface ClaimSuggestions {
+  rankingAvailable: boolean;
+  embeddingModel: string;
+  rankingModel: string;
+  results: Array<{
+    slug: string;
+    name: string;
+    score: number;
+    retrievalScore: number;
+    goals: string[];
+    url: string;
+  }>;
+}
+
 export class KnowledgeGraph {
   private index: GraphIndex;
   private claimsFuse: Fuse<ClaimEntry>;
   private embeddings: EmbeddingsIndex | null;
 
-  constructor(graphData: JsonLdGraph, embeddings?: EmbeddingsIndex | null) {
+  private ranker: Ranker;
+
+  constructor(
+    graphData: JsonLdGraph,
+    embeddings?: EmbeddingsIndex | null,
+    ranker: Ranker = new ClefRanker()
+  ) {
+    if (
+      embeddings &&
+      (embeddings.modelId !== MODEL_ID ||
+        embeddings.dimensions !== EMBEDDING_DIMENSIONS)
+    ) {
+      throw new Error('Embedding index does not match the query model');
+    }
+    this.ranker = ranker;
     this.index = buildGraphIndex(graphData['@graph']);
     this.embeddings = embeddings ?? null;
 
@@ -605,15 +645,16 @@ export class KnowledgeGraph {
     return results;
   }
 
+  rankingAvailable(): Promise<boolean> {
+    return this.ranker.isAvailable();
+  }
+
   async suggestForClaim(
     claimText: string,
-    context?: {
-      modelType?: string;
-      dataType?: string;
-      lifecycleStage?: string;
-      excludeModelTypes?: string[];
-    }
-  ): Promise<TechniqueNode[]> {
+    options: ClaimContext & { limit?: number; context?: ClaimContext } = {}
+  ): Promise<ClaimSuggestions> {
+    const context = options.context ?? options;
+    const limit = Math.min(20, Math.max(1, Math.trunc(options.limit ?? 10)));
     const matchedGoals = inferGoals(claimText);
     const exclusions = context?.excludeModelTypes ?? [];
 
@@ -649,24 +690,39 @@ export class KnowledgeGraph {
 
     // Stage 2c: Embedding search + RRF merge (or keyword-only fallback)
     const embedSlugs = await this.embeddingSearch(claimText, 20);
-    const mergedSlugs =
-      embedSlugs.length > 0
-        ? computeRRF([keywordSlugs, embedSlugs])
-        : keywordSlugs.slice(0, 10);
-
-    // Resolve slugs back to TechniqueNode[]
-    let results: TechniqueNode[] = [];
-    for (const slug of mergedSlugs) {
-      const t = this.getTechnique(slug);
-      if (t) {
-        results.push(t);
-      }
-    }
-
-    // Stage 3: Apply context filters (include)
-    results = this.applyClaimContextFilters(results, context);
-
-    return results.slice(0, 10);
+    const fused = computeRRFScores(
+      embedSlugs.length > 0 ? [keywordSlugs, embedSlugs] : [keywordSlugs]
+    );
+    const scores = new Map(fused.map((r) => [r.slug, r.score]));
+    let techniques = fused
+      .map((r) => this.getTechnique(r.slug))
+      .filter((t): t is TechniqueNode => !!t);
+    // Apply exclusions to every retrieval source, before selecting the top 20.
+    techniques = applyExcludeTags(techniques, exclusions);
+    techniques = this.applyClaimContextFilters(techniques, context).slice(
+      0,
+      20
+    );
+    const candidates = techniques.map((technique) => ({
+      technique,
+      retrievalScore: scores.get(technique.slug) ?? 0,
+    }));
+    const ranked = await this.ranker.rank(claimText, candidates);
+    return {
+      rankingAvailable: ranked.rankingAvailable,
+      embeddingModel: MODEL_ID,
+      rankingModel: RANKING_MODEL,
+      results: ranked.candidates
+        .slice(0, limit)
+        .map(({ technique: t, score, retrievalScore }) => ({
+          slug: t.slug,
+          name: t.name,
+          score,
+          retrievalScore,
+          goals: t.goals,
+          url: `https://alan-turing-institute.github.io/tea-techniques/techniques/${t.slug}`,
+        })),
+    };
   }
 
   /** Embedding-based similarity search. Returns ranked slugs or empty on failure. */
