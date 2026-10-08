@@ -342,11 +342,6 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/explainability/property/counterfactual-validity':
     'Can show what changes would alter outcomes',
 
-  // Legacy feature analysis tags (kept for compatibility)
-  'assurance-goal-category/explainability/feature-analysis':
-    'Analyses the role and importance of features',
-  'assurance-goal-category/explainability/feature-analysis/importance-and-attribution':
-    'Attributes model decisions to specific features',
   'assurance-goal-category/fairness':
     'Techniques that assess or improve fairness in AI systems',
   'assurance-goal-category/general':
