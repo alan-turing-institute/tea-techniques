@@ -207,8 +207,6 @@ export const tagDefinitions: Record<string, string> = {
     'Requires a predefined causal structure or graph',
   'data-requirements/reference-dataset':
     'Needs a baseline or reference dataset for comparison',
-  'data-requirements/pre-trained-model':
-    'Requires an existing trained model as input',
   'data-requirements/test-scenarios':
     'Requires predefined test cases or scenarios',
 
