@@ -137,18 +137,6 @@ export const tagDefinitions: Record<string, string> = {
   'lifecycle-stage/other/cross-cutting':
     'Techniques that apply across multiple lifecycle stages',
 
-  // Legacy lifecycle-stage tags (kept for backward compatibility during migration)
-  // Note: lifecycle-stage/project-design, /model-development, and /system-deployment
-  // are now primary tags (not legacy) as they're valid category-level tags
-  'lifecycle-stage/data-handling':
-    'Legacy: Techniques for data collection, preparation, and preprocessing',
-  'lifecycle-stage/data-collection':
-    'Legacy: Techniques specific to gathering and collecting data',
-  'lifecycle-stage/data-collection/data-augmentation':
-    'Legacy: Techniques for expanding or enhancing datasets',
-  'lifecycle-stage/deployment':
-    'Legacy: Techniques for deploying models to production',
-
   // Expertise Needed
   'expertise-needed/statistics':
     'Requires knowledge of statistical methods and analysis',
@@ -174,8 +162,6 @@ export const tagDefinitions: Record<string, string> = {
     'Requires linguistic knowledge for language-based techniques',
   'expertise-needed/stakeholder-engagement':
     'Requires skills in stakeholder communication and engagement',
-  'expertise-needed/low':
-    'Can be applied with basic technical knowledge and standard tools',
 
   // Evidence Type
   'evidence-type/quantitative-metric':
