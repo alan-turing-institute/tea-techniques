@@ -366,11 +366,7 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/privacy':
     'Techniques that protect data privacy and confidentiality',
   'assurance-goal-category/privacy/formal-guarantee':
-    'Provides mathematically proven privacy guarantees',
-  'assurance-goal-category/privacy/formal-guarantee/differential-privacy':
-    'Implements differential privacy mechanisms',
-  'assurance-goal-category/privacy/data-minimization':
-    'Reduces the personal data collected, shared, or retained',
+    'Produces a mathematical or cryptographic guarantee about what an observer can learn about individuals.',
   'assurance-goal-category/reliability':
     'Techniques that ensure consistent and dependable performance',
   'assurance-goal-category/reliability/uncertainty-quantification':
@@ -428,4 +424,10 @@ export const tagDefinitions: Record<string, string> = {
     'Techniques that detect when inputs or conditions move outside what the model was built and tested for.',
   'assurance-goal-category/reliability/behavioural-consistency':
     'Techniques that check or enforce that a system keeps behaving as specified across scenarios, not just scoring well.',
+  'assurance-goal-category/privacy/exposure-reduction':
+    'Techniques that reduce how much real personal data is collected, shared or retained, without proving a bound on what remains.',
+  'assurance-goal-category/privacy/leakage-testing':
+    'Techniques that test whether a model, dataset or output reveals information about the individuals behind the data.',
+  'assurance-goal-category/privacy/exposure-reduction/data-minimisation':
+    'Techniques that collect, share or retain no more personal data than the purpose needs (the data-minimisation principle).',
 };
