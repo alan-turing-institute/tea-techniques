@@ -66,15 +66,19 @@ export function computeRRF(rankings: string[][], k = 60, topK = 10): string[] {
 /** Normalized RRF scores, exposed as retrievalScore (not a probability). */
 export function computeRRFScores(
   rankings: string[][],
-  k = 60
+  k = 60,
+  weights: number[] = []
 ): Array<{ slug: string; score: number }> {
   const scores = new Map<string, number>();
-  for (const ranking of rankings) {
+  let weightSum = 0;
+  for (const [r, ranking] of rankings.entries()) {
+    const weight = weights[r] ?? 1;
+    weightSum += weight;
     for (const [i, slug] of ranking.entries()) {
-      scores.set(slug, (scores.get(slug) ?? 0) + 1 / (k + i + 1));
+      scores.set(slug, (scores.get(slug) ?? 0) + weight / (k + i + 1));
     }
   }
-  const maximum = rankings.length / (k + 1);
+  const maximum = weightSum / (k + 1);
   return Array.from(scores, ([slug, score]) => ({
     slug,
     score: score / maximum,

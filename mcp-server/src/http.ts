@@ -26,6 +26,7 @@ export function createHttpServer(
           embeddingModel: MODEL_ID,
           rankingModel: RANKING_MODEL,
           rankingAvailable: await graph.rankingAvailable(),
+          lastRankingSucceeded: graph.lastRankingSucceeded() ?? null,
           dataVersion,
         })
       );

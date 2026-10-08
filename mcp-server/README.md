@@ -55,7 +55,7 @@ After configuring, restart Claude. You should see tools prefixed with `mcp__tea-
 
 ## How It Works
 
-The server fetches the TEA Techniques knowledge graph from GitHub Pages on first run and caches it locally for 24 hours (`~/.cache/tea-techniques-mcp/`). Semantic search uses the text encoder of EmbeddingGemma 2 through ONNX Runtime, with a normalized 768-dimensional sentence embedding and hybrid reciprocal rank fusion. The loader rejects embeddings from another model, revision, precision, or prompt format; the published MiniLM embeddings therefore degrade to keyword retrieval. Generate compatible local embeddings for semantic retrieval. Clef-Flash can re-rank the top 20 candidates through a local Ollama daemon.
+The server fetches the TEA Techniques knowledge graph from GitHub Pages on first run and caches it locally for 24 hours (`~/.cache/tea-techniques-mcp/`). Semantic search uses the text encoder of EmbeddingGemma 2 through ONNX Runtime, with a normalized 768-dimensional sentence embedding and hybrid reciprocal rank fusion. The loader rejects embeddings from another model, revision, precision, or prompt format; the published MiniLM embeddings therefore degrade to keyword retrieval. Generate compatible local embeddings for semantic retrieval. Clef-Flash can re-rank the top 8 candidates (configurable, 1-20) through a local Ollama daemon.
 
 ## Tool Reference
 
@@ -92,13 +92,21 @@ pnpm dev --local  # Load data from local project files
 
 The image serves stateless MCP Streamable HTTP at `POST /mcp` and health metadata at `GET /healthz`. There is **no authentication**; use it on a laptop or private network. Compose publishes port 3100 on loopback only. The existing stdio entry point and all ten MCP tool names/input schemas remain unchanged. The TypeScript method `suggestForClaim` is exposed by the tool named `suggest_techniques_for_claim`.
 
-From `mcp-server/`, while online:
+The image needs an Ollama daemon with `clef-flash` for ranking; retrieval works without one. There are two shapes.
+
+**Host Ollama (default).** The container reaches Ollama on the host at `http://host.docker.internal:11434` (Compose maps that name to the host gateway). Pull the model on the host with `ollama pull clef-flash` (Ollama 0.35.1 or newer; Metal or GPU acceleration then applies). The host daemon must accept the container's `Host` header: start it with `OLLAMA_HOST=0.0.0.0`. Otherwise Ollama answers 403 to the foreign `Host`, ranking falls back, and `/healthz.rankingAvailable` stays false.
 
 ```sh
-make pull-models
 docker compose build
 docker compose up -d --pull never --no-build
 curl --fail http://localhost:3100/healthz
+```
+
+**Bundled Ollama.** The `ollama` service runs inside the stack under the `bundled-ollama` profile, on CPU only:
+
+```sh
+make pull-models
+OLLAMA_URL=http://ollama:11434 docker compose --profile bundled-ollama up -d --pull never
 ```
 
 Rebuild against a different data cut with one command (replace the ref with the published tag or commit):
@@ -109,7 +117,7 @@ DATA_REF=<data-tag-or-commit> docker compose build mcp
 
 The default data cut is `777cf5e752775b20537e1a499c3998eadc2bc184`. The build resolves `DATA_REF` to a commit, fetches **only its graph.jsonld**, and regenerates embeddings from the graph with `scripts/generate-embeddings.ts`. It never copies or reads the repository's committed embeddings. Both the generated vectors and the ONNX query model cache are copied into the runtime image. `/healthz.dataVersion` reports the resolved data commit. Tag and goal values in the ranking state come from the loaded data; `CONCEPT_TAGS` is unchanged for the separate data pass.
 
-After preparation, the two-service Compose stack uses an internal Docker network without internet egress. It can start without any network downloads using the `up` command above. `make pull-models` uses a temporary container with download access and a persistent `tea-techniques-mcp-models` volume. It pulls only `clef-flash`; retrieval does not depend on Ollama. Keep that volume when moving the image to another laptop, or prepare the destination while online. Docker Desktop runs Ollama on Linux CPU; it does not expose Apple Metal to this container.
+The `mcp` service sits on the default Compose network so it can reach the host gateway, and on an internal network shared with the bundled Ollama. The application only contacts the Ollama URL, which must be `localhost`, `127.0.0.1`, `[::1]`, `ollama` or `host.docker.internal`. The stack starts without network downloads once prepared. `make pull-models` (bundled shape only) uses a temporary container with download access and a persistent `tea-techniques-mcp-models` volume. It pulls only `clef-flash`; retrieval does not depend on Ollama. Keep that volume when moving the image to another laptop, or prepare the destination while online. The bundled Ollama runs on Linux CPU and does not expose Apple Metal; use the host shape on a Mac.
 
 ### Call the claim tool without initialization
 
@@ -136,7 +144,7 @@ The result is available as both `result.structuredContent` and JSON in `result.c
 }
 ```
 
-`score` is the Noul probability only when `rankingAvailable` is true. Otherwise it equals `retrievalScore`, a normalized RRF rank score, and the original retrieval order is preserved. Missing/unreachable Ollama, absent models, invalid responses, or any candidate failure cause the whole ranking step to fall back. All candidate requests start in parallel and share a 30-second deadline. No `reason` field is returned. The tool defaults to ten results; direct TypeScript callers can use `suggestForClaim(claim, { limit, context })` (up to twenty). MCP retains its existing flat context arguments.
+`score` is the Noul probability only when `rankingAvailable` is true. Otherwise it equals `retrievalScore`, a normalized RRF rank score, and the original retrieval order is preserved. Missing/unreachable Ollama, absent models, invalid responses, or any candidate failure cause the whole ranking step to fall back. The first `RANKING_CANDIDATES` retrieved candidates (default 8, bounds 1-20) are ranked in one `/v1/systemone` request carrying one question per candidate; any remaining retrieved candidates follow them in retrieval order with `score` equal to `retrievalScore`. The request is aborted at `RANKING_DEADLINE_MS` (default 30000), which also stops generation in Ollama. No `reason` field is returned. The tool defaults to ten results; direct TypeScript callers can use `suggestForClaim(claim, { limit, context })` (up to twenty). MCP retains its existing flat context arguments.
 
 ### Model and resource requirements
 
@@ -151,7 +159,7 @@ time docker compose build mcp
 docker image inspect tea-techniques-mcp:local --format '{{.Size}}'
 ```
 
-In offline mode (`TEA_OFFLINE=1`, enabled in the image), graph and embedding files must be local, remote model downloads are disabled, and startup fails if the compatible vectors or cached query model are missing. The only model network calls at request time go to the local Compose Ollama service. `/healthz.rankingAvailable` checks whether that daemon lists Clef-Flash and reports false after a known ranking failure. Tool calls keep retrying and restore availability after success; each tool response records whether ranking actually succeeded.
+In offline mode (`TEA_OFFLINE=1`, enabled in the image), graph and embedding files must be local, remote model downloads are disabled, and startup fails if the compatible vectors or cached query model are missing. The only model network calls at request time go to the configured Ollama daemon. `/healthz.rankingAvailable` checks whether the Ollama daemon lists Clef-Flash; `/healthz.lastRankingSucceeded` reports the outcome of the most recent ranking call (null before the first). Each tool response records whether ranking actually succeeded.
 
 ### Local development and evaluation
 
@@ -169,3 +177,16 @@ pnpm test
 ```
 
 The rubric is unchanged. Check each evaluation's `rankingAvailable` fields before treating the run as a Clef-Flash comparison. `PORT` defaults to 3100, `HOST` to loopback outside Docker, `DATA_DIR` selects the local graph/vectors directory, and `EMBEDDING_CACHE_DIR` selects the ONNX cache (default `mcp-server/.cache/huggingface-q8`). Model downloads are allowed only by the generation script; query requests always load cached files.
+
+### Retrieval tuning
+
+All variables are optional; defaults reproduce the untuned behaviour.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `RANKING_CANDIDATES` | 8 | Candidates sent to Clef-Flash (1-20) |
+| `RANKING_DEADLINE_MS` | 30000 | Aborts the ranking request |
+| `RRF_KEYWORD_WEIGHT` | 1 | Weight of the keyword leg in rank fusion |
+| `RRF_SEMANTIC_WEIGHT` | 1 | Weight of the embedding leg in rank fusion |
+| `WEAK_MATCH_CUTOFF` | 0.6 | Claims-index matches with a worse Fuse.js score are dropped |
+| `RANKING_DEBUG` | unset | `1` logs the fused scores' min, median and max per call and what the cut-off dropped |
