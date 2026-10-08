@@ -13,6 +13,13 @@ export interface Technique {
   computational_cost_rating?: number;
   acronym?: string;
   related_techniques?: string[];
+  sample_claims?: SampleClaim[];
+}
+
+export interface SampleClaim {
+  text: string;
+  assuranceGoal: string;
+  domain?: string;
 }
 
 export interface ExampleUseCase {
@@ -31,7 +38,8 @@ export interface Resource {
     | 'technical_paper'
     | 'software_package'
     | 'documentation'
-    | 'tutorial';
+    | 'tutorial'
+    | 'application_paper';
   description?: string;
   authors?: string[];
   publication_date?: string;
