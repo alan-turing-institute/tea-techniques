@@ -403,8 +403,6 @@ export const tagDefinitions: Record<string, string> = {
     'Makes the algorithm itself inspectable',
   'assurance-goal-category/security':
     'Techniques that protect the system from malicious attacks or unauthorized access',
-  'assurance-goal-category/security/adversarial-robustness':
-    'Assesses or improves resistance to adversarial inputs and attacks',
 
   // Explanatory Scope
   'explanatory-scope/local': 'Provides explanations for individual predictions',
@@ -420,4 +418,12 @@ export const tagDefinitions: Record<string, string> = {
     'Techniques that test a system against a stated safety requirement, such as refusing harmful requests or holding up at its limits.',
   'assurance-goal-category/safety/safeguards':
     'Techniques that lower the chance or impact of harm, such as redundancy, data screening, human oversight or documented limits of use.',
+  'assurance-goal-category/security/vulnerability-testing':
+    'Techniques that attack a model or its defences to measure how well they hold, such as jailbreak, injection or extraction tests.',
+  'assurance-goal-category/security/protection':
+    'Techniques that protect a model or its data from attack, theft or exposure, such as encryption or ownership marking.',
+  'assurance-goal-category/security/detection':
+    'Techniques that spot attacks, tampering or misuse of a model or its training data, whether in operation or before training.',
+  'assurance-goal-category/security/threat-analysis':
+    'Techniques that map who might attack a system, how, and what they could gain, so defences can be chosen to fit.',
 };
