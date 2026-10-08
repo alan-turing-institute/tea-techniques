@@ -25,6 +25,7 @@ const tagDefinitionsPath = path.join(
 // the single source of the vocabulary. Keys there look like  'a/b/c':
 const DEFINITION_KEY = /^\s+'([^']+)':/gm;
 const GOAL_TAG_PREFIX = 'assurance-goal-category/';
+const LIFECYCLE_PREFIX = 'lifecycle-stage/';
 
 // Initialize AJV with strict mode
 const ajv = new Ajv({
@@ -251,10 +252,30 @@ function goalTagProblems(technique) {
   return problems;
 }
 
+// A lifecycle stage tag implies its phase tag (other/... has no phase).
+function lifecycleProblems(technique) {
+  const tags = new Set(technique.tags || []);
+  const problems = [];
+  for (const tag of tags) {
+    if (!tag.startsWith(LIFECYCLE_PREFIX)) {
+      continue;
+    }
+    const parts = tag.slice(LIFECYCLE_PREFIX.length).split('/');
+    const phase = `${LIFECYCLE_PREFIX}${parts[0]}`;
+    if (parts.length >= 2 && parts[0] !== 'other' && !tags.has(phase)) {
+      problems.push(`carries ${tag} without its phase tag ${phase}`);
+    }
+  }
+  return problems;
+}
+
 function collectTagProblems(techniques, defined) {
   const undefinedTags = new Map();
   const goalProblems = [];
   for (const technique of techniques) {
+    for (const problem of lifecycleProblems(technique)) {
+      goalProblems.push(`${technique.slug}: ${problem}`);
+    }
     for (const tag of technique.tags || []) {
       if (!defined.has(tag)) {
         const slugs = undefinedTags.get(tag) || [];
@@ -304,7 +325,7 @@ async function validateTagVocabulary() {
   if (goalProblems.length > 0) {
     logger.info(
       chalk.red(
-        `✗ goal tags: ${goalProblems.length} disagreement(s) between assurance_goals and assurance-goal-category tags`
+        `✗ goal and lifecycle tags: ${goalProblems.length} problem(s) (goal tags vs assurance_goals; stage tags without their phase)`
       )
     );
     for (const problem of goalProblems) {

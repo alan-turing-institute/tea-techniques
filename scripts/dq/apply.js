@@ -50,6 +50,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
+import { normaliseTags } from './normalise-tags.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -201,7 +202,8 @@ function mergeResources(current, spec, zotero) {
 function applyFields(before, after, fields) {
   const problems = [];
   const changed = [];
-  for (const [field, value] of Object.entries(fields)) {
+  for (const [field, raw] of Object.entries(fields)) {
+    const value = field === 'tags' ? normaliseTags(raw) : raw;
     if (!REPLACEABLE_FIELDS.has(field)) {
       problems.push(`field "${field}" is not replaceable by proposal`);
     } else if (JSON.stringify(before[field]) !== JSON.stringify(value)) {
