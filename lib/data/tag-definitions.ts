@@ -351,16 +351,6 @@ export const tagDefinitions: Record<string, string> = {
     'Attributes model decisions to specific features',
   'assurance-goal-category/fairness':
     'Techniques that assess or improve fairness in AI systems',
-  'assurance-goal-category/fairness/group':
-    'Focuses on fairness between demographic groups',
-  'assurance-goal-category/fairness/group/statistical-parity':
-    'Ensures equal outcomes across groups',
-  'assurance-goal-category/fairness/causal':
-    'Uses causal reasoning to define and ensure fairness',
-  'assurance-goal-category/fairness/group-fairness':
-    'Focuses on fairness between demographic groups',
-  'assurance-goal-category/fairness/process':
-    'Addresses fairness through the process by which data is prepared or decisions are made',
   'assurance-goal-category/general':
     'Techniques that support assurance across all goals rather than one in particular',
   'assurance-goal-category/privacy':
@@ -430,4 +420,16 @@ export const tagDefinitions: Record<string, string> = {
     'Techniques that test whether a model, dataset or output reveals information about the individuals behind the data.',
   'assurance-goal-category/privacy/exposure-reduction/data-minimisation':
     'Techniques that collect, share or retain no more personal data than the purpose needs (the data-minimisation principle).',
+  'assurance-goal-category/fairness/bias-measurement':
+    'Techniques that test for and quantify unequal treatment linked to protected attributes, in outputs, inputs or representations.',
+  'assurance-goal-category/fairness/bias-diagnosis':
+    'Techniques that show which features, concepts or training examples make a model treat groups differently.',
+  'assurance-goal-category/fairness/performance-by-group':
+    'Techniques that estimate or report accuracy, calibration or uncertainty separately for each group so gaps can be seen or closed.',
+  'assurance-goal-category/fairness/pre-processing':
+    'Techniques that change the training data or its features before training so that the model learns less bias.',
+  'assurance-goal-category/fairness/in-processing':
+    'Techniques that build a fairness constraint, penalty or adversary into model training.',
+  'assurance-goal-category/fairness/post-processing':
+    'Techniques that adjust decisions or thresholds after training so that outcomes or error rates match across groups.',
 };
