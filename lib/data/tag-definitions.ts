@@ -223,7 +223,8 @@ export const tagDefinitions: Record<string, string> = {
   'technique-type/metric': 'A specific measure or calculation method',
   'technique-type/process': 'An organizational or workflow approach',
   'technique-type/visualisation': 'A method focused on visual representation',
-  'technique-type/testing': 'Techniques focused on testing and validation',
+  'technique-type/testing':
+    'A test or evaluation protocol run against a model or system',
 
   // Assurance Goal Categories
   'assurance-goal-category/explainability':
