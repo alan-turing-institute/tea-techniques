@@ -82,8 +82,6 @@ export const tagDefinitions: Record<string, string> = {
     'Requires access to model gradients',
   'applicable-models/requirements/model-internals':
     'Requires access to weights, neurons, or internal representations',
-  'applicable-models/requirements/training-data':
-    'Requires access to the original training dataset',
   'applicable-models/requirements/architecture-specific':
     'Requires specific architectural components to function',
   'applicable-models/requirements/white-box':
@@ -96,8 +94,6 @@ export const tagDefinitions: Record<string, string> = {
     'Model must be differentiable',
   'applicable-models/requirements/probabilistic-output':
     'Model must provide probability distributions as output',
-  'applicable-models/requirements/model-agnostic':
-    'Works with any model type without requiring specific architecture (black-box techniques)',
 
   // Lifecycle Stage - Category Level Tags
   'lifecycle-stage/project-design':
@@ -140,74 +136,30 @@ export const tagDefinitions: Record<string, string> = {
   // Lifecycle Stage - Other Category
   'lifecycle-stage/other/cross-cutting':
     'Techniques that apply across multiple lifecycle stages',
-  'lifecycle-stage/other/governance':
-    'Ongoing governance and oversight activities',
-  'lifecycle-stage/other/continuous':
-    'Continuous processes that operate throughout the lifecycle',
 
   // Legacy lifecycle-stage tags (kept for backward compatibility during migration)
   // Note: lifecycle-stage/project-design, /model-development, and /system-deployment
   // are now primary tags (not legacy) as they're valid category-level tags
-  'lifecycle-stage/project-planning':
-    'Legacy: Techniques for early project planning and requirement gathering',
   'lifecycle-stage/data-handling':
     'Legacy: Techniques for data collection, preparation, and preprocessing',
   'lifecycle-stage/data-collection':
     'Legacy: Techniques specific to gathering and collecting data',
   'lifecycle-stage/data-collection/data-augmentation':
     'Legacy: Techniques for expanding or enhancing datasets',
-  'lifecycle-stage/data-collection/data-preprocessing':
-    'Legacy: Techniques for cleaning and preparing collected data',
-  'lifecycle-stage/data-handling/collection':
-    'Legacy: Techniques for the data collection phase',
-  'lifecycle-stage/data-handling/preparation':
-    'Legacy: Techniques for preparing data for model training',
-  'lifecycle-stage/data-handling/preprocessing':
-    'Legacy: Techniques for data transformation and cleaning',
-  'lifecycle-stage/model-development/training':
-    'Legacy: Techniques applied during the model training process',
-  'lifecycle-stage/model-development/testing':
-    'Legacy: Techniques for testing model performance',
-  'lifecycle-stage/model-development/fine-tuning':
-    'Legacy: Techniques for optimising model parameters',
-  'lifecycle-stage/model-evaluation':
-    'Legacy: Techniques for assessing model performance and behavior',
-  'lifecycle-stage/model-optimization':
-    'Legacy: Techniques for improving model efficiency and performance',
   'lifecycle-stage/deployment':
     'Legacy: Techniques for deploying models to production',
-  'lifecycle-stage/system-deployment-and-use':
-    'Legacy: Techniques for deployed systems in production',
-  'lifecycle-stage/system-deployment-and-use/monitoring':
-    'Legacy: Techniques for monitoring deployed models',
-  'lifecycle-stage/system-deployment-and-use/auditing':
-    'Legacy: Techniques for auditing deployed systems',
-  'lifecycle-stage/monitoring':
-    'Legacy: Techniques for continuous model monitoring',
-  'lifecycle-stage/post-deployment':
-    'Legacy: Techniques applied after model deployment',
-  'lifecycle-stage/post-processing':
-    'Legacy: Techniques for processing model outputs',
-  'lifecycle-stage/testing':
-    'Legacy: Techniques for testing models and systems',
-  'lifecycle-stage/all':
-    'Applies at every stage of the lifecycle; matches any lifecycle filter',
 
   // Expertise Needed
   'expertise-needed/statistics':
     'Requires knowledge of statistical methods and analysis',
   'expertise-needed/causal-inference':
     'Requires understanding of causal relationships and inference',
-  'expertise-needed/domain-knowledge':
-    'Requires expertise in the specific application domain',
   'expertise-needed/domain-expertise':
     'Requires deep understanding of the problem domain',
   'expertise-needed/ml-engineering':
     'Requires machine learning engineering skills',
   'expertise-needed/software-engineering':
     'Requires general programming and system design skills',
-  'expertise-needed/legal':
-    'Requires understanding of legal frameworks and regulations',
   'expertise-needed/ethics':
     'Requires knowledge of ethical principles and frameworks',
   'expertise-needed/regulatory-compliance':
@@ -220,8 +172,6 @@ export const tagDefinitions: Record<string, string> = {
     'Requires safety engineering principles and practices',
   'expertise-needed/linguistics':
     'Requires linguistic knowledge for language-based techniques',
-  'expertise-needed/experimental-design':
-    'Requires knowledge of experimental design and testing',
   'expertise-needed/stakeholder-engagement':
     'Requires skills in stakeholder communication and engagement',
   'expertise-needed/low':
@@ -263,11 +213,8 @@ export const tagDefinitions: Record<string, string> = {
     'Requires datasets with ground truth labels',
   'data-requirements/no-special-requirements':
     'Works with standard inputs without special requirements',
-  'data-requirements/access-to-model-internals':
-    'Needs access to model gradients, weights, or activations',
   'data-requirements/access-to-training-data':
     'Requires the original training dataset',
-  'data-requirements/validation-set': 'Needs a separate validation dataset',
   'data-requirements/calibration-set':
     'Requires a calibration dataset for adjustment',
   'data-requirements/sensitive-attributes':
@@ -278,8 +225,6 @@ export const tagDefinitions: Record<string, string> = {
     'Needs a baseline or reference dataset for comparison',
   'data-requirements/pre-trained-model':
     'Requires an existing trained model as input',
-  'data-requirements/prediction-probabilities':
-    'Needs probabilistic predictions from the model',
   'data-requirements/test-scenarios':
     'Requires predefined test cases or scenarios',
 
@@ -292,19 +237,11 @@ export const tagDefinitions: Record<string, string> = {
 
   // Technique Type
   'technique-type/algorithmic': 'A specific algorithm or computational method',
-  'technique-type/procedural': 'A defined process or series of steps',
   'technique-type/documentation': 'A template or standard for documentation',
   'technique-type/metric': 'A specific measure or calculation method',
   'technique-type/process': 'An organizational or workflow approach',
-  'technique-type/visualization': 'A method focused on visual representation',
-  'technique-type/experimental':
-    'Techniques based on experimental testing and validation',
-  'technique-type/gradient-based':
-    'Techniques that utilize gradient information',
-  'technique-type/mechanistic-interpretability':
-    'Techniques for understanding model mechanisms',
+  'technique-type/visualisation': 'A method focused on visual representation',
   'technique-type/testing': 'Techniques focused on testing and validation',
-  'technique-type/process-based': 'An organizational or workflow approach',
 
   // Assurance Goal Categories
   'assurance-goal-category/explainability':
