@@ -265,6 +265,10 @@ function lifecycleProblems(technique) {
     if (parts.length >= 2 && parts[0] !== 'other' && !tags.has(phase)) {
       problems.push(`carries ${tag} without its phase tag ${phase}`);
     }
+    const isBarePhase = parts.length === 1 && parts[0] !== 'other';
+    if (isBarePhase && ![...tags].some((t) => t.startsWith(`${tag}/`))) {
+      problems.push(`carries the phase tag ${tag} with no stage beneath it`);
+    }
   }
   return problems;
 }

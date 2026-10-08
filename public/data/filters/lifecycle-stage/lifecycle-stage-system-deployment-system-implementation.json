@@ -2,10 +2,587 @@
   "tag": {
     "name": "lifecycle-stage/system-deployment/system-implementation",
     "slug": "lifecycle-stage-system-deployment-system-implementation",
-    "count": 7,
+    "count": 13,
     "category": "lifecycle-stage"
   },
   "techniques": [
+    {
+      "slug": "monte-carlo-dropout",
+      "name": "Monte Carlo Dropout",
+      "description": "Monte Carlo Dropout estimates prediction uncertainty by applying dropout (randomly setting neural network weights to zero) during inference rather than just training. It performs multiple forward passes through the network with different random dropout patterns and collects the resulting predictions to form a distribution. Low variance across predictions indicates epistemic certainty (the model is confident), while high variance suggests epistemic uncertainty (the model is unsure). This technique transforms any dropout-trained neural network into a Bayesian approximation for uncertainty quantification.",
+      "assurance_goals": [
+        "Explainability",
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/probabilistic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/architecture-specific",
+        "applicable-models/requirements/model-internals",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explains/prediction-confidence",
+        "assurance-goal-category/explainability/property/consistency",
+        "assurance-goal-category/explainability/property/efficiency",
+        "assurance-goal-category/explainability/uncertainty-analysis/prediction-uncertainty",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/uncertainty-quantification",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "explanatory-scope/global",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Quantifying diagnostic uncertainty in medical imaging models by running 50+ Monte Carlo forward passes to detect when a chest X-ray classification is highly uncertain, prompting radiologist review for borderline cases.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "Estimating prediction confidence in autonomous vehicle perception systems, where high uncertainty in object detection (e.g., variance > 0.3 across MC samples) triggers more conservative driving behaviour or human handover.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "Providing uncertainty estimates in financial fraud detection models, where high epistemic uncertainty (wide prediction variance) indicates the model lacks sufficient training data for similar transaction patterns, requiring manual review.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Only captures epistemic (model) uncertainty, not aleatoric (data) uncertainty, providing an incomplete picture of total prediction uncertainty."
+        },
+        {
+          "description": "Computationally expensive as it requires multiple forward passes (typically 50-100) for each prediction, significantly increasing inference time."
+        },
+        {
+          "description": "Results depend critically on dropout rate matching the training configuration, and poorly calibrated dropout can lead to misleading uncertainty estimates."
+        },
+        {
+          "description": "Approximation quality varies with network architecture and dropout placement, with some configurations providing poor uncertainty calibration despite theoretical foundations."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Dropout as a Bayesian Approximation: Representing Model Uncertainty in Deep Learning",
+          "url": "http://arxiv.org/abs/1506.02142v6",
+          "source_type": "technical_paper",
+          "authors": [
+            "Yarin Gal",
+            "Zoubin Ghahramani"
+          ],
+          "publication_date": "2015-06-06",
+          "citationKey": "galDropoutBayesianApproximation2015",
+          "abstract": "Deep learning tools have gained tremendous attention in applied machine learning. However such tools for regression and classification do not capture model uncertainty. In comparison, Bayesian models offer a mathematically grounded framework to reason about model uncertainty, but usually come with a prohibitive computational cost. In this paper we develop a new theoretical framework casting dropout training in deep neural networks (NNs) as approximate Bayesian inference in deep Gaussian processes. A direct result of this theory gives us tools to model uncertainty with dropout NNs -- extracting information from existing models that has been thrown away so far. This mitigates the problem of representing uncertainty in deep learning without sacrificing either computational complexity or test accuracy. We perform an extensive study of the properties of dropout's uncertainty. Various network architectures and non-linearities are assessed on tasks of regression and classification, using MNIST as an example. We show a considerable improvement in predictive log-likelihood and RMSE compared to existing state-of-the-art methods, and finish by using dropout's uncertainty in deep reinforcement learning."
+        },
+        {
+          "title": "uncertainty_estimation_deep_learning",
+          "url": "https://github.com/mattiasegu/uncertainty_estimation_deep_learning",
+          "source_type": "software_package",
+          "publication_date": "2019-06-12",
+          "citationKey": "mattiaseguUncertainty_estimation_deep_learning2019",
+          "abstract": "This repository provides the code used to implement the framework to provide deep learning models with total uncertainty estimates as described in \"A General Framework for Uncertainty Estimation in Deep Learning\" (Loquercio, Segù, Scaramuzza. RA-L 2020)."
+        },
+        {
+          "title": "deep_uncertainty_estimation",
+          "url": "https://github.com/uzh-rpg/deep_uncertainty_estimation",
+          "source_type": "software_package",
+          "publication_date": "2020-03-06",
+          "citationKey": "uzh-rpgDeep_uncertainty_estimation2020",
+          "abstract": "This repository provides the code used to implement the framework to provide deep learning models with total uncertainty estimates as described in \"A General Framework for Uncertainty Estimation in Deep Learning\" (Loquercio, Segù, Scaramuzza. RA-L 2020)."
+        },
+        {
+          "title": "How certain are tansformers in image classification: uncertainty analysis with Monte Carlo dropout",
+          "url": "https://www.semanticscholar.org/paper/d7ff734c5b62a4a140fd560373d890e43d5b36cf",
+          "source_type": "technical_paper",
+          "authors": [
+            "Md. Farhadul Islam",
+            "Sarah Zabeen",
+            "Md. Azharul Islam",
+            "Fardin Bin Rahman",
+            "Anushua Ahmed",
+            "Dewan Ziaul Karim",
+            "Annajiat Alim Rasel",
+            "Meem Arafat Manab"
+          ],
+          "publication_date": "2023",
+          "citationKey": "farhadulislamHowCertainAre2023",
+          "abstract": "Researchers have been inspired to implement transformer models in solving machine vision problems after their tremendous success with natural language tasks. Using the straightforward architecture and swift performance of transformers, a variety of computer vision problems can be solved with more ease and effectiveness. However, a comparative evaluation of their uncertainty in prediction has not been done yet. As we know, real world applications require a measure of uncertainty to produce accurate predictions, which allows researchers to handle uncertain inputs and special cases, in order to successfully prevent overfitting. Our study approaches the unexplored issue of uncertainty estimation among three popular and effective transformer models employed in computer vision, such as Vision Transformers (ViT), Swin Transformers (SWT), and Compact Convolutional Transformers (CCT). We conduct a comparative experiment to determine which particular architecture is the most reliable in image classification. We use dropouts at the inference phase in order to measure the uncertainty of these transformer models. This approach, commonly known as Monte Carlo Dropout (MCD), works well as a low-complexity estimation to compute uncertainty. The MCD-based CCT model is the least uncertain architecture in this classification task. Our proposed MCD-infused CCT model also yields the best results with 78.4% accuracy, while the SWT model with embedded MCD exhibits Pmaximum performance gain where the accuracy increased by almost 3% with the final result being 71.4%."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "related_techniques": [
+        "deep-ensembles",
+        "conformal-prediction",
+        "temperature-scaling"
+      ],
+      "sample_claims": [
+        {
+          "text": "The medical imaging system's prediction variance across repeated inference passes indicates epistemic uncertainty in borderline diagnostic cases",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The autonomous vehicle's object detection model quantifies prediction uncertainty without requiring multiple separately trained networks",
+          "domain": "autonomous systems",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The fraud detection system identifies transactions where the model lacks sufficient training data coverage through elevated prediction variance",
+          "domain": "finance",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The model's confidence estimates reflect genuine uncertainty in its learned parameters rather than data noise",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The environmental forecasting model's prediction distributions reveal when operating conditions lie outside the model's epistemic envelope",
+          "domain": "environmental",
+          "assuranceGoal": "reliability"
+        }
+      ]
+    },
+    {
+      "slug": "homomorphic-encryption",
+      "name": "Homomorphic Encryption",
+      "description": "Homomorphic encryption allows computation on encrypted data without decrypting it first, producing encrypted results that, when decrypted, match the results of performing the same operations on the plaintext. This enables secure outsourced computation where sensitive data remains encrypted throughout processing. By allowing ML operations on encrypted data, it provides strong privacy guarantees for applications involving highly sensitive information.",
+      "assurance_goals": [
+        "Privacy",
+        "Transparency",
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/linear-models",
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/feedforward",
+        "applicable-models/architecture/tree-based",
+        "applicable-models/paradigm/discriminative",
+        "applicable-models/paradigm/parametric",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/formal-guarantee",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/protection",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/confidential-verification",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/privacy-guarantee",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/cryptography",
+        "expertise-needed/ml-engineering",
+        "technique-type/algorithmic",
+        "applicable-models/requirements/white-box",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Enabling a cloud-based medical diagnosis service to process encrypted patient data and return encrypted results without the cloud provider ever accessing actual medical information, ensuring complete patient privacy during outsourced computation.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "Enabling transparent audit of algorithmic decision-making by allowing regulators to verify model computations on encrypted data, providing accountability whilst protecting the proprietary nature of both the algorithm and the underlying data.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "Protecting ML model intellectual property and confidential inference inputs during cloud deployment by running encrypted inference, ensuring that neither the client sensitive input data nor the server proprietary model weights and architecture are exposed to the cloud provider or the counterparty, enabling secure outsourced inference without requiring mutual trust assumptions.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Extremely computationally expensive, often 100-1000x slower than unencrypted computation, making it impractical for real-time applications or large-scale data processing."
+        },
+        {
+          "description": "Limited range of operations supported efficiently, with complex operations like divisions, comparisons, and non-polynomial functions being particularly challenging or impossible to implement."
+        },
+        {
+          "description": "Implementation requires deep cryptographic expertise to avoid security vulnerabilities, choose appropriate parameters, and optimise performance for specific use cases."
+        },
+        {
+          "description": "Memory and storage requirements are significantly higher than traditional computation, as encrypted data typically requires much more space than plaintext equivalents."
+        },
+        {
+          "description": "Current fully homomorphic encryption schemes have practical limitations on computation depth before noise accumulation requires expensive bootstrapping operations to refresh ciphertexts."
+        }
+      ],
+      "resources": [
+        {
+          "title": "concrete-ml",
+          "url": "https://github.com/zama-ai/concrete-ml",
+          "source_type": "software_package",
+          "publication_date": "2022-03-23",
+          "citationKey": "zama-aiConcreteml2022",
+          "abstract": "Concrete ML: Privacy Preserving ML framework using Fully Homomorphic Encryption (FHE), built on top of Concrete, with bindings to traditional ML frameworks."
+        },
+        {
+          "title": "Survey on Fully Homomorphic Encryption, Theory, and Applications",
+          "url": "https://core.ac.uk/download/579858842.pdf",
+          "source_type": "technical_paper",
+          "authors": [
+            "Chiara Marcolla",
+            "Frank H.P. Fitzek",
+            "Marc Manzano",
+            "Najwa Aaraj",
+            "Riccardo Bassoli",
+            "Victor Sucasas"
+          ],
+          "publication_date": "2022-10-06",
+          "citationKey": "marcollaSurveyFullyHomomorphic2022"
+        },
+        {
+          "title": "Welcome to OpenFHE's documentation! — OpenFHE documentation",
+          "url": "https://openfhe-development.readthedocs.io",
+          "source_type": "documentation",
+          "authors": [
+            "Openfhe-development Developers"
+          ],
+          "publication_date": "2023",
+          "citationKey": "openfhe-developmentdevelopersWelcomeOpenFHEsDocumentation2023"
+        },
+        {
+          "title": "Evaluation of Privacy-Preserving Support Vector Machine (SVM) Learning Using Homomorphic Encryption",
+          "url": "https://core.ac.uk/download/656115203.pdf",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ali, Hisham",
+            "Buchanan, William J."
+          ],
+          "publication_date": "2025-01-01",
+          "citationKey": "hishamEvaluationPrivacyPreservingSupport2025"
+        },
+        {
+          "title": "SEAL",
+          "url": "https://github.com/microsoft/SEAL",
+          "source_type": "software_package",
+          "publication_date": "2018-11-09",
+          "citationKey": "microsoftSEAL2018",
+          "abstract": "Microsoft SEAL is an easy-to-use and powerful homomorphic encryption library."
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 5,
+      "related_techniques": [
+        "differential-privacy",
+        "federated-learning",
+        "membership-inference-attack-testing"
+      ],
+      "sample_claims": [
+        {
+          "text": "The cloud-based service processes patient data without the service provider ever accessing the underlying medical information",
+          "domain": "healthcare",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The system's computational outputs are mathematically guaranteed to match results that would be obtained from unencrypted processing",
+          "domain": "general",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The financial analysis platform maintains data confidentiality throughout all computational operations performed by third-party infrastructure",
+          "domain": "finance",
+          "assuranceGoal": "security"
+        },
+        {
+          "text": "The public sector system allows regulatory oversight of algorithmic decisions whilst protecting both citizen data and proprietary model parameters from disclosure",
+          "domain": "public sector",
+          "assuranceGoal": "transparency"
+        }
+      ]
+    },
+    {
+      "slug": "conformal-prediction",
+      "name": "Conformal Prediction",
+      "description": "Conformal prediction provides mathematically guaranteed uncertainty quantification by creating prediction sets that contain the true outcome with a specified probability (e.g., exactly 95% coverage). The technique works by measuring how 'strange' or 'nonconforming' new predictions are compared to calibration data - if a prediction seems unusual, it gets wider intervals. For example, in medical diagnosis, instead of saying 'likely cancer', it might say 'possible diagnoses: {cancer, benign tumour} with 95% confidence'. This distribution-free method works with any underlying model (neural networks, random forests, etc.) and requires no assumptions about data distribution, making it a robust framework for reliable uncertainty estimates in high-stakes applications.",
+      "assurance_goals": [
+        "Reliability",
+        "Transparency",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/performance-by-group",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/uncertainty-quantification",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/confidence-and-limits",
+        "data-requirements/calibration-set",
+        "data-type/any",
+        "evidence-type/prediction-interval",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Creating prediction sets for drug discovery that guarantee 95% coverage, such as 'this compound will likely have activity against {target A, target B, target C}', ensuring reliable decision-making in costly experimental validation.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories with guaranteed coverage, enabling judges to see the full range of possibilities rather than just a single point estimate.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "Ensuring fair uncertainty quantification across demographic groups in college admissions by verifying that prediction set sizes (number of possible outcomes) are consistent across protected groups, preventing discriminatory overconfidence for certain populations.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Prediction sets can be unnecessarily wide when nonconformity scores vary greatly across the feature space, leading to conservative intervals that reduce practical utility."
+        },
+        {
+          "description": "Requires a held-out calibration set separate from training data, reducing the amount of data available for model training, which can impact performance on small datasets."
+        },
+        {
+          "description": "Guarantees only hold under the exchangeability assumption - if test data distribution differs significantly from calibration data, coverage guarantees may be violated."
+        },
+        {
+          "description": "For multi-class problems, prediction sets may include many classes when the model is uncertain, making decisions difficult when sets contain opposing outcomes."
+        },
+        {
+          "description": "Computational cost increases with the number of calibration samples, and efficient implementation requires careful design for large-scale or real-time applications."
+        }
+      ],
+      "resources": [
+        {
+          "title": "A tutorial on conformal prediction",
+          "url": "http://arxiv.org/abs/0706.3188v1",
+          "source_type": "technical_paper",
+          "authors": [
+            "Glenn Shafer",
+            "Vladimir Vovk"
+          ],
+          "publication_date": "2007-06-21",
+          "citationKey": "shaferTutorialConformalPrediction2007",
+          "abstract": "Conformal prediction uses past experience to determine precise levels of confidence in new predictions. Given an error probability $ε$, together with a method that makes a prediction $\\hat{y}$ of a label $y$, it produces a set of labels, typically containing $\\hat{y}$, that also contains $y$ with probability $1-ε$. Conformal prediction can be applied to any method for producing $\\hat{y}$: a nearest-neighbor method, a support-vector machine, ridge regression, etc.   Conformal prediction is designed for an on-line setting in which labels are predicted successively, each one being revealed before the next is predicted. The most novel and valuable feature of conformal prediction is that if the successive examples are sampled independently from the same distribution, then the successive predictions will be right $1-ε$ of the time, even though they are based on an accumulating dataset rather than on independent datasets.   In addition to the model under which successive examples are sampled independently, other on-line compression models can also use conformal prediction. The widely used Gaussian linear model is one of these.   This tutorial presents a self-contained account of the theory of conformal prediction and works through several numerical examples. A more comprehensive treatment of the topic is provided in \"Algorithmic Learning in a Random World\", by Vladimir Vovk, Alex Gammerman, and Glenn Shafer (Springer, 2005)."
+        },
+        {
+          "title": "awesome-conformal-prediction",
+          "url": "https://github.com/valeman/awesome-conformal-prediction",
+          "source_type": "software_package",
+          "publication_date": "2021-12-10",
+          "citationKey": "valemanAwesomeconformalprediction2021",
+          "abstract": "A professionally curated list of awesome Conformal Prediction videos, tutorials, books, papers, PhD and MSc theses, articles and open-source libraries."
+        },
+        {
+          "title": "MAPIE",
+          "url": "https://github.com/scikit-learn-contrib/MAPIE",
+          "source_type": "software_package",
+          "publication_date": "2021-03-30",
+          "citationKey": "scikit-learn-contribMAPIE2021",
+          "abstract": "A scikit-learn-compatible library for estimating prediction intervals and controlling risks, based on conformal predictions."
+        },
+        {
+          "title": "Tutorial for classification — MAPIE 0.8.6 documentation",
+          "url": "https://mapie.readthedocs.io/en/v0.8.6/examples_classification/4-tutorials/plot_main-tutorial-classification.html",
+          "source_type": "documentation",
+          "authors": [
+            "Mapie Developers"
+          ],
+          "publication_date": "2021",
+          "citationKey": "mapiedevelopersTutorialClassificationMAPIE2021"
+        },
+        {
+          "title": "Conformal Prediction: a Unified Review of Theory and New Challenges",
+          "url": "http://arxiv.org/abs/2005.07972v2",
+          "source_type": "technical_paper",
+          "authors": [
+            "Matteo Fontana",
+            "Gianluca Zeni",
+            "Simone Vantini"
+          ],
+          "publication_date": "2020-05-16",
+          "citationKey": "fontanaConformalPredictionUnified2020",
+          "abstract": "In this work we provide a review of basic ideas and novel developments about Conformal Prediction -- an innovative distribution-free, non-parametric forecasting method, based on minimal assumptions -- that is able to yield in a very straightforward way predictions sets that are valid in a statistical sense also in in the finite sample case. The in-depth discussion provided in the paper covers the theoretical underpinnings of Conformal Prediction, and then proceeds to list the more advanced developments and adaptations of the original idea."
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 2,
+      "related_techniques": [
+        "bootstrapping",
+        "quantile-regression",
+        "deep-ensembles"
+      ],
+      "sample_claims": [
+        {
+          "text": "The diagnostic system's prediction sets contain the correct outcome with a guaranteed minimum coverage rate across all patient presentations",
+          "domain": "healthcare",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The system's uncertainty estimates maintain their specified validity guarantees regardless of the underlying data distribution",
+          "domain": "general",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The model communicates uncertainty by providing a set of plausible outcomes rather than a single point prediction",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The prediction sets achieve equivalent coverage rates across demographic groups without requiring distributional assumptions",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The autonomous system's safety-critical predictions are accompanied by statistically guaranteed confidence bounds",
+          "domain": "autonomous systems",
+          "assuranceGoal": "reliability"
+        }
+      ]
+    },
+    {
+      "slug": "deep-ensembles",
+      "name": "Deep Ensembles",
+      "description": "Deep ensembles combine predictions from multiple neural networks trained independently with different random initializations to capture epistemic uncertainty (model uncertainty). By training several models on the same data with different starting points, the ensemble reveals how much the model's predictions depend on training randomness. The disagreement between ensemble members naturally indicates prediction uncertainty - when models agree, confidence is high; when they disagree, uncertainty is revealed. This approach provides more reliable uncertainty estimates, better out-of-distribution detection, and improved calibration compared to single models.",
+      "assurance_goals": [
+        "Reliability",
+        "Transparency",
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/paradigm/supervised",
+        "data-requirements/access-to-training-data",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/uncertainty-quantification",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/safeguards",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/confidence-and-limits",
+        "data-type/any",
+        "evidence-type/prediction-interval",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "technique-type/algorithmic",
+        "applicable-models/requirements/white-box",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Improving self-driving car safety by using multiple neural networks to detect obstacles, where disagreement between models signals uncertainty and triggers extra caution or human intervention, providing robust uncertainty quantification for critical decisions.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "Communicating prediction confidence to medical professionals by showing the range of diagnoses from multiple trained models, enabling doctors to understand when the AI system is uncertain and requires additional human expertise or testing.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "Detecting out-of-distribution inputs in financial fraud detection systems where ensemble disagreement signals potentially novel attack patterns that require immediate security team review and system safeguards.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Computationally expensive to train and deploy, requiring multiple complete neural networks which increases training time, memory usage, and inference costs proportionally to ensemble size."
+        },
+        {
+          "description": "May still provide overconfident predictions for inputs far from the training distribution, as all ensemble members can be similarly confident about out-of-distribution examples."
+        },
+        {
+          "description": "Requires careful hyperparameter tuning for each ensemble member to ensure diversity, as identical hyperparameters may lead to similar models that reduce uncertainty estimation quality."
+        },
+        {
+          "description": "Storage and deployment overhead increases linearly with ensemble size, making it challenging to deploy large ensembles in resource-constrained environments or real-time applications."
+        },
+        {
+          "description": "Ensemble predictions may be difficult to interpret individually, as the final decision emerges from averaging multiple models rather than from a single explainable pathway."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles",
+          "url": "https://arxiv.org/abs/1612.01474",
+          "source_type": "technical_paper",
+          "authors": [
+            "Balaji Lakshminarayanan",
+            "Alexander Pritzel",
+            "Charles Blundell"
+          ],
+          "publication_date": "2016-12-05",
+          "citationKey": "lakshminarayananSimpleScalablePredictive2016",
+          "abstract": "Deep neural networks (NNs) are powerful black box predictors that have recently achieved impressive performance on a wide spectrum of tasks. Quantifying predictive uncertainty in NNs is a challenging and yet unsolved problem. Bayesian NNs, which learn a distribution over weights, are currently the state-of-the-art for estimating predictive uncertainty; however these require significant modifications to the training procedure and are computationally expensive compared to standard (non-Bayesian) NNs. We propose an alternative to Bayesian NNs that is simple to implement, readily parallelizable, requires very little hyperparameter tuning, and yields high quality predictive uncertainty estimates. Through a series of experiments on classification and regression benchmarks, we demonstrate that our method produces well-calibrated uncertainty estimates which are as good or better than approximate Bayesian NNs. To assess robustness to dataset shift, we evaluate the predictive uncertainty on test examples from known and unknown distributions, and show that our method is able to express higher uncertainty on out-of-distribution examples. We demonstrate the scalability of our method by evaluating predictive uncertainty estimates on ImageNet."
+        },
+        {
+          "title": "awesome-uncertainty-deeplearning",
+          "url": "https://github.com/ENSTA-U2IS-AI/awesome-uncertainty-deeplearning",
+          "source_type": "software_package",
+          "publication_date": "2022-01-06",
+          "citationKey": "ensta-u2is-aiAwesomeuncertaintydeeplearning2022",
+          "abstract": "This repository contains a collection of surveys, datasets,  papers, and codes, for predictive uncertainty estimation in deep learning models."
+        },
+        {
+          "title": "Deep Ensembles: A Loss Landscape Perspective",
+          "url": "http://arxiv.org/abs/1912.02757v2",
+          "source_type": "technical_paper",
+          "authors": [
+            "Stanislav Fort",
+            "Huiyi Hu",
+            "Balaji Lakshminarayanan"
+          ],
+          "publication_date": "2019-12-05",
+          "citationKey": "fortDeepEnsemblesLoss2019",
+          "abstract": "Deep ensembles have been empirically shown to be a promising approach for improving accuracy, uncertainty and out-of-distribution robustness of deep learning models. While deep ensembles were theoretically motivated by the bootstrap, non-bootstrap ensembles trained with just random initialization also perform well in practice, which suggests that there could be other explanations for why deep ensembles work well. Bayesian neural networks, which learn distributions over the parameters of the network, are theoretically well-motivated by Bayesian principles, but do not perform as well as deep ensembles in practice, particularly under dataset shift. One possible explanation for this gap between theory and practice is that popular scalable variational Bayesian methods tend to focus on a single mode, whereas deep ensembles tend to explore diverse modes in function space. We investigate this hypothesis by building on recent work on understanding the loss landscape of neural networks and adding our own exploration to measure the similarity of functions in the space of predictions. Our results show that random initializations explore entirely different modes, while functions along an optimization trajectory or sampled from the subspace thereof cluster within a single mode predictions-wise, while often deviating significantly in the weight space. Developing the concept of the diversity--accuracy plane, we show that the decorrelation power of random initializations is unmatched by popular subspace sampling methods. Finally, we evaluate the relative effects of ensembling, subspace based methods and ensembles of subspace based methods, and the experimental results validate our hypothesis."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 5,
+      "related_techniques": [
+        "monte-carlo-dropout",
+        "conformal-prediction",
+        "out-of-distribution-detector-for-neural-networks",
+        "epistemic-uncertainty-quantification"
+      ],
+      "sample_claims": [
+        {
+          "text": "The autonomous driving system's predictions are accompanied by confidence estimates that reflect genuine disagreement among multiple independent models",
+          "domain": "autonomous systems",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The diagnostic model's uncertainty estimates reveal when different training conditions would yield substantially different predictions",
+          "domain": "healthcare",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The system detects inputs that fall outside its validated operating envelope by measuring prediction variation across independently trained models",
+          "domain": "general",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "The credit risk model's confidence bounds reflect variability in model structure rather than relying on a single trained configuration",
+          "domain": "finance",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The system's hazard warnings are triggered when multiple independent models produce conflicting predictions about safe operation",
+          "domain": "autonomous systems",
+          "assuranceGoal": "safety"
+        }
+      ]
+    },
     {
       "slug": "internal-review-boards",
       "name": "Internal Review Boards",
@@ -28,14 +605,13 @@
         "technique-type/process",
         "assurance-goal-category/general",
         "assurance-goal-category/general/governance-and-review",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/audit-trail",
         "lifecycle-stage/other/cross-cutting",
         "lifecycle-stage/project-design",
         "lifecycle-stage/project-design/project-planning",
         "lifecycle-stage/system-deployment",
-        "lifecycle-stage/system-deployment/system-implementation",
-        "lifecycle-stage/system-deployment/system-use-and-monitoring",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail"
+        "lifecycle-stage/system-deployment/system-implementation"
       ],
       "example_use_cases": [
         {
@@ -127,6 +703,302 @@
         {
           "text": "The autonomous vehicle system's safety-critical design choices are subject to ongoing monitoring requirements established by an independent review board",
           "domain": "autonomous systems",
+          "assuranceGoal": "safety"
+        }
+      ]
+    },
+    {
+      "slug": "human-in-the-loop-safeguards",
+      "name": "Human-in-the-Loop Safeguards",
+      "description": "Human-in-the-loop safeguards establish systematic checkpoints where human experts review, validate, or override AI/ML system decisions before they take effect. This governance approach combines automated efficiency with human judgement by defining clear intervention criteria (such as uncertainty thresholds, risk levels, or sensitive contexts) that trigger mandatory human oversight. By incorporating domain expertise, ethical considerations, and contextual understanding that machines may lack, these safeguards help ensure that critical decisions maintain appropriate human accountability whilst preserving the benefits of automated processing for routine cases.",
+      "assurance_goals": [
+        "General",
+        "Safety",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/governance-framework",
+        "evidence-type/qualitative-report",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/stakeholder-engagement",
+        "technique-type/process",
+        "assurance-goal-category/general",
+        "assurance-goal-category/general/governance-and-review",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/safeguards",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/notice-and-recourse",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Implementing mandatory human physician review for any medical AI diagnostic recommendation before treatment decisions are made, especially for complex cases or when the system confidence is below established thresholds, ensuring patient safety through expert oversight.",
+          "goal": "Safety"
+        },
+        {
+          "description": "Requiring human review of automated loan approval decisions when applicants request explanations or appeal rejections, allowing human underwriters to provide clear reasoning and ensure customers understand the decision-making process behind their application outcomes.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "Mandating human oversight when hiring algorithms flag candidates from underrepresented groups for rejection, enabling recruiters to verify that decisions are based on legitimate job-relevant criteria rather than potential algorithmic bias, and providing fair recourse mechanisms.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Scales poorly with high request volumes, creating bottlenecks that can delay critical decisions and potentially overwhelm human reviewers with excessive workload."
+        },
+        {
+          "description": "Introduces significant latency into automated processes, potentially making time-sensitive applications impractical or reducing user satisfaction with slower response times."
+        },
+        {
+          "description": "Human reviewers may experience decision fatigue, leading to decreased attention quality over time and potential inconsistency in review standards across different cases or time periods."
+        },
+        {
+          "description": "Risk of automation bias where humans defer too readily to AI recommendations rather than providing meaningful independent review, undermining the safeguard's effectiveness."
+        },
+        {
+          "description": "Requires significant ongoing investment in human resources, training, and expertise maintenance, making it expensive to implement and sustain across large-scale systems."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Article 14: Human Oversight | EU Artificial Intelligence Act",
+          "url": "https://artificialintelligenceact.eu/article/14/",
+          "source_type": "tutorial",
+          "citationKey": "Article14Human"
+        },
+        {
+          "title": "HumanSignal/label-studio",
+          "url": "https://github.com/HumanSignal/label-studio",
+          "source_type": "software_package",
+          "publication_date": "2026-02-06T04:48:38Z",
+          "citationKey": "HumanSignalLabelstudio2026",
+          "abstract": "Label Studio is a multi-type data labeling and annotation tool with standardized output format"
+        },
+        {
+          "title": "Human-in-the-Loop AI: A Comprehensive Guide",
+          "url": "https://www.holisticai.com/blog/human-in-the-loop-ai",
+          "source_type": "tutorial",
+          "publication_date": "2024-10-04",
+          "citationKey": "HumanintheLoopAIComprehensive2024"
+        },
+        {
+          "title": "Improving the Applicability of AI for Psychiatric Applications through Human-in-the-loop Methodologies",
+          "url": "https://core.ac.uk/download/544064129.pdf",
+          "source_type": "technical_paper",
+          "authors": [
+            "Chandler, Chelsea",
+            "Elvevåg, Brita",
+            "Foltz, Peter W."
+          ],
+          "publication_date": "2022-01-01",
+          "citationKey": "chelseaImprovingApplicabilityAI2022"
+        },
+        {
+          "title": "Human-in-the-loop machine learning: a state of the art",
+          "url": "https://doi.org/10.1007/s10462-022-10246-w",
+          "source_type": "technical_paper",
+          "authors": [
+            "Eduardo Mosqueira-Rey",
+            "Elena Hernández-Pereira",
+            "David Alonso-Ríos",
+            "José Bobes-Bascarán",
+            "Ángel Fernández-Leal"
+          ],
+          "publication_date": "2023-04-01",
+          "citationKey": "mosqueira-reyHumanintheloopMachineLearning2023",
+          "abstract": "Researchers are defining new types of interactions between humans and machine learning algorithms generically called human-in-the-loop machine learning. Depending on who is in control of the learning process, we can identify: active learning, in which the system remains in control; interactive machine learning, in which there is a closer interaction between users and learning systems; and machine teaching, where human domain experts have control over the learning process. Aside from control, humans can also be involved in the learning process in other ways. In curriculum learning human domain experts try to impose some structure on the examples presented to improve the learning; in explainable AI the focus is on the ability of the model to explain to humans why a given solution was chosen. This collaboration between AI models and humans should not be limited only to the learning process; if we go further, we can see other terms that arise such as Usable and Useful AI. In this paper we review the state of the art of the techniques involved in the new forms of relationship between humans and ML algorithms. Our contribution is not merely listing the different approaches, but to provide definitions clarifying confusing, varied and sometimes contradictory terms; to elucidate and determine the boundaries between the different methods; and to correlate all the techniques searching for the connections and influences between them."
+        },
+        {
+          "title": "A Survey of Human-in-the-loop for Machine Learning",
+          "url": "http://arxiv.org/abs/2108.00941",
+          "source_type": "technical_paper",
+          "authors": [
+            "Xingjiao Wu",
+            "Luwei Xiao",
+            "Yixuan Sun",
+            "Junhang Zhang",
+            "Tianlong Ma",
+            "Liang He"
+          ],
+          "publication_date": "10/2022",
+          "citationKey": "wuSurveyHumanintheloopMachine2022",
+          "abstract": "Human-in-the-loop aims to train an accurate prediction model with minimum cost by integrating human knowledge and experience. Humans can provide training data for machine learning applications and directly accomplish tasks that are hard for computers in the pipeline with the help of machine-based approaches. In this paper, we survey existing works on human-in-the-loop from a data perspective and classify them into three categories with a progressive relationship: (1) the work of improving model performance from data processing, (2) the work of improving model performance through interventional model training, and (3) the design of the system independent human-in-the-loop. Using the above categorization, we summarize major approaches in the field; along with their technical strengths/ weaknesses, we have simple classification and discussion in natural language processing, computer vision, and others. Besides, we provide some open challenges and opportunities. This survey intends to provide a high-level summarization for human-in-the-loop and motivates interested readers to consider approaches for designing effective human-in-the-loop solutions."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [
+        "confidence-thresholding",
+        "internal-review-boards",
+        "runtime-monitoring-and-circuit-breakers"
+      ],
+      "sample_claims": [
+        {
+          "text": "The autonomous vehicle system requires qualified driver intervention before executing maneuvers flagged as high-risk by safety criteria",
+          "domain": "autonomous systems",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "All loan denial decisions are subject to review by qualified underwriters who can access the reasoning behind algorithmic recommendations",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The hiring system routes candidates from underrepresented groups to human reviewers when automated scores fall within a defined uncertainty range",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The diagnostic support system prevents treatment recommendations from being actioned until reviewed by a licensed physician",
+          "domain": "healthcare",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "The content moderation system escalates borderline cases to human moderators based on defined criteria rather than relying solely on automated classification",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        }
+      ]
+    },
+    {
+      "slug": "confidence-thresholding",
+      "name": "Confidence Thresholding",
+      "description": "Confidence thresholding creates decision boundaries based on model uncertainty scores, routing predictions into different handling workflows depending on their confidence levels. High-confidence predictions (e.g., above 95%) proceed automatically, whilst medium-confidence cases (e.g., 70-95%) may trigger additional validation or human review, and low-confidence predictions (below 70%) receive extensive oversight or default to conservative fallback actions. This technique enables organisations to maintain automated efficiency for clear-cut cases whilst ensuring appropriate human intervention for uncertain decisions, balancing operational speed with risk management across safety-critical applications.",
+      "assurance_goals": [
+        "General",
+        "Safety",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "applicable-models/requirements/probabilistic-output",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "technique-type/algorithmic",
+        "assurance-goal-category/general",
+        "assurance-goal-category/general/runtime-safeguards",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/safeguards",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/confidence-and-limits",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Implementing tiered confidence thresholds in autonomous vehicle decision-making where high-confidence lane changes (>98%) execute automatically, medium-confidence decisions (85-98%) trigger additional sensor verification, and low-confidence situations (<85%) engage conservative defensive driving modes or request human takeover.",
+          "goal": "Safety"
+        },
+        {
+          "description": "Deploying confidence thresholding in fraud detection systems where high-confidence legitimate transactions (>90%) process immediately, medium-confidence cases (70-90%) undergo additional automated checks, and low-confidence transactions (<70%) require human analyst review, ensuring system reliability through graduated response mechanisms.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "Using confidence thresholds in automated loan decisions to provide clear explanations to applicants, where high-confidence approvals include simple explanations, medium-confidence decisions provide detailed reasoning about key factors, and low-confidence cases receive comprehensive explanations with guidance on potential improvements.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Many models produce poorly calibrated confidence scores that don't accurately reflect true prediction uncertainty, leading to overconfident predictions for incorrect outputs or underconfident scores for correct predictions."
+        },
+        {
+          "description": "Threshold selection requires careful calibration and domain expertise, as inappropriate thresholds can either overwhelm human reviewers with too many cases or miss genuinely uncertain decisions that need oversight."
+        },
+        {
+          "description": "High-confidence predictions may still be incorrect or harmful, particularly when models encounter adversarial inputs, out-of-distribution data, or systematic biases that the confidence mechanism doesn't detect."
+        },
+        {
+          "description": "Static thresholds may become inappropriate over time as model performance degrades, data distribution shifts occur, or operational contexts change, requiring ongoing monitoring and adjustment."
+        },
+        {
+          "description": "Implementation complexity increases significantly when managing multiple confidence levels and routing mechanisms, potentially introducing system failures or inconsistencies in how different confidence ranges are handled."
+        }
+      ],
+      "resources": [
+        {
+          "title": "A Novel Dynamic Confidence Threshold Estimation AI Algorithm for Enhanced Object Detection",
+          "url": "https://www.semanticscholar.org/paper/93cda7adfa043c969639e094d6c27b1c4d507208",
+          "source_type": "technical_paper",
+          "authors": [
+            "Mounika Thatikonda",
+            "M. Pk",
+            "Fathi H. Amsaad"
+          ],
+          "publication_date": "2024",
+          "citationKey": "thatikondaNovelDynamicConfidence2024",
+          "abstract": "Object detection (OD) is a significant component in the field of computer vision applications, ranging from autonomous vehicles to ensuring security in Department of Defense (DoD) systems. Despite the huge progress that has been made, the accuracy of the models in various situations is limited to static detection parameters like confidence threshold and NMS threshold. The static method of deciding the thresholds may lessen the effect of detections, thereby impacting the mean average precision (mAP) score and the overall efficacy of OD models in real-world scenarios. To overcome this drawback, this study introduced a novel approach that dynamically adjusts the confidence threshold and NMS threshold based on statistical measures of the entire object representation in a data plane. The COCO Dataset was chosen to evaluate the performance of dynamic threshold techniques across five different pre-trained state-of-the-art models like YOLO v5, Faster R-CNN, FCOS, RetinaNet, and SSD300. Among all the models, Faster R-CNN outperformed others with a mAP of 56.11 %. This dynamic approach makes the OD models more reliable by improving the adaptability and robustness of object detection models."
+        },
+        {
+          "title": "Improving speech recognition accuracy with multi-confidence thresholding",
+          "url": "https://www.semanticscholar.org/paper/bef1c8668115675f786e5a3c6d165f268e399e9d",
+          "source_type": "technical_paper",
+          "authors": [
+            "Shuangyu Chang"
+          ],
+          "publication_date": "2006",
+          "citationKey": "changImprovingSpeechRecognition2006"
+        },
+        {
+          "title": "Improving the Robustness and Generalization of Deep Neural Network with Confidence Threshold Reduction",
+          "url": "http://arxiv.org/abs/2206.00913v2",
+          "source_type": "technical_paper",
+          "authors": [
+            "Xiangyuan Yang",
+            "Jie Lin",
+            "Hanlin Zhang",
+            "Xinyu Yang",
+            "Peng Zhao"
+          ],
+          "publication_date": "2022-06-02",
+          "citationKey": "yangImprovingRobustnessGeneralization2022",
+          "abstract": "Deep neural networks are easily attacked by imperceptible perturbation. Presently, adversarial training (AT) is the most effective method to enhance the robustness of the model against adversarial examples. However, because adversarial training solved a min-max value problem, in comparison with natural training, the robustness and generalization are contradictory, i.e., the robustness improvement of the model will decrease the generalization of the model. To address this issue, in this paper, a new concept, namely confidence threshold (CT), is introduced and the reducing of the confidence threshold, known as confidence threshold reduction (CTR), is proven to improve both the generalization and robustness of the model. Specifically, to reduce the CT for natural training (i.e., for natural training with CTR), we propose a mask-guided divergence loss function (MDL) consisting of a cross-entropy loss term and an orthogonal term. The empirical and theoretical analysis demonstrates that the MDL loss improves the robustness and generalization of the model simultaneously for natural training. However, the model robustness improvement of natural training with CTR is not comparable to that of adversarial training. Therefore, for adversarial training, we propose a standard deviation loss function (STD), which minimizes the difference in the probabilities of the wrong categories, to reduce the CT by being integrated into the loss function of adversarial training. The empirical and theoretical analysis demonstrates that the STD based loss function can further improve the robustness of the adversarially trained model on basis of guaranteeing the changeless or slight improvement of the natural accuracy."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [
+        "human-in-the-loop-safeguards",
+        "empirical-calibration",
+        "out-of-domain-detection",
+        "runtime-monitoring-and-circuit-breakers"
+      ],
+      "sample_claims": [
+        {
+          "text": "The autonomous system transitions to conservative fallback modes when prediction confidence falls below established operational thresholds",
+          "domain": "autonomous systems",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "The system routes low-confidence predictions to human review while processing high-confidence cases automatically",
+          "domain": "general",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The fraud detection system applies graduated verification steps based on transaction confidence levels",
+          "domain": "finance",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The diagnostic system communicates the level of certainty alongside each prediction to support clinical decision-making",
+          "domain": "healthcare",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The automated decision system engages additional safeguards when operating in regions of high uncertainty",
+          "domain": "public sector",
           "assuranceGoal": "safety"
         }
       ]
@@ -281,12 +1153,11 @@
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
         "expertise-needed/statistics",
+        "technique-type/algorithmic",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/model-testing-and-validation",
         "lifecycle-stage/system-deployment",
-        "lifecycle-stage/system-deployment/system-implementation",
-        "lifecycle-stage/system-deployment/system-use-and-monitoring",
-        "technique-type/algorithmic"
+        "lifecycle-stage/system-deployment/system-implementation"
       ],
       "example_use_cases": [
         {
@@ -705,8 +1576,7 @@
         "expertise-needed/ml-engineering",
         "expertise-needed/domain-expertise",
         "lifecycle-stage/system-deployment",
-        "lifecycle-stage/system-deployment/system-implementation",
-        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+        "lifecycle-stage/system-deployment/system-implementation"
       ],
       "example_use_cases": [
         {
@@ -971,5 +1841,5 @@
       ]
     }
   ],
-  "count": 7
+  "count": 13
 }
