@@ -143,13 +143,13 @@ export const tagDefinitions: Record<string, string> = {
   'expertise-needed/domain-expertise':
     'Requires deep understanding of the problem domain',
   'expertise-needed/ml-engineering':
-    'Requires machine learning engineering skills',
+    'Requires hands-on machine-learning engineering: training, adapting, evaluating or serving models',
   'expertise-needed/software-engineering':
     'Requires general programming and system design skills',
   'expertise-needed/ethics':
     'Requires knowledge of ethical principles and frameworks',
   'expertise-needed/regulatory-compliance':
-    'Requires understanding of regulatory requirements',
+    'Requires understanding of the legal and regulatory requirements that apply to the system',
   'expertise-needed/cryptography':
     'Requires cryptographic knowledge for privacy-preserving techniques',
   'expertise-needed/security':
@@ -434,4 +434,16 @@ export const tagDefinitions: Record<string, string> = {
     'Techniques that keep an inspectable record of what an AI system and its data are, how they were built and what changed.',
   'assurance-goal-category/general/runtime-safeguards':
     'Techniques that watch a running system and limit, reroute or stop it when it leaves expected bounds.',
+  'expertise-needed/governance-and-audit':
+    'Requires organisational governance and audit practice: running review or oversight processes, keeping accountable records, and writing documentation that an auditor or regulator relies on.',
+  'expertise-needed/human-factors':
+    'Requires knowledge of how people oversee, rely on and interact with AI systems: designing human review workflows, managing reviewer workload and fatigue, and communicating model confidence and limits to users.',
+  'expertise-needed/evaluation-design':
+    'Requires skill in designing test suites, benchmarks, adversarial scenarios and rating or annotation protocols to judge model behaviour, including building ground-truth sets and deciding what counts as a pass.',
+  'expertise-needed/data-engineering':
+    'Requires skills in building and maintaining data pipelines, storage, versioning, lineage and logging infrastructure.',
+  'expertise-needed/privacy-engineering':
+    'Requires knowledge of privacy-enhancing methods and privacy threat modelling: disclosure and re-identification risk, privacy budgets, and the utility cost of protection.',
+  'expertise-needed/deep-learning':
+    "Requires access to and understanding of a neural network's internals: gradients, activations, attention weights and layers. Narrower than ml-engineering, which would keep training, adaptation and operation.",
 };
