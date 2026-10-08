@@ -385,16 +385,10 @@ export const tagDefinitions: Record<string, string> = {
     'Measures model performance against defined criteria',
   'assurance-goal-category/safety':
     'Techniques that prevent harmful or dangerous outcomes',
-  'assurance-goal-category/safety/risk-identification':
-    'Identifies conditions under which the system could cause harm',
   'assurance-goal-category/safety/hazard-analysis':
-    'Analyses hazards and the pathways by which they lead to harm',
+    'Techniques that work out why unsafe behaviour arises, by tracing it to causes inside the model, its data or its design.',
   'assurance-goal-category/safety/monitoring':
-    'Monitors the deployed system for unsafe behaviour',
-  'assurance-goal-category/safety/monitoring/anomaly-detection':
-    'Detects unusual or potentially unsafe behaviour',
-  'assurance-goal-category/safety/harmful-behavior-detection':
-    'Detects outputs or behaviours that would be harmful',
+    "Techniques that watch a running system's inputs and usage and flag what is unusual, out of scope or misused.",
   'assurance-goal-category/transparency':
     'Techniques that increase system openness and clarity',
   'assurance-goal-category/transparency/documentation':
@@ -420,4 +414,10 @@ export const tagDefinitions: Record<string, string> = {
   // Fairness Approach
   'fairness-approach/group': 'Focuses on statistical parity between groups',
   'fairness-approach/causal': 'Uses causal models to define fairness',
+  'assurance-goal-category/safety/hazard-identification':
+    'Techniques that find how a system could fail or cause harm, by probing it for unsafe behaviours, failure modes and rare scenarios.',
+  'assurance-goal-category/safety/verification':
+    'Techniques that test a system against a stated safety requirement, such as refusing harmful requests or holding up at its limits.',
+  'assurance-goal-category/safety/safeguards':
+    'Techniques that lower the chance or impact of harm, such as redundancy, data screening, human oversight or documented limits of use.',
 };
