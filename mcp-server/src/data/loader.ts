@@ -80,6 +80,9 @@ export async function loadGraphData(options: {
   local?: boolean;
   dataDir?: string;
 }): Promise<JsonLdGraph> {
+  if (process.env.TEA_OFFLINE === '1' && !(options.local && options.dataDir)) {
+    throw new Error('Offline mode requires local graph data');
+  }
   // Local mode: read directly from project files
   if (options.local && options.dataDir) {
     const data = await loadFromLocal(options.dataDir);
