@@ -438,4 +438,10 @@ export const tagDefinitions: Record<string, string> = {
     'Techniques that make a model or its inputs readable as they stand, so a reviewer needs no separate explanation step.',
   'assurance-goal-category/transparency/confidential-verification':
     'Techniques that let an outside party check a claim about a system or its data without being handed the data or the model.',
+  'assurance-goal-category/general/governance-and-review':
+    'Techniques that give a review body, named person or independent team the job of examining, challenging, approving or stopping an AI system.',
+  'assurance-goal-category/general/documentation-and-records':
+    'Techniques that keep an inspectable record of what an AI system and its data are, how they were built and what changed.',
+  'assurance-goal-category/general/runtime-safeguards':
+    'Techniques that watch a running system and limit, reroute or stop it when it leaves expected bounds.',
 };
