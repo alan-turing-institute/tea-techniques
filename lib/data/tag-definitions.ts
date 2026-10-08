@@ -96,6 +96,8 @@ export const tagDefinitions: Record<string, string> = {
     'Model must be differentiable',
   'applicable-models/requirements/probabilistic-output':
     'Model must provide probability distributions as output',
+  'applicable-models/requirements/model-agnostic':
+    'Works with any model type without requiring specific architecture (black-box techniques)',
 
   // Lifecycle Stage - Category Level Tags
   'lifecycle-stage/project-design':
@@ -188,6 +190,8 @@ export const tagDefinitions: Record<string, string> = {
     'Legacy: Techniques for processing model outputs',
   'lifecycle-stage/testing':
     'Legacy: Techniques for testing models and systems',
+  'lifecycle-stage/all':
+    'Applies at every stage of the lifecycle; matches any lifecycle filter',
 
   // Expertise Needed
   'expertise-needed/statistics':
@@ -249,6 +253,10 @@ export const tagDefinitions: Record<string, string> = {
   'evidence-type/synthetic-data': 'Generates synthetic or simulated data',
   'evidence-type/governance-framework':
     'Establishes governance structures and processes',
+  'evidence-type/decision-record':
+    'Produces a documented record of a decision and the reasoning behind it',
+  'evidence-type/statistical-test':
+    'Produces a hypothesis test result with a test statistic and significance level',
 
   // Data Requirements
   'data-requirements/labelled-data':
@@ -280,6 +288,7 @@ export const tagDefinitions: Record<string, string> = {
   'data-type/tabular': 'Designed for structured tabular data',
   'data-type/text': 'Designed for text and natural language data',
   'data-type/image': 'Designed for image and visual data',
+  'data-type/time-series': 'Designed for sequential or time-indexed data',
 
   // Technique Type
   'technique-type/algorithmic': 'A specific algorithm or computational method',
@@ -295,6 +304,7 @@ export const tagDefinitions: Record<string, string> = {
   'technique-type/mechanistic-interpretability':
     'Techniques for understanding model mechanisms',
   'technique-type/testing': 'Techniques focused on testing and validation',
+  'technique-type/process-based': 'An organizational or workflow approach',
 
   // Assurance Goal Categories
   'assurance-goal-category/explainability':
@@ -424,28 +434,60 @@ export const tagDefinitions: Record<string, string> = {
     'Ensures equal outcomes across groups',
   'assurance-goal-category/fairness/causal':
     'Uses causal reasoning to define and ensure fairness',
+  'assurance-goal-category/fairness/group-fairness':
+    'Focuses on fairness between demographic groups',
+  'assurance-goal-category/fairness/process':
+    'Addresses fairness through the process by which data is prepared or decisions are made',
+  'assurance-goal-category/general':
+    'Techniques that support assurance across all goals rather than one in particular',
   'assurance-goal-category/privacy':
     'Techniques that protect data privacy and confidentiality',
   'assurance-goal-category/privacy/formal-guarantee':
     'Provides mathematically proven privacy guarantees',
   'assurance-goal-category/privacy/formal-guarantee/differential-privacy':
     'Implements differential privacy mechanisms',
+  'assurance-goal-category/privacy/data-minimization':
+    'Reduces the personal data collected, shared, or retained',
   'assurance-goal-category/reliability':
     'Techniques that ensure consistent and dependable performance',
   'assurance-goal-category/reliability/uncertainty-quantification':
     'Quantifies prediction uncertainty and confidence',
+  'assurance-goal-category/reliability/robustness':
+    'Assesses or improves performance under noise, perturbation, or distribution shift',
+  'assurance-goal-category/reliability/cross-group-consistency':
+    'Checks that performance holds across sub-groups of the population',
+  'assurance-goal-category/reliability/model-behavior-understanding':
+    'Builds understanding of how the model behaves so reliability can be judged',
+  'assurance-goal-category/reliability/performance-assessment':
+    'Measures model performance against defined criteria',
   'assurance-goal-category/safety':
     'Techniques that prevent harmful or dangerous outcomes',
+  'assurance-goal-category/safety/risk-identification':
+    'Identifies conditions under which the system could cause harm',
+  'assurance-goal-category/safety/hazard-analysis':
+    'Analyses hazards and the pathways by which they lead to harm',
+  'assurance-goal-category/safety/monitoring':
+    'Monitors the deployed system for unsafe behaviour',
   'assurance-goal-category/safety/monitoring/anomaly-detection':
     'Detects unusual or potentially unsafe behaviour',
+  'assurance-goal-category/safety/harmful-behavior-detection':
+    'Detects outputs or behaviours that would be harmful',
   'assurance-goal-category/transparency':
     'Techniques that increase system openness and clarity',
   'assurance-goal-category/transparency/documentation':
     'Creates clear documentation of system behaviour',
   'assurance-goal-category/transparency/documentation/model-card':
     'Standardized model documentation format',
+  'assurance-goal-category/transparency/process-transparency':
+    'Makes the process by which the system was built or decides visible',
+  'assurance-goal-category/transparency/audit-trail':
+    'Produces records that let a third party reconstruct what the system did',
+  'assurance-goal-category/transparency/algorithmic-transparency':
+    'Makes the algorithm itself inspectable',
   'assurance-goal-category/security':
     'Techniques that protect the system from malicious attacks or unauthorized access',
+  'assurance-goal-category/security/adversarial-robustness':
+    'Assesses or improves resistance to adversarial inputs and attacks',
 
   // Explanatory Scope
   'explanatory-scope/local': 'Provides explanations for individual predictions',
