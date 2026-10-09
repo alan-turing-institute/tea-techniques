@@ -234,6 +234,7 @@ interface ClaimEvaluation {
   id: string;
   text: string;
   rankingAvailable: boolean;
+  elapsedMs: number;
   returnedSlugs: string[];
   scores: Array<{ slug: string; score: 1 | 0 | -1 }>;
   totalScore: number;
@@ -285,7 +286,9 @@ function printReport(
   log('');
 
   for (const claim of claims) {
-    log(`${claim.id}: ${claim.grade}  (score: ${claim.totalScore})`);
+    log(
+      `${claim.id}: ${claim.grade}  (score: ${claim.totalScore}, ${claim.elapsedMs} ms, ranked: ${claim.rankingAvailable})`
+    );
     log(`  "${claim.text.slice(0, 80)}..."`);
     log('  Top 10 results:');
     for (const s of claim.scores) {
@@ -328,7 +331,9 @@ async function main(): Promise<void> {
 
   for (const rubric of RUBRIC) {
     // biome-ignore lint/nursery/noAwaitInLoop: sequential evaluation intentional
+    const started = performance.now();
     const results = await graph.suggestForClaim(rubric.text);
+    const elapsedMs = Math.round(performance.now() - started);
     const returnedSlugs = results.results.map((t) => t.slug);
 
     const scores = returnedSlugs.map((slug) => ({
@@ -342,6 +347,7 @@ async function main(): Promise<void> {
       id: rubric.id,
       text: rubric.text,
       rankingAvailable: results.rankingAvailable,
+      elapsedMs,
       returnedSlugs,
       scores,
       totalScore,
