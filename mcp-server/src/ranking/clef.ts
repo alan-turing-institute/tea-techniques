@@ -24,9 +24,9 @@ const CRITERIA = {
     'The technique merely concerns a similar topic or model family, without producing evidence about the asserted property, or its assumptions or required architecture conflict with the claim.',
 };
 
-export const DEFAULT_RANKING_CANDIDATES = 8;
+export const DEFAULT_RANKING_CANDIDATES = 4;
 export const MAX_RANKING_CANDIDATES = 20;
-export const DEFAULT_RANKING_DEADLINE_MS = 30_000;
+export const DEFAULT_RANKING_DEADLINE_MS = 60_000;
 const SUMMARY_MAX = 200;
 
 /** Number of retrieved candidates sent to the ranker (env `RANKING_CANDIDATES`, 1-20). */

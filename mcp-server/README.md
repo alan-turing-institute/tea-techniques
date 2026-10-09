@@ -55,7 +55,7 @@ After configuring, restart Claude. You should see tools prefixed with `mcp__tea-
 
 ## How It Works
 
-The server fetches the TEA Techniques knowledge graph from GitHub Pages on first run and caches it locally for 24 hours (`~/.cache/tea-techniques-mcp/`). Semantic search uses the text encoder of EmbeddingGemma 2 through ONNX Runtime, with a normalized 768-dimensional sentence embedding and hybrid reciprocal rank fusion. The loader rejects embeddings from another model, revision, precision, or prompt format; the published MiniLM embeddings therefore degrade to keyword retrieval. Generate compatible local embeddings for semantic retrieval. Clef-Flash can re-rank the top 8 candidates (configurable, 1-20) through a local Ollama daemon.
+The server fetches the TEA Techniques knowledge graph from GitHub Pages on first run and caches it locally for 24 hours (`~/.cache/tea-techniques-mcp/`). Semantic search uses the text encoder of EmbeddingGemma 2 through ONNX Runtime, with a normalized 768-dimensional sentence embedding and hybrid reciprocal rank fusion. The loader rejects embeddings from another model, revision, precision, or prompt format; the published MiniLM embeddings therefore degrade to keyword retrieval. Generate compatible local embeddings for semantic retrieval. Clef-Flash can re-rank the top 4 candidates (configurable, 1-20) through a local Ollama daemon.
 
 ## Tool Reference
 
@@ -144,7 +144,7 @@ The result is available as both `result.structuredContent` and JSON in `result.c
 }
 ```
 
-`score` is the Noul probability only when `rankingAvailable` is true. Otherwise it equals `retrievalScore`, a normalized RRF rank score, and the original retrieval order is preserved. Missing/unreachable Ollama, absent models, invalid responses, or any candidate failure cause the whole ranking step to fall back. The first `RANKING_CANDIDATES` retrieved candidates (default 8, bounds 1-20) are ranked in one `/v1/systemone` request carrying one question per candidate; any remaining retrieved candidates follow them in retrieval order with `score` equal to `retrievalScore`. The request is aborted at `RANKING_DEADLINE_MS` (default 30000), which also stops generation in Ollama. No `reason` field is returned. The tool defaults to ten results; direct TypeScript callers can use `suggestForClaim(claim, { limit, context })` (up to twenty). MCP retains its existing flat context arguments.
+`score` is the Noul probability only when `rankingAvailable` is true. Otherwise it equals `retrievalScore`, a normalized RRF rank score, and the original retrieval order is preserved. Missing/unreachable Ollama, absent models, invalid responses, or any candidate failure cause the whole ranking step to fall back. The first `RANKING_CANDIDATES` retrieved candidates (default 4, bounds 1-20) are ranked in one `/v1/systemone` request carrying one question per candidate; any remaining retrieved candidates follow them in retrieval order with `score` equal to `retrievalScore`. The request is aborted at `RANKING_DEADLINE_MS` (default 60000), which also stops generation in Ollama. No `reason` field is returned. The tool defaults to ten results; direct TypeScript callers can use `suggestForClaim(claim, { limit, context })` (up to twenty). MCP retains its existing flat context arguments.
 
 ### Model and resource requirements
 
@@ -178,15 +178,21 @@ pnpm test
 
 The rubric is unchanged. Check each evaluation's `rankingAvailable` fields before treating the run as a Clef-Flash comparison. `PORT` defaults to 3100, `HOST` to loopback outside Docker, `DATA_DIR` selects the local graph/vectors directory, and `EMBEDDING_CACHE_DIR` selects the ONNX cache (default `mcp-server/.cache/huggingface-q8`). Model downloads are allowed only by the generation script; query requests always load cached files.
 
+`pnpm evaluate-cardiac-dt` runs on the host and needs a local copy of the embedding model; without one it fails with "Query model unavailable". There are two ways to get one. Run the generation script (`pnpm generate-embeddings`) once with network access, and the model downloads into the default cache. Or copy the cache out of the built image with `docker create` and `docker cp` (copy `/app/models` from the created container to a host directory, then remove the container), and set `EMBEDDING_CACHE_DIR` to that directory.
+
+The evaluation's ranking step reads the same `RANKING_CANDIDATES` and `RANKING_DEADLINE_MS` variables as the server. On a CPU host, raise `RANKING_DEADLINE_MS` so that each claim's ranking request can finish; otherwise it aborts and the claim is evaluated in retrieval order with `rankingAvailable: false`.
+
 ### Retrieval tuning
 
 All variables are optional; defaults reproduce the untuned behaviour.
 
 | Variable | Default | Effect |
 |---|---|---|
-| `RANKING_CANDIDATES` | 8 | Candidates sent to Clef-Flash (1-20) |
-| `RANKING_DEADLINE_MS` | 30000 | Aborts the ranking request |
+| `RANKING_CANDIDATES` | 4 | Candidates sent to Clef-Flash (1-20) |
+| `RANKING_DEADLINE_MS` | 60000 | Aborts the ranking request |
 | `RRF_KEYWORD_WEIGHT` | 1 | Weight of the keyword leg in rank fusion |
 | `RRF_SEMANTIC_WEIGHT` | 1 | Weight of the embedding leg in rank fusion |
 | `WEAK_MATCH_CUTOFF` | 0.6 | Claims-index matches with a worse Fuse.js score are dropped |
 | `RANKING_DEBUG` | unset | `1` logs the fused scores' min, median and max per call and what the cut-off dropped |
+
+The ranking request grows with the candidate count. On a CPU-only host each candidate adds roughly 10 seconds to the request (measured against a host Ollama on a loaded CPU: 2 candidates took 22 seconds, and 8 candidates took 128 seconds). Choose `RANKING_CANDIDATES` so the request fits inside `RANKING_DEADLINE_MS` on the machine that serves the stand, and expect a GPU or Apple-silicon host to be several times faster. A ranking request that is aborted at the deadline returns the retrieval order with `rankingAvailable: false`, which the caller can see in the response.

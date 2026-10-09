@@ -39,7 +39,7 @@ describe('Clef ranking contract and fallback', () => {
       })
     );
     const result = await new ClefRanker().rank('A model claim', candidates);
-    const n = Math.min(candidates.length, 8);
+    const n = Math.min(candidates.length, 4);
     expect(bodies).toHaveLength(1);
     const body = bodies[0] as {
       state: { claim: string; candidates: Array<Record<string, unknown>> };
@@ -97,8 +97,8 @@ describe('Clef ranking contract and fallback', () => {
     ['0', 1],
     ['-3', 1],
     ['99', 20],
-    ['abc', 8],
-    ['', 8],
+    ['abc', 4],
+    ['', 4],
   ])('bounds RANKING_CANDIDATES=%s to %s', (value, expected) => {
     vi.stubEnv('RANKING_CANDIDATES', value);
     expect(rankingCandidateLimit()).toBe(expected);
