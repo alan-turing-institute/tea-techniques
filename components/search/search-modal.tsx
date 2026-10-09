@@ -61,9 +61,14 @@ const initialSearchState: SearchState = {
 
 interface SearchModalProps {
   category?: string;
+  /** Set to false when another SearchModal on the page already answers Cmd/Ctrl + K */
+  enableShortcut?: boolean;
 }
 
-export function SearchModal({ category }: SearchModalProps = {}) {
+export function SearchModal({
+  category,
+  enableShortcut = true,
+}: SearchModalProps = {}) {
   const [state, dispatch] = useReducer(searchReducer, initialSearchState);
   const { search, isLoading } = useFuseSearch({ category });
   const router = useRouter();
@@ -71,7 +76,7 @@ export function SearchModal({ category }: SearchModalProps = {}) {
   // Keyboard shortcut (Cmd/Ctrl + K) and Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if (enableShortcut && (e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         dispatch({ type: 'OPEN' });
       }
@@ -82,7 +87,7 @@ export function SearchModal({ category }: SearchModalProps = {}) {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [enableShortcut]);
 
   // Inline search on input change (synchronous Fuse.js, no effect needed)
   const handleQueryChange = useCallback(

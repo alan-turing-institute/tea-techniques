@@ -44,7 +44,8 @@ export default function NotFound() {
               </Button>
 
               <div className="w-full max-w-xs sm:w-56 [&>button]:h-10">
-                <SearchModal />
+                {/* The sidebar layout's SearchModal already answers Cmd/Ctrl + K */}
+                <SearchModal enableShortcut={false} />
               </div>
             </div>
 
@@ -70,13 +71,6 @@ export default function NotFound() {
                 <span className="text-muted-foreground">•</span>
                 <Link className="text-primary hover:underline" href="/about">
                   About
-                </Link>
-                <span className="text-muted-foreground">•</span>
-                <Link
-                  className="text-primary hover:underline"
-                  href="/docs/community-contributions"
-                >
-                  Contribute
                 </Link>
               </div>
             </div>
