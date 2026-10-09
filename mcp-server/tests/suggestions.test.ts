@@ -36,13 +36,11 @@ it('ranks twenty retrieved candidates before applying the requested output limit
   const data = { ...fixture, '@graph': copies } as unknown as JsonLdGraph;
   const rank = vi.fn<Ranker['rank']>(async (_claim, candidates) => ({
     rankingAvailable: true,
-    candidates: [...candidates]
-      .reverse()
-      .map((candidate, i) => ({
-        ...candidate,
-        score: 1 - i / 20,
-        ranked: true,
-      })),
+    candidates: [...candidates].reverse().map((candidate, i) => ({
+      ...candidate,
+      score: 1 - i / 20,
+      ranked: true,
+    })),
   }));
   const graph = new KnowledgeGraph(
     data,

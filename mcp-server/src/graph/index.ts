@@ -93,6 +93,21 @@ function median(values: number[]): number {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+/** With `RANKING_DEBUG=1`, writes a summary of the fused retrieval scores to stderr. */
+function logRetrievalDiagnostics(
+  fused: { slug: string; score: number }[],
+  dropped: string[]
+): void {
+  if (process.env.RANKING_DEBUG !== '1' || fused.length === 0) {
+    return;
+  }
+  const values = fused.map((r) => r.score);
+  // biome-ignore lint/suspicious/noConsole: opt-in diagnostics to stderr
+  console.error(
+    `[retrieval] candidates=${values.length} min=${Math.min(...values).toFixed(3)} median=${median(values).toFixed(3)} max=${Math.max(...values).toFixed(3)} weakMatchCutoff=${weakMatchCutoff()} dropped=${dropped.length}${dropped.length > 0 ? ` (${dropped.join(', ')})` : ''}`
+  );
+}
+
 // --- Concept-to-tag mapping for claim-based suggestions ---
 
 const CONCEPT_TAGS: Record<string, string[]> = {
@@ -725,13 +740,7 @@ export class KnowledgeGraph {
       60,
       [envNumber('RRF_KEYWORD_WEIGHT', 1), envNumber('RRF_SEMANTIC_WEIGHT', 1)]
     );
-    if (process.env.RANKING_DEBUG === '1' && fused.length > 0) {
-      const values = fused.map((r) => r.score);
-      // biome-ignore lint/suspicious/noConsole: opt-in diagnostics to stderr
-      console.error(
-        `[retrieval] candidates=${values.length} min=${Math.min(...values).toFixed(3)} median=${median(values).toFixed(3)} max=${Math.max(...values).toFixed(3)} weakMatchCutoff=${weakMatchCutoff()} dropped=${dropped.length}${dropped.length > 0 ? ` (${dropped.join(', ')})` : ''}`
-      );
-    }
+    logRetrievalDiagnostics(fused, dropped);
     const scores = new Map(fused.map((r) => [r.slug, r.score]));
     let techniques = fused
       .map((r) => this.getTechnique(r.slug))
@@ -753,12 +762,12 @@ export class KnowledgeGraph {
       rankingModel: RANKING_MODEL,
       results: ranked.candidates
         .slice(0, limit)
-        .map(({ technique: t, score, retrievalScore, ranked }) => ({
+        .map(({ technique: t, score, retrievalScore, ranked: isRanked }) => ({
           slug: t.slug,
           name: t.name,
           score,
           retrievalScore,
-          ranked,
+          ranked: isRanked,
           goals: t.goals,
           url: `https://alan-turing-institute.github.io/tea-techniques/techniques/${t.slug}`,
         })),

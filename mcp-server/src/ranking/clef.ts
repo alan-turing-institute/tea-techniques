@@ -31,6 +31,7 @@ export const DEFAULT_RANKING_DEADLINE_MS = 60_000;
 /** Longest delay `setTimeout` accepts; a larger value fires the timer at once. */
 export const MAX_RANKING_DEADLINE_MS = 2_147_483_647;
 const SUMMARY_MAX = 200;
+const SENTENCE_END = /[.!?](\s|$)/;
 
 /** Number of retrieved candidates sent to the ranker (env `RANKING_CANDIDATES`, 1-20). */
 export function rankingCandidateLimit(): number {
@@ -52,7 +53,7 @@ export function rankingDeadlineMs(): number {
 /** First sentence of a description, at most 200 characters. */
 export function summarise(description: string): string {
   const text = description.trim().replace(/\s+/g, ' ');
-  const end = text.search(/[.!?](\s|$)/);
+  const end = text.search(SENTENCE_END);
   const sentence = end === -1 ? text : text.slice(0, end + 1);
   return sentence.length <= SUMMARY_MAX
     ? sentence

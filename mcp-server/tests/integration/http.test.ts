@@ -35,16 +35,16 @@ it('reports the last ranking outcome in /healthz and the ranked flag per result'
   const ranker: Ranker = {
     isAvailable: async () => true,
     lastRankingSucceeded: () => succeeded,
-    rank: async (_claim, candidates) => {
+    rank: (_claim, candidates) => {
       succeeded = true;
-      return {
+      return Promise.resolve({
         rankingAvailable: true,
         candidates: candidates.map((c, i) => ({
           ...c,
           score: 0.9,
           ranked: i === 0,
         })),
-      };
+      });
     },
   };
   const rankedServer = createHttpServer(

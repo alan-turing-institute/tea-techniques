@@ -29,21 +29,21 @@ describe('Clef ranking contract and fallback', () => {
     const bodies: Record<string, unknown>[] = [];
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (_url, init) => {
+      vi.fn((_url, init) => {
         const body = JSON.parse(init.body);
         bodies.push(body);
         const answers: Record<string, unknown> = {};
         for (const [i, key] of Object.keys(body.questions).entries()) {
           answers[key] = { type: 'noul', noul: (i + 1) / candidates.length };
         }
-        return Response.json({ answers });
+        return Promise.resolve(Response.json({ answers }));
       })
     );
     const result = await new ClefRanker().rank('A model claim', candidates);
     const n = Math.min(candidates.length, 4);
     expect(bodies).toHaveLength(1);
     const body = bodies[0] as {
-      state: { claim: string; candidates: Array<Record<string, unknown>> };
+      state: { claim: string; candidates: Record<string, unknown>[] };
       questions: Record<
         string,
         { instructions: string; criteria: Record<string, string> }
@@ -60,7 +60,9 @@ describe('Clef ranking contract and fallback', () => {
       tags: techniques[0].tags,
     });
     for (const [i, q] of Object.values(body.questions).entries()) {
-      expect(q.instructions).toContain(`candidates[${i}] (id ${techniques[i].id})`);
+      expect(q.instructions).toContain(
+        `candidates[${i}] (id ${techniques[i].id})`
+      );
       expect(Object.keys(q.criteria)).toEqual(['true', 'false']);
     }
     expect(result.rankingAvailable).toBe(true);
@@ -74,15 +76,17 @@ describe('Clef ranking contract and fallback', () => {
     let asked = 0;
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (_url, init) => {
+      vi.fn((_url, init) => {
         const questions = JSON.parse(init.body).questions;
         asked = Object.keys(questions).length;
-        return Response.json({
-          answers: {
-            c1: { type: 'noul', noul: 0.1 },
-            c2: { type: 'noul', noul: 0.9 },
-          },
-        });
+        return Promise.resolve(
+          Response.json({
+            answers: {
+              c1: { type: 'noul', noul: 0.1 },
+              c2: { type: 'noul', noul: 0.9 },
+            },
+          })
+        );
       })
     );
     const result = await new ClefRanker().rank('claim', candidates);
@@ -163,14 +167,14 @@ describe('Clef ranking contract and fallback', () => {
     async (_label, invalid) => {
       vi.stubGlobal(
         'fetch',
-        vi.fn(async (_url, init) => {
+        vi.fn((_url, init) => {
           const keys = Object.keys(JSON.parse(init.body).questions);
           const answers: Record<string, unknown> = {};
           for (const key of keys) {
             answers[key] = { type: 'noul', noul: 0.5 };
           }
           answers[keys.at(-1) as string] = invalid;
-          return Response.json({ answers });
+          return Promise.resolve(Response.json({ answers }));
         })
       );
       const result = await new ClefRanker().rank('claim', candidates);
@@ -248,13 +252,15 @@ describe('Clef ranking contract and fallback', () => {
     try {
       vi.stubGlobal(
         'fetch',
-        vi.fn(async (_url, init) => {
+        vi.fn((_url, init) => {
           const keys = Object.keys(JSON.parse(init.body).questions);
-          return Response.json({
-            answers: Object.fromEntries(
-              keys.map((key) => [key, { type: 'noul', noul: 0.5 }])
-            ),
-          });
+          return Promise.resolve(
+            Response.json({
+              answers: Object.fromEntries(
+                keys.map((key) => [key, { type: 'noul', noul: 0.5 }])
+              ),
+            })
+          );
         })
       );
       const result = await new ClefRanker().rank('claim', candidates);
@@ -325,9 +331,11 @@ describe('Ollama endpoint allow-list', () => {
     // Request construction applies the same credential check as fetch, without a connection.
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (url, init) => {
+      vi.fn((url, init) => {
         new Request(url, init);
-        return Response.json({ models: [{ name: 'clef-flash' }] });
+        return Promise.resolve(
+          Response.json({ models: [{ name: 'clef-flash' }] })
+        );
       })
     );
     const ranker = new ClefRanker();
