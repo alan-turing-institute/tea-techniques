@@ -61,9 +61,14 @@ const initialSearchState: SearchState = {
 
 interface SearchModalProps {
   category?: string;
+  /** Set to false when another SearchModal on the page already answers Cmd/Ctrl + K */
+  enableShortcut?: boolean;
 }
 
-export function SearchModal({ category }: SearchModalProps = {}) {
+export function SearchModal({
+  category,
+  enableShortcut = true,
+}: SearchModalProps = {}) {
   const [state, dispatch] = useReducer(searchReducer, initialSearchState);
   const { search, isLoading } = useFuseSearch({ category });
   const router = useRouter();
@@ -71,7 +76,14 @@ export function SearchModal({ category }: SearchModalProps = {}) {
   // Keyboard shortcut (Cmd/Ctrl + K) and Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // An open search box claims Cmd/Ctrl + K itself, so a second instance
+      // leaves it alone
+      if (
+        enableShortcut &&
+        !e.defaultPrevented &&
+        (e.metaKey || e.ctrlKey) &&
+        e.key === 'k'
+      ) {
         e.preventDefault();
         dispatch({ type: 'OPEN' });
       }
@@ -82,7 +94,7 @@ export function SearchModal({ category }: SearchModalProps = {}) {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [enableShortcut]);
 
   // Inline search on input change (synchronous Fuse.js, no effect needed)
   const handleQueryChange = useCallback(
@@ -97,7 +109,9 @@ export function SearchModal({ category }: SearchModalProps = {}) {
   // Keyboard navigation within results
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'ArrowDown') {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         dispatch({ type: 'NAVIGATE', direction: 'down' });
       } else if (e.key === 'ArrowUp') {
