@@ -38,7 +38,11 @@ it('ranks twenty retrieved candidates before applying the requested output limit
     rankingAvailable: true,
     candidates: [...candidates]
       .reverse()
-      .map((candidate, i) => ({ ...candidate, score: 1 - i / 20 })),
+      .map((candidate, i) => ({
+        ...candidate,
+        score: 1 - i / 20,
+        ranked: true,
+      })),
   }));
   const graph = new KnowledgeGraph(
     data,
@@ -66,6 +70,39 @@ it('ranks twenty retrieved candidates before applying the requested output limit
     rank.mock.calls[0][1].at(-1)?.technique.slug
   );
   expect(result.results.map((t) => t.score)).toEqual([1, 0.95, 0.9]);
+  expect(result.results.map((t) => t.ranked)).toEqual([true, true, true]);
+});
+
+it('gives the same order and scores with both fusion weights at zero as with the defaults', async () => {
+  const passThrough: Ranker = {
+    isAvailable: async () => false,
+    rank: async (_claim, candidates) => ({
+      rankingAvailable: false,
+      candidates: candidates.map((c) => ({
+        ...c,
+        score: c.retrievalScore,
+        ranked: false,
+      })),
+    }),
+  };
+  const graph = new KnowledgeGraph(
+    fixture as unknown as JsonLdGraph,
+    null,
+    passThrough
+  );
+  const claim = 'explain model predictions';
+  const summary = (r: Awaited<ReturnType<typeof graph.suggestForClaim>>) =>
+    r.results.map((t) => [t.slug, t.retrievalScore]);
+  const defaults = await graph.suggestForClaim(claim);
+  vi.stubEnv('RRF_KEYWORD_WEIGHT', '0');
+  vi.stubEnv('RRF_SEMANTIC_WEIGHT', '0');
+  try {
+    const zeroed = await graph.suggestForClaim(claim);
+    expect(zeroed.results.length).toBeGreaterThan(0);
+    expect(summary(zeroed)).toEqual(summary(defaults));
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });
 
 it('applies exclusions to embedding results as well as keyword results', async () => {

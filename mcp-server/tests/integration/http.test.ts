@@ -5,6 +5,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest';
 import { KnowledgeGraph } from '../../src/graph/index.js';
 import type { JsonLdGraph } from '../../src/graph/types.js';
 import { createHttpServer } from '../../src/http.js';
+import type { Ranker } from '../../src/ranking/clef.js';
 import fixture from '../fixtures/test-graph.json' with { type: 'json' };
 
 let server: http.Server;
@@ -25,8 +26,70 @@ it('returns health metadata without a ranking model', async () => {
   expect(await (await fetch(`${base}/healthz`)).json()).toMatchObject({
     ok: true,
     rankingAvailable: false,
+    lastRankingSucceeded: null,
     dataVersion: 'test-cut',
   });
+});
+it('reports the last ranking outcome in /healthz and the ranked flag per result', async () => {
+  let succeeded: boolean | undefined;
+  const ranker: Ranker = {
+    isAvailable: async () => true,
+    lastRankingSucceeded: () => succeeded,
+    rank: async (_claim, candidates) => {
+      succeeded = true;
+      return {
+        rankingAvailable: true,
+        candidates: candidates.map((c, i) => ({
+          ...c,
+          score: 0.9,
+          ranked: i === 0,
+        })),
+      };
+    },
+  };
+  const rankedServer = createHttpServer(
+    new KnowledgeGraph(fixture as unknown as JsonLdGraph, null, ranker),
+    'test-cut'
+  );
+  await new Promise<void>((resolve) =>
+    rankedServer.listen(0, '127.0.0.1', resolve)
+  );
+  const url = `http://127.0.0.1:${(rankedServer.address() as { port: number }).port}`;
+  try {
+    expect(await (await fetch(`${url}/healthz`)).json()).toMatchObject({
+      rankingAvailable: true,
+      lastRankingSucceeded: null,
+    });
+    const response = await fetch(`${url}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: {
+          name: 'suggest_techniques_for_claim',
+          arguments: { claim: 'explain model predictions' },
+        },
+      }),
+    });
+    const { results } = (await response.json()).result.structuredContent as {
+      results: Array<{ ranked: boolean }>;
+    };
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.map((t) => t.ranked)).toEqual(
+      results.map((_, i) => i === 0)
+    );
+    expect(await (await fetch(`${url}/healthz`)).json()).toMatchObject({
+      lastRankingSucceeded: true,
+    });
+  } finally {
+    rankedServer.closeAllConnections();
+    await new Promise<void>((resolve) => rankedServer.close(() => resolve()));
+  }
 });
 it('completes MCP initialization, listing and tool calls over Streamable HTTP', async () => {
   const client = new Client({ name: 'http-test', version: '1' });
@@ -41,11 +104,16 @@ it('completes MCP initialization, listing and tool calls over Streamable HTTP', 
     });
     const body = result.structuredContent as {
       rankingAvailable: boolean;
-      results: Array<{ retrievalScore: number; score: number }>;
+      results: Array<{
+        retrievalScore: number;
+        score: number;
+        ranked: boolean;
+      }>;
     };
     expect(body.rankingAvailable).toBe(false);
     expect(body.results.length).toBeGreaterThan(0);
     expect(body.results.every((t) => t.score === t.retrievalScore)).toBe(true);
+    expect(body.results.every((t) => t.ranked === false)).toBe(true);
     expect(body.results.every((t) => !('reason' in t))).toBe(true);
   } finally {
     await client.close();

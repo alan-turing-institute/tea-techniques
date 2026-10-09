@@ -424,6 +424,8 @@ export interface ClaimSuggestions {
     name: string;
     score: number;
     retrievalScore: number;
+    /** True when `score` is a Clef probability; false when it is the retrieval score. */
+    ranked: boolean;
     goals: string[];
     url: string;
   }>;
@@ -751,11 +753,12 @@ export class KnowledgeGraph {
       rankingModel: RANKING_MODEL,
       results: ranked.candidates
         .slice(0, limit)
-        .map(({ technique: t, score, retrievalScore }) => ({
+        .map(({ technique: t, score, retrievalScore, ranked }) => ({
           slug: t.slug,
           name: t.name,
           score,
           retrievalScore,
+          ranked,
           goals: t.goals,
           url: `https://alan-turing-institute.github.io/tea-techniques/techniques/${t.slug}`,
         })),

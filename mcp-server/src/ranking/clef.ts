@@ -8,7 +8,8 @@ export interface RankedCandidate {
 }
 export interface RankingResult {
   rankingAvailable: boolean;
-  candidates: Array<RankedCandidate & { score: number }>;
+  /** `ranked` is true when `score` is a Clef probability, false when it is the retrieval score. */
+  candidates: Array<RankedCandidate & { score: number; ranked: boolean }>;
 }
 export interface Ranker {
   isAvailable(): Promise<boolean>;
@@ -27,6 +28,8 @@ const CRITERIA = {
 export const DEFAULT_RANKING_CANDIDATES = 4;
 export const MAX_RANKING_CANDIDATES = 20;
 export const DEFAULT_RANKING_DEADLINE_MS = 60_000;
+/** Longest delay `setTimeout` accepts; a larger value fires the timer at once. */
+export const MAX_RANKING_DEADLINE_MS = 2_147_483_647;
 const SUMMARY_MAX = 200;
 
 /** Number of retrieved candidates sent to the ranker (env `RANKING_CANDIDATES`, 1-20). */
@@ -38,11 +41,11 @@ export function rankingCandidateLimit(): number {
   return Math.min(MAX_RANKING_CANDIDATES, Math.max(1, value));
 }
 
-/** Whole-request deadline in milliseconds (env `RANKING_DEADLINE_MS`). */
+/** Whole-request deadline in milliseconds (env `RANKING_DEADLINE_MS`), at most 2147483647. */
 export function rankingDeadlineMs(): number {
   const value = Number.parseInt(process.env.RANKING_DEADLINE_MS ?? '', 10);
   return Number.isFinite(value) && value > 0
-    ? value
+    ? Math.min(value, MAX_RANKING_DEADLINE_MS)
     : DEFAULT_RANKING_DEADLINE_MS;
 }
 
@@ -149,7 +152,11 @@ export class ClefRanker implements Ranker {
   ): Promise<RankingResult> {
     const fallback = (): RankingResult => ({
       rankingAvailable: false,
-      candidates: candidates.map((c) => ({ ...c, score: c.retrievalScore })),
+      candidates: candidates.map((c) => ({
+        ...c,
+        score: c.retrievalScore,
+        ranked: false,
+      })),
     });
     if (process.env.RANKING_ENABLED === 'false' || candidates.length === 0) {
       return fallback();
@@ -179,6 +186,7 @@ export class ClefRanker implements Ranker {
         .map((candidate, i) => ({
           ...candidate,
           score: readProbability(body.answers?.[`c${i + 1}`]),
+          ranked: true,
         }))
         .sort((a, b) => b.score - a.score);
       this.lastSucceeded = true;
@@ -186,7 +194,11 @@ export class ClefRanker implements Ranker {
         rankingAvailable: true,
         candidates: [
           ...ranked,
-          ...tail.map((c) => ({ ...c, score: c.retrievalScore })),
+          ...tail.map((c) => ({
+            ...c,
+            score: c.retrievalScore,
+            ranked: false,
+          })),
         ],
       };
     } catch {

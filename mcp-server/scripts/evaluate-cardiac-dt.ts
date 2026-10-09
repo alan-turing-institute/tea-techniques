@@ -330,8 +330,8 @@ async function main(): Promise<void> {
   const claims: ClaimEvaluation[] = [];
 
   for (const rubric of RUBRIC) {
-    // biome-ignore lint/nursery/noAwaitInLoop: sequential evaluation intentional
     const started = performance.now();
+    // biome-ignore lint/nursery/noAwaitInLoop: sequential evaluation intentional
     const results = await graph.suggestForClaim(rubric.text);
     const elapsedMs = Math.round(performance.now() - started);
     const returnedSlugs = results.results.map((t) => t.slug);

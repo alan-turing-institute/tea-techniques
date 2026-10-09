@@ -13,6 +13,7 @@ import {
   MODEL_REVISION,
   QUERY_PREFIX,
 } from '../src/embedding/model.js';
+import { computeRRFScores } from '../src/embedding/search.js';
 import { KnowledgeGraph } from '../src/graph/index.js';
 import type { JsonLdGraph } from '../src/graph/types.js';
 import fixture from './fixtures/test-graph.json' with { type: 'json' };
@@ -95,6 +96,23 @@ describe('embedding compatibility and offline loading', () => {
     ).getAllTechniques();
     expect(buildCorpus(techniques)[0].text).toBe(
       `title: ${techniques[0].name} | text: ${techniques[0].description}`
+    );
+  });
+});
+
+describe('rank fusion weights', () => {
+  const rankings = [
+    ['a', 'b', 'c'],
+    ['c', 'a'],
+  ];
+  it('treats weights that sum to zero as equal weights', () => {
+    const zeroed = computeRRFScores(rankings, 60, [0, 0]);
+    expect(zeroed).toEqual(computeRRFScores(rankings));
+    expect(zeroed.every((r) => Number.isFinite(r.score))).toBe(true);
+  });
+  it('treats a lone ranking with weight zero as unit weight', () => {
+    expect(computeRRFScores([rankings[0]], 60, [0, 1])).toEqual(
+      computeRRFScores([rankings[0]])
     );
   });
 });

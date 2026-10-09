@@ -6,6 +6,7 @@ import {
   ClefRanker,
   type RankedCandidate,
   rankingCandidateLimit,
+  rankingDeadlineMs,
   summarise,
 } from '../src/ranking/clef.js';
 import fixture from './fixtures/test-graph.json' with { type: 'json' };
@@ -91,6 +92,14 @@ describe('Clef ranking contract and fallback', () => {
       candidates[0].technique.slug,
       ...candidates.slice(2).map((c) => c.technique.slug),
     ]);
+    expect(result.candidates.map((c) => c.ranked)).toEqual([
+      true,
+      true,
+      ...candidates.slice(2).map(() => false),
+    ]);
+    expect(result.candidates.slice(2).map((c) => c.score)).toEqual(
+      candidates.slice(2).map((c) => c.retrievalScore)
+    );
   });
 
   it.each([
@@ -102,6 +111,17 @@ describe('Clef ranking contract and fallback', () => {
   ])('bounds RANKING_CANDIDATES=%s to %s', (value, expected) => {
     vi.stubEnv('RANKING_CANDIDATES', value);
     expect(rankingCandidateLimit()).toBe(expected);
+  });
+
+  it.each([
+    ['', 60_000],
+    ['abc', 60_000],
+    ['0', 60_000],
+    ['5000', 5000],
+    ['3000000000', 2_147_483_647],
+  ])('reads RANKING_DEADLINE_MS=%s as %s', (value, expected) => {
+    vi.stubEnv('RANKING_DEADLINE_MS', value);
+    expect(rankingDeadlineMs()).toBe(expected);
   });
 
   it('truncates the summary to the first sentence, at most 200 characters', () => {
@@ -127,23 +147,55 @@ describe('Clef ranking contract and fallback', () => {
       expect(result.candidates.map((c) => c.score)).toEqual(
         candidates.map((c) => c.retrievalScore)
       );
+      expect(result.candidates.every((c) => !c.ranked)).toBe(true);
     }
   );
 
-  it.each([-0.1, 1.1, '0.5', null])(
-    'rejects invalid probability %s',
-    async (noul) => {
+  it.each([
+    ['below 0', { type: 'noul', noul: -0.1 }],
+    ['above 1', { type: 'noul', noul: 1.1 }],
+    ['a string', { type: 'noul', noul: '0.5' }],
+    ['null', { type: 'noul', noul: null }],
+    ['the string "NaN"', { type: 'noul', noul: 'NaN' }],
+    ['a different answer type', { type: 'other', noul: 0.5 }],
+  ])(
+    'falls back when one of the answers is invalid: %s',
+    async (_label, invalid) => {
       vi.stubGlobal(
         'fetch',
-        vi.fn(async () =>
-          Response.json({ answers: { relevant: { type: 'noul', noul } } })
-        )
+        vi.fn(async (_url, init) => {
+          const keys = Object.keys(JSON.parse(init.body).questions);
+          const answers: Record<string, unknown> = {};
+          for (const key of keys) {
+            answers[key] = { type: 'noul', noul: 0.5 };
+          }
+          answers[keys.at(-1) as string] = invalid;
+          return Response.json({ answers });
+        })
       );
-      expect(
-        (await new ClefRanker().rank('claim', candidates)).rankingAvailable
-      ).toBe(false);
+      const result = await new ClefRanker().rank('claim', candidates);
+      expect(result.rankingAvailable).toBe(false);
+      expect(result.candidates.map((c) => c.technique.slug)).toEqual(
+        candidates.map((c) => c.technique.slug)
+      );
+      expect(result.candidates.map((c) => c.score)).toEqual(
+        candidates.map((c) => c.retrievalScore)
+      );
+      expect(result.candidates.every((c) => !c.ranked)).toBe(true);
     }
   );
+
+  it('falls back when the response body is not JSON', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('not json', { status: 200 }))
+    );
+    const result = await new ClefRanker().rank('claim', candidates);
+    expect(result.rankingAvailable).toBe(false);
+    expect(result.candidates.map((c) => c.technique.slug)).toEqual(
+      candidates.map((c) => c.technique.slug)
+    );
+  });
 
   it('falls back atomically if one answer is missing', async () => {
     vi.stubGlobal(
@@ -191,6 +243,28 @@ describe('Clef ranking contract and fallback', () => {
     }
   });
 
+  it('leaves no deadline timer running after a successful ranking', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (_url, init) => {
+          const keys = Object.keys(JSON.parse(init.body).questions);
+          return Response.json({
+            answers: Object.fromEntries(
+              keys.map((key) => [key, { type: 'noul', noul: 0.5 }])
+            ),
+          });
+        })
+      );
+      const result = await new ClefRanker().rank('claim', candidates);
+      expect(result.rankingAvailable).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('falls back on connection errors', async () => {
     vi.stubGlobal(
       'fetch',
@@ -219,7 +293,10 @@ describe('Clef ranking contract and fallback', () => {
 });
 
 describe('Ollama endpoint allow-list', () => {
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
   it('accepts host.docker.internal', () => {
     vi.stubEnv('OLLAMA_URL', 'http://host.docker.internal:11434');
     expect(ollamaUrl('/api/tags')).toBe(
@@ -229,5 +306,34 @@ describe('Ollama endpoint allow-list', () => {
   it('refuses other hosts', () => {
     vi.stubEnv('OLLAMA_URL', 'http://evil.example:11434');
     expect(() => ollamaUrl('/api/tags')).toThrow();
+  });
+  it.each(['http://localhost.:11434', 'https://localhost:11434'])(
+    'refuses %s',
+    (url) => {
+      vi.stubEnv('OLLAMA_URL', url);
+      expect(() => ollamaUrl('/api/tags')).toThrow();
+    }
+  );
+  it('accepts a different port on an allowed host', () => {
+    vi.stubEnv('OLLAMA_URL', 'http://localhost:12345');
+    expect(ollamaUrl('/api/tags')).toBe('http://localhost:12345/api/tags');
+  });
+  it('lets a URL with credentials through the allow-list, and requests built from it fail', async () => {
+    vi.stubEnv('RANKING_ENABLED', 'true');
+    vi.stubEnv('OLLAMA_URL', 'http://u:p@localhost:11434');
+    expect(ollamaUrl('/api/tags')).toBe('http://u:p@localhost:11434/api/tags');
+    // Request construction applies the same credential check as fetch, without a connection.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, init) => {
+        new Request(url, init);
+        return Response.json({ models: [{ name: 'clef-flash' }] });
+      })
+    );
+    const ranker = new ClefRanker();
+    expect(await ranker.isAvailable()).toBe(false);
+    expect((await ranker.rank('claim', candidates)).rankingAvailable).toBe(
+      false
+    );
   });
 });

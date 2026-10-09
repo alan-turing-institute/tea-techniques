@@ -94,7 +94,12 @@ The image serves stateless MCP Streamable HTTP at `POST /mcp` and health metadat
 
 The image needs an Ollama daemon with `clef-flash` for ranking; retrieval works without one. There are two shapes.
 
-**Host Ollama (default).** The container reaches Ollama on the host at `http://host.docker.internal:11434` (Compose maps that name to the host gateway). Pull the model on the host with `ollama pull clef-flash` (Ollama 0.35.1 or newer; Metal or GPU acceleration then applies). The host daemon must accept the container's `Host` header: start it with `OLLAMA_HOST=0.0.0.0`. Otherwise Ollama answers 403 to the foreign `Host`, ranking falls back, and `/healthz.rankingAvailable` stays false.
+**Host Ollama (default).** The container reaches Ollama on the host at `http://host.docker.internal:11434` (Compose maps that name to the host gateway). Pull the model on the host with `ollama pull clef-flash` (Ollama 0.35.1 or newer; Metal or GPU acceleration then applies). Ollama has no authentication, so listen on no more interfaces than the container needs. How to reach the daemon depends on the platform:
+
+- **macOS (Docker Desktop).** Leave `OLLAMA_HOST` at its default. Docker Desktop forwards `host.docker.internal` to the host's loopback, so a default daemon is reachable.
+- **Linux.** A daemon bound to loopback cannot be reached from the Docker bridge. Bind it to the Docker bridge address instead, for example `OLLAMA_HOST=172.17.0.1:11434` (the address `host-gateway` resolves to by default; `ip -4 addr show docker0` shows it). Or bind it to `0.0.0.0` only together with a firewall rule that limits port 11434 to the Docker subnets. Binding to all interfaces without such a rule is not recommended: it exposes an unauthenticated model server to every network the host joins.
+
+If the daemon cannot be reached, ranking falls back to retrieval order and `/healthz.rankingAvailable` is false. `/healthz` is the first thing to check when ranking falls back.
 
 ```sh
 docker compose build
@@ -115,9 +120,9 @@ Rebuild against a different data cut with one command (replace the ref with the 
 DATA_REF=<data-tag-or-commit> docker compose build mcp
 ```
 
-The default data cut is `777cf5e752775b20537e1a499c3998eadc2bc184`. The build resolves `DATA_REF` to a commit, fetches **only its graph.jsonld**, and regenerates embeddings from the graph with `scripts/generate-embeddings.ts`. It never copies or reads the repository's committed embeddings. Both the generated vectors and the ONNX query model cache are copied into the runtime image. `/healthz.dataVersion` reports the resolved data commit. Tag and goal values in the ranking state come from the loaded data; The claim-to-tag map used for keyword narrowing (`CONCEPT_TAGS`) names the consolidated tags `system-implementation` and `model-testing-and-validation`.
+The default data cut is `777cf5e752775b20537e1a499c3998eadc2bc184`. The build resolves `DATA_REF` to a commit, fetches **only its graph.jsonld**, and regenerates embeddings from the graph with `scripts/generate-embeddings.ts`. It never copies or reads the repository's committed embeddings. Both the generated vectors and the ONNX query model cache are copied into the runtime image. `/healthz.dataVersion` reports the resolved data commit. Tag and goal values in the ranking state come from the loaded data; the claim-to-tag map used for keyword narrowing (`CONCEPT_TAGS`) names the consolidated tags `system-implementation` and `model-testing-and-validation`.
 
-The `mcp` service sits on the default Compose network so it can reach the host gateway, and on an internal network shared with the bundled Ollama. The application only contacts the Ollama URL, which must be `localhost`, `127.0.0.1`, `[::1]`, `ollama` or `host.docker.internal`. The stack starts without network downloads once prepared. `make pull-models` (bundled shape only) uses a temporary container with download access and a persistent `tea-techniques-mcp-models` volume. It pulls only `clef-flash`; retrieval does not depend on Ollama. Keep that volume when moving the image to another laptop, or prepare the destination while online. The bundled Ollama runs on Linux CPU and does not expose Apple Metal; use the host shape on a Mac.
+The `mcp` service sits on the default Compose network so it can reach the host gateway, and on an internal network shared with the bundled Ollama. In the host-Ollama shape the `mcp` container therefore has general outbound network access through the default network. The application itself contacts only the Ollama URL, which must be `localhost`, `127.0.0.1`, `[::1]`, `ollama` or `host.docker.internal`, and makes no downloads at query time. The bundled-Ollama shape does not need the default network: the container reaches Ollama over the internal network. The stack starts without network downloads once prepared. `make pull-models` (bundled shape only) uses a temporary container with download access and a persistent `tea-techniques-mcp-models` volume. It pulls only `clef-flash`; retrieval does not depend on Ollama. Keep that volume when moving the image to another laptop, or prepare the destination while online. The bundled Ollama runs on Linux CPU and does not expose Apple Metal; use the host shape on a Mac.
 
 ### Call the claim tool without initialization
 
@@ -139,12 +144,12 @@ The result is available as both `result.structuredContent` and JSON in `result.c
   "rankingModel": "clef-flash",
   "results": [{
     "slug": "...", "name": "...", "score": 0.91, "retrievalScore": 0.63,
-    "goals": [], "url": "https://alan-turing-institute.github.io/tea-techniques/techniques/..."
+    "ranked": true, "goals": [], "url": "https://alan-turing-institute.github.io/tea-techniques/techniques/..."
   }]
 }
 ```
 
-`score` is the Noul probability only when `rankingAvailable` is true. Otherwise it equals `retrievalScore`, a normalized RRF rank score, and the original retrieval order is preserved. Missing/unreachable Ollama, absent models, invalid responses, or any candidate failure cause the whole ranking step to fall back. The first `RANKING_CANDIDATES` retrieved candidates (default 4, bounds 1-20) are ranked in one `/v1/systemone` request carrying one question per candidate; any remaining retrieved candidates follow them in retrieval order with `score` equal to `retrievalScore`. The request is aborted at `RANKING_DEADLINE_MS` (default 60000), which also stops generation in Ollama. No `reason` field is returned. The tool defaults to ten results; direct TypeScript callers can use `suggestForClaim(claim, { limit, context })` (up to twenty). MCP retains its existing flat context arguments.
+`ranked` is true for a result whose `score` is the Noul probability from Clef-Flash, and false when `score` is the retrieval score. When `rankingAvailable` is true, the first `RANKING_CANDIDATES` retrieved candidates (default 4, bounds 1-20) are ranked in one `/v1/systemone` request carrying one question per candidate, and those results carry `ranked: true`. Any remaining retrieved candidates follow them in retrieval order with `ranked: false` and `score` equal to `retrievalScore`, which is on a different scale from the probabilities; compare `score` values only between results that have `ranked: true`. When `rankingAvailable` is false, every result has `ranked: false`, `score` equals `retrievalScore` (a normalized RRF rank score), and the original retrieval order is preserved. Missing/unreachable Ollama, absent models, invalid responses, or any candidate failure cause the whole ranking step to fall back. The request is aborted at `RANKING_DEADLINE_MS` (default 60000). The server does not cancel the ranking request when the MCP caller disconnects: it runs to completion or to its deadline. Concurrent calls each send their own request with their own deadline, and the server does not queue or limit them, so on a host that cannot serve them at once (typically a CPU-only host) a later caller's request may reach its deadline before it is answered, and that caller receives retrieval order with `rankingAvailable` false. No `reason` field is returned. The tool defaults to ten results; direct TypeScript callers can use `suggestForClaim(claim, { limit, context })` (up to twenty). MCP retains its existing flat context arguments.
 
 ### Model and resource requirements
 
@@ -189,7 +194,7 @@ All variables are optional; defaults reproduce the untuned behaviour.
 | Variable | Default | Effect |
 |---|---|---|
 | `RANKING_CANDIDATES` | 4 | Candidates sent to Clef-Flash (1-20) |
-| `RANKING_DEADLINE_MS` | 60000 | Aborts the ranking request |
+| `RANKING_DEADLINE_MS` | 60000 | Aborts the ranking request (values above 2147483647 are capped to it) |
 | `RRF_KEYWORD_WEIGHT` | 1 | Weight of the keyword leg in rank fusion |
 | `RRF_SEMANTIC_WEIGHT` | 1 | Weight of the embedding leg in rank fusion |
 | `WEAK_MATCH_CUTOFF` | 0.6 | Claims-index matches with a worse Fuse.js score are dropped |

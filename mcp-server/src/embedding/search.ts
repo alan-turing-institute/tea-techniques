@@ -63,16 +63,22 @@ export function computeRRF(rankings: string[][], k = 60, topK = 10): string[] {
     .map(([slug]) => slug);
 }
 
-/** Normalized RRF scores, exposed as retrievalScore (not a probability). */
+/**
+ * Normalized RRF scores, exposed as retrievalScore (not a probability).
+ * When the weights of the given rankings sum to zero, every ranking counts equally.
+ */
 export function computeRRFScores(
   rankings: string[][],
   k = 60,
   weights: number[] = []
 ): Array<{ slug: string; score: number }> {
   const scores = new Map<string, number>();
+  const given = rankings.map((_, r) => weights[r] ?? 1);
+  const active =
+    given.reduce((sum, w) => sum + w, 0) > 0 ? given : given.map(() => 1);
   let weightSum = 0;
   for (const [r, ranking] of rankings.entries()) {
-    const weight = weights[r] ?? 1;
+    const weight = active[r];
     weightSum += weight;
     for (const [i, slug] of ranking.entries()) {
       scores.set(slug, (scores.get(slug) ?? 0) + weight / (k + i + 1));
