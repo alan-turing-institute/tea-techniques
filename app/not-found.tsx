@@ -1,20 +1,13 @@
-'use client';
-
-import dynamic from 'next/dynamic';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BookOpen, FileQuestion } from '@/components/icons';
+import { NotFoundSearch } from '@/components/search/not-found-search';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
-// Load the search modal on the client only, as the header does, so the page
-// reads the same with JavaScript off
-const SearchModal = dynamic(
-  () =>
-    import('@/components/search/search-modal').then((mod) => ({
-      default: mod.SearchModal,
-    })),
-  { ssr: false }
-);
+export const metadata: Metadata = {
+  title: 'Page not found - TEA Techniques',
+};
 
 export default function NotFound() {
   return (
@@ -43,9 +36,11 @@ export default function NotFound() {
                 </Link>
               </Button>
 
-              <div className="w-full max-w-xs sm:w-56 [&>button]:h-10">
-                {/* The sidebar layout's SearchModal already answers Cmd/Ctrl + K */}
-                <SearchModal enableShortcut={false} />
+              {/* The trigger loads on the client. With scripting on, the box
+                  reserves its size so the trigger does not move the layout when
+                  it appears; with scripting off, nothing is reserved. */}
+              <div className="w-full max-w-xs sm:w-auto [&>button]:h-10 sm:[&>button]:w-56 [@media(scripting:enabled)]:min-h-10 sm:[@media(scripting:enabled)]:min-w-56 [@media(scripting:none)]:hidden">
+                <NotFoundSearch />
               </div>
             </div>
 
@@ -71,6 +66,13 @@ export default function NotFound() {
                 <span className="text-muted-foreground">•</span>
                 <Link className="text-primary hover:underline" href="/about">
                   About
+                </Link>
+                <span className="text-muted-foreground">•</span>
+                <Link
+                  className="text-primary hover:underline"
+                  href="/about/community-contributions"
+                >
+                  Contribute
                 </Link>
               </div>
             </div>

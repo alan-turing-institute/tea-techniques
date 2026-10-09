@@ -76,7 +76,14 @@ export function SearchModal({
   // Keyboard shortcut (Cmd/Ctrl + K) and Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (enableShortcut && (e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // An open search box claims Cmd/Ctrl + K itself, so a second instance
+      // leaves it alone
+      if (
+        enableShortcut &&
+        !e.defaultPrevented &&
+        (e.metaKey || e.ctrlKey) &&
+        e.key === 'k'
+      ) {
         e.preventDefault();
         dispatch({ type: 'OPEN' });
       }
@@ -102,7 +109,9 @@ export function SearchModal({
   // Keyboard navigation within results
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'ArrowDown') {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         dispatch({ type: 'NAVIGATE', direction: 'down' });
       } else if (e.key === 'ArrowUp') {
