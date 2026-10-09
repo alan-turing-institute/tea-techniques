@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/requirements/black-box",
     "slug": "applicable-models-requirements-black-box",
-    "count": 73,
+    "count": 75,
     "category": "applicable-models"
   },
   "techniques": [
@@ -3767,8 +3767,8 @@
     },
     {
       "slug": "bootstrapping",
-      "name": "Bootstrapping",
-      "description": "Bootstrapping estimates uncertainty by repeatedly resampling the original dataset with replacement to create many new training sets, training a model on each sample, and analysing the variation in predictions. This approach provides confidence intervals and stability measures without making strong statistical assumptions. By showing how predictions change with different random samples of the data, it reveals how sensitive the model is to the specific training examples and provides robust uncertainty estimates.",
+      "name": "Bootstrap Ensembles",
+      "description": "Bootstrap ensembles estimate how much a model's predictions depend on the particular sample of data it was trained on. The training set is resampled with replacement many times, each resample (a bootstrap replicate) holding as many cases as the original so that some cases are repeated and others left out; one model is trained on each replicate with the same settings, and every new input is passed through all of the models. The spread of the models' predictions for an input, reported as a standard deviation or as a range between percentiles, estimates the uncertainty in the model's prediction for that input, and inputs where the models disagree are those the training data constrain least. The spread covers uncertainty in the fitted model only, not the random variation in individual outcomes, so an interval meant to contain a case's actual outcome must add an estimate of that noise, for example from the models' errors on held-out data.",
       "assurance_goals": [
         "Reliability",
         "Transparency",
@@ -3797,30 +3797,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Estimating uncertainty in financial risk models by resampling historical data to understand how predictions might vary under different historical scenarios.",
+          "description": "An electricity network operator forecasting next-day demand at each substation trains 100 gradient-boosted models on bootstrap replicates of three years of meter readings. Planners hold extra reserve at substations where the models' forecasts spread widely, because those are the sites whose forecasts the historical data settle least.",
           "goal": "Reliability"
         },
         {
-          "description": "Providing confidence intervals for medical diagnosis predictions to help doctors understand the reliability of AI recommendations and make more informed treatment decisions.",
+          "description": "A hospital's readmission-risk tool shows clinicians, beside each patient's predicted risk, the range of risks given by models trained on bootstrap replicates of the training cohort, so that a clinician can see when an estimate rests on few comparable past patients and give it less weight in discharge planning.",
           "goal": "Transparency"
         },
         {
-          "description": "Assessing whether prediction uncertainty is consistent across different demographic groups in hiring algorithms, identifying if the model is systematically more uncertain for certain populations.",
+          "description": "A local authority reviewing a housing-need scoring model compares the average spread of bootstrap-ensemble scores across applicant groups and finds it widest for a group with few past applications, which shows that the model's scores for that group are least settled by the data; it collects more cases before letting the scores inform priority for that group.",
           "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive as it requires training multiple models on resampled datasets."
+          "description": "Every member of the ensemble is a full training run, and every prediction must be made by every member, so training cost, storage and prediction time all grow in proportion to the number of replicates. For large neural networks this usually limits the ensemble to a handful of members, too few for stable percentiles of the spread."
         },
         {
-          "description": "Does not account for uncertainty in model structure or architecture choices."
+          "description": "The spread measures uncertainty in the fitted model, not the noise in outcomes. Presented as the range within which a case's actual outcome will fall, it understates the uncertainty, most of all where outcomes are noisy and training data plentiful, so the outcome noise has to be estimated separately, for example from held-out errors, and added."
         },
         {
-          "description": "Cannot detect systematically missing data patterns or biases present in the original dataset."
+          "description": "It captures only variation from which cases happened to be in the training set, assuming they were drawn independently from the population the model will meet. Choices held fixed across replicates, such as the features and architecture, add no spread, and on inputs unlike any in the training data the members can agree closely, so a small spread there is not evidence of a reliable prediction."
         },
         {
-          "description": "Assumes that the original dataset is representative of the population of interest."
+          "description": "Each replicate contains on average only about 63 per cent of the distinct training cases, so each member learns from less information than a model trained on all the data. With small datasets or rare classes, some replicates may contain almost none of a rare class or subgroup, which inflates the spread for those cases and can leave individual members unusable."
+        },
+        {
+          "description": "Resampling single cases assumes they are independent. With repeated measurements of the same person, time series or other grouped data, case resampling spreads related cases across replicates and understates the uncertainty, unless whole groups or time blocks are resampled instead."
         }
       ],
       "resources": [
@@ -3865,29 +3868,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The financial risk model's uncertainty estimates are robust to random variation in the historical data sample",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "For each substation's next-day demand forecast, the spread across models trained on bootstrap replicates of the historical data is reported, and forecasts whose spread exceeds the planning tolerance are flagged.",
+          "assuranceGoal": "reliability",
+          "domain": "energy"
         },
         {
-          "text": "The clinical decision support system communicates prediction variability through confidence bounds derived from data resampling",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
+          "text": "The flood model's uncertainty for each river gauge reflects how much its predictions change when it is retrained on resampled versions of the gauge records.",
+          "assuranceGoal": "reliability",
+          "domain": "environmental"
         },
         {
-          "text": "The environmental model's uncertainty quantification does not rely on distributional assumptions about measurement errors",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "Each readmission-risk score shown to clinicians is accompanied by the range of scores produced by models trained on resampled versions of the training cohort.",
+          "assuranceGoal": "transparency",
+          "domain": "healthcare"
         },
         {
-          "text": "The hiring algorithm's prediction stability is consistent across demographic groups when assessed using resampled training data",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The system's confidence intervals reflect genuine variability in model predictions across different data samples",
-          "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "The spread of the housing-need model's scores across bootstrap-trained models has been compared between applicant groups and is reported for each group.",
+          "assuranceGoal": "fairness",
+          "domain": "public sector"
         }
       ]
     },
@@ -11633,7 +11631,301 @@
           "domain": "autonomous systems"
         }
       ]
+    },
+    {
+      "slug": "bootstrap-confidence-intervals-for-evaluation-metrics",
+      "name": "Bootstrap Confidence Intervals for Evaluation Metrics",
+      "description": "Bootstrap confidence intervals put a range around a model's measured performance, showing how much the score could differ had another test set of the same size been drawn from the same population. The labelled held-out evaluation set is resampled with replacement thousands of times, each resample holding as many cases as the original so that some cases appear more than once and others not at all, and the metric (an error rate, the area under a curve, a translation score) is recomputed on each resample from the model's stored predictions, with no retraining. The spread of these recomputed values stands in for the sampling distribution of the metric: the percentile interval takes its 2.5th and 97.5th percentiles for a 95 per cent interval, and the bias-corrected and accelerated (BCa) interval shifts those percentiles to correct for bias and skew in that distribution. The statistic can also be the difference between two models scored on the same cases, recomputed on each shared resample, which shows whether an observed improvement is larger than the noise from test-set sampling. The result is the metric with lower and upper bounds at a stated confidence level, so a requirement such as a maximum false-positive rate can be checked against the bound rather than the point estimate.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/performance-assessment",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A medical-imaging company preparing a regulatory submission reports its fracture detector's sensitivity and specificity at the locked threshold with 95 per cent bootstrap intervals. Because each patient contributes several radiographs, it resamples patients rather than images, so the interval reflects the number of independent patients in the test set rather than the larger number of images.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A machine-translation team deciding whether to replace its production model scores the current and candidate systems on the same held-out sentences, recomputes the difference in BLEU score on 1,000 shared bootstrap resamples of those sentences, and approves the change only if the 95 per cent interval for the difference lies above zero.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A fisheries agency whose vessel-detection model must keep false alarms below 2 per cent of non-vessel image patches re-measures the false-positive rate each quarter on several thousand newly labelled patches, puts a bootstrap interval on it, and states compliance against the interval's upper bound, so a quarter whose labelled sample is too small to show compliance is visible as such.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "An evaluation team comparing two large language models on a 500-question internal benchmark reports each model's accuracy with a BCa bootstrap interval and puts a paired interval on the difference, which shows that a 1.5-point lead is within the sampling noise of a test set that size, so the team does not cite it as evidence that one model is better.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "For a rate built from rare errors, such as a low false-positive rate, the interval is too narrow when the test set holds only a handful of errors. With 200 negative cases and a true rate of 0.5 per cent, about a third of test sets contain no false positives, and the interval is then [0, 0], excluding the true rate. For a single proportion the exact binomial (Clopper-Pearson) interval avoids this without resampling; the bootstrap earns its place on metrics with no simple formula."
+        },
+        {
+          "description": "Resampling single cases assumes they are independent. When several test cases come from one patient, vessel, user or time window, their errors are correlated, and resampling cases treats them as separate evidence, giving intervals that can be much too narrow. Resampling whole clusters (patients, days) instead restores the right width, which needs the cluster of each case to be recorded in the test set."
+        },
+        {
+          "description": "The interval reflects only which cases happened to be in the test set. It says nothing about variation from retraining the model on other data or with another random seed, nor about whether the test set represents the deployment population, so a narrow interval on an unrepresentative test set is precise and still wrong."
+        },
+        {
+          "description": "If the decision threshold, the model or the metric was chosen by looking at the same test set, resampling that set without repeating the choice inside each resample centres the interval on an optimistic estimate, because the selection effect is not reproduced. The choice has to be made on separate data, or repeated within every resample at a matching increase in computation."
+        },
+        {
+          "description": "Coverage is approximate and improves with test-set size. Percentile intervals can be off for skewed metrics on small test sets; the BCa interval corrects for this but needs an extra leave-one-out pass over the test set, which is slow for large sets or costly metrics, and it returns no interval when every resample gives the same value."
+        }
+      ],
+      "resources": [
+        {
+          "title": "scipy.stats.bootstrap",
+          "url": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html",
+          "source_type": "documentation",
+          "publication_date": "2008",
+          "citationKey": "Scipystatsbootstrap2008"
+        },
+        {
+          "title": "scipy/scipy: SciPy library main repository",
+          "url": "https://github.com/scipy/scipy",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T01:20:17Z",
+          "citationKey": "ScipyScipySciPy2026",
+          "abstract": "SciPy library main repository"
+        },
+        {
+          "title": "Bootstrap Methods: Another Look at the Jackknife",
+          "url": "https://doi.org/10.1214/aos/1176344552",
+          "source_type": "technical_paper",
+          "authors": [
+            "B. Efron"
+          ],
+          "publication_date": "1979-1-1",
+          "citationKey": "efronBootstrapMethodsAnother1979"
+        },
+        {
+          "title": "Better Bootstrap Confidence Intervals",
+          "url": "https://doi.org/10.1080/01621459.1987.10478410",
+          "source_type": "technical_paper",
+          "authors": [
+            "Bradley Efron"
+          ],
+          "publication_date": "1987-3",
+          "citationKey": "efronBetterBootstrapConfidence1987"
+        },
+        {
+          "title": "The Bootstrap — SciPy Cookbook, Resampling and Monte Carlo Methods tutorials",
+          "url": "https://github.com/scipy/scipy-cookbook/blob/main/ipython/ResamplingAndMonteCarloMethods/resampling_tutorial_3.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "BootstrapSciPyCookbook"
+        },
+        {
+          "title": "Statistical Significance Tests for Machine Translation Evaluation",
+          "url": "https://aclanthology.org/W04-3250/",
+          "source_type": "application_paper",
+          "authors": [
+            "Philipp Koehn"
+          ],
+          "publication_date": "2004-07",
+          "citationKey": "koehnStatisticalSignificanceTests2004"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The upper bound of the 95 per cent bootstrap confidence interval for the vessel detector's false-positive rate on this quarter's labelled patches is below the 2 per cent limit.",
+          "assuranceGoal": "reliability",
+          "domain": "environmental"
+        },
+        {
+          "text": "The fracture detector's sensitivity and specificity at the locked threshold are reported with 95 per cent confidence intervals computed by resampling patients, not images.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The candidate translation model's improvement in BLEU over the production model has a 95 per cent bootstrap interval, computed on shared resamples of the test sentences, that excludes zero.",
+          "assuranceGoal": "reliability",
+          "domain": "language technology"
+        },
+        {
+          "text": "Every performance figure in the evaluation report is given with a 95 per cent bootstrap confidence interval and the number of test cases it rests on.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "operating-point-roc-analysis",
+      "name": "Operating-Point ROC Analysis",
+      "description": "Operating-point ROC analysis measures how often a classifier makes each kind of mistake at the decision threshold it will actually use, which is the evidence behind claims such as 'the false-positive rate stays within acceptable bounds'. A classifier that outputs a score is turned into a yes-or-no decision by a threshold, and moving the threshold trades one kind of error against the other. On a labelled held-out set, the receiver operating characteristic (ROC) curve plots the true-positive rate (the share of actual positives that are flagged, also called sensitivity) against the false-positive rate (the share of actual negatives wrongly flagged, equal to one minus specificity) at every possible threshold; the operating threshold is then chosen from the curve to meet a stated limit on one error rate or to minimise the expected cost of errors, or an existing threshold is confirmed. At that one threshold the analysis reports the confusion matrix (the counts of true positives, false positives, false negatives and true negatives) and the false-positive and false-negative rates with their complements, specificity and sensitivity. The output is a set of error rates tied to a named threshold and a named test set, against which a requirement on error rates can be checked.",
+      "assurance_goals": [
+        "Reliability",
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/performance-assessment",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/verification",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/metric",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A hospital's clinical informatics team evaluating a vendor's sepsis alert scores a year of its own admissions, plots the ROC curve and fixes the alert threshold its operations committee chose from the vendor's recommended range. At that threshold it reports sensitivity, specificity, positive predictive value and the share of all admissions that would trigger an alert, and uses the false-positive count and alert volume to decide whether ward staff can act on the alerts.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A card-payments company re-runs the analysis every month on transactions its fraud analysts have labelled, confirms that the false-positive rate at the live threshold is still under the limit agreed with its customer-service team, and reopens the threshold choice on the latest ROC curve whenever the rate has drifted above that limit.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A manufacturer's quality engineers choose the threshold for a visual-inspection model by weighing the cost of scrapping a good part against the cost of shipping a defective one, using the ROC curve and the line's defect rate, then report the false-reject and defect-escape rates that the chosen threshold gives on a separate held-out production batch.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A rail operator's safety team assessing a camera-based obstacle detector for level crossings sets the decision threshold on a tuning set so that the miss rate meets the requirement allocated to the detector. It then measures the false-negative rate at that threshold on a separate set of recorded crossings, broken down into daylight, night and rain, and enters the confusion matrices in the safety case as verification evidence.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The rates are evidence only if they are measured on labelled cases that played no part in choosing the threshold. A threshold set to give a 1 per cent false-positive rate on a tuning set gives exactly that rate there by construction, and with a few hundred negative tuning cases its true rate on new data can be half as high again. Choosing the threshold on one set and reporting rates on another, or nesting the choice inside cross-validation, avoids this at the cost of more labelled data."
+        },
+        {
+          "description": "False-positive and true-positive rates do not change with how common the positive class is, but the share of alerts that are correct does. A false-positive rate within its limit can still mean most alerts are false when the condition is rare: at 90 per cent sensitivity and a 5 per cent false-positive rate, only about 15 per cent of alerts are correct when 1 case in 100 is positive. Claims about alert burden need the positive predictive value at the deployment prevalence as well."
+        },
+        {
+          "description": "A rate measured on a finite test set is an estimate, and with few negative cases or few false positives it can fall well below the true rate by chance. A claim that a rate is within a limit therefore needs a confidence interval on the rate (see Bootstrap Confidence Intervals for Evaluation Metrics) and a test set large enough for that interval to be narrower than the margin to the limit."
+        },
+        {
+          "description": "The threshold is a fixed score value, so the rates hold only while the scores the model gives each class stay as they were in the test set. A new scanner, a new fraud pattern or a change in patient mix shifts the scores and moves the false-positive rate at the same threshold with no change to the model. Showing that a rate remains within bounds means repeating the analysis on labelled operational samples, which can be slow or costly to obtain."
+        },
+        {
+          "description": "A single rate averages over the whole test set. It can meet its limit overall while exceeding it for a group of people or an operating condition (night-time images, one hospital site) that is rare in the test data. Rates need reporting for each group and condition the claim covers, each with enough cases to be informative, which can multiply the labelled data required."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Receiver operating characteristic (ROC) (Metrics and scoring: quantifying the quality of predictions) — scikit-learn user guide",
+          "url": "https://scikit-learn.org/stable/modules/model_evaluation.html#receiver-operating-characteristic-roc",
+          "source_type": "documentation",
+          "citationKey": "ReceiverOperatingCharacteristic",
+          "abstract": "Which scoring function should I use?: Before we take a closer look into the details of the many scores and evaluation metrics, we want to give some guidance, inspired by statistical decision theory..."
+        },
+        {
+          "title": "scikit-learn",
+          "url": "https://github.com/scikit-learn/scikit-learn",
+          "source_type": "software_package",
+          "citationKey": "Scikitlearn",
+          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
+        },
+        {
+          "title": "Basic principles of ROC analysis",
+          "url": "https://doi.org/10.1016/s0001-2998(78)80014-2",
+          "source_type": "technical_paper",
+          "authors": [
+            "Charles E. Metz"
+          ],
+          "publication_date": "1978-10",
+          "citationKey": "metzBasicPrinciplesROC1978"
+        },
+        {
+          "title": "An introduction to ROC analysis",
+          "url": "https://doi.org/10.1016/j.patrec.2005.10.010",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tom Fawcett"
+          ],
+          "publication_date": "2006-6",
+          "citationKey": "fawcettIntroductionROCAnalysis2006"
+        },
+        {
+          "title": "Post-tuning the decision threshold for cost-sensitive learning — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/model_selection/plot_cost_sensitive_learning.html",
+          "source_type": "tutorial",
+          "citationKey": "PosttuningDecisionThreshold",
+          "abstract": "Once a classifier is trained, the output of the predict method outputs class label predictions corresponding to a thresholding of either the decision_function or the predict_proba output. For a bin..."
+        },
+        {
+          "title": "External Validation of a Widely Implemented Proprietary Sepsis Prediction Model in Hospitalized Patients",
+          "url": "https://doi.org/10.1001/jamainternmed.2021.2626",
+          "source_type": "application_paper",
+          "authors": [
+            "Andrew Wong",
+            "Erkin Otles",
+            "John P. Donnelly",
+            "Andrew Krumm",
+            "Jeffrey McCullough",
+            "Olivia DeTroyer-Cooley",
+            "Justin Pestrue",
+            "Marie Phillips",
+            "Judy Konye",
+            "Carleen Penoza",
+            "Muhammad Ghous",
+            "Karandeep Singh"
+          ],
+          "publication_date": "2021-8-1",
+          "citationKey": "wongExternalValidationWidely2021"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The classifier's false-positive rate at its operating threshold remains within the acceptable bound when re-measured on each quarter's labelled operational data.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        },
+        {
+          "text": "At the live decision threshold, the fraud model flagged no more than 2 per cent of legitimate transactions in each of the last six months of analyst-labelled samples.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        },
+        {
+          "text": "At the alert threshold in clinical use, the sepsis model's sensitivity, specificity and positive predictive value on a year of local admissions are reported together with the share of admissions it would alert on.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The inspection model's threshold was fixed on a tuning batch before testing, and the false-reject and defect-escape rates measured at that threshold on a separate production batch are within the agreed limits.",
+          "assuranceGoal": "reliability",
+          "domain": "manufacturing"
+        },
+        {
+          "text": "At its deployed threshold, the level-crossing obstacle detector's miss rate on independent test recordings meets the requirement allocated to it in daylight, at night and in rain.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        }
+      ]
     }
   ],
-  "count": 73
+  "count": 75
 }

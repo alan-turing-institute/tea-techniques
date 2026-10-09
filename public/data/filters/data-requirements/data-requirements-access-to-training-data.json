@@ -1401,8 +1401,8 @@
     },
     {
       "slug": "bootstrapping",
-      "name": "Bootstrapping",
-      "description": "Bootstrapping estimates uncertainty by repeatedly resampling the original dataset with replacement to create many new training sets, training a model on each sample, and analysing the variation in predictions. This approach provides confidence intervals and stability measures without making strong statistical assumptions. By showing how predictions change with different random samples of the data, it reveals how sensitive the model is to the specific training examples and provides robust uncertainty estimates.",
+      "name": "Bootstrap Ensembles",
+      "description": "Bootstrap ensembles estimate how much a model's predictions depend on the particular sample of data it was trained on. The training set is resampled with replacement many times, each resample (a bootstrap replicate) holding as many cases as the original so that some cases are repeated and others left out; one model is trained on each replicate with the same settings, and every new input is passed through all of the models. The spread of the models' predictions for an input, reported as a standard deviation or as a range between percentiles, estimates the uncertainty in the model's prediction for that input, and inputs where the models disagree are those the training data constrain least. The spread covers uncertainty in the fitted model only, not the random variation in individual outcomes, so an interval meant to contain a case's actual outcome must add an estimate of that noise, for example from the models' errors on held-out data.",
       "assurance_goals": [
         "Reliability",
         "Transparency",
@@ -1431,30 +1431,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Estimating uncertainty in financial risk models by resampling historical data to understand how predictions might vary under different historical scenarios.",
+          "description": "An electricity network operator forecasting next-day demand at each substation trains 100 gradient-boosted models on bootstrap replicates of three years of meter readings. Planners hold extra reserve at substations where the models' forecasts spread widely, because those are the sites whose forecasts the historical data settle least.",
           "goal": "Reliability"
         },
         {
-          "description": "Providing confidence intervals for medical diagnosis predictions to help doctors understand the reliability of AI recommendations and make more informed treatment decisions.",
+          "description": "A hospital's readmission-risk tool shows clinicians, beside each patient's predicted risk, the range of risks given by models trained on bootstrap replicates of the training cohort, so that a clinician can see when an estimate rests on few comparable past patients and give it less weight in discharge planning.",
           "goal": "Transparency"
         },
         {
-          "description": "Assessing whether prediction uncertainty is consistent across different demographic groups in hiring algorithms, identifying if the model is systematically more uncertain for certain populations.",
+          "description": "A local authority reviewing a housing-need scoring model compares the average spread of bootstrap-ensemble scores across applicant groups and finds it widest for a group with few past applications, which shows that the model's scores for that group are least settled by the data; it collects more cases before letting the scores inform priority for that group.",
           "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive as it requires training multiple models on resampled datasets."
+          "description": "Every member of the ensemble is a full training run, and every prediction must be made by every member, so training cost, storage and prediction time all grow in proportion to the number of replicates. For large neural networks this usually limits the ensemble to a handful of members, too few for stable percentiles of the spread."
         },
         {
-          "description": "Does not account for uncertainty in model structure or architecture choices."
+          "description": "The spread measures uncertainty in the fitted model, not the noise in outcomes. Presented as the range within which a case's actual outcome will fall, it understates the uncertainty, most of all where outcomes are noisy and training data plentiful, so the outcome noise has to be estimated separately, for example from held-out errors, and added."
         },
         {
-          "description": "Cannot detect systematically missing data patterns or biases present in the original dataset."
+          "description": "It captures only variation from which cases happened to be in the training set, assuming they were drawn independently from the population the model will meet. Choices held fixed across replicates, such as the features and architecture, add no spread, and on inputs unlike any in the training data the members can agree closely, so a small spread there is not evidence of a reliable prediction."
         },
         {
-          "description": "Assumes that the original dataset is representative of the population of interest."
+          "description": "Each replicate contains on average only about 63 per cent of the distinct training cases, so each member learns from less information than a model trained on all the data. With small datasets or rare classes, some replicates may contain almost none of a rare class or subgroup, which inflates the spread for those cases and can leave individual members unusable."
+        },
+        {
+          "description": "Resampling single cases assumes they are independent. With repeated measurements of the same person, time series or other grouped data, case resampling spreads related cases across replicates and understates the uncertainty, unless whole groups or time blocks are resampled instead."
         }
       ],
       "resources": [
@@ -1499,29 +1502,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The financial risk model's uncertainty estimates are robust to random variation in the historical data sample",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "For each substation's next-day demand forecast, the spread across models trained on bootstrap replicates of the historical data is reported, and forecasts whose spread exceeds the planning tolerance are flagged.",
+          "assuranceGoal": "reliability",
+          "domain": "energy"
         },
         {
-          "text": "The clinical decision support system communicates prediction variability through confidence bounds derived from data resampling",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
+          "text": "The flood model's uncertainty for each river gauge reflects how much its predictions change when it is retrained on resampled versions of the gauge records.",
+          "assuranceGoal": "reliability",
+          "domain": "environmental"
         },
         {
-          "text": "The environmental model's uncertainty quantification does not rely on distributional assumptions about measurement errors",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "Each readmission-risk score shown to clinicians is accompanied by the range of scores produced by models trained on resampled versions of the training cohort.",
+          "assuranceGoal": "transparency",
+          "domain": "healthcare"
         },
         {
-          "text": "The hiring algorithm's prediction stability is consistent across demographic groups when assessed using resampled training data",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The system's confidence intervals reflect genuine variability in model predictions across different data samples",
-          "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "The spread of the housing-need model's scores across bootstrap-trained models has been compared between applicant groups and is reported for each group.",
+          "assuranceGoal": "fairness",
+          "domain": "public sector"
         }
       ]
     },
