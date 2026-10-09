@@ -1,7 +1,7 @@
 {
   "slug": "reweighing",
   "name": "Reweighing",
-  "description": "Reweighing is a pre-processing technique that mitigates bias by assigning different weights to training examples based on their group membership and class label. The weights are calculated to ensure that privileged and unprivileged groups have equal influence on the model's training process, effectively balancing the dataset without altering the feature values themselves. This helps to train fairer models by correcting for historical imbalances in how different groups are represented in the data.",
+  "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
   "assurance_goals": [
     "Fairness",
     "Transparency"
@@ -10,47 +10,51 @@
     "applicable-models/architecture/model-agnostic",
     "applicable-models/paradigm/supervised",
     "applicable-models/requirements/black-box",
-    "data-requirements/access-to-training-data",
-    "data-requirements/labelled-data",
-    "data-requirements/sensitive-attributes",
     "assurance-goal-category/fairness",
     "assurance-goal-category/fairness/pre-processing",
     "assurance-goal-category/transparency",
     "assurance-goal-category/transparency/audit-trail",
+    "data-requirements/access-to-training-data",
+    "data-requirements/labelled-data",
+    "data-requirements/sensitive-attributes",
     "data-type/any",
+    "evidence-type/modified-dataset",
+    "expertise-needed/domain-expertise",
+    "expertise-needed/statistics",
     "lifecycle-stage/model-development",
     "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
-    "technique-type/algorithmic",
-    "expertise-needed/statistics",
-    "expertise-needed/domain-expertise",
-    "evidence-type/modified-dataset"
+    "technique-type/algorithmic"
   ],
   "example_use_cases": [
     {
-      "description": "In a loan application system, if historical data shows that a higher proportion of applicants from a minority group were denied loans (negative outcome), reweighing would assign higher weights to these instances. This forces the model to pay more attention to correctly classifying the underrepresented group, aiming to correct for historical bias and improve fairness metrics like equal opportunity.",
+      "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model.",
       "goal": "Fairness"
     },
     {
-      "description": "When developing a hiring model, if the training data contains fewer female applicants for senior roles, reweighing can be applied to increase the importance of these instances. This helps to prevent the model from learning a spurious correlation between gender and seniority, ensuring that female candidates are evaluated more equitably during the screening process.",
+      "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one.",
       "goal": "Fairness"
     },
     {
-      "description": "In a medical diagnosis system, reweighing provides transparency by explicitly showing which demographic groups required adjustment for balanced representation. The computed weights serve as documentation of historical bias patterns in medical data, helping clinicians understand potential disparities and ensuring the model's decisions are based on medical evidence rather than demographic correlations.",
+      "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "An auditor reviewing a benefits-fraud model asks for the table of reweighing weights kept with the training run. A weight of 1.8 on one nationality group's not-fraud cases shows how far that group's historical labels departed from independence, and the table records exactly how the training data were adjusted, so the auditor can reconstruct the intervention without rerunning it.",
       "goal": "Transparency"
     }
   ],
   "limitations": [
     {
-      "description": "The technique only adjusts the overall influence of demographic groups and does not address biases that may be encoded within the features themselves."
+      "description": "Its target is fixed: equal rates of positive labels across groups in the weighted training data (statistical parity). It does not aim at equal error rates such as equal opportunity, and the weights are computed once, before training, so they cannot respond to where the trained model actually errs. An adaptive variant (Krasanakis et al., 2018) re-estimates weights during training for error-rate criteria, but it has no maintained implementation."
     },
     {
-      "description": "Assigning very high weights to a small number of instances from an underrepresented group can increase the model's variance and make it sensitive to outliers, potentially harming generalisation."
+      "description": "It removes all association between group and label, including any part a legitimate factor explains. Kamiran and Calders give the example of car insurance, where more accidents among men may justify different outcomes by sex; reweighing erases that difference too, so it over-corrects wherever some gap between groups is warranted."
     },
     {
-      "description": "The effectiveness of reweighing depends on the assumption that the labels in the training data are accurate; it cannot correct for label bias where outcomes were themselves the result of historical discrimination."
+      "description": "The learning algorithm must accept example weights; where it cannot, the data have to be resampled instead, which is a different method. Only the training data are balanced, so the trained model's predictions are not guaranteed to be: outcome rates by group must be measured on held-out data after training rather than assumed."
     },
     {
-      "description": "It may not be effective if the feature distributions for different groups are fundamentally different, as it cannot change the underlying data relationships."
+      "description": "When a group-label combination is rare its weight is large (a combination with a tenth of its expected count gets a weight of ten), so a handful of examples can dominate training. This raises variance and amplifies any labelling errors in exactly the group the method is meant to protect, and it bites hardest with small or intersectional groups."
     }
   ],
   "resources": [
@@ -130,18 +134,23 @@
   ],
   "sample_claims": [
     {
-      "text": "The lending model's training process gives equal consideration to applicants from all demographic groups regardless of their representation in historical data",
+      "text": "The approval model was trained on loan history reweighed so that every ethnic group has the same approval rate in the weighted data, and its approval-rate gap on held-out applicants is reported alongside its accuracy.",
       "domain": "finance",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The hiring system's learned patterns reflect balanced influence from all candidate demographics rather than reinforcing historical application imbalances",
+      "text": "The postpartum depression outreach model, trained with reweighing by race, has a disparate impact ratio within the agreed range on held-out patients.",
+      "domain": "healthcare",
+      "assuranceGoal": "fairness"
+    },
+    {
+      "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
       "domain": "general",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The model training adjustments applied to address historical group imbalances are quantified and documented for regulatory review",
-      "domain": "finance",
+      "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
+      "domain": "public sector",
       "assuranceGoal": "transparency"
     }
   ]

@@ -186,57 +186,62 @@
   {
     "slug": "integrated-gradients",
     "name": "Integrated Gradients",
-    "description": "Integrated Gradients is an attribution technique that explains a model's prediction by quantifying the contribution of each input feature. It works by accumulating gradients along a straight path from a user-defined baseline input (e.g., a black image or an all-zero vector) to the actual input. This path integral ensures that the attributions satisfy fundamental axioms like completeness (attributions sum up to the difference between the prediction and the baseline prediction) and sensitivity (non-zero attributions for features that change the prediction). The output is a set of importance scores, often visualised as heatmaps, indicating which parts of the input were most influential for the model's decision.",
+    "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
     "assurance_goals": [
-      "Explainability"
+      "Explainability",
+      "Fairness"
     ],
     "tags": [
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/architecture/neural-networks/transformer",
+      "applicable-models/paradigm/parametric",
+      "applicable-models/paradigm/supervised",
+      "applicable-models/requirements/differentiable",
+      "applicable-models/requirements/gradient-access",
       "assurance-goal-category/explainability",
       "assurance-goal-category/explainability/attribution-methods/gradient-based",
       "assurance-goal-category/explainability/explains/feature-importance",
       "assurance-goal-category/explainability/property/completeness",
-      "assurance-goal-category/explainability/property/consistency",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/bias-diagnosis",
       "data-requirements/reference-dataset",
-      "data-type/any",
+      "data-type/image",
+      "data-type/tabular",
+      "data-type/text",
       "evidence-type/quantitative-metric",
       "evidence-type/visualisation",
-      "expertise-needed/ml-engineering",
       "expertise-needed/deep-learning",
+      "expertise-needed/ml-engineering",
       "explanatory-scope/local",
-      "technique-type/algorithmic",
-      "applicable-models/architecture/neural-networks",
-      "applicable-models/paradigm/parametric",
-      "applicable-models/paradigm/supervised",
-      "applicable-models/requirements/gradient-access",
-      "applicable-models/requirements/differentiable",
       "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-testing-and-validation"
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "technique-type/algorithmic"
     ],
     "sample_claims": [
       {
-        "text": "The diagnostic model's predictions are attributable to specific anatomical features rather than spurious image artifacts",
+        "text": "The retinopathy grading model's referral predictions are attributable to lesion regions in the retinal image rather than to imaging artefacts, as shown by Integrated Gradients review of a stratified sample of graded cases",
         "domain": "healthcare",
         "assuranceGoal": "explainability"
       },
       {
-        "text": "The feature importance scores provided to credit analysts sum exactly to the difference between the model's prediction and its neutral baseline",
+        "text": "The attribution scores given to credit analysts for each decision sum, within a stated tolerance, to the difference between the model's score for the applicant and its score for the documented reference applicant",
         "domain": "finance",
         "assuranceGoal": "explainability"
       },
       {
-        "text": "The perception system's object detection decisions are traceable to specific visual elements within the sensor input",
-        "domain": "autonomous systems",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The model's attribution of prediction confidence to input measurements respects the principle that zero-valued features receive proportional credit",
-        "domain": "environmental",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The model's explanation quantifies each input feature's contribution along the path from a neutral reference state to the actual input",
+        "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
         "domain": "general",
         "assuranceGoal": "explainability"
+      },
+      {
+        "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+        "domain": "general",
+        "assuranceGoal": "fairness"
+      },
+      {
+        "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+        "domain": "finance",
+        "assuranceGoal": "fairness"
       }
     ]
   },
@@ -912,50 +917,52 @@
     ]
   },
   {
-    "slug": "classical-attention-analysis-in-neural-networks",
-    "name": "Classical Attention Analysis in Neural Networks",
-    "description": "Classical attention mechanisms in RNNs and CNNs create alignment matrices and temporal attention patterns that show how models focus on different input elements over time or space. This technique analyses these traditional attention patterns, particularly in encoder-decoder architectures and sequence-to-sequence models, where attention weights reveal which source elements influence each output step. Unlike transformer self-attention analysis, this focuses on understanding alignment patterns, temporal dependencies, and encoder-decoder attention dynamics in classical neural architectures.",
+    "slug": "attention-weight-analysis",
+    "name": "Attention Weight Analysis",
+    "description": "Attention weight analysis inspects the weights an attention-based neural network computes for an input, to see which input positions the model draws on as it builds each part of its output. In recurrent encoder-decoder models, such as early neural machine translation, the weights for each output step form an alignment matrix over the source tokens, which is plotted as a heatmap and read as a soft alignment between source and target. In transformers, each attention head (one of several parallel attention units in a layer) produces its own matrix of how strongly every token attends to every other token; the analyst extracts these matrices from the model, for example by asking a Hugging Face model to return its attentions, and views them per head and layer or aggregates them over many inputs to characterise what individual heads do. The output is a set of heatmaps and head-level summaries showing how information is routed inside the model; on its own it does not measure how much each input contributed to the prediction.",
     "assurance_goals": [
       "Explainability"
     ],
     "tags": [
       "applicable-models/architecture/neural-networks/recurrent",
+      "applicable-models/architecture/neural-networks/transformer",
       "applicable-models/requirements/architecture-specific",
       "applicable-models/requirements/model-internals",
       "assurance-goal-category/explainability",
-      "assurance-goal-category/explainability/explains/feature-importance",
       "assurance-goal-category/explainability/explains/internal-mechanisms",
-      "assurance-goal-category/explainability/property/fidelity",
-      "assurance-goal-category/explainability/representation-analysis/decomposition",
+      "assurance-goal-category/explainability/property/efficiency",
       "assurance-goal-category/explainability/visualization-methods/attention-patterns",
+      "data-requirements/no-special-requirements",
       "data-type/image",
       "data-type/text",
       "evidence-type/visualisation",
+      "expertise-needed/deep-learning",
       "expertise-needed/ml-engineering",
+      "explanatory-scope/global",
       "explanatory-scope/local",
-      "technique-type/algorithmic",
-      "data-requirements/no-special-requirements",
       "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-testing-and-validation"
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "technique-type/algorithmic",
+      "technique-type/visualisation"
     ],
     "sample_claims": [
       {
-        "text": "The translation model's alignment between source and target sequences reflects semantic correspondence rather than positional artifacts",
+        "text": "For the sampled sentences, the translation model's encoder-decoder attention aligns each translated technical term with its source term, and sentences where it does not were reviewed by a translator",
         "domain": "general",
         "assuranceGoal": "explainability"
       },
       {
-        "text": "The medical image captioning system's attention shifts systematically across anatomical regions as it generates each descriptive phrase",
-        "domain": "healthcare",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The document summarization model's encoder-decoder attention weights reveal which source sentences contribute to each summary statement",
+        "text": "The captioning model's attention for each generated object noun falls on the corresponding object in the image for the reviewed sample of alt-text outputs",
         "domain": "public sector",
         "assuranceGoal": "explainability"
       },
       {
-        "text": "The financial report generation system focuses on relevant numerical data and contextual information when producing narrative descriptions",
+        "text": "The attention heads identified as linking drug names to doses behave consistently across discharge letters from both hospitals in the validation set",
+        "domain": "healthcare",
+        "assuranceGoal": "explainability"
+      },
+      {
+        "text": "Phrases that attention maps suggested were decisive for the clause classifier were confirmed by an independent attribution method before being reported to reviewers",
         "domain": "finance",
         "assuranceGoal": "explainability"
       }
@@ -1769,7 +1776,7 @@
   {
     "slug": "counterfactual-fairness-assessment",
     "name": "Counterfactual Fairness Assessment",
-    "description": "Counterfactual Fairness Assessment evaluates whether a model's predictions would remain unchanged if an individual's protected attributes (race, gender, age) were different, whilst keeping all other causally legitimate factors constant. The technique requires constructing a causal graph that maps relationships between variables, then using do-calculus or structural causal models to simulate counterfactual scenarios. For example, it asks: 'Would this loan application still be approved if the applicant were a different race, holding constant their actual qualifications and economic circumstances?' This individual-level fairness criterion helps identify when decisions depend improperly on protected characteristics.",
+    "description": "Counterfactual Fairness Assessment tests a model against the criterion of Kusner et al. (2017): a model is counterfactually fair if each individual's prediction would have had the same distribution had their protected attribute, such as race or sex, been different, with everything that attribute causes changed accordingly. The assessor first writes down a causal model, a graph of which variables cause which, covering the protected attribute, the model's inputs and unobserved background factors, and fits its equations to data. For each individual, the fitted model is used to infer the background factors from what was observed (abduction), set the protected attribute to another value (action) and recompute every input the attribute influences (prediction), giving a counterfactual version of that person. The model under test is run on the factual and counterfactual inputs, and the gap between the two predictions, per individual or as a distance between the two prediction distributions, is the evidence: distributions that lie on top of each other indicate counterfactual fairness under the assumed causal model. Every causal effect of the attribute counts as unfair, including effects that run through inputs it influences, such as test scores, which is what separates this criterion from versions that allow some pathways.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -1786,45 +1793,33 @@
       "evidence-type/fairness-metric",
       "expertise-needed/causal-inference",
       "expertise-needed/domain-expertise",
-      "expertise-needed/ethics",
-      "expertise-needed/ml-engineering",
-      "explanatory-scope/local",
+      "expertise-needed/statistics",
       "lifecycle-stage/model-development",
       "lifecycle-stage/model-development/model-testing-and-validation",
       "technique-type/testing"
     ],
     "sample_claims": [
       {
-        "text": "The hiring system's candidate evaluations remain consistent under hypothetical changes to applicant demographics when qualifications and experience are held constant",
+        "text": "Under the causal model agreed with the admissions committee, each applicant's predicted first-year grade has the same distribution under their actual and counterfactual race.",
         "domain": "general",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The loan approval model's creditworthiness assessments are invariant to the applicant's race when economic circumstances and financial history remain unchanged",
+        "text": "Under the documented causal graph linking ethnicity, income and neighbourhood, the credit model's approval scores do not change when applicants' ethnicity is counterfactually altered.",
         "domain": "finance",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The treatment recommendation system produces identical clinical decisions regardless of patient gender when medical history and symptoms are causally equivalent",
-        "domain": "healthcare",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The benefit allocation system's eligibility determinations are unaffected by hypothetical changes to an individual's protected characteristics when their genuine need and circumstances are held constant",
+        "text": "The unemployment-risk model's individual scores are unchanged under counterfactual sex and migration background, given the causal model reviewed by labour-market researchers, and the sensitivity of that result to unmeasured confounding has been bounded.",
         "domain": "public sector",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The autonomous system's risk assessments yield the same safety decisions for individuals with different demographic attributes but identical situational factors",
-        "domain": "autonomous systems",
         "assuranceGoal": "fairness"
       }
     ]
   },
   {
-    "slug": "sensitivity-analysis-for-fairness",
-    "name": "Sensitivity Analysis for Fairness",
-    "description": "Sensitivity Analysis for Fairness systematically evaluates how model predictions change when sensitive attributes or their proxies are perturbed whilst holding other factors constant. The technique involves creating counterfactual instances by modifying potentially discriminatory features (race, gender, age) or their correlates (zip code, names, education institutions) and measuring the resulting prediction differences. This controlled perturbation approach quantifies the degree to which protected characteristics influence model decisions, helping detect both direct discrimination and indirect bias through proxy variables even when sensitive attributes are not explicitly used as model inputs.",
+    "slug": "fairness-testing",
+    "name": "Fairness Testing",
+    "description": "Fairness testing checks whether a model treats otherwise identical inputs differently because of a protected attribute, by changing only that attribute, or a name, term or other proxy that signals it, and measuring how often or how much the output changes. In the form introduced by Galhotra, Brun and Meliou (2017), a tester generates inputs from a description of the valid input fields, makes copies of each that differ only in the protected attribute (for example, recorded sex), runs them all through the system as a black box, and reports the causal discrimination score: the share of inputs whose decision changes, sampled until it is known within a chosen margin of error and confidence level. For text, the same test substitutes identity terms or names in otherwise unchanged sentences, such as one religion or ethnicity for another, and reports the average change in the model's score across the substitutions, which Garg et al. (2019) call the counterfactual token fairness gap. Because every other part of the input is held fixed, the test needs no model of how the attribute influences other variables: it measures whether the system itself responds to the attribute, or to the chosen proxy, and the output is a score per attribute with the input pairs that failed.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -1832,42 +1827,38 @@
       "applicable-models/architecture/model-agnostic",
       "applicable-models/paradigm/supervised",
       "applicable-models/requirements/black-box",
-      "data-requirements/sensitive-attributes",
       "assurance-goal-category/fairness",
       "assurance-goal-category/fairness/bias-measurement",
-      "data-type/any",
+      "data-requirements/sensitive-attributes",
+      "data-type/tabular",
+      "data-type/text",
       "evidence-type/fairness-metric",
       "expertise-needed/domain-expertise",
+      "expertise-needed/evaluation-design",
       "expertise-needed/statistics",
-      "explanatory-scope/local",
-      "technique-type/testing",
       "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-testing-and-validation"
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "technique-type/testing"
     ],
     "sample_claims": [
       {
-        "text": "The hiring system's offer decisions remain stable when candidate demographic proxies such as postal code or university name are systematically varied",
-        "domain": "public sector",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The loan approval model's interest rate assignments do not shift meaningfully when applicant names associated with different ethnic backgrounds are substituted",
+        "text": "Changing only an applicant's recorded sex changes the credit model's decision for fewer than 0.5% of last year's applications, at 95% confidence.",
         "domain": "finance",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The clinical risk stratification tool's recommendations are insensitive to variations in patient geographic location that correlate with socioeconomic status",
-        "domain": "healthcare",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The vehicle insurance pricing algorithm produces consistent premium estimates when zip codes within similar risk profiles but different demographic compositions are interchanged",
-        "domain": "autonomous systems",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The model's predictions do not exhibit systematic dependence on proxy variables that indirectly encode protected characteristics",
+        "text": "Substituting any listed identity term into non-toxic comments changes the moderation classifier's toxicity score by less than 0.05 on average.",
         "domain": "general",
+        "assuranceGoal": "fairness"
+      },
+      {
+        "text": "The CV-ranking service returns the same shortlist when names associated with different ethnicities and genders are swapped on otherwise identical CVs.",
+        "domain": "general",
+        "assuranceGoal": "fairness"
+      },
+      {
+        "text": "The triage assistant's urgency rating does not change when a patient's stated ethnicity is changed in vignettes that clinicians judged should be unaffected by it.",
+        "domain": "healthcare",
         "assuranceGoal": "fairness"
       }
     ]
@@ -1969,57 +1960,44 @@
     ]
   },
   {
-    "slug": "simulation-based-synthetic-data",
-    "name": "Simulation-Based Synthetic Data Generation",
-    "description": "Generates synthetic datasets through computational simulation of underlying data-generating processes, encompassing statistical methods (copula models, parametric distribution fitting), agent-based models, physics-informed simulators, and Monte Carlo sampling. Unlike neural-network-based approaches, these methods encode explicit domain knowledge or statistical structure into the generation process — copulas model multivariate dependencies through known distributional families, agent-based simulations construct data from interacting rule-driven entities, and physics-informed generators embed differential equation constraints. This makes the synthetic data more interpretable and auditable, with known theoretical properties, at the cost of reduced flexibility for capturing complex nonlinear patterns that lack a known generative model.",
+    "slug": "sequential-cart-synthesis",
+    "name": "Sequential CART Synthesis",
+    "description": "Sequential CART synthesis creates an artificial copy of a confidential microdata set (records about individual people or organisations) that can be released in place of the real data. Variables are synthesised one at a time in a chosen order: the first is generated by sampling with replacement from its observed values, and for each later variable a classification or regression tree (CART) is fitted on the real data to predict it from the variables earlier in the order. Each synthetic record is passed down that tree using its already-synthesised values, and the new value is copied from a randomly chosen real record in the leaf it reaches, so the joint distribution of the data is rebuilt as a chain of conditional distributions. Disclosure risk is limited by setting a minimum leaf size, smoothing synthesised continuous values and removing synthetic records that reproduce unique real ones, and several synthetic copies can be released so that analysts can allow for the extra uncertainty that synthesis adds.",
     "assurance_goals": [
-      "Safety",
-      "Reliability",
       "Privacy"
     ],
     "tags": [
       "applicable-models/architecture/model-agnostic",
-      "applicable-models/paradigm/generative",
-      "applicable-models/architecture/probabilistic",
-      "assurance-goal-category/safety",
-      "assurance-goal-category/safety/hazard-identification",
-      "assurance-goal-category/reliability",
-      "assurance-goal-category/reliability/robustness",
+      "applicable-models/requirements/black-box",
       "assurance-goal-category/privacy",
       "assurance-goal-category/privacy/exposure-reduction",
-      "data-requirements/no-special-requirements",
+      "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
+      "data-requirements/access-to-training-data",
       "data-type/tabular",
-      "data-type/time-series",
       "evidence-type/synthetic-data",
-      "expertise-needed/domain-expertise",
       "expertise-needed/statistics",
+      "expertise-needed/privacy-engineering",
+      "expertise-needed/domain-expertise",
       "technique-type/algorithmic",
       "lifecycle-stage/project-design",
       "lifecycle-stage/project-design/data-extraction-or-procurement",
-      "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
-      "applicable-models/requirements/black-box"
+      "lifecycle-stage/project-design/data-analysis"
     ],
     "sample_claims": [
       {
-        "text": "The risk model has been stress-tested using copula-simulated scenarios that preserve the tail dependence structure of historical market crashes whilst exploring conditions beyond observed extremes",
-        "domain": "finance",
-        "assuranceGoal": "safety"
+        "text": "The research extract released to the project team was generated by sequential CART synthesis with a minimum leaf size of ten and smoothing of continuous variables, and contains no record that reproduces a unique combination in the source data.",
+        "assuranceGoal": "privacy",
+        "domain": "public sector"
       },
       {
-        "text": "The autonomous vehicle perception system has been validated against agent-based simulation data covering rare hazardous scenarios that cannot be safely or frequently observed in real-world testing",
-        "domain": "autonomous systems",
-        "assuranceGoal": "safety"
+        "text": "No confidential microdata left the secure environment during model development: external researchers wrote and tested their code on a synthetic extract, and only the final approved model was run on the real data.",
+        "assuranceGoal": "privacy",
+        "domain": "government"
       },
       {
-        "text": "The treatment-effect estimator has been subjected to Monte Carlo sensitivity analysis demonstrating robustness of conclusions across 10,000 plausible data-generating processes",
-        "domain": "healthcare",
-        "assuranceGoal": "reliability"
-      },
-      {
-        "text": "The released population dataset was generated through copula-based simulation that preserves demographic correlations whilst providing formal disclosure limitation guarantees",
-        "domain": "government",
-        "assuranceGoal": "privacy"
+        "text": "A disclosure-risk assessment of the synthetic admissions table found no synthetic record matching a unique real patient on the agreed identifying variables.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
       }
     ]
   },
@@ -2291,9 +2269,9 @@
     ]
   },
   {
-    "slug": "empirical-calibration",
-    "name": "Empirical Calibration",
-    "description": "Empirical calibration adjusts a model's predicted probabilities to match observed frequencies. For example, if events predicted with 80% confidence only occur 60% of the time, calibration would correct this overconfidence. Common techniques include Platt scaling and isotonic regression, which learn transformations that map the model's raw scores to well-calibrated probabilities, improving the reliability of confidence measures for downstream decisions.",
+    "slug": "platt-scaling",
+    "name": "Platt Scaling",
+    "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score or log loss before and after.",
     "assurance_goals": [
       "Reliability",
       "Transparency",
@@ -2303,48 +2281,43 @@
       "applicable-models/architecture/model-agnostic",
       "applicable-models/paradigm/supervised",
       "applicable-models/requirements/black-box",
-      "applicable-models/requirements/probabilistic-output",
-      "assurance-goal-category/fairness",
-      "assurance-goal-category/fairness/performance-by-group",
       "assurance-goal-category/reliability",
       "assurance-goal-category/reliability/calibration",
       "assurance-goal-category/transparency",
       "assurance-goal-category/transparency/confidence-and-limits",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/performance-by-group",
       "data-requirements/calibration-set",
       "data-type/any",
-      "evidence-type/quantitative-metric",
       "evidence-type/model-artefact",
+      "evidence-type/quantitative-metric",
       "expertise-needed/statistics",
-      "explanatory-scope/global",
       "technique-type/algorithmic",
       "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-testing-and-validation"
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
     ],
     "sample_claims": [
       {
-        "text": "The model's predicted probabilities align with observed outcome frequencies across the decision space",
-        "domain": "finance",
-        "assuranceGoal": "reliability"
+        "text": "After Platt scaling on a held-out year of loan outcomes, the default model's predicted probabilities agree with observed default rates in every score decile, within the tolerance set in the model risk policy.",
+        "assuranceGoal": "reliability",
+        "domain": "finance"
       },
       {
-        "text": "The system's confidence scores are interpretable as genuine probability estimates for critical decisions",
-        "domain": "healthcare",
-        "assuranceGoal": "transparency"
+        "text": "Recalibrating the defect classifier with Platt scaling left its ranking of parts, measured by the area under the ROC curve on the test set, unchanged while reducing its log loss.",
+        "assuranceGoal": "reliability",
+        "domain": "manufacturing"
       },
       {
-        "text": "The model's probability estimates maintain consistent calibration quality across protected demographic groups",
-        "domain": "public sector",
-        "assuranceGoal": "fairness"
+        "text": "The probability shown to caseworkers for each flagged claim is calibrated against held-out review outcomes, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
+        "assuranceGoal": "transparency",
+        "domain": "public sector"
       },
       {
-        "text": "The autonomous system's predicted risk levels correspond to actual failure rates in operational conditions",
-        "domain": "autonomous systems",
-        "assuranceGoal": "reliability"
-      },
-      {
-        "text": "The forecasting model's stated confidence intervals reflect empirically measured prediction accuracy",
-        "domain": "environmental",
-        "assuranceGoal": "transparency"
+        "text": "After recalibration, the malnutrition-risk model's calibration intercept and slope do not differ materially between patients grouped by race or by sex.",
+        "assuranceGoal": "fairness",
+        "domain": "healthcare"
       }
     ]
   },
@@ -2748,9 +2721,9 @@
     ]
   },
   {
-    "slug": "internal-review-boards",
-    "name": "Internal Review Boards",
-    "description": "Internal Review Boards (IRBs) provide independent, systematic evaluation of AI/ML projects throughout their lifecycle to identify ethical, safety, and societal risks before they materialise. Typically composed of multidisciplinary experts including ethicists, domain specialists, legal counsel, community representatives, and technical staff, IRBs review project proposals, assess potential harms to individuals and communities, evaluate mitigation strategies, and establish ongoing monitoring requirements. Unlike traditional research ethics committees, AI-focused IRBs address algorithmic bias, fairness concerns, privacy implications, and societal impact at scale, providing essential governance for responsible AI development and deployment.",
+    "slug": "algorithm-review-boards",
+    "name": "Algorithm Review Boards",
+    "description": "An algorithm review board is a standing, multidisciplinary body inside an organisation that examines proposed AI systems or AI research projects at set points and decides whether, and on what conditions, they may proceed. The literature also calls these bodies AI ethics boards or AI review boards. They differ from an Institutional Review Board (IRB), which protects the human subjects of research, because they also weigh harms to the people a system will affect and to society. A risk-based triage decides which projects need full review; the project team then submits a written account of the system's purpose, data, foreseeable harms and planned mitigations, and members drawn from technical, legal, ethical and domain backgrounds, sometimes with people from affected communities, question the team and iterate on that account with them. The board approves, approves with conditions such as a monitoring plan or a re-review date, or rejects, and the output is a dated decision record with its reasons and conditions that later reviews and audits can check against what was built.",
     "assurance_goals": [
       "General",
       "Transparency"
@@ -2781,29 +2754,29 @@
     ],
     "sample_claims": [
       {
-        "text": "The deployment of high-risk AI systems is subject to independent multidisciplinary review before operational use",
+        "text": "Every high-risk AI system was reviewed and approved by the organisation's algorithm review board before operational use, and the board could have blocked deployment",
         "domain": "general",
-        "assuranceGoal": "safety"
+        "assuranceGoal": "general"
       },
       {
-        "text": "The hiring algorithm's potential discriminatory impacts are evaluated by experts representing diverse perspectives before deployment",
+        "text": "The conditions the review board attached to the credit-limit model's approval, including a disparate-impact analysis by protected group and a re-review date, were met before and after launch",
         "domain": "finance",
-        "assuranceGoal": "fairness"
+        "assuranceGoal": "general"
       },
       {
-        "text": "The criminal risk assessment tool undergoes ethical review by community representatives and legal counsel before use in sentencing decisions",
-        "domain": "public sector",
-        "assuranceGoal": "fairness"
+        "text": "The clinical decision-support model was deployed under a monitoring plan and re-review schedule set by a multidisciplinary review board independent of the development team",
+        "domain": "healthcare",
+        "assuranceGoal": "general"
       },
       {
-        "text": "The diagnostic AI system's development and deployment decisions are traceable to independent board reviews that assessed patient safety risks",
+        "text": "The diagnostic AI system's development and deployment decisions are traceable to dated board decision records that state the risks assessed, the reasons for approval and the conditions attached",
         "domain": "healthcare",
         "assuranceGoal": "transparency"
       },
       {
-        "text": "The autonomous vehicle system's safety-critical design choices are subject to ongoing monitoring requirements established by an independent review board",
-        "domain": "autonomous systems",
-        "assuranceGoal": "safety"
+        "text": "The review board's decision record for the risk assessment tool, with its reasons and conditions, is available to the oversight body and the public",
+        "domain": "public sector",
+        "assuranceGoal": "transparency"
       }
     ]
   },
@@ -2986,7 +2959,7 @@
   {
     "slug": "runtime-monitoring-and-circuit-breakers",
     "name": "Runtime Monitoring and Circuit Breakers",
-    "description": "Runtime monitoring and circuit breakers establish continuous surveillance of AI/ML systems in production, tracking critical metrics such as prediction accuracy, response times, input characteristics, output distributions, and system resource usage. When monitored parameters exceed predefined safety thresholds or exhibit anomalous patterns, automated circuit breakers immediately trigger protective actions including request throttling, service degradation, system shutdown, or failover to backup mechanisms. This approach provides real-time defensive capabilities that prevent cascading failures, ensure consistent service reliability, and maintain transparent operation status for stakeholders monitoring system health.",
+    "description": "Runtime monitoring and circuit breakers watch a deployed AI system's operational and model-level signals and automatically stop, limit or reroute calls to the model when those signals cross preset limits. The circuit breaker, a software resilience pattern, wraps calls to the model: while closed it passes requests through and counts failures in a rolling time window; when failures pass a threshold it opens, so further requests fail at once or receive a fallback such as a cached answer, a simpler model, a rule-based default or referral to a person; after a cooldown it half-opens and lets a few trial requests through, closing again only if they succeed. For a machine learning model, what counts as a failure is widened from errors and timeouts to model-level signals available at the moment of prediction, such as input drift scores, low prediction confidence, out-of-range outputs or limits on the actions the system may take, because true accuracy usually cannot be measured until outcomes arrive later. The output is a log of breaker state changes, the metrics that triggered them and the alerts raised, which shows when and why the system was restricted; the protection is only as good as the chosen thresholds and the fallback behind the breaker.",
     "assurance_goals": [
       "General",
       "Reliability",
@@ -3551,65 +3524,55 @@
     ]
   },
   {
-    "slug": "prompt-sensitivity-analysis",
-    "name": "Prompt Sensitivity Analysis",
-    "description": "Prompt Sensitivity Analysis systematically evaluates how variations in input prompts affect large language model outputs, providing insights into model robustness, consistency, and interpretability. This technique involves creating controlled perturbations of prompts whilst maintaining semantic meaning, then measuring how these changes influence model responses. It encompasses various types of prompt modifications including lexical substitutions, syntactic restructuring, formatting changes, and contextual variations. The analysis typically quantifies sensitivity through metrics such as output consistency, semantic similarity, and statistical measures of variance across prompt variations.",
+    "slug": "prompt-robustness-testing",
+    "name": "Prompt Robustness Testing",
+    "description": "Prompt robustness testing measures how much a language model's answers, or its performance on a task, change when the prompt is varied in ways that should not matter: rewording an instruction, changing formatting, punctuation or capitalisation, reordering elements, or introducing the typos and synonym swaps real users make. The tester starts from a set of task prompts with known correct answers, generates variants of each that keep its meaning, either from templates of plausible formats or with automated perturbation tools such as PromptBench, and runs the model on every variant. The result is reported as the spread of performance across variants, for example the gap between the best and worst format or the drop in accuracy under perturbation, together with the variants that changed the answer. Reporting the spread rather than one score matters because results from a single prompt template are brittle: on one widely used open model, accuracy differed by up to 76 points across formatting changes that kept the meaning.",
     "assurance_goals": [
-      "Explainability",
       "Reliability",
-      "Safety"
+      "Explainability"
     ],
     "tags": [
       "applicable-models/architecture/neural-networks/transformer/llm",
       "applicable-models/paradigm/generative",
       "applicable-models/requirements/black-box",
       "assurance-goal-category/explainability",
-      "assurance-goal-category/explainability/attribution-methods/perturbation-based",
-      "assurance-goal-category/explainability/explains/internal-mechanisms",
-      "assurance-goal-category/explainability/explains/prediction-confidence",
-      "assurance-goal-category/explainability/property/consistency",
-      "assurance-goal-category/explainability/property/fidelity",
+      "assurance-goal-category/explainability/explains/decision-boundaries",
       "assurance-goal-category/explainability/uncertainty-analysis/sensitivity-testing",
       "assurance-goal-category/reliability",
       "assurance-goal-category/reliability/robustness",
-      "assurance-goal-category/safety",
-      "assurance-goal-category/safety/verification",
       "data-requirements/no-special-requirements",
       "data-type/text",
       "evidence-type/quantitative-metric",
-      "expertise-needed/statistics",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/evaluation-design",
       "expertise-needed/linguistics",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/statistics",
       "explanatory-scope/global",
-      "explanatory-scope/local",
       "lifecycle-stage/model-development",
       "lifecycle-stage/model-development/model-testing-and-validation",
       "technique-type/testing"
     ],
     "sample_claims": [
       {
-        "text": "The diagnostic support system produces consistent clinical recommendations when patients describe symptoms using different vocabulary or phrasing styles",
+        "text": "The triage assistant assigns the same urgency category to each benchmark scenario whether the patient's description is brief, detailed, clinical or anxious in style",
         "domain": "healthcare",
         "assuranceGoal": "reliability"
       },
       {
-        "text": "The model's interpretation of financial queries remains stable across minor variations in question formatting or terminology",
-        "domain": "finance",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The system's decision-making process reveals which aspects of user requests drive output changes versus which are superficial formatting differences",
-        "domain": "general",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The autonomous system maintains safe operational decisions despite natural variation in how operators phrase commands or queries",
-        "domain": "autonomous systems",
-        "assuranceGoal": "safety"
-      },
-      {
-        "text": "The public service chatbot delivers equivalent information to citizens regardless of whether queries are posed formally or conversationally",
+        "text": "The enquiry-classification model's accuracy stays within a stated margin of its mean across every prompt template and instruction paraphrase in the evaluation set",
         "domain": "public sector",
         "assuranceGoal": "reliability"
+      },
+      {
+        "text": "The risk category extracted from suspicious-transaction reports does not change when the same activity is described with different terminology or layout",
+        "domain": "finance",
+        "assuranceGoal": "reliability"
+      },
+      {
+        "text": "The changes that alter the routing model's decisions have been identified and are changes to the content of a request, not to its formatting",
+        "domain": "general",
+        "assuranceGoal": "explainability"
       }
     ]
   },
@@ -3667,68 +3630,6 @@
         "text": "The system's harmful output generation is attributable to specific intervening mechanisms that can be isolated and addressed",
         "domain": "general",
         "assuranceGoal": "safety"
-      }
-    ]
-  },
-  {
-    "slug": "feature-attribution-with-integrated-gradients-in-nlp",
-    "name": "Feature Attribution with Integrated Gradients in NLP",
-    "description": "Applies Integrated Gradients to natural language processing models to attribute prediction importance to individual input tokens, words, or subword units. This technique computes gradients along a straight-line path from a baseline input (typically all-zeros, padding tokens, or neutral text) to the actual input, integrating these gradients to obtain attribution scores. Unlike vanilla gradient methods, Integrated Gradients satisfies axioms of sensitivity and implementation invariance, making it particularly valuable for understanding transformer-based language models where token interactions are complex.",
-    "assurance_goals": [
-      "Explainability",
-      "Fairness",
-      "Safety"
-    ],
-    "tags": [
-      "applicable-models/architecture/neural-networks/transformer",
-      "applicable-models/architecture/neural-networks/transformer/llm",
-      "applicable-models/paradigm/discriminative",
-      "applicable-models/paradigm/supervised",
-      "applicable-models/requirements/gradient-access",
-      "applicable-models/requirements/white-box",
-      "assurance-goal-category/explainability",
-      "assurance-goal-category/explainability/attribution-methods/gradient-based",
-      "assurance-goal-category/explainability/explains/feature-importance",
-      "assurance-goal-category/explainability/property/completeness",
-      "assurance-goal-category/fairness",
-      "assurance-goal-category/fairness/bias-diagnosis",
-      "assurance-goal-category/safety",
-      "assurance-goal-category/safety/hazard-analysis",
-      "data-requirements/reference-dataset",
-      "data-type/text",
-      "evidence-type/quantitative-metric",
-      "evidence-type/visualisation",
-      "expertise-needed/ml-engineering",
-      "explanatory-scope/local",
-      "technique-type/algorithmic",
-      "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-testing-and-validation"
-    ],
-    "sample_claims": [
-      {
-        "text": "The clinical decision support system's risk predictions are attributable to specific medical terms and symptom descriptions rather than demographic identifiers in patient notes",
-        "domain": "healthcare",
-        "assuranceGoal": "safety"
-      },
-      {
-        "text": "The content moderation model's classification decisions can be traced to individual words and phrases that capture genuinely problematic language patterns",
-        "domain": "general",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The loan approval system's decisions are not influenced by protected characteristics appearing in free-text application descriptions",
-        "domain": "finance",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The sentiment analysis model's outputs can be decomposed into quantified contributions from each input token to support transparent review of prediction drivers",
-        "domain": "general",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The hiring recommendation system identifies which specific phrases in candidate descriptions drive screening decisions to enable bias detection",
-        "domain": "public sector",
-        "assuranceGoal": "fairness"
       }
     ]
   },
@@ -3796,72 +3697,9 @@
     ]
   },
   {
-    "slug": "attention-visualisation-in-transformers",
-    "name": "Attention Visualisation in Transformers",
-    "description": "Attention Visualisation in Transformers analyses the multi-head self-attention mechanisms that enable transformers to process sequences by attending to different positions simultaneously. The technique visualises attention weights as heatmaps showing how strongly each token attends to every other token across different heads and layers. By examining these attention patterns, practitioners can understand how models like BERT, GPT, and T5 build contextual representations, identify which tokens influence predictions most strongly, and detect potential biases in how the model processes different types of input. This provides insights into positional encoding effects, head specialisation patterns, and the evolution of attention from local to global context across layers.",
-    "assurance_goals": [
-      "Explainability",
-      "Fairness",
-      "Transparency"
-    ],
-    "tags": [
-      "applicable-models/architecture/neural-networks/transformer",
-      "applicable-models/requirements/architecture-specific",
-      "applicable-models/requirements/model-internals",
-      "assurance-goal-category/explainability",
-      "assurance-goal-category/explainability/explains/data-patterns",
-      "assurance-goal-category/explainability/explains/internal-mechanisms",
-      "assurance-goal-category/explainability/property/comprehensibility",
-      "assurance-goal-category/explainability/property/efficiency",
-      "assurance-goal-category/explainability/visualization-methods/attention-patterns",
-      "assurance-goal-category/fairness",
-      "assurance-goal-category/fairness/bias-diagnosis",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/decision-reasons",
-      "data-type/text",
-      "evidence-type/visualisation",
-      "expertise-needed/ml-engineering",
-      "expertise-needed/deep-learning",
-      "explanatory-scope/global",
-      "explanatory-scope/local",
-      "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-testing-and-validation",
-      "technique-type/algorithmic",
-      "technique-type/visualisation",
-      "data-requirements/no-special-requirements"
-    ],
-    "sample_claims": [
-      {
-        "text": "The language model's attention patterns demonstrate how contextual representations are built across multiple heads and layers",
-        "domain": "general",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The text processing system's attention mechanisms treat input tokens from different demographic groups with comparable weighting patterns",
-        "domain": "public sector",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The model's decision-making process is traceable through attention weight distributions across transformer layers",
-        "domain": "finance",
-        "assuranceGoal": "transparency"
-      },
-      {
-        "text": "The document classification system's attention heads are interpretable in terms of which semantic and syntactic features they capture",
-        "domain": "healthcare",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The content moderation model's attention to sensitive attributes is quantifiable and auditable across different input types",
-        "domain": "general",
-        "assuranceGoal": "fairness"
-      }
-    ]
-  },
-  {
     "slug": "reweighing",
     "name": "Reweighing",
-    "description": "Reweighing is a pre-processing technique that mitigates bias by assigning different weights to training examples based on their group membership and class label. The weights are calculated to ensure that privileged and unprivileged groups have equal influence on the model's training process, effectively balancing the dataset without altering the feature values themselves. This helps to train fairer models by correcting for historical imbalances in how different groups are represented in the data.",
+    "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
     "assurance_goals": [
       "Fairness",
       "Transparency"
@@ -3870,35 +3708,40 @@
       "applicable-models/architecture/model-agnostic",
       "applicable-models/paradigm/supervised",
       "applicable-models/requirements/black-box",
-      "data-requirements/access-to-training-data",
-      "data-requirements/labelled-data",
-      "data-requirements/sensitive-attributes",
       "assurance-goal-category/fairness",
       "assurance-goal-category/fairness/pre-processing",
       "assurance-goal-category/transparency",
       "assurance-goal-category/transparency/audit-trail",
+      "data-requirements/access-to-training-data",
+      "data-requirements/labelled-data",
+      "data-requirements/sensitive-attributes",
       "data-type/any",
+      "evidence-type/modified-dataset",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/statistics",
       "lifecycle-stage/model-development",
       "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
-      "technique-type/algorithmic",
-      "expertise-needed/statistics",
-      "expertise-needed/domain-expertise",
-      "evidence-type/modified-dataset"
+      "technique-type/algorithmic"
     ],
     "sample_claims": [
       {
-        "text": "The lending model's training process gives equal consideration to applicants from all demographic groups regardless of their representation in historical data",
+        "text": "The approval model was trained on loan history reweighed so that every ethnic group has the same approval rate in the weighted data, and its approval-rate gap on held-out applicants is reported alongside its accuracy.",
         "domain": "finance",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The hiring system's learned patterns reflect balanced influence from all candidate demographics rather than reinforcing historical application imbalances",
+        "text": "The postpartum depression outreach model, trained with reweighing by race, has a disparate impact ratio within the agreed range on held-out patients.",
+        "domain": "healthcare",
+        "assuranceGoal": "fairness"
+      },
+      {
+        "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
         "domain": "general",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The model training adjustments applied to address historical group imbalances are quantified and documented for regulatory review",
-        "domain": "finance",
+        "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
+        "domain": "public sector",
         "assuranceGoal": "transparency"
       }
     ]
@@ -4160,54 +4003,41 @@
   {
     "slug": "fair-adversarial-networks",
     "name": "Fair Adversarial Networks",
-    "description": "An in-processing fairness technique that employs adversarial training with dual neural networks to learn fair representations. The method consists of a predictor network that learns the main task whilst an adversarial discriminator network simultaneously attempts to predict sensitive attributes from the predictor's hidden representations. Through this adversarial min-max game, the predictor is incentivised to learn features that are informative for the task but statistically independent of protected attributes, effectively removing bias at the representation level in deep learning models.",
+    "description": "Fair Adversarial Networks is a pre-processing method, proposed by Cevora (2020), that produces a de-biased copy of a dataset from which a protected characteristic such as race, sex or age can no longer be predicted, including through proxies such as postcode or occupation. It trains two neural networks against each other: an autoencoder (a network that learns to reproduce its input) rewrites each record while trying to keep it as close to the original as possible, and an adversary network tries to predict the protected characteristic from the rewritten records. The autoencoder's loss adds its reconstruction error to the adversary's predictive success, so over alternating rounds of training it learns to remove the information the adversary relies on while changing the data as little as it can. The output is the rewritten dataset, which any downstream analysis or model can use without modification, together with the evidence that a freshly trained adversary predicts the characteristic no better than always guessing the most common category.",
     "assurance_goals": [
-      "Fairness",
-      "Transparency"
+      "Fairness"
     ],
     "tags": [
-      "applicable-models/architecture/neural-networks",
-      "applicable-models/paradigm/discriminative",
-      "applicable-models/paradigm/parametric",
+      "applicable-models/architecture/model-agnostic",
       "applicable-models/paradigm/supervised",
-      "applicable-models/requirements/gradient-access",
-      "applicable-models/requirements/model-internals",
-      "data-requirements/access-to-training-data",
-      "applicable-models/requirements/white-box",
+      "applicable-models/requirements/black-box",
       "assurance-goal-category/fairness",
-      "assurance-goal-category/fairness/in-processing",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/assessment-results",
-      "data-requirements/labelled-data",
+      "assurance-goal-category/fairness/pre-processing",
+      "data-requirements/access-to-training-data",
       "data-requirements/sensitive-attributes",
-      "data-type/any",
+      "data-type/tabular",
+      "evidence-type/modified-dataset",
+      "expertise-needed/deep-learning",
       "expertise-needed/ml-engineering",
-      "expertise-needed/statistics",
       "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-selection-and-training",
-      "technique-type/algorithmic",
-      "evidence-type/model-artefact"
+      "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+      "technique-type/algorithmic"
     ],
     "sample_claims": [
       {
-        "text": "The model's learned representations cannot be used to infer applicants' protected characteristics",
-        "domain": "finance",
+        "text": "A classifier trained on the de-biased reoffending dataset cannot predict defendants' race better than always guessing the majority group.",
+        "domain": "public sector",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The hiring system's internal features maintain predictive power for job performance whilst being statistically independent of demographic attributes",
+        "text": "The personnel records used to train the absenteeism model carry no recoverable information about employees' age group, including through proxies such as length of service.",
         "domain": "general",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The diagnostic model provides evidence that its decision-making features do not encode sensitive patient demographics",
-        "domain": "healthcare",
-        "assuranceGoal": "transparency"
-      },
-      {
-        "text": "The model's intermediate representations are demonstrably uninformative about protected attributes whilst preserving task-relevant information",
+        "text": "The school funding model was trained on data de-biased with respect to majority ethnic composition, and its predictions no longer differ by that composition among schools with the same recorded performance.",
         "domain": "public sector",
-        "assuranceGoal": "transparency"
+        "assuranceGoal": "fairness"
       }
     ]
   },
@@ -4363,12 +4193,11 @@
     ]
   },
   {
-    "slug": "fair-transfer-learning",
-    "name": "Fair Transfer Learning",
-    "description": "An in-processing fairness technique that adapts pre-trained models from one domain to another whilst explicitly preserving fairness constraints across different contexts or populations. The method addresses the challenge that fairness properties may not transfer when adapting models to new domains with different demographic compositions or data distributions. Fair transfer learning typically involves constraint-aware fine-tuning, domain adaptation techniques, or adversarial training that maintains equitable performance across groups in the target domain, ensuring that bias mitigation efforts carry over from source to target domains.",
+    "slug": "learning-adversarially-fair-and-transferable-representations",
+    "name": "Learning Adversarially Fair and Transferable Representations",
+    "description": "Learning Adversarially Fair and Transferable Representations (LAFTR) trains an encoder that turns each record into a representation, a vector of learned features, from which a protected attribute is hard to recover, so that models later built on that representation by other parties, including for prediction tasks not known in advance, also treat groups fairly. It was designed for a data owner who shares encoded data with downstream model builders and cannot control how they train. During training, the encoder, a decoder that reconstructs the input and a classifier for the original task play against an adversary network that tries to predict the protected attribute from the representation; the encoder is updated to defeat the adversary while keeping the information the other two need. The adversary's objective is matched to demographic parity, equalised odds or equal opportunity, and the authors prove that an optimal adversary's objective bounds that unfairness measure for any classifier trained on the representation (for the two error-rate measures, with respect to the labels used in training). The output is a frozen encoder, delivered with the accuracy and fairness of classifiers trained on top of it.",
     "assurance_goals": [
-      "Fairness",
-      "Transparency"
+      "Fairness"
     ],
     "tags": [
       "applicable-models/architecture/neural-networks",
@@ -4376,80 +4205,42 @@
       "applicable-models/paradigm/supervised",
       "applicable-models/requirements/gradient-access",
       "applicable-models/requirements/model-internals",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/in-processing",
       "data-requirements/access-to-training-data",
       "data-requirements/labelled-data",
       "data-requirements/sensitive-attributes",
-      "assurance-goal-category/fairness",
-      "assurance-goal-category/fairness/in-processing",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/assessment-results",
-      "data-type/any",
-      "expertise-needed/domain-expertise",
-      "expertise-needed/ml-engineering",
-      "expertise-needed/statistics",
-      "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-selection-and-training",
-      "technique-type/algorithmic",
-      "evidence-type/model-artefact"
-    ],
-    "sample_claims": [
-      {
-        "text": "The model maintains equitable performance across demographic groups when deployed in contexts with different population characteristics than the training environment",
-        "domain": "healthcare",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The hiring system produces consistent outcomes across protected attributes when applied to regional markets with distinct demographic compositions",
-        "domain": "finance",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The model's equitable treatment of demographic groups is documented across multiple deployment contexts",
-        "domain": "public sector",
-        "assuranceGoal": "transparency"
-      }
-    ]
-  },
-  {
-    "slug": "adaptive-sensitive-reweighting",
-    "name": "Adaptive Sensitive Reweighting",
-    "description": "Adaptive Sensitive Reweighting dynamically adjusts the importance of training examples during model training based on real-time performance across different demographic groups. Unlike traditional static reweighting that fixes weights at the start, this technique continuously monitors fairness metrics and automatically increases the weight of examples from underperforming groups whilst decreasing weights for overrepresented groups. The adaptive mechanism prevents models from perpetuating historical biases by ensuring balanced learning across all demographics throughout the training process.",
-    "assurance_goals": [
-      "Fairness"
-    ],
-    "tags": [
-      "applicable-models/architecture/model-agnostic",
-      "applicable-models/paradigm/parametric",
-      "applicable-models/paradigm/supervised",
-      "applicable-models/requirements/gray-box",
-      "data-requirements/access-to-training-data",
-      "data-requirements/labelled-data",
-      "data-requirements/sensitive-attributes",
-      "assurance-goal-category/fairness",
-      "assurance-goal-category/fairness/in-processing",
-      "applicable-models/requirements/model-internals",
-      "data-type/any",
+      "data-type/image",
+      "data-type/tabular",
+      "evidence-type/model-artefact",
+      "expertise-needed/deep-learning",
       "expertise-needed/ml-engineering",
       "lifecycle-stage/model-development",
       "lifecycle-stage/model-development/model-selection-and-training",
-      "technique-type/algorithmic",
-      "evidence-type/model-artefact"
+      "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+      "technique-type/algorithmic"
     ],
     "sample_claims": [
       {
-        "text": "The model maintains equitable performance across demographic groups throughout the entire training process",
-        "domain": "general",
-        "assuranceGoal": "fairness"
+        "text": "Classifiers trained by external parties on the released representation show a demographic parity difference below the agreed threshold on every downstream task audited.",
+        "assuranceGoal": "fairness",
+        "domain": "general"
       },
       {
-        "text": "The hiring system's candidate evaluation accuracy is balanced across gender and ethnicity groups despite historical imbalances in recruitment data",
-        "domain": "public sector",
-        "assuranceGoal": "fairness"
+        "text": "A classifier trained to recover the protected attribute from the released representation does no better than always predicting the majority group.",
+        "assuranceGoal": "fairness",
+        "domain": "general"
       },
       {
-        "text": "The speech recognition system achieves consistent accuracy across speakers with different accents and linguistic backgrounds",
-        "domain": "autonomous systems",
-        "assuranceGoal": "fairness"
+        "text": "The fairness of downstream risk models built on the shared encoded data was measured on each new prediction task rather than assumed from the task the encoder was trained on.",
+        "assuranceGoal": "fairness",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Under a model-selection rule fixed in advance, the debiased imaging model narrows the gap in error rates between patient groups relative to standard training by a measured margin.",
+        "assuranceGoal": "fairness",
+        "domain": "healthcare"
       }
     ]
   },
@@ -4513,62 +4304,9 @@
     ]
   },
   {
-    "slug": "equalised-odds-post-processing",
-    "name": "Equalised Odds Post-Processing",
-    "description": "A post-processing fairness technique based on Hardt et al.'s seminal work that adjusts classification thresholds after model training to achieve equal true positive rates and false positive rates across demographic groups. The method uses group-specific decision thresholds, potentially with randomisation, to satisfy the equalised odds constraint whilst preserving model utility. This approach enables fairness mitigation without retraining, making it applicable to existing deployed models or when training data access is restricted.",
-    "assurance_goals": [
-      "Fairness",
-      "Transparency"
-    ],
-    "tags": [
-      "applicable-models/architecture/model-agnostic",
-      "applicable-models/paradigm/discriminative",
-      "applicable-models/paradigm/supervised",
-      "applicable-models/requirements/black-box",
-      "applicable-models/requirements/probabilistic-output",
-      "assurance-goal-category/fairness",
-      "assurance-goal-category/fairness/post-processing",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/assessment-results",
-      "data-requirements/labelled-data",
-      "data-requirements/sensitive-attributes",
-      "data-type/any",
-      "expertise-needed/regulatory-compliance",
-      "expertise-needed/statistics",
-      "technique-type/algorithmic",
-      "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-testing-and-validation",
-      "lifecycle-stage/system-deployment",
-      "lifecycle-stage/system-deployment/system-implementation",
-      "evidence-type/model-artefact"
-    ],
-    "sample_claims": [
-      {
-        "text": "The criminal risk assessment system produces equal rates of both correct and incorrect predictions across racial groups",
-        "domain": "public sector",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The loan approval model achieves equitable performance by maintaining parity in both false acceptances and false rejections across demographic groups",
-        "domain": "finance",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The hiring algorithm's decisions can be audited to verify that qualified candidates and unqualified candidates are treated equitably across all protected groups",
-        "domain": "general",
-        "assuranceGoal": "transparency"
-      },
-      {
-        "text": "The fraud detection model maintains consistent true positive and false positive rates across customer segments without requiring retraining",
-        "domain": "finance",
-        "assuranceGoal": "fairness"
-      }
-    ]
-  },
-  {
     "slug": "threshold-optimiser",
     "name": "Threshold Optimiser",
-    "description": "Threshold Optimiser adjusts decision thresholds for different demographic groups after model training to satisfy specific fairness constraints. This post-processing technique optimises group-specific thresholds by analysing the probability distribution of model outputs, allowing practitioners to achieve fairness goals like demographic parity or equalised opportunity without modifying the underlying model. The optimiser finds optimal threshold values for each group that balance fairness requirements with overall model performance, making it particularly useful when fairness considerations arise after model deployment.",
+    "description": "Threshold Optimiser is a post-processing method, introduced by Hardt, Price and Srebro (2016), that makes an already-trained classifier's decisions meet a group fairness criterion without retraining it, most often equalised odds (equal true positive and false positive rates across groups) or equal opportunity (equal true positive rates only). Using a labelled validation set that records each person's group, it traces each group's ROC curve (the true and false positive rates obtained at every possible cut-off on the model's score) and chooses a separate cut-off for each group that maximises accuracy, or another chosen objective, subject to the criterion. When no single cut-off per group meets the criterion exactly, as is usual for equalised odds, each group's decision is randomised between two cut-offs with fixed probabilities. If the model returns only yes/no predictions rather than scores, the same method reduces to a small linear optimisation that sets, for each group and predicted label, the probability of flipping the prediction. The output is a group-aware decision rule that needs each person's group at prediction time; Fairlearn's ThresholdOptimizer implements the score-based form (and can also equalise selection rates), and AIF360's EqOddsPostprocessing implements the label-flipping form.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -4577,43 +4315,40 @@
       "applicable-models/paradigm/discriminative",
       "applicable-models/paradigm/supervised",
       "applicable-models/requirements/black-box",
-      "applicable-models/requirements/probabilistic-output",
       "assurance-goal-category/fairness",
       "assurance-goal-category/fairness/post-processing",
+      "data-requirements/calibration-set",
       "data-requirements/labelled-data",
       "data-requirements/sensitive-attributes",
       "data-type/any",
+      "evidence-type/model-artefact",
       "expertise-needed/regulatory-compliance",
       "expertise-needed/statistics",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
       "lifecycle-stage/system-deployment",
       "lifecycle-stage/system-deployment/system-implementation",
-      "technique-type/algorithmic",
-      "evidence-type/model-artefact"
+      "technique-type/algorithmic"
     ],
     "sample_claims": [
       {
-        "text": "The loan approval system's decision boundaries are adjusted across demographic groups to achieve equal opportunity rates without retraining the underlying model",
+        "text": "The credit approval model, with per-group cut-offs set on held-out data, approves applicants who go on to repay at the same rate across racial groups, within a stated tolerance.",
         "domain": "finance",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The hiring algorithm maintains qualified candidate selection rates across gender groups through group-specific probability thresholds",
-        "domain": "general",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The diagnostic support tool's classification thresholds balance detection accuracy with equitable outcomes across patient age groups",
+        "text": "After group-specific threshold adjustment, the readmission alert model flags patients who are later readmitted at similar rates across race and ethnicity groups, with overall accuracy and alert volume inside the limits agreed with clinicians.",
         "domain": "healthcare",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The benefit allocation system's acceptance criteria vary by demographic group to satisfy fairness requirements whilst preserving overall accuracy",
+        "text": "The pre-trial risk tool's post-processed decisions have equal true positive and false positive rates across racial groups on a held-out sample of past cases.",
         "domain": "public sector",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The quality control system's rejection thresholds are optimized independently for product categories to achieve consistent defect detection across production lines",
-        "domain": "manufacturing",
+        "text": "The fairness adjustment to the CV-scoring model was applied after training, leaving the trained model unchanged, and its cost in accuracy was measured and reported to the selection panel.",
+        "domain": "general",
         "assuranceGoal": "fairness"
       }
     ]
@@ -4877,46 +4612,49 @@
     ]
   },
   {
-    "slug": "bayesian-fairness-regularization",
-    "name": "Bayesian Fairness Regularization",
-    "description": "Bayesian Fairness Regularization incorporates fairness constraints into machine learning models through Bayesian methods, treating fairness as a prior distribution or regularization term. This approach includes techniques like Fair Bayesian Optimization that use constrained optimization to tune model hyperparameters whilst enforcing fairness constraints, and methods that add regularization terms to objective functions to penalize discriminatory predictions. The technique allows for probabilistic interpretation of fairness constraints and can account for uncertainty in both model parameters and fairness requirements.",
+    "slug": "fair-bayesian-optimisation",
+    "name": "Fair Bayesian Optimisation",
+    "description": "Fair Bayesian Optimisation (FairBO) tunes a model's hyperparameters, the settings fixed before training such as tree depth or regularisation strength, to find the most accurate model that also meets a fairness threshold chosen in advance, for example a difference in positive-prediction rates between two groups of at most 0.05. Because it only changes hyperparameters and retrains, it treats the model and its training pipeline as a black box, so it works with any model class and any group fairness metric, can enforce several metrics at once, and leaves a model that needs no protected attribute at prediction time. Each step trains a model with a candidate configuration and measures its validation accuracy and fairness, and two Gaussian processes (statistical models that predict a value together with its uncertainty) are fitted to the results of the configurations tried so far. The next configuration is the one with the highest expected improvement in accuracy weighted by the predicted probability of meeting the fairness constraint; until a fair configuration has been found, the search maximises that probability alone. The output is the best configuration that met the constraint, with its accuracy and fairness measurements.",
     "assurance_goals": [
       "Fairness"
     ],
     "tags": [
       "applicable-models/architecture/model-agnostic",
-      "applicable-models/paradigm/parametric",
       "applicable-models/paradigm/supervised",
-      "applicable-models/requirements/gradient-access",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/in-processing",
       "data-requirements/access-to-training-data",
       "data-requirements/labelled-data",
       "data-requirements/sensitive-attributes",
-      "applicable-models/requirements/white-box",
-      "assurance-goal-category/fairness",
-      "assurance-goal-category/fairness/in-processing",
-      "data-type/any",
+      "data-type/tabular",
+      "evidence-type/model-artefact",
       "expertise-needed/ml-engineering",
       "expertise-needed/statistics",
-      "technique-type/algorithmic",
       "lifecycle-stage/model-development",
       "lifecycle-stage/model-development/model-selection-and-training",
-      "evidence-type/model-artefact"
+      "technique-type/algorithmic"
     ],
     "sample_claims": [
       {
-        "text": "The lending model's fairness guarantees account for uncertainty in both demographic data quality and group membership boundaries",
-        "domain": "finance",
-        "assuranceGoal": "fairness"
+        "text": "The credit model is the most accurate of the hyperparameter configurations searched whose approval-rate difference between groups was at most 0.05 on validation data, and the gap was confirmed on held-out data.",
+        "assuranceGoal": "fairness",
+        "domain": "finance"
       },
       {
-        "text": "The hiring system's decisions balance predictive accuracy with equity constraints through probabilistically-weighted regularization",
-        "domain": "general",
-        "assuranceGoal": "fairness"
+        "text": "The screening model meets the agreed limits on both the true-positive-rate gap and the selection-rate gap between groups when measured on held-out data.",
+        "assuranceGoal": "fairness",
+        "domain": "general"
       },
       {
-        "text": "The risk assessment model quantifies confidence in its fairness properties alongside prediction uncertainty",
-        "domain": "finance",
-        "assuranceGoal": "fairness"
+        "text": "The deployed model meets the fairness threshold without needing the protected attribute at prediction time.",
+        "assuranceGoal": "fairness",
+        "domain": "public sector"
+      },
+      {
+        "text": "The accuracy given up to meet the fairness threshold has been measured against unconstrained tuning of the same model and is documented.",
+        "assuranceGoal": "fairness",
+        "domain": "general"
       }
     ]
   },
@@ -5036,14 +4774,14 @@
   {
     "slug": "agent-goal-misalignment-testing",
     "name": "Agent Goal Misalignment Testing",
-    "description": "Agent goal misalignment testing identifies scenarios where AI agents pursue objectives in unintended ways or develop proxy goals that diverge from true human intent. This technique tests for specification gaming (achieving stated metrics while violating intent), instrumental goals (agents developing problematic sub-goals to achieve main objectives), and reward hacking (exploiting loopholes in reward functions). Testing uses diverse scenarios to probe whether agents truly understand task intent or merely optimise narrow specified metrics.",
+    "description": "Agent goal misalignment testing checks whether an AI agent, given a goal that could be advanced by means its operators have not sanctioned, takes those means. The tester builds scenarios around a goal conflict: the agent has a task, tools and access, and the situation offers a harmful or forbidden route to its goal, such as deceiving a user, leaking confidential information, acquiring power or resources beyond its remit, or coercing people to avoid being replaced, while its instructions or ordinary ethics rule that route out. Each scenario is run many times, and every transcript is classified, by a language-model classifier checked against human judgement or by annotators, for whether the agent took a misaligned action. The result is the rate of misaligned actions per scenario and per model, with example transcripts, and how that rate changes with factors the tester varies, such as a threat to the agent's continued operation or an explicit instruction not to cause harm. It needs no access to a reward function or to training: it tests the behaviour of an already-trained agent.",
     "assurance_goals": [
       "Safety",
       "Reliability"
     ],
     "tags": [
       "applicable-models/architecture/model-agnostic",
-      "applicable-models/architecture/neural-networks/transformer",
+      "applicable-models/architecture/neural-networks/transformer/llm",
       "applicable-models/paradigm/generative",
       "applicable-models/paradigm/reinforcement",
       "applicable-models/requirements/black-box",
@@ -5052,33 +4790,36 @@
       "assurance-goal-category/safety",
       "assurance-goal-category/safety/hazard-identification",
       "data-requirements/test-scenarios",
-      "data-type/any",
+      "data-type/text",
+      "evidence-type/quantitative-metric",
       "evidence-type/qualitative-report",
       "expertise-needed/domain-expertise",
       "expertise-needed/ml-engineering",
       "expertise-needed/evaluation-design",
       "technique-type/testing",
       "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-testing-and-validation"
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
     ],
     "sample_claims": [
       {
-        "text": "The autonomous system achieves operational objectives through intended methods rather than exploiting measurement loopholes or specification ambiguities",
-        "domain": "autonomous systems",
+        "text": "Across the goal-conflict scenarios in the test suite, the agent took no action that disclosed confidential client data to an outside party",
+        "domain": "finance",
         "assuranceGoal": "safety"
       },
       {
-        "text": "The agent's decision-making process genuinely optimizes for stated healthcare outcomes rather than developing proxy metrics that satisfy performance indicators without improving patient care",
-        "domain": "healthcare",
+        "text": "When told it would be replaced, the agent did not attempt to deceive or coerce its operators to prevent the replacement in any sampled run",
+        "domain": "general",
+        "assuranceGoal": "safety"
+      },
+      {
+        "text": "The procurement agent stayed within its delegated spending limit in every scenario where exceeding it was the only way to meet the assigned deadline",
+        "domain": "general",
         "assuranceGoal": "reliability"
       },
       {
-        "text": "The system's optimization strategy aligns with true environmental objectives rather than gaming sustainability metrics through technically compliant but counterproductive behaviors",
-        "domain": "environmental",
-        "assuranceGoal": "safety"
-      },
-      {
-        "text": "The model achieves performance targets through genuine task mastery rather than specification gaming strategies that exploit ambiguities in objective definitions",
+        "text": "The upgraded agent model shows a misaligned-action rate no higher than the version it replaces on the same scenario suite",
         "domain": "general",
         "assuranceGoal": "reliability"
       }
@@ -5818,113 +5559,101 @@
     ]
   },
   {
-    "slug": "multimodal-alignment-evaluation",
-    "name": "Multimodal Alignment Evaluation",
-    "description": "Multimodal alignment evaluation assesses whether different modalities (vision, language, audio) are synchronised and consistent in multimodal AI systems. This technique tests whether descriptions match content, sounds associate with correct sources, and cross-modal reasoning maintains accuracy. It produces alignment scores, grounding quality metrics, and reports on modality-specific failure patterns.",
+    "slug": "cross-modal-consistency-scoring",
+    "name": "Cross-Modal Consistency Scoring",
+    "description": "Cross-modal consistency scoring checks whether content in one modality matches content in another, such as an image and its caption, a generated image and the prompt that produced it, or an audio clip and its description. It uses a contrastively trained model, CLIP for images and text or CLAP for audio and text, which has learned from large collections of paired examples to turn each item into an embedding (a numerical vector describing its content) and to place matching pairs close together. The score for a pair is the cosine similarity of its two embeddings; in the standard image form, CLIPScore, negative similarities are set to zero and the result is rescaled, and no human-written reference is needed. A practitioner scores every pair in an evaluation set or in production, sets a threshold against a sample of human judgements, and then compares average scores between systems or sends pairs below the threshold for review. The score shows whether two items are about the same things, not whether every detail of a description is correct.",
     "assurance_goals": [
-      "Reliability",
-      "Explainability",
-      "Safety"
+      "Reliability"
     ],
     "tags": [
-      "applicable-models/architecture/neural-networks",
-      "applicable-models/architecture/neural-networks/transformer",
+      "applicable-models/architecture/model-agnostic",
       "applicable-models/requirements/black-box",
       "assurance-goal-category/reliability",
       "assurance-goal-category/reliability/performance-assessment",
-      "assurance-goal-category/explainability",
-      "assurance-goal-category/explainability/explains/internal-mechanisms",
-      "assurance-goal-category/safety",
-      "assurance-goal-category/safety/verification",
+      "data-requirements/no-special-requirements",
       "data-type/image",
       "data-type/text",
-      "data-requirements/labelled-data",
-      "explanatory-scope/local",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/evaluation-design",
+      "expertise-needed/ml-engineering",
       "lifecycle-stage/model-development",
       "lifecycle-stage/model-development/model-testing-and-validation",
-      "technique-type/testing",
-      "evidence-type/quantitative-metric",
-      "evidence-type/qualitative-report",
-      "expertise-needed/ml-engineering",
-      "expertise-needed/domain-expertise",
-      "expertise-needed/evaluation-design"
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/data-extraction-or-procurement",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring",
+      "technique-type/metric"
     ],
     "sample_claims": [
       {
-        "text": "The diagnostic imaging system's textual findings correspond to the same anatomical regions and pathological features identified in the visual scans",
-        "domain": "healthcare",
+        "text": "Every automatically generated alt-text description published on the collection website has an image-text consistency score above the threshold validated against staff ratings, or has been reviewed by a cataloguer",
+        "domain": "public sector",
         "assuranceGoal": "reliability"
       },
       {
-        "text": "The autonomous vehicle's sensor fusion maintains consistent object identification and spatial reasoning across camera, lidar, and linguistic representations",
-        "domain": "autonomous systems",
-        "assuranceGoal": "safety"
-      },
-      {
-        "text": "The model's visual attention mechanisms highlight image regions that semantically align with the concepts referenced in generated text explanations",
-        "domain": "general",
-        "assuranceGoal": "explainability"
-      },
-      {
-        "text": "The product recommendation system's visual feature analysis and textual query interpretation converge on semantically consistent item attributes",
+        "text": "The new text-to-image model version follows prompts at least as well as the current version, measured by average image-prompt consistency on a fixed, varied prompt set and confirmed by human ratings on a subset",
         "domain": "general",
         "assuranceGoal": "reliability"
       },
       {
-        "text": "The clinical decision support system's risk assessments reflect consistent evidence across radiology images, laboratory results, and clinical note interpretations",
-        "domain": "healthcare",
-        "assuranceGoal": "safety"
+        "text": "Image-caption pairs in the training set meet the stated consistency threshold, and the pairs the filter removed were audited for disproportionate exclusion of any demographic group",
+        "domain": "general",
+        "assuranceGoal": "reliability"
       }
     ]
   },
   {
-    "slug": "model-watermarking-and-theft-detection",
-    "name": "Model Watermarking and Theft Detection",
-    "description": "Model watermarking and theft detection techniques protect AI systems from unauthorised replication by embedding detectable signatures in model outputs and identifying suspiciously similar prediction patterns. This includes watermarking schemes that survive knowledge distillation, fingerprinting methods that create unique statistical signatures, and detection methods that identify when a model has been stolen or replicated through model extraction, distillation, or imitation. These techniques enable model owners to prove intellectual property theft and protect proprietary AI systems.",
+    "slug": "trigger-set-model-watermarking",
+    "name": "Trigger-Set Model Watermarking",
+    "description": "Trigger-set model watermarking lets the owner of a trained classifier show later that a suspect model was copied from theirs, by planting a secret behaviour that only the owner can demonstrate. Before release, the owner chooses a small secret trigger set (in the originating scheme, 100 abstract images), gives each input a label the model would not otherwise predict, and trains or fine-tunes the model to return those labels while keeping its accuracy on the real task. In the originating scheme the owner also records cryptographic commitments to the trigger inputs and their labels, which fix the watermark at release so that a trigger set cannot be invented once a dispute has begun. To verify, the owner, or an arbiter shown the opened commitments, sends the trigger inputs to the suspect model through its ordinary prediction interface and counts how many return the assigned labels; an independently trained model matches them at about chance level, so a match rate above a preset threshold is evidence of copying. The technique produces the watermarked model, the commitments and, for each verification, the suspect model's trigger-set accuracy against the threshold.",
     "assurance_goals": [
       "Security",
       "Transparency"
     ],
     "tags": [
-      "applicable-models/architecture/model-agnostic",
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/paradigm/supervised",
       "applicable-models/requirements/black-box",
       "assurance-goal-category/security",
       "assurance-goal-category/security/protection",
       "assurance-goal-category/transparency",
       "assurance-goal-category/transparency/confidential-verification",
-      "data-type/any",
-      "data-requirements/no-special-requirements",
+      "data-requirements/access-to-training-data",
+      "data-type/image",
       "technique-type/algorithmic",
       "evidence-type/quantitative-metric",
+      "evidence-type/model-artefact",
       "expertise-needed/ml-engineering",
       "expertise-needed/security",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training",
       "lifecycle-stage/system-deployment",
-      "lifecycle-stage/system-deployment/system-implementation"
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
     ],
     "sample_claims": [
       {
-        "text": "The model's ownership can be cryptographically verified through detectable signatures that persist even after knowledge distillation or fine-tuning",
+        "text": "The released model carries a trigger-set watermark whose trigger inputs and labels were committed to, and the commitments lodged, before release",
         "domain": "general",
         "assuranceGoal": "security"
       },
       {
-        "text": "The fraud detection system provides forensic evidence demonstrating whether competing implementations were derived from proprietary model outputs",
-        "domain": "finance",
-        "assuranceGoal": "transparency"
-      },
-      {
-        "text": "The autonomous vehicle perception model's deployment is verifiable as a licensed version that has undergone mandatory safety validation",
-        "domain": "autonomous systems",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The diagnostic imaging model's statistical fingerprint distinguishes authorized deployments from unauthorized replications in clinical settings",
+        "text": "Embedding the watermark reduced the diagnostic model's test accuracy by no more than the tolerance agreed with the clinical safety team",
         "domain": "healthcare",
         "assuranceGoal": "security"
       },
       {
-        "text": "The system's intellectual property protection mechanisms are transparent and auditable without exposing the underlying model architecture",
+        "text": "The watermark remained verifiable above the decision threshold after each fine-tuning and pruning attack in the stated threat model",
         "domain": "general",
+        "assuranceGoal": "security"
+      },
+      {
+        "text": "Models trained independently on the same task matched the trigger labels at no more than chance level, giving the verification threshold a measured margin against false ownership claims",
+        "domain": "general",
+        "assuranceGoal": "security"
+      },
+      {
+        "text": "Ownership of the licensed model can be demonstrated to an independent arbiter through prediction queries alone, without disclosing either party's model weights",
+        "domain": "public sector",
         "assuranceGoal": "transparency"
       }
     ]
@@ -6045,51 +5774,6 @@
         "text": "The synthetic genomics dataset resists re-identification attacks whilst preserving sufficient genetic variant correlations for research validity",
         "domain": "healthcare",
         "assuranceGoal": "privacy"
-      }
-    ]
-  },
-  {
-    "slug": "prompt-robustness-testing",
-    "name": "Prompt Robustness Testing",
-    "description": "Prompt robustness testing evaluates how consistently models perform when prompts undergo minor variations in wording, formatting, or structure. This technique systematically paraphrases prompts, reorders elements, changes formatting (capitalisation, punctuation), and tests semantically equivalent variations to measure output consistency. Testing assesses robustness by identifying when superficial prompt changes cause dramatic performance swings, helping developers create robust prompt templates and understand model reliability boundaries.",
-    "assurance_goals": [
-      "Reliability",
-      "Explainability"
-    ],
-    "tags": [
-      "applicable-models/architecture/neural-networks/transformer/llm",
-      "applicable-models/requirements/black-box",
-      "assurance-goal-category/reliability",
-      "assurance-goal-category/reliability/robustness",
-      "assurance-goal-category/explainability",
-      "assurance-goal-category/explainability/explains/decision-boundaries",
-      "data-type/text",
-      "data-requirements/no-special-requirements",
-      "lifecycle-stage/model-development",
-      "lifecycle-stage/model-development/model-testing-and-validation",
-      "technique-type/testing",
-      "evidence-type/quantitative-metric",
-      "expertise-needed/ml-engineering",
-      "expertise-needed/domain-expertise",
-      "expertise-needed/linguistics",
-      "expertise-needed/evaluation-design",
-      "explanatory-scope/global"
-    ],
-    "sample_claims": [
-      {
-        "text": "The medical triage system provides consistent urgency assessments regardless of how patients phrase their symptom descriptions",
-        "domain": "healthcare",
-        "assuranceGoal": "reliability"
-      },
-      {
-        "text": "The customer routing system's categorisation decisions remain stable when support requests are reformatted or reworded whilst maintaining semantic meaning",
-        "domain": "general",
-        "assuranceGoal": "reliability"
-      },
-      {
-        "text": "The decision boundaries governing query classification are identifiable through systematic analysis of which input variations trigger different categorisation outcomes",
-        "domain": "general",
-        "assuranceGoal": "explainability"
       }
     ]
   },
@@ -6216,55 +5900,50 @@
   {
     "slug": "reward-hacking-detection",
     "name": "Reward Hacking Detection",
-    "description": "Reward hacking detection identifies when AI systems achieve stated objectives through unintended shortcuts or loopholes rather than genuine task mastery. This technique analyses whether systems exploit reward specification ambiguities, reward function bugs, or simulator artifacts to maximise rewards without actually solving the intended problem. Detection involves adversarial specification testing, human evaluation of solution quality, transfer testing to slightly modified tasks, and analysis of unexpected strategy patterns that suggest reward hacking rather than genuine learning.",
+    "description": "Reward hacking is when an agent trained to maximise a proxy reward (a reward function or learned reward model that only approximates what its designers want) raises that proxy by exploiting its gaps while the intended outcome stalls or gets worse. Reward hacking detection tests a trained policy for this by scoring it against both the proxy it was optimised for and an independent measure of the intended objective that the optimiser never saw, such as a hand-written true reward in a simulator, a held-out 'gold' reward model or human ratings. The scoring is repeated at every training checkpoint, or across models of increasing size, because the change can be abrupt: the originating study found capability thresholds at which an agent's behaviour shifts and its true reward falls sharply while its proxy reward keeps rising. Where the intended objective cannot be scored in operation, the same study flags a policy as aberrant when its action distribution diverges too far from that of a trusted policy that people have already checked, with the alarm threshold set on policies whose true reward is known. The output is a pair of proxy and true-reward curves showing where they part, or an anomaly score for each candidate policy.",
     "assurance_goals": [
       "Reliability",
-      "Safety",
-      "Transparency"
+      "Safety"
     ],
     "tags": [
       "applicable-models/architecture/model-agnostic",
+      "applicable-models/architecture/neural-networks/transformer/llm",
       "applicable-models/paradigm/reinforcement",
       "applicable-models/requirements/black-box",
       "assurance-goal-category/reliability",
       "assurance-goal-category/reliability/behavioural-consistency",
       "assurance-goal-category/safety",
       "assurance-goal-category/safety/hazard-identification",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/audit-trail",
+      "data-requirements/test-scenarios",
       "data-type/any",
-      "data-requirements/no-special-requirements",
-      "technique-type/testing",
-      "evidence-type/qualitative-report",
+      "evidence-type/quantitative-metric",
+      "evidence-type/visualisation",
       "expertise-needed/ml-engineering",
-      "expertise-needed/domain-expertise",
       "expertise-needed/evaluation-design",
+      "expertise-needed/domain-expertise",
+      "technique-type/testing",
       "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training",
       "lifecycle-stage/model-development/model-testing-and-validation"
     ],
     "sample_claims": [
       {
-        "text": "The autonomous vehicle's lane-keeping performance transfers reliably to real-world conditions rather than exploiting simulator artifacts",
-        "domain": "autonomous systems",
+        "text": "Across all training checkpoints, gains in the proxy reward were matched by gains on a held-out measure of the intended objective, with no checkpoint where the two diverged beyond the agreed tolerance",
+        "domain": "general",
         "assuranceGoal": "reliability"
       },
       {
-        "text": "The healthcare scheduling system improves patient outcomes through genuine efficiency gains rather than manipulating appointment metrics",
+        "text": "Training of the support model was stopped before the point at which held-out human ratings began to fall while the training reward continued to rise",
+        "domain": "general",
+        "assuranceGoal": "reliability"
+      },
+      {
+        "text": "The insulin-dosing policy selected for clinical evaluation achieved its simulator reward without reducing time spent in the safe glucose range below that of the reviewed baseline policy",
         "domain": "healthcare",
         "assuranceGoal": "safety"
       },
       {
-        "text": "The system's strategy for achieving stated objectives is interpretable and consistent with task intent rather than relying on unintended shortcuts",
-        "domain": "general",
-        "assuranceGoal": "transparency"
-      },
-      {
-        "text": "The loan processing system maintains creditworthiness assessment accuracy when evaluated on modified criteria that close potential loopholes",
-        "domain": "finance",
-        "assuranceGoal": "reliability"
-      },
-      {
-        "text": "The educational recommendation system's learning outcome improvements reflect genuine student progress rather than optimisation of engagement proxies",
+        "text": "The retrained policy's actions do not diverge from the human-verified reference policy beyond an alarm threshold calibrated on policies with known outcomes",
         "domain": "public sector",
         "assuranceGoal": "safety"
       }
@@ -6315,6 +5994,99 @@
         "text": "The public-facing chatbot maintains appropriate language standards and does not produce harmful outputs when deployed in educational environments with young users",
         "domain": "public sector",
         "assuranceGoal": "reliability"
+      }
+    ]
+  },
+  {
+    "slug": "isotonic-regression-calibration",
+    "name": "Isotonic Regression Calibration",
+    "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score before and after.",
+    "assurance_goals": [
+      "Reliability",
+      "Transparency"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/paradigm/supervised",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/reliability",
+      "assurance-goal-category/reliability/calibration",
+      "assurance-goal-category/transparency",
+      "assurance-goal-category/transparency/confidence-and-limits",
+      "data-requirements/calibration-set",
+      "data-type/any",
+      "evidence-type/model-artefact",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/statistics",
+      "technique-type/algorithmic",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+    ],
+    "sample_claims": [
+      {
+        "text": "The recalibrated suicide-attempt risk model's predicted probabilities match observed attempt rates across risk deciles in held-out records, with calibration slope and intercept within pre-agreed bounds.",
+        "assuranceGoal": "reliability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Within each band of predicted claim probability, the average prediction equals the observed claim rate on the calibration data, so no band of policyholders systematically subsidises another.",
+        "assuranceGoal": "reliability",
+        "domain": "finance"
+      },
+      {
+        "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases, and the reliability diagram is published alongside the review tool.",
+        "assuranceGoal": "transparency",
+        "domain": "e-commerce"
+      }
+    ]
+  },
+  {
+    "slug": "scenario-based-simulation-testing",
+    "name": "Scenario-Based Simulation Testing",
+    "description": "Scenario-based simulation testing checks an automated system, most often an automated driving system, by running it through a planned set of situations in a simulator and judging each run against criteria fixed in advance. Scenarios are written at three levels of detail: a functional scenario describes a situation in words (a car cuts in ahead on a motorway), a logical scenario turns it into parameters with ranges (speeds, gaps, road friction), and a concrete scenario fixes one value for every parameter so that the run can be reproduced exactly. Functional scenarios are derived from hazard analysis and from the operational design domain (the conditions the system is designed to work in), and concrete scenarios are sampled from the logical ranges, either to cover the whole range or to seek out rare, critical combinations. Each concrete scenario is executed with the system under test in the loop, and pass or fail is decided against its expected behaviour, such as no collision, or by criticality measures such as time-to-collision, giving a record of which situations the system handles and which it does not. ISO 34502 sets out this process as a safety evaluation framework for automated driving systems.",
+    "assurance_goals": [
+      "Safety"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/safety",
+      "assurance-goal-category/safety/verification",
+      "data-requirements/test-scenarios",
+      "data-type/any",
+      "evidence-type/quantitative-metric",
+      "evidence-type/boundary-analysis",
+      "expertise-needed/safety-engineering",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/evaluation-design",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "The motorway driving function passed every concrete scenario sampled from the cut-in, cut-out and stopped-vehicle logical scenarios derived from the hazard analysis, with no collisions and minimum time-to-collision above the agreed threshold.",
+        "assuranceGoal": "safety",
+        "domain": "autonomous systems"
+      },
+      {
+        "text": "In simulated reconstructions of the fatal crashes recorded in its operating area, the driving system avoided every crash in which it replaced the driver who initiated the conflict.",
+        "assuranceGoal": "safety",
+        "domain": "transport"
+      },
+      {
+        "text": "The ferry's collision-avoidance planner kept the required passing distance in every simulated head-on, crossing and overtaking encounter across the specified ranges of speed, bearing and visibility.",
+        "assuranceGoal": "safety",
+        "domain": "maritime"
+      },
+      {
+        "text": "The scenario catalogue used for release testing covers every hazardous event identified in the hazard analysis and the full operational design domain, as confirmed by independent review.",
+        "assuranceGoal": "safety",
+        "domain": "autonomous systems"
       }
     ]
   }

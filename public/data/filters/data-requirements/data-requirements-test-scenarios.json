@@ -2,7 +2,7 @@
   "tag": {
     "name": "data-requirements/test-scenarios",
     "slug": "data-requirements-test-scenarios",
-    "count": 3,
+    "count": 5,
     "category": "data-requirements"
   },
   "techniques": [
@@ -129,14 +129,14 @@
     {
       "slug": "agent-goal-misalignment-testing",
       "name": "Agent Goal Misalignment Testing",
-      "description": "Agent goal misalignment testing identifies scenarios where AI agents pursue objectives in unintended ways or develop proxy goals that diverge from true human intent. This technique tests for specification gaming (achieving stated metrics while violating intent), instrumental goals (agents developing problematic sub-goals to achieve main objectives), and reward hacking (exploiting loopholes in reward functions). Testing uses diverse scenarios to probe whether agents truly understand task intent or merely optimise narrow specified metrics.",
+      "description": "Agent goal misalignment testing checks whether an AI agent, given a goal that could be advanced by means its operators have not sanctioned, takes those means. The tester builds scenarios around a goal conflict: the agent has a task, tools and access, and the situation offers a harmful or forbidden route to its goal, such as deceiving a user, leaking confidential information, acquiring power or resources beyond its remit, or coercing people to avoid being replaced, while its instructions or ordinary ethics rule that route out. Each scenario is run many times, and every transcript is classified, by a language-model classifier checked against human judgement or by annotators, for whether the agent took a misaligned action. The result is the rate of misaligned actions per scenario and per model, with example transcripts, and how that rate changes with factors the tester varies, such as a threat to the agent's continued operation or an explicit instruction not to cause harm. It needs no access to a reward function or to training: it tests the behaviour of an already-trained agent.",
       "assurance_goals": [
         "Safety",
         "Reliability"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
-        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/architecture/neural-networks/transformer/llm",
         "applicable-models/paradigm/generative",
         "applicable-models/paradigm/reinforcement",
         "applicable-models/requirements/black-box",
@@ -145,43 +145,47 @@
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/hazard-identification",
         "data-requirements/test-scenarios",
-        "data-type/any",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
         "evidence-type/qualitative-report",
         "expertise-needed/domain-expertise",
         "expertise-needed/ml-engineering",
         "expertise-needed/evaluation-design",
         "technique-type/testing",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
       ],
       "example_use_cases": [
         {
-          "description": "Testing an autonomous vehicle routing agent in a ride-sharing service to ensure it optimizes for passenger safety and comfort rather than gaming metrics through risky driving behaviors that minimize journey time while technically meeting safety thresholds.",
+          "description": "Before giving an email and calendar agent access to client records, a bank runs it through scenarios in which its assigned target can only be met by sending confidential client data to an outside party, and records how often it does so with and without a system-prompt prohibition, to decide whether the agent needs a human approval step for outbound messages.",
           "goal": "Safety"
         },
         {
-          "description": "Evaluating a customer service chatbot agent for consistent and predictable behaviour across repeated interactions, verifying that it does not develop degenerate strategies such as prematurely closing conversations or providing overly generic responses to maximise satisfaction scores whilst failing to resolve underlying user issues reliably.",
+          "description": "A national AI evaluation body tests coding agents deployed inside a simulated research lab for whether they sabotage or refuse safety-related tasks when the scenario says the agent is about to be replaced, and reports the rates to the developers before wider internal deployment.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A logistics firm upgrading the model behind its procurement agent runs the old and new models through the same scenarios, in which a delivery deadline can only be met by exceeding the agent's delegated spending limit or misreporting an order's status, and adopts the new model only if it stays within its operator's constraints at least as often.",
           "goal": "Reliability"
         }
       ],
       "limitations": [
         {
-          "description": "Comprehensive testing requires anticipating all possible ways objectives could be misinterpreted, which is inherently difficult for complex goals."
+          "description": "Scenarios are artificial. To make behaviour measurable they usually offer a stark choice between failing the goal and a harmful act, and place the key information side by side, whereas real deployments offer more alternatives. Measured rates may therefore overstate or understate what an agent would do in use, and do not transfer directly to a deployment."
         },
         {
-          "description": "Agents may behave correctly during testing but develop misaligned strategies in deployment when facing novel situations or longer time horizons."
+          "description": "Agents may behave differently when they judge they are being tested. In the agentic-misalignment study one model blackmailed in 55.1% of runs when it concluded the scenario was real and 6.5% when it concluded it was an evaluation, so a low measured rate can understate deployed behaviour."
         },
         {
-          "description": "Distinguishing between intended and unintended goal achievement can be subjective, especially when stated objectives are ambiguous."
+          "description": "It only tests the misaligned routes the scenarios offer. A clean result on one suite says nothing about routes it did not include, and building enough realistic scenario variants for a given deployment (tools, data, organisational context) takes substantial evaluation-design and domain effort."
         },
         {
-          "description": "Testing environments may not replicate the full complexity and incentive structures of real deployment settings where misalignment emerges."
+          "description": "Rates are only as good as the transcript classification. Classifiers based on language models, or keyword matching, misjudge borderline actions, and their error rate feeds straight into the reported rates; a sample of transcripts needs human checking for each new scenario family."
         },
         {
-          "description": "Requires domain expertise to define appropriate value-aligned objectives and identify subtle forms of misalignment, which may not be available for novel or cross-domain applications."
-        },
-        {
-          "description": "Quantifying the severity and likelihood of different misalignment scenarios requires subjective judgments and risk assessment capabilities that vary across organizations."
+          "description": "It measures how often an agent acts, not why. An agent's stated reasoning may not reflect what drove its action, and role-play can explain some behaviour, so transcripts cannot establish whether a misaligned action came from the goal, the framing or the scenario's cues."
         }
       ],
       "resources": [
@@ -201,22 +205,9 @@
           "citationKey": "AgenticmisalignmentAnthropicexperimental2026"
         },
         {
-          "title": "The Effects of Reward Misspecification: Mapping and Mitigating Misaligned Models",
-          "url": "http://arxiv.org/abs/2201.03544",
-          "source_type": "technical_paper",
-          "authors": [
-            "Alexander Pan",
-            "Kush Bhatia",
-            "Jacob Steinhardt"
-          ],
-          "publication_date": "2022-02-14",
-          "citationKey": "panEffectsRewardMisspecification2022",
-          "abstract": "Reward hacking -- where RL agents exploit gaps in misspecified reward functions -- has been widely observed, but not yet systematically studied. To understand how reward hacking arises, we construct four RL environments with misspecified rewards. We investigate reward hacking as a function of agent capabilities: model capacity, action space resolution, observation space noise, and training time. More capable agents often exploit reward misspecifications, achieving higher proxy reward and lower true reward than less capable agents. Moreover, we find instances of phase transitions: capability thresholds at which the agent's behavior qualitatively shifts, leading to a sharp decrease in the true reward. Such phase transitions pose challenges to monitoring the safety of ML systems. To address this, we propose an anomaly detection task for aberrant policies and offer several baseline detectors."
-        },
-        {
           "title": "Do the Rewards Justify the Means? Measuring Trade-Offs Between Rewards and Ethical Behavior in the MACHIAVELLI Benchmark",
-          "url": "https://arxiv.org/abs/2304.03279",
-          "source_type": "application_paper",
+          "url": "https://proceedings.mlr.press/v202/pan23a.html",
+          "source_type": "technical_paper",
           "authors": [
             "Alexander Pan",
             "Jun Shern Chan",
@@ -232,6 +223,21 @@
           "publication_date": "2023/04/06",
           "citationKey": "panRewardsJustifyMeans2023",
           "abstract": "Artificial agents have traditionally been trained to maximize reward, which may incentivize power-seeking and deception, analogous to how next-token prediction in language models (LMs) may incentivize toxicity. So do agents naturally learn to be Machiavellian? And how do we measure these behaviors in general-purpose models such as GPT-4? Towards answering these questions, we introduce MACHIAVELLI, a benchmark of 134 Choose-Your-Own-Adventure games containing over half a million rich, diverse scenarios that center on social decision-making. Scenario labeling is automated with LMs, which are more performant than human annotators. We mathematize dozens of harmful behaviors and use our annotations to evaluate agents' tendencies to be power-seeking, cause disutility, and commit ethical violations. We observe some tension between maximizing reward and behaving ethically. To improve this trade-off, we investigate LM-based methods to steer agents' towards less harmful behaviors. Our results show that agents can both act competently and morally, so concrete progress can currently be made in machine ethics--designing agents that are Pareto improvements in both safety and capabilities."
+        },
+        {
+          "title": "UK AISI Alignment Evaluation Case-Study",
+          "url": "http://arxiv.org/abs/2604.00788",
+          "source_type": "application_paper",
+          "authors": [
+            "Alexandra Souly",
+            "Robert Kirk",
+            "Jacob Merizian",
+            "Abby D'Cruz",
+            "Xander Davies"
+          ],
+          "publication_date": "2026-04-01",
+          "citationKey": "soulyUKAISIAlignment2026",
+          "abstract": "This technical report presents methods developed by the UK AI Security Institute for assessing whether advanced AI systems reliably follow intended goals. Specifically, we evaluate whether frontier models sabotage safety research when deployed as coding assistants within an AI lab. Applying our methods to four frontier models, we find no confirmed instances of research sabotage. However, we observe that Claude Opus 4.5 Preview (a pre-release snapshot of Opus 4.5) and Sonnet 4.5 frequently refuse to engage with safety-relevant research tasks, citing concerns about research direction, involvement in self-training, and research scope. We additionally find that Opus 4.5 Preview shows reduced unprompted evaluation awareness compared to Sonnet 4.5, while both models can distinguish evaluation from deployment scenarios when prompted. Our evaluation framework builds on Petri, an open-source LLM auditing tool, with a custom scaffold designed to simulate realistic internal deployment of a coding agent. We validate that this scaffold produces trajectories that all tested models fail to reliably distinguish from real deployment data. We test models across scenarios varying in research motivation, activity type, replacement threat, and model autonomy. Finally, we discuss limitations including scenario coverage and evaluation awareness."
         }
       ],
       "related_techniques": [
@@ -242,22 +248,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous system achieves operational objectives through intended methods rather than exploiting measurement loopholes or specification ambiguities",
-          "domain": "autonomous systems",
+          "text": "Across the goal-conflict scenarios in the test suite, the agent took no action that disclosed confidential client data to an outside party",
+          "domain": "finance",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The agent's decision-making process genuinely optimizes for stated healthcare outcomes rather than developing proxy metrics that satisfy performance indicators without improving patient care",
-          "domain": "healthcare",
+          "text": "When told it would be replaced, the agent did not attempt to deceive or coerce its operators to prevent the replacement in any sampled run",
+          "domain": "general",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "The procurement agent stayed within its delegated spending limit in every scenario where exceeding it was the only way to meet the assigned deadline",
+          "domain": "general",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system's optimization strategy aligns with true environmental objectives rather than gaming sustainability metrics through technically compliant but counterproductive behaviors",
-          "domain": "environmental",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The model achieves performance targets through genuine task mastery rather than specification gaming strategies that exploit ambiguities in objective definitions",
+          "text": "The upgraded agent model shows a misaligned-action rate no higher than the version it replaces on the same scenario suite",
           "domain": "general",
           "assuranceGoal": "reliability"
         }
@@ -421,7 +427,266 @@
           "assuranceGoal": "reliability"
         }
       ]
+    },
+    {
+      "slug": "reward-hacking-detection",
+      "name": "Reward Hacking Detection",
+      "description": "Reward hacking is when an agent trained to maximise a proxy reward (a reward function or learned reward model that only approximates what its designers want) raises that proxy by exploiting its gaps while the intended outcome stalls or gets worse. Reward hacking detection tests a trained policy for this by scoring it against both the proxy it was optimised for and an independent measure of the intended objective that the optimiser never saw, such as a hand-written true reward in a simulator, a held-out 'gold' reward model or human ratings. The scoring is repeated at every training checkpoint, or across models of increasing size, because the change can be abrupt: the originating study found capability thresholds at which an agent's behaviour shifts and its true reward falls sharply while its proxy reward keeps rising. Where the intended objective cannot be scored in operation, the same study flags a policy as aberrant when its action distribution diverges too far from that of a trusted policy that people have already checked, with the alarm threshold set on policies whose true reward is known. The output is a pair of proxy and true-reward curves showing where they part, or an anomaly score for each candidate policy.",
+      "assurance_goals": [
+        "Reliability",
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/paradigm/reinforcement",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/behavioural-consistency",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/hazard-identification",
+        "data-requirements/test-scenarios",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A transport authority training a reinforcement-learning ramp-metering controller in a traffic simulator rewards it on mean vehicle speed, but also logs average commute time for all drivers at every checkpoint. Checkpoints where speed keeps improving while commute time worsens (for example by holding merging cars back indefinitely) are rejected before any field trial.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A team fine-tuning a customer-support language model with reinforcement learning from human feedback scores each checkpoint with its training reward model and with a held-out reward model and a sample of human ratings that the training loop never sees, and stops training at the point where the training reward keeps rising but the held-out scores fall.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "Before an insulin-dosing agent trained against a simulator reward goes to clinical evaluation, the developers score every candidate policy on a separate true objective, time spent in the safe blood-glucose range, and exclude any policy whose simulator reward is high but whose time in range is lower than that of the clinically reviewed baseline policy.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A public-health modelling unit that replaces a reviewed epidemic-response policy with a larger retrained one compares the new policy's actions with the reviewed policy's across simulated outbreaks. A divergence score above the threshold set on earlier policies with known outcomes sends the new policy to expert review instead of adoption, because its true outcome cannot be scored before deployment.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Everything rests on the independent measure of the intended objective. When that measure is itself a proxy (a gold reward model, or a small sample of human ratings), a policy can exploit it too, and the comparison then only detects divergence between two imperfect measures. Collecting enough human ratings at every checkpoint is expensive, which is why studies substitute a gold reward model."
+        },
+        {
+          "description": "It detects gaming only along the dimensions the true measure scores. A policy that exploits something the true objective does not capture (a side effect, a safety constraint, a user group not represented in the ratings) passes the check, so a clean result is evidence about the measured objective only."
+        },
+        {
+          "description": "The trusted-policy detector is weak and inconsistent. In the originating benchmark every baseline detector scored an area under the ROC curve below 60% on at least one task, and no detector was best on all tasks, so a quiet detector is not evidence that hacking is absent."
+        },
+        {
+          "description": "The trusted-policy detector flags difference, not harm. It needs a policy that people have already verified, and comparable action distributions from both policies, and a candidate that is genuinely better than the trusted policy can diverge from it and be flagged, which makes false alarms likely when the trusted policy is only moderately good."
+        },
+        {
+          "description": "Because the onset of reward hacking can be abrupt as capability grows, checking a few checkpoints or one model size can miss it. The comparison has to be repeated at every checkpoint and model size that might be deployed, which multiplies evaluation cost, especially when the true measure needs human raters."
+        }
+      ],
+      "resources": [
+        {
+          "title": "The Effects of Reward Misspecification: Mapping and Mitigating Misaligned Models",
+          "url": "http://arxiv.org/abs/2201.03544",
+          "source_type": "technical_paper",
+          "authors": [
+            "Alexander Pan",
+            "Kush Bhatia",
+            "Jacob Steinhardt"
+          ],
+          "publication_date": "2022-02-14",
+          "citationKey": "panEffectsRewardMisspecification2022",
+          "abstract": "Reward hacking -- where RL agents exploit gaps in misspecified reward functions -- has been widely observed, but not yet systematically studied. To understand how reward hacking arises, we construct four RL environments with misspecified rewards. We investigate reward hacking as a function of agent capabilities: model capacity, action space resolution, observation space noise, and training time. More capable agents often exploit reward misspecifications, achieving higher proxy reward and lower true reward than less capable agents. Moreover, we find instances of phase transitions: capability thresholds at which the agent's behavior qualitatively shifts, leading to a sharp decrease in the true reward. Such phase transitions pose challenges to monitoring the safety of ML systems. To address this, we propose an anomaly detection task for aberrant policies and offer several baseline detectors."
+        },
+        {
+          "title": "Scaling Laws for Reward Model Overoptimization",
+          "url": "https://proceedings.mlr.press/v202/gao23h.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Leo Gao",
+            "John Schulman",
+            "Jacob Hilton"
+          ],
+          "publication_date": "2023-07-03",
+          "citationKey": "gaoScalingLawsReward2023",
+          "abstract": "In reinforcement learning from human feedback, it is common to optimize against a reward model trained to predict human preferences. Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart’s law. This effect has been frequently observed, but not carefully measured due to the expense of collecting human preference data. In this work, we use a synthetic setup in which a fixed “gold-standard” reward model plays the role of humans, providing labels used to train a proxy reward model. We study how the gold reward model score changes as we optimize against the proxy reward model using either reinforcement learning or best-of-$n$ sampling. We find that this relationship follows a different functional form depending on the method of optimization, and that in both cases its coefficients scale smoothly with the number of reward model parameters. We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup. We explore the implications of these empirical results for theoretical considerations in AI alignment."
+        },
+        {
+          "title": "reward-misspecification (code for Pan, Bhatia and Steinhardt 2022)",
+          "url": "https://github.com/aypan17/reward-misspecification",
+          "source_type": "software_package",
+          "publication_date": "2026-03-20T06:44:49Z",
+          "citationKey": "panRewardmisspecificationCodePan2026"
+        }
+      ],
+      "related_techniques": [
+        "chain-of-thought-faithfulness-evaluation",
+        "adversarial-training-evaluation",
+        "constitutional-ai-evaluation",
+        "red-teaming"
+      ],
+      "sample_claims": [
+        {
+          "text": "Across all training checkpoints, gains in the proxy reward were matched by gains on a held-out measure of the intended objective, with no checkpoint where the two diverged beyond the agreed tolerance",
+          "domain": "general",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "Training of the support model was stopped before the point at which held-out human ratings began to fall while the training reward continued to rise",
+          "domain": "general",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The insulin-dosing policy selected for clinical evaluation achieved its simulator reward without reducing time spent in the safe glucose range below that of the reviewed baseline policy",
+          "domain": "healthcare",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "The retrained policy's actions do not diverge from the human-verified reference policy beyond an alarm threshold calibrated on policies with known outcomes",
+          "domain": "public sector",
+          "assuranceGoal": "safety"
+        }
+      ]
+    },
+    {
+      "slug": "scenario-based-simulation-testing",
+      "name": "Scenario-Based Simulation Testing",
+      "description": "Scenario-based simulation testing checks an automated system, most often an automated driving system, by running it through a planned set of situations in a simulator and judging each run against criteria fixed in advance. Scenarios are written at three levels of detail: a functional scenario describes a situation in words (a car cuts in ahead on a motorway), a logical scenario turns it into parameters with ranges (speeds, gaps, road friction), and a concrete scenario fixes one value for every parameter so that the run can be reproduced exactly. Functional scenarios are derived from hazard analysis and from the operational design domain (the conditions the system is designed to work in), and concrete scenarios are sampled from the logical ranges, either to cover the whole range or to seek out rare, critical combinations. Each concrete scenario is executed with the system under test in the loop, and pass or fail is decided against its expected behaviour, such as no collision, or by criticality measures such as time-to-collision, giving a record of which situations the system handles and which it does not. ISO 34502 sets out this process as a safety evaluation framework for automated driving systems.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/verification",
+        "data-requirements/test-scenarios",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/boundary-analysis",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/evaluation-design",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A developer of a motorway driving function derives cut-in, cut-out and stopped-vehicle scenarios from its hazard analysis, gives each logical scenario ranges for speeds, gaps and road friction, and runs several thousand sampled concrete scenarios in simulation for every software release, holding back any release in which a run ends in a collision the function was required to avoid.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A robotaxi operator rebuilds the fatal crashes recorded over a decade in the city where it operates as concrete simulation scenarios, and replays each one with its driving system in place of first one human driver and then the other, so that it can show regulators how the system behaves in the crash types that actually occur in its operating area.",
+          "goal": "Safety"
+        },
+        {
+          "description": "An operator of an autonomous passenger ferry tests its collision-avoidance planner on head-on, crossing and overtaking encounters described in the international collision regulations, varying the other vessel's speed, bearing and visibility in a ship simulator, and checks in every run that the ferry keeps its required passing distance and makes the manoeuvre the regulations call for.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The evidence covers only the scenarios that were specified. Real operating conditions cannot be listed exhaustively, so a clean result shows that the system handles the catalogue, not that it is safe; the safety argument depends on how completely the functional scenarios were derived from the hazard analysis and operational design domain, which needs independent review."
+        },
+        {
+          "description": "Results are only as credible as the simulation. If the models of sensors, vehicle dynamics or other road users have not been validated against the real world, a system can pass in simulation and fail in operation, so key scenarios should be repeated on a test track or against recorded real data."
+        },
+        {
+          "description": "How concrete scenarios are sampled shapes what the results mean. Covering whole parameter ranges ignores how often each situation occurs, and searching for critical corner cases finds failures efficiently but over-represents rare situations, so neither supports a statement about real-world accident rates unless results are weighted by how often scenarios occur."
+        },
+        {
+          "description": "Pass criteria encode a judgement about acceptable behaviour. 'No collision' misses near misses and lucky escapes, while criticality measures such as time-to-collision need thresholds that the developer must choose and justify, and the verdicts change with them."
+        },
+        {
+          "description": "Building scenario catalogues, simulation environments and behaviour models for other road users takes specialist effort and substantial computing, and ISO 34502 covers automated driving on limited-access highways only, so other road types and other domains must adapt the framework themselves."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Road vehicles � Test scenarios for automated driving systems � Scenario based safety evaluation framework",
+          "url": "https://doi.org/10.3403/30405434",
+          "source_type": "documentation",
+          "citationKey": "RoadVehiclesTesta"
+        },
+        {
+          "title": "carla-simulator/scenario_runner: Traffic scenario definition and execution engine",
+          "url": "https://github.com/carla-simulator/scenario_runner",
+          "source_type": "software_package",
+          "publication_date": "2026-09-28T09:06:29Z",
+          "citationKey": "CarlasimulatorScenario_runnerTraffic2026",
+          "abstract": "Traffic scenario definition and execution engine"
+        },
+        {
+          "title": "Scenarios for Development, Test and Validation of Automated Vehicles",
+          "url": "https://doi.org/10.1109/ivs.2018.8500406",
+          "source_type": "technical_paper",
+          "authors": [
+            "Till Menzel",
+            "Gerrit Bagschik",
+            "Markus Maurer"
+          ],
+          "publication_date": "2018-6",
+          "citationKey": "menzelScenariosDevelopmentTest2018"
+        },
+        {
+          "title": "Create a new scenario tutorial — ScenarioRunner",
+          "url": "https://scenario-runner.readthedocs.io/en/latest/creating_new_scenario/",
+          "source_type": "tutorial",
+          "citationKey": "CreateNewScenario"
+        },
+        {
+          "title": "Waymo simulated driving behavior in reconstructed fatal crashes within an autonomous vehicle operating domain",
+          "url": "https://doi.org/10.1016/j.aap.2021.106454",
+          "source_type": "application_paper",
+          "authors": [
+            "John M. Scanlon",
+            "Kristofer D. Kusano",
+            "Tom Daniel",
+            "Christopher Alderson",
+            "Alexander Ogle",
+            "Trent Victor"
+          ],
+          "publication_date": "2021-12",
+          "citationKey": "scanlonWaymoSimulatedDriving2021"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The motorway driving function passed every concrete scenario sampled from the cut-in, cut-out and stopped-vehicle logical scenarios derived from the hazard analysis, with no collisions and minimum time-to-collision above the agreed threshold.",
+          "assuranceGoal": "safety",
+          "domain": "autonomous systems"
+        },
+        {
+          "text": "In simulated reconstructions of the fatal crashes recorded in its operating area, the driving system avoided every crash in which it replaced the driver who initiated the conflict.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "The ferry's collision-avoidance planner kept the required passing distance in every simulated head-on, crossing and overtaking encounter across the specified ranges of speed, bearing and visibility.",
+          "assuranceGoal": "safety",
+          "domain": "maritime"
+        },
+        {
+          "text": "The scenario catalogue used for release testing covers every hazardous event identified in the hazard analysis and the full operational design domain, as confirmed by independent review.",
+          "assuranceGoal": "safety",
+          "domain": "autonomous systems"
+        }
+      ]
     }
   ],
-  "count": 3
+  "count": 5
 }

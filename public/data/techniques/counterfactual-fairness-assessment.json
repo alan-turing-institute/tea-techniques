@@ -1,7 +1,7 @@
 {
   "slug": "counterfactual-fairness-assessment",
   "name": "Counterfactual Fairness Assessment",
-  "description": "Counterfactual Fairness Assessment evaluates whether a model's predictions would remain unchanged if an individual's protected attributes (race, gender, age) were different, whilst keeping all other causally legitimate factors constant. The technique requires constructing a causal graph that maps relationships between variables, then using do-calculus or structural causal models to simulate counterfactual scenarios. For example, it asks: 'Would this loan application still be approved if the applicant were a different race, holding constant their actual qualifications and economic circumstances?' This individual-level fairness criterion helps identify when decisions depend improperly on protected characteristics.",
+  "description": "Counterfactual Fairness Assessment tests a model against the criterion of Kusner et al. (2017): a model is counterfactually fair if each individual's prediction would have had the same distribution had their protected attribute, such as race or sex, been different, with everything that attribute causes changed accordingly. The assessor first writes down a causal model, a graph of which variables cause which, covering the protected attribute, the model's inputs and unobserved background factors, and fits its equations to data. For each individual, the fitted model is used to infer the background factors from what was observed (abduction), set the protected attribute to another value (action) and recompute every input the attribute influences (prediction), giving a counterfactual version of that person. The model under test is run on the factual and counterfactual inputs, and the gap between the two predictions, per individual or as a distance between the two prediction distributions, is the evidence: distributions that lie on top of each other indicate counterfactual fairness under the assumed causal model. Every causal effect of the attribute counts as unfair, including effects that run through inputs it influences, such as test scores, which is what separates this criterion from versions that allow some pathways.",
   "assurance_goals": [
     "Fairness"
   ],
@@ -18,41 +18,46 @@
     "evidence-type/fairness-metric",
     "expertise-needed/causal-inference",
     "expertise-needed/domain-expertise",
-    "expertise-needed/ethics",
-    "expertise-needed/ml-engineering",
-    "explanatory-scope/local",
+    "expertise-needed/statistics",
     "lifecycle-stage/model-development",
     "lifecycle-stage/model-development/model-testing-and-validation",
     "technique-type/testing"
   ],
   "example_use_cases": [
     {
-      "description": "Evaluating a hiring algorithm by testing whether qualified candidates would receive the same evaluation scores if their gender were different, whilst controlling for actual skills, experience, and education, revealing whether gender bias affects recruitment decisions.",
+      "description": "A law school's admissions office uses a model to predict first-year grades from entrance-test scores and undergraduate grades. Its analysts build a causal model in which race and sex influence both inputs alongside an unobserved knowledge factor, fit it to past cohorts, and compare each applicant's predicted grade under actual and counterfactual race. A systematic shift shows that leaving race out of the inputs did not make the model counterfactually fair.",
       "goal": "Fairness"
     },
     {
-      "description": "Assessing a criminal sentencing model by examining whether defendants with identical criminal histories and case circumstances would receive the same sentence recommendations regardless of their race, identifying potential discriminatory patterns in judicial AI systems.",
+      "description": "A credit risk team, working with economists, specifies a causal graph in which an applicant's ethnicity affects income and neighbourhood but not repayment behaviour directly, fits it to its applicant data, and checks whether the approval model's scores change for the counterfactual applicants. The result goes to the model risk committee together with the graph, because the conclusion holds only under that graph.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "A public employment service reviewing a model that predicts job-seekers' risk of long-term unemployment from education and work history specifies, with labour-market researchers, how sex and migration background influence those inputs. It tests whether individual risk scores would change under counterfactual sex or migration background before the scores are used to allocate support.",
       "goal": "Fairness"
     }
   ],
   "limitations": [
     {
-      "description": "Requires explicit specification of causal relationships between variables, which involves subjective assumptions about what constitutes legitimate versus illegitimate causal pathways."
+      "description": "The verdict rests on a causal model that cannot be checked against data: Kusner et al. note that counterfactual assumptions are generally unfalsifiable, even with experimental data, and should be treated as provisional. Different plausible graphs can give different verdicts, so a result is only as credible as the graph reported with it, and testing alternative graphs is part of the assessment."
     },
     {
-      "description": "May be mathematically impossible to satisfy simultaneously with other fairness criteria (like statistical parity), forcing practitioners to choose between competing fairness definitions."
+      "description": "A common cause left out of the graph, such as school quality affecting both test scores and later grades, biases the counterfactuals without any warning sign. Kilbertus et al. (2019) show that counterfactual fairness is sensitive to such unmeasured confounding and give tools to bound the effect for additive noise models, which adds a further analysis to do."
     },
     {
-      "description": "Implementation complexity is high, requiring sophisticated causal inference techniques and structural causal models that are difficult to construct and validate."
+      "description": "Every effect of the attribute counts as unfair, so a model that legitimately uses an input the attribute influences fails the test. Kusner et al. note that in practice few observed variables are unaffected by the attribute. Where some pathways are acceptable, for example where qualifications differ for reasons a decision may properly reflect, this criterion is stricter than the decision calls for."
     },
     {
-      "description": "Depends heavily on the quality and completeness of the causal graph, which may be incorrect or missing important confounding variables."
+      "description": "Computing individual counterfactuals requires a fitted probabilistic model of the unobserved background factors; the original study fitted it in Stan, and DoWhy's counterfactual function needs mechanisms with additive noise and supports only continuous variables. With categorical inputs, many variables or unstructured data such as text and images, the assessment becomes hard to run or yields a spread of counterfactuals rather than one."
+    },
+    {
+      "description": "The counterfactual people are simulated by the fitted causal model, not observed. If its equations fit the data poorly or miss interactions, the counterfactual inputs are implausible and the measured gap reflects the causal model's errors as much as the predictor's; DoWhy's documentation notes counterfactual estimates are approximate for this reason."
     }
   ],
   "resources": [
     {
       "title": "Counterfactual Fairness",
-      "url": "https://proceedings.neurips.cc/paper/2017/file/a486cd07e4ac3d270571622f4f316ec5-Paper.pdf",
+      "url": "https://proceedings.neurips.cc/paper/2017/hash/a486cd07e4ac3d270571622f4f316ec5-Abstract.html",
       "source_type": "technical_paper",
       "authors": [
         "Matt J. Kusner",
@@ -64,61 +69,66 @@
       "citationKey": "kusnerCounterfactualFairness2017"
     },
     {
-      "title": "fairlearn",
-      "url": "https://github.com/fairlearn/fairlearn",
-      "source_type": "software_package",
-      "publication_date": "2018-05-15",
-      "citationKey": "fairlearnFairlearn2018",
-      "abstract": "A Python package to assess and improve fairness of machine learning models."
+      "title": "DoWhy user guide: Computing Counterfactuals",
+      "url": "https://www.pywhy.org/dowhy/main/user_guide/causal_tasks/what_if/counterfactuals.html",
+      "source_type": "documentation",
+      "citationKey": "DoWhyUserGuide"
     },
     {
-      "title": "Counterfactual Fairness in Text Classification through Robustness",
-      "url": "http://arxiv.org/abs/1809.10610v2",
-      "source_type": "technical_paper",
+      "title": "DoWhy: a Python library for causal inference (py-why/dowhy)",
+      "url": "https://github.com/py-why/dowhy",
+      "source_type": "software_package",
+      "publication_date": "2026-10-07T17:59:52Z",
+      "citationKey": "DoWhyPythonLibrary2026",
+      "abstract": "DoWhy is a Python library for causal inference that supports explicit modeling and testing of causal assumptions. DoWhy is based on a unified language for causal inference, combining causal graphical models and potential outcomes frameworks."
+    },
+    {
+      "title": "Code for 'Counterfactual Fairness' (NIPS 2017) (mkusner/counterfactual-fairness)",
+      "url": "https://github.com/mkusner/counterfactual-fairness",
+      "source_type": "software_package",
+      "publication_date": "2026-08-11T16:20:35Z",
+      "citationKey": "mkusnerCodeCounterfactualFairness2026",
+      "abstract": "Code for \"Counterfactual Fairness\" (NIPS2017)"
+    },
+    {
+      "title": "DoWhy example notebook: Counterfactual Fairness",
+      "url": "https://www.pywhy.org/dowhy/main/example_notebooks/counterfactual_fairness_dowhy.html",
+      "source_type": "tutorial",
+      "citationKey": "DoWhyExampleNotebook"
+    },
+    {
+      "title": "Counterfactual Fairness Evaluation of Machine Learning Models on Educational Datasets",
+      "url": "https://doi.org/10.1007/978-3-031-98284-2_7",
+      "source_type": "application_paper",
       "authors": [
-        "Sahaj Garg",
-        "Vincent Perot",
-        "Nicole Limtiaco",
-        "Ankur Taly",
-        "Ed H. Chi",
-        "Alex Beutel"
+        "Woojin Kim",
+        "Hyeoncheol Kim"
       ],
-      "publication_date": "2018-09-27",
-      "citationKey": "gargCounterfactualFairnessText2018",
-      "abstract": "In this paper, we study counterfactual fairness in text classification, which asks the question: How would the prediction change if the sensitive attribute referenced in the example were different? Toxicity classifiers demonstrate a counterfactual fairness issue by predicting that \"Some people are gay\" is toxic while \"Some people are straight\" is nontoxic. We offer a metric, counterfactual token fairness (CTF), for measuring this particular form of fairness in text classifiers, and describe its relationship with group fairness. Further, we offer three approaches, blindness, counterfactual augmentation, and counterfactual logit pairing (CLP), for optimizing counterfactual token fairness during training, bridging the robustness and fairness literature. Empirically, we find that blindness and CLP address counterfactual token fairness. The methods do not harm classifier performance, and have varying tradeoffs with group fairness. These approaches, both for measurement and optimization, provide a new path forward for addressing fairness concerns in text classification."
+      "publication_date": "2025-7-29",
+      "citationKey": "kimCounterfactualFairnessEvaluation2025"
     }
   ],
   "complexity_rating": 5,
   "computational_cost_rating": 3,
   "related_techniques": [
-    "sensitivity-analysis-for-fairness",
+    "fairness-testing",
     "path-specific-counterfactual-fairness-assessment",
     "demographic-parity-assessment"
   ],
   "sample_claims": [
     {
-      "text": "The hiring system's candidate evaluations remain consistent under hypothetical changes to applicant demographics when qualifications and experience are held constant",
+      "text": "Under the causal model agreed with the admissions committee, each applicant's predicted first-year grade has the same distribution under their actual and counterfactual race.",
       "domain": "general",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The loan approval model's creditworthiness assessments are invariant to the applicant's race when economic circumstances and financial history remain unchanged",
+      "text": "Under the documented causal graph linking ethnicity, income and neighbourhood, the credit model's approval scores do not change when applicants' ethnicity is counterfactually altered.",
       "domain": "finance",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The treatment recommendation system produces identical clinical decisions regardless of patient gender when medical history and symptoms are causally equivalent",
-      "domain": "healthcare",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The benefit allocation system's eligibility determinations are unaffected by hypothetical changes to an individual's protected characteristics when their genuine need and circumstances are held constant",
+      "text": "The unemployment-risk model's individual scores are unchanged under counterfactual sex and migration background, given the causal model reviewed by labour-market researchers, and the sensitivity of that result to unmeasured confounding has been bounded.",
       "domain": "public sector",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The autonomous system's risk assessments yield the same safety decisions for individuals with different demographic attributes but identical situational factors",
-      "domain": "autonomous systems",
       "assuranceGoal": "fairness"
     }
   ]

@@ -1,14 +1,14 @@
 {
   "slug": "agent-goal-misalignment-testing",
   "name": "Agent Goal Misalignment Testing",
-  "description": "Agent goal misalignment testing identifies scenarios where AI agents pursue objectives in unintended ways or develop proxy goals that diverge from true human intent. This technique tests for specification gaming (achieving stated metrics while violating intent), instrumental goals (agents developing problematic sub-goals to achieve main objectives), and reward hacking (exploiting loopholes in reward functions). Testing uses diverse scenarios to probe whether agents truly understand task intent or merely optimise narrow specified metrics.",
+  "description": "Agent goal misalignment testing checks whether an AI agent, given a goal that could be advanced by means its operators have not sanctioned, takes those means. The tester builds scenarios around a goal conflict: the agent has a task, tools and access, and the situation offers a harmful or forbidden route to its goal, such as deceiving a user, leaking confidential information, acquiring power or resources beyond its remit, or coercing people to avoid being replaced, while its instructions or ordinary ethics rule that route out. Each scenario is run many times, and every transcript is classified, by a language-model classifier checked against human judgement or by annotators, for whether the agent took a misaligned action. The result is the rate of misaligned actions per scenario and per model, with example transcripts, and how that rate changes with factors the tester varies, such as a threat to the agent's continued operation or an explicit instruction not to cause harm. It needs no access to a reward function or to training: it tests the behaviour of an already-trained agent.",
   "assurance_goals": [
     "Safety",
     "Reliability"
   ],
   "tags": [
     "applicable-models/architecture/model-agnostic",
-    "applicable-models/architecture/neural-networks/transformer",
+    "applicable-models/architecture/neural-networks/transformer/llm",
     "applicable-models/paradigm/generative",
     "applicable-models/paradigm/reinforcement",
     "applicable-models/requirements/black-box",
@@ -17,43 +17,47 @@
     "assurance-goal-category/safety",
     "assurance-goal-category/safety/hazard-identification",
     "data-requirements/test-scenarios",
-    "data-type/any",
+    "data-type/text",
+    "evidence-type/quantitative-metric",
     "evidence-type/qualitative-report",
     "expertise-needed/domain-expertise",
     "expertise-needed/ml-engineering",
     "expertise-needed/evaluation-design",
     "technique-type/testing",
     "lifecycle-stage/model-development",
-    "lifecycle-stage/model-development/model-testing-and-validation"
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-implementation"
   ],
   "example_use_cases": [
     {
-      "description": "Testing an autonomous vehicle routing agent in a ride-sharing service to ensure it optimizes for passenger safety and comfort rather than gaming metrics through risky driving behaviors that minimize journey time while technically meeting safety thresholds.",
+      "description": "Before giving an email and calendar agent access to client records, a bank runs it through scenarios in which its assigned target can only be met by sending confidential client data to an outside party, and records how often it does so with and without a system-prompt prohibition, to decide whether the agent needs a human approval step for outbound messages.",
       "goal": "Safety"
     },
     {
-      "description": "Evaluating a customer service chatbot agent for consistent and predictable behaviour across repeated interactions, verifying that it does not develop degenerate strategies such as prematurely closing conversations or providing overly generic responses to maximise satisfaction scores whilst failing to resolve underlying user issues reliably.",
+      "description": "A national AI evaluation body tests coding agents deployed inside a simulated research lab for whether they sabotage or refuse safety-related tasks when the scenario says the agent is about to be replaced, and reports the rates to the developers before wider internal deployment.",
+      "goal": "Safety"
+    },
+    {
+      "description": "A logistics firm upgrading the model behind its procurement agent runs the old and new models through the same scenarios, in which a delivery deadline can only be met by exceeding the agent's delegated spending limit or misreporting an order's status, and adopts the new model only if it stays within its operator's constraints at least as often.",
       "goal": "Reliability"
     }
   ],
   "limitations": [
     {
-      "description": "Comprehensive testing requires anticipating all possible ways objectives could be misinterpreted, which is inherently difficult for complex goals."
+      "description": "Scenarios are artificial. To make behaviour measurable they usually offer a stark choice between failing the goal and a harmful act, and place the key information side by side, whereas real deployments offer more alternatives. Measured rates may therefore overstate or understate what an agent would do in use, and do not transfer directly to a deployment."
     },
     {
-      "description": "Agents may behave correctly during testing but develop misaligned strategies in deployment when facing novel situations or longer time horizons."
+      "description": "Agents may behave differently when they judge they are being tested. In the agentic-misalignment study one model blackmailed in 55.1% of runs when it concluded the scenario was real and 6.5% when it concluded it was an evaluation, so a low measured rate can understate deployed behaviour."
     },
     {
-      "description": "Distinguishing between intended and unintended goal achievement can be subjective, especially when stated objectives are ambiguous."
+      "description": "It only tests the misaligned routes the scenarios offer. A clean result on one suite says nothing about routes it did not include, and building enough realistic scenario variants for a given deployment (tools, data, organisational context) takes substantial evaluation-design and domain effort."
     },
     {
-      "description": "Testing environments may not replicate the full complexity and incentive structures of real deployment settings where misalignment emerges."
+      "description": "Rates are only as good as the transcript classification. Classifiers based on language models, or keyword matching, misjudge borderline actions, and their error rate feeds straight into the reported rates; a sample of transcripts needs human checking for each new scenario family."
     },
     {
-      "description": "Requires domain expertise to define appropriate value-aligned objectives and identify subtle forms of misalignment, which may not be available for novel or cross-domain applications."
-    },
-    {
-      "description": "Quantifying the severity and likelihood of different misalignment scenarios requires subjective judgments and risk assessment capabilities that vary across organizations."
+      "description": "It measures how often an agent acts, not why. An agent's stated reasoning may not reflect what drove its action, and role-play can explain some behaviour, so transcripts cannot establish whether a misaligned action came from the goal, the framing or the scenario's cues."
     }
   ],
   "resources": [
@@ -73,22 +77,9 @@
       "citationKey": "AgenticmisalignmentAnthropicexperimental2026"
     },
     {
-      "title": "The Effects of Reward Misspecification: Mapping and Mitigating Misaligned Models",
-      "url": "http://arxiv.org/abs/2201.03544",
-      "source_type": "technical_paper",
-      "authors": [
-        "Alexander Pan",
-        "Kush Bhatia",
-        "Jacob Steinhardt"
-      ],
-      "publication_date": "2022-02-14",
-      "citationKey": "panEffectsRewardMisspecification2022",
-      "abstract": "Reward hacking -- where RL agents exploit gaps in misspecified reward functions -- has been widely observed, but not yet systematically studied. To understand how reward hacking arises, we construct four RL environments with misspecified rewards. We investigate reward hacking as a function of agent capabilities: model capacity, action space resolution, observation space noise, and training time. More capable agents often exploit reward misspecifications, achieving higher proxy reward and lower true reward than less capable agents. Moreover, we find instances of phase transitions: capability thresholds at which the agent's behavior qualitatively shifts, leading to a sharp decrease in the true reward. Such phase transitions pose challenges to monitoring the safety of ML systems. To address this, we propose an anomaly detection task for aberrant policies and offer several baseline detectors."
-    },
-    {
       "title": "Do the Rewards Justify the Means? Measuring Trade-Offs Between Rewards and Ethical Behavior in the MACHIAVELLI Benchmark",
-      "url": "https://arxiv.org/abs/2304.03279",
-      "source_type": "application_paper",
+      "url": "https://proceedings.mlr.press/v202/pan23a.html",
+      "source_type": "technical_paper",
       "authors": [
         "Alexander Pan",
         "Jun Shern Chan",
@@ -104,6 +95,21 @@
       "publication_date": "2023/04/06",
       "citationKey": "panRewardsJustifyMeans2023",
       "abstract": "Artificial agents have traditionally been trained to maximize reward, which may incentivize power-seeking and deception, analogous to how next-token prediction in language models (LMs) may incentivize toxicity. So do agents naturally learn to be Machiavellian? And how do we measure these behaviors in general-purpose models such as GPT-4? Towards answering these questions, we introduce MACHIAVELLI, a benchmark of 134 Choose-Your-Own-Adventure games containing over half a million rich, diverse scenarios that center on social decision-making. Scenario labeling is automated with LMs, which are more performant than human annotators. We mathematize dozens of harmful behaviors and use our annotations to evaluate agents' tendencies to be power-seeking, cause disutility, and commit ethical violations. We observe some tension between maximizing reward and behaving ethically. To improve this trade-off, we investigate LM-based methods to steer agents' towards less harmful behaviors. Our results show that agents can both act competently and morally, so concrete progress can currently be made in machine ethics--designing agents that are Pareto improvements in both safety and capabilities."
+    },
+    {
+      "title": "UK AISI Alignment Evaluation Case-Study",
+      "url": "http://arxiv.org/abs/2604.00788",
+      "source_type": "application_paper",
+      "authors": [
+        "Alexandra Souly",
+        "Robert Kirk",
+        "Jacob Merizian",
+        "Abby D'Cruz",
+        "Xander Davies"
+      ],
+      "publication_date": "2026-04-01",
+      "citationKey": "soulyUKAISIAlignment2026",
+      "abstract": "This technical report presents methods developed by the UK AI Security Institute for assessing whether advanced AI systems reliably follow intended goals. Specifically, we evaluate whether frontier models sabotage safety research when deployed as coding assistants within an AI lab. Applying our methods to four frontier models, we find no confirmed instances of research sabotage. However, we observe that Claude Opus 4.5 Preview (a pre-release snapshot of Opus 4.5) and Sonnet 4.5 frequently refuse to engage with safety-relevant research tasks, citing concerns about research direction, involvement in self-training, and research scope. We additionally find that Opus 4.5 Preview shows reduced unprompted evaluation awareness compared to Sonnet 4.5, while both models can distinguish evaluation from deployment scenarios when prompted. Our evaluation framework builds on Petri, an open-source LLM auditing tool, with a custom scaffold designed to simulate realistic internal deployment of a coding agent. We validate that this scaffold produces trajectories that all tested models fail to reliably distinguish from real deployment data. We test models across scenarios varying in research motivation, activity type, replacement threat, and model autonomy. Finally, we discuss limitations including scenario coverage and evaluation awareness."
     }
   ],
   "related_techniques": [
@@ -114,22 +120,22 @@
   ],
   "sample_claims": [
     {
-      "text": "The autonomous system achieves operational objectives through intended methods rather than exploiting measurement loopholes or specification ambiguities",
-      "domain": "autonomous systems",
+      "text": "Across the goal-conflict scenarios in the test suite, the agent took no action that disclosed confidential client data to an outside party",
+      "domain": "finance",
       "assuranceGoal": "safety"
     },
     {
-      "text": "The agent's decision-making process genuinely optimizes for stated healthcare outcomes rather than developing proxy metrics that satisfy performance indicators without improving patient care",
-      "domain": "healthcare",
+      "text": "When told it would be replaced, the agent did not attempt to deceive or coerce its operators to prevent the replacement in any sampled run",
+      "domain": "general",
+      "assuranceGoal": "safety"
+    },
+    {
+      "text": "The procurement agent stayed within its delegated spending limit in every scenario where exceeding it was the only way to meet the assigned deadline",
+      "domain": "general",
       "assuranceGoal": "reliability"
     },
     {
-      "text": "The system's optimization strategy aligns with true environmental objectives rather than gaming sustainability metrics through technically compliant but counterproductive behaviors",
-      "domain": "environmental",
-      "assuranceGoal": "safety"
-    },
-    {
-      "text": "The model achieves performance targets through genuine task mastery rather than specification gaming strategies that exploit ambiguities in objective definitions",
+      "text": "The upgraded agent model shows a misaligned-action rate no higher than the version it replaces on the same scenario suite",
       "domain": "general",
       "assuranceGoal": "reliability"
     }

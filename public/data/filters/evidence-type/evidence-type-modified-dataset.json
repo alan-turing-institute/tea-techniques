@@ -2,14 +2,14 @@
   "tag": {
     "name": "evidence-type/modified-dataset",
     "slug": "evidence-type-modified-dataset",
-    "count": 5,
+    "count": 6,
     "category": "evidence-type"
   },
   "techniques": [
     {
       "slug": "reweighing",
       "name": "Reweighing",
-      "description": "Reweighing is a pre-processing technique that mitigates bias by assigning different weights to training examples based on their group membership and class label. The weights are calculated to ensure that privileged and unprivileged groups have equal influence on the model's training process, effectively balancing the dataset without altering the feature values themselves. This helps to train fairer models by correcting for historical imbalances in how different groups are represented in the data.",
+      "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
       "assurance_goals": [
         "Fairness",
         "Transparency"
@@ -18,47 +18,51 @@
         "applicable-models/architecture/model-agnostic",
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/black-box",
-        "data-requirements/access-to-training-data",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/audit-trail",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
         "data-type/any",
+        "evidence-type/modified-dataset",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/statistics",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
-        "technique-type/algorithmic",
-        "expertise-needed/statistics",
-        "expertise-needed/domain-expertise",
-        "evidence-type/modified-dataset"
+        "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "In a loan application system, if historical data shows that a higher proportion of applicants from a minority group were denied loans (negative outcome), reweighing would assign higher weights to these instances. This forces the model to pay more attention to correctly classifying the underrepresented group, aiming to correct for historical bias and improve fairness metrics like equal opportunity.",
+          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model.",
           "goal": "Fairness"
         },
         {
-          "description": "When developing a hiring model, if the training data contains fewer female applicants for senior roles, reweighing can be applied to increase the importance of these instances. This helps to prevent the model from learning a spurious correlation between gender and seniority, ensuring that female candidates are evaluated more equitably during the screening process.",
+          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one.",
           "goal": "Fairness"
         },
         {
-          "description": "In a medical diagnosis system, reweighing provides transparency by explicitly showing which demographic groups required adjustment for balanced representation. The computed weights serve as documentation of historical bias patterns in medical data, helping clinicians understand potential disparities and ensuring the model's decisions are based on medical evidence rather than demographic correlations.",
+          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "An auditor reviewing a benefits-fraud model asks for the table of reweighing weights kept with the training run. A weight of 1.8 on one nationality group's not-fraud cases shows how far that group's historical labels departed from independence, and the table records exactly how the training data were adjusted, so the auditor can reconstruct the intervention without rerunning it.",
           "goal": "Transparency"
         }
       ],
       "limitations": [
         {
-          "description": "The technique only adjusts the overall influence of demographic groups and does not address biases that may be encoded within the features themselves."
+          "description": "Its target is fixed: equal rates of positive labels across groups in the weighted training data (statistical parity). It does not aim at equal error rates such as equal opportunity, and the weights are computed once, before training, so they cannot respond to where the trained model actually errs. An adaptive variant (Krasanakis et al., 2018) re-estimates weights during training for error-rate criteria, but it has no maintained implementation."
         },
         {
-          "description": "Assigning very high weights to a small number of instances from an underrepresented group can increase the model's variance and make it sensitive to outliers, potentially harming generalisation."
+          "description": "It removes all association between group and label, including any part a legitimate factor explains. Kamiran and Calders give the example of car insurance, where more accidents among men may justify different outcomes by sex; reweighing erases that difference too, so it over-corrects wherever some gap between groups is warranted."
         },
         {
-          "description": "The effectiveness of reweighing depends on the assumption that the labels in the training data are accurate; it cannot correct for label bias where outcomes were themselves the result of historical discrimination."
+          "description": "The learning algorithm must accept example weights; where it cannot, the data have to be resampled instead, which is a different method. Only the training data are balanced, so the trained model's predictions are not guaranteed to be: outcome rates by group must be measured on held-out data after training rather than assumed."
         },
         {
-          "description": "It may not be effective if the feature distributions for different groups are fundamentally different, as it cannot change the underlying data relationships."
+          "description": "When a group-label combination is rare its weight is large (a combination with a tenth of its expected count gets a weight of ten), so a handful of examples can dominate training. This raises variance and amplifies any labelling errors in exactly the group the method is meant to protect, and it bites hardest with small or intersectional groups."
         }
       ],
       "resources": [
@@ -138,18 +142,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The lending model's training process gives equal consideration to applicants from all demographic groups regardless of their representation in historical data",
+          "text": "The approval model was trained on loan history reweighed so that every ethnic group has the same approval rate in the weighted data, and its approval-rate gap on held-out applicants is reported alongside its accuracy.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The hiring system's learned patterns reflect balanced influence from all candidate demographics rather than reinforcing historical application imbalances",
+          "text": "The postpartum depression outreach model, trained with reweighing by race, has a disparate impact ratio within the agreed range on held-out patients.",
+          "domain": "healthcare",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The model training adjustments applied to address historical group imbalances are quantified and documented for regulatory review",
-          "domain": "finance",
+          "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
+          "domain": "public sector",
           "assuranceGoal": "transparency"
         }
       ]
@@ -646,7 +655,7 @@
         },
         {
           "title": "Counterfactual Fairness",
-          "url": "https://proceedings.neurips.cc/paper/2017/file/a486cd07e4ac3d270571622f4f316ec5-Paper.pdf",
+          "url": "https://proceedings.neurips.cc/paper/2017/hash/a486cd07e4ac3d270571622f4f316ec5-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
             "Matt J. Kusner",
@@ -677,8 +686,8 @@
       "complexity_rating": 1,
       "computational_cost_rating": 1,
       "related_techniques": [
-        "bayesian-fairness-regularization",
-        "sensitivity-analysis-for-fairness",
+        "fair-bayesian-optimisation",
+        "fairness-testing",
         "reweighing"
       ],
       "sample_claims": [
@@ -708,7 +717,111 @@
           "assuranceGoal": "transparency"
         }
       ]
+    },
+    {
+      "slug": "fair-adversarial-networks",
+      "name": "Fair Adversarial Networks",
+      "description": "Fair Adversarial Networks is a pre-processing method, proposed by Cevora (2020), that produces a de-biased copy of a dataset from which a protected characteristic such as race, sex or age can no longer be predicted, including through proxies such as postcode or occupation. It trains two neural networks against each other: an autoencoder (a network that learns to reproduce its input) rewrites each record while trying to keep it as close to the original as possible, and an adversary network tries to predict the protected characteristic from the rewritten records. The autoencoder's loss adds its reconstruction error to the adversary's predictive success, so over alternating rounds of training it learns to remove the information the adversary relies on while changing the data as little as it can. The output is the rewritten dataset, which any downstream analysis or model can use without modification, together with the evidence that a freshly trained adversary predicts the characteristic no better than always guessing the most common category.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/pre-processing",
+        "data-requirements/access-to-training-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/modified-dataset",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A probation service's analytics team wants to model reoffending from defendant records in which race is encoded indirectly, through charge descriptions and neighbourhood. It runs the records through a Fair Adversarial Network before modelling, confirms that a freshly trained classifier can no longer predict race from the transformed data better than chance, and then checks that predicted risk no longer differs by race among defendants with the same recorded outcome.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "An HR analytics team at a courier company building an absenteeism model removes information about employees' age group from its personnel records, including through proxies such as length of service and family circumstances, so that the standard modelling tools its analysts already use can run on the transformed data unchanged.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A local education authority allocating support funding with a model of school performance data de-biases the data with respect to each school's majority ethnic composition before modelling, and keeps the adversary's chance-level result and the reconstruction error with the funding model's documentation as evidence of what was removed and how much the data changed.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "No public implementation exists. The paper withholds the parts that make training practical (an approximation of how well a fully trained adversary would do, a stabilising mechanism and regularisers) as its company's intellectual property, saying only that standard approaches can replicate the result on a one-off basis with heavy tuning, and the company's web tool is no longer online. Adopting the method means reimplementing it from the paper."
+        },
+        {
+          "description": "It removes every trace of the protected characteristic, including relationships that are legitimate or deliberately protective; the author notes it also removes positive discrimination. Where the characteristic carries legitimate information, such as sex in some clinical data, that information goes along with the bias, and the accuracy drops seen on the demonstration datasets cannot be split into bias removed and signal lost."
+        },
+        {
+          "description": "Success is judged against one adversary: in the paper, a single-hidden-layer network trained from three random starts. A more capable model may still recover the characteristic from the rewritten data, and the author states that residual discrimination is likely still present and was not analysed, so a chance-level adversary is weaker evidence than it appears."
+        },
+        {
+          "description": "Every variable in every record can be altered by the autoencoder, so the de-biased dataset no longer contains the original values. Individual records cannot be checked against source data, feature meanings drift, and any explanation of a downstream model refers to transformed features rather than to the applicant's actual postcode or income."
+        },
+        {
+          "description": "Adversarial training is unstable and its settings have no principled choice: the weight balancing reconstruction against the adversary, the network architectures and the stopping point all need tuning per dataset. The paper keeps the lowest-loss state to guard against run-away training and describes its own convergence as fairly sub-optimal."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Fair Adversarial Networks",
+          "url": "https://arxiv.org/abs/2002.12144",
+          "source_type": "technical_paper",
+          "authors": [
+            "George Cevora"
+          ],
+          "publication_date": "2020-02-23",
+          "citationKey": "cevoraFairAdversarialNetworks2020",
+          "abstract": "The influence of human judgement is ubiquitous in datasets used across the analytics industry, yet humans are known to be sub-optimal decision makers prone to various biases. Analysing biased datasets then leads to biased outcomes of the analysis. Bias by protected characteristics (e.g. race) is of particular interest as it may not only make the output of analytical process sub-optimal, but also illegal. Countering the bias by constraining the analytical outcomes to be fair is problematic because A) fairness lacks a universally accepted definition, while at the same time some definitions are mutually exclusive, and B) the use of optimisation constraints ensuring fairness is incompatible with most analytical pipelines. Both problems are solved by methods which remove bias from the data and returning an altered dataset. This approach aims to not only remove the actual bias variable (e.g. race), but also alter all proxy variables (e.g. postcode) so the bias variable is not detectable from the rest of the data. The advantage of using this approach is that the definition of fairness as a lack of detectable bias in the data (as opposed to the output of analysis) is universal and therefore solves problem (A). Furthermore, as the data is altered to remove bias the problem (B) disappears because the analytical pipelines can remain unchanged. This approach has been adopted by several technical solutions. None of them, however, seems to be satisfactory in terms of ability to remove multivariate, non-linear and non-binary biases. Therefore, in this paper I propose the concept of Fair Adversarial Networks as an easy-to-implement general method for removing bias from data. This paper demonstrates that Fair Adversarial Networks achieve this aim."
+        },
+        {
+          "title": "Demonstrating Rosa: the fairness solution for any Data Analytic pipeline",
+          "url": "https://arxiv.org/abs/2003.00899",
+          "source_type": "application_paper",
+          "authors": [
+            "Kate Wilkinson",
+            "George Cevora"
+          ],
+          "publication_date": "2020-02-28",
+          "citationKey": "wilkinsonDemonstratingRosaFairness2020",
+          "abstract": "Most datasets of interest to the analytics industry are impacted by various forms of human bias. The outcomes of Data Analytics [DA] or Machine Learning [ML] on such data are therefore prone to replicating the bias. As a result, a large number of biased decision-making systems based on DA/ML have recently attracted attention. In this paper we introduce Rosa, a free, web-based tool to easily de-bias datasets with respect to a chosen characteristic. Rosa is based on the principles of Fair Adversarial Networks, developed by illumr Ltd., and can therefore remove interactive, non-linear, and non-binary bias. Rosa is stand-alone pre-processing step / API, meaning it can be used easily with any DA/ML pipeline. We test the efficacy of Rosa in removing bias from data-driven decision making systems by performing standard DA tasks on five real-world datasets, selected for their relevance to current DA problems, and also their high potential for bias. We use simple ML models to model a characteristic of analytical interest, and compare the level of bias in the model output both with and without Rosa as a pre-processing step. We find that in all cases there is a substantial decrease in bias of the data-driven decision making systems when the data is pre-processed with Rosa."
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
+      "related_techniques": [
+        "adversarial-debiasing",
+        "exponentiated-gradient-reduction",
+        "fairness-gan"
+      ],
+      "sample_claims": [
+        {
+          "text": "A classifier trained on the de-biased reoffending dataset cannot predict defendants' race better than always guessing the majority group.",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The personnel records used to train the absenteeism model carry no recoverable information about employees' age group, including through proxies such as length of service.",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The school funding model was trained on data de-biased with respect to majority ethnic composition, and its predictions no longer differ by that composition among schools with the same recorded performance.",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        }
+      ]
     }
   ],
-  "count": 5
+  "count": 6
 }

@@ -1,0 +1,140 @@
+{
+  "slug": "platt-scaling",
+  "name": "Platt Scaling",
+  "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score or log loss before and after.",
+  "assurance_goals": [
+    "Reliability",
+    "Transparency",
+    "Fairness"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/paradigm/supervised",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/calibration",
+    "assurance-goal-category/transparency",
+    "assurance-goal-category/transparency/confidence-and-limits",
+    "assurance-goal-category/fairness",
+    "assurance-goal-category/fairness/performance-by-group",
+    "data-requirements/calibration-set",
+    "data-type/any",
+    "evidence-type/model-artefact",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/statistics",
+    "technique-type/algorithmic",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A retail bank's credit-risk team finds that its gradient-boosted default model ranks applicants well but squeezes predicted default probabilities towards the middle of the range. Before the probabilities feed expected-loss provisioning, the team fits Platt scaling on a held-out year of loan outcomes and checks on a reliability diagram that predicted and observed default rates agree in every score decile.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A benefits agency uses a linear support vector machine to flag claims for manual review, but its margin scores mean nothing to caseworkers. The team applies Platt scaling so the review screen can show the probability that a claim needs correcting, publishes the calibration curve in the caseworker guidance, and explains that the figure is a rate across similar claims rather than a verdict on the individual.",
+      "goal": "Transparency"
+    },
+    {
+      "description": "A hospital network recalibrates a deployed malnutrition-risk model by fitting a two-parameter logistic map to the model's log-odds on recent admissions, then compares calibration intercept and slope separately for Black and White patients and for men and women, to check that the same risk score means the same likelihood of malnutrition in each group before the scores guide dietitian referrals.",
+      "goal": "Fairness"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "The sigmoid shape is an assumption. It corrects the S-shaped distortion typical of support vector machines and boosted trees, whose probabilities bunch towards the middle, but not the reverse distortion of overconfident models such as naive Bayes, whose probabilities pile up near 0 and 1. Where the reliability diagram shows that pattern, a flexible method such as isotonic regression is needed."
+    },
+    {
+      "description": "It works best when the classifier's scores for the two classes are spread in a similar way (roughly normal with equal variance). In highly imbalanced problems this often fails, and a two-parameter fit can leave the rare class poorly calibrated, which an overall score such as the Brier score can hide."
+    },
+    {
+      "description": "The curve must be fitted on labelled cases that played no part in training. The classifier separates its own training data better than new data, so a curve fitted to training scores overstates confidence in use; the cost is a held-out calibration set taken from scarce labelled data, or cross-validation with several model fits."
+    },
+    {
+      "description": "A single curve fitted across the whole population does not guarantee calibration within each subgroup. Fitting a separate curve per group needs group membership at prediction time, which may be unavailable or unlawful to use, and enough labelled cases in every group to estimate two parameters reliably."
+    },
+    {
+      "description": "It is defined for two classes. For multiclass problems each class is calibrated against the rest and the resulting probabilities are renormalised to sum to one, adding two parameters per class; for multiclass neural networks, temperature scaling, which fits one parameter shared by all classes, is the simpler alternative."
+    }
+  ],
+  "resources": [
+    {
+      "title": "1.16. Probability calibration — scikit-learn user guide",
+      "url": "https://scikit-learn.org/stable/modules/calibration.html",
+      "source_type": "documentation",
+      "citationKey": "116ProbabilityCalibration",
+      "abstract": "When performing classification you often want not only to predict the class label, but also obtain a probability of the respective label. This probability gives you some kind of confidence on the p..."
+    },
+    {
+      "title": "scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn",
+      "source_type": "software_package",
+      "citationKey": "Scikitlearn",
+      "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
+    },
+    {
+      "title": "Probabilities for SV Machines",
+      "url": "https://doi.org/10.7551/mitpress/1113.003.0008",
+      "source_type": "technical_paper",
+      "authors": [
+        "John C. Platt"
+      ],
+      "publication_date": "2000-9-29",
+      "citationKey": "plattProbabilitiesSVMachines2000"
+    },
+    {
+      "title": "Probability Calibration curves — scikit-learn",
+      "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
+      "source_type": "tutorial",
+      "citationKey": "ProbabilityCalibrationCurves",
+      "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
+    },
+    {
+      "title": "Assessing calibration and bias of a deployed machine learning malnutrition prediction model within a large healthcare system",
+      "url": "https://doi.org/10.1038/s41746-024-01141-5",
+      "source_type": "application_paper",
+      "authors": [
+        "Lathan Liou",
+        "Erick Scott",
+        "Prathamesh Parchure",
+        "Yuxia Ouyang",
+        "Natalia Egorova",
+        "Robert Freeman",
+        "Ira S. Hofer",
+        "Girish N. Nadkarni",
+        "Prem Timsina",
+        "Arash Kia",
+        "Matthew A. Levin"
+      ],
+      "publication_date": "2024-6-6",
+      "citationKey": "liouAssessingCalibrationBias2024"
+    }
+  ],
+  "complexity_rating": 1,
+  "computational_cost_rating": 1,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "After Platt scaling on a held-out year of loan outcomes, the default model's predicted probabilities agree with observed default rates in every score decile, within the tolerance set in the model risk policy.",
+      "assuranceGoal": "reliability",
+      "domain": "finance"
+    },
+    {
+      "text": "Recalibrating the defect classifier with Platt scaling left its ranking of parts, measured by the area under the ROC curve on the test set, unchanged while reducing its log loss.",
+      "assuranceGoal": "reliability",
+      "domain": "manufacturing"
+    },
+    {
+      "text": "The probability shown to caseworkers for each flagged claim is calibrated against held-out review outcomes, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
+      "assuranceGoal": "transparency",
+      "domain": "public sector"
+    },
+    {
+      "text": "After recalibration, the malnutrition-risk model's calibration intercept and slope do not differ materially between patients grouped by race or by sex.",
+      "assuranceGoal": "fairness",
+      "domain": "healthcare"
+    }
+  ]
+}

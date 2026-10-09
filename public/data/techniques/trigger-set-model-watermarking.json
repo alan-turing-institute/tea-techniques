@@ -1,0 +1,161 @@
+{
+  "slug": "trigger-set-model-watermarking",
+  "name": "Trigger-Set Model Watermarking",
+  "description": "Trigger-set model watermarking lets the owner of a trained classifier show later that a suspect model was copied from theirs, by planting a secret behaviour that only the owner can demonstrate. Before release, the owner chooses a small secret trigger set (in the originating scheme, 100 abstract images), gives each input a label the model would not otherwise predict, and trains or fine-tunes the model to return those labels while keeping its accuracy on the real task. In the originating scheme the owner also records cryptographic commitments to the trigger inputs and their labels, which fix the watermark at release so that a trigger set cannot be invented once a dispute has begun. To verify, the owner, or an arbiter shown the opened commitments, sends the trigger inputs to the suspect model through its ordinary prediction interface and counts how many return the assigned labels; an independently trained model matches them at about chance level, so a match rate above a preset threshold is evidence of copying. The technique produces the watermarked model, the commitments and, for each verification, the suspect model's trigger-set accuracy against the threshold.",
+  "assurance_goals": [
+    "Security",
+    "Transparency"
+  ],
+  "tags": [
+    "applicable-models/architecture/neural-networks",
+    "applicable-models/paradigm/supervised",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/security",
+    "assurance-goal-category/security/protection",
+    "assurance-goal-category/transparency",
+    "assurance-goal-category/transparency/confidential-verification",
+    "data-requirements/access-to-training-data",
+    "data-type/image",
+    "technique-type/algorithmic",
+    "evidence-type/quantitative-metric",
+    "evidence-type/model-artefact",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/security",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-selection-and-training",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A medical-imaging company that licenses a chest X-ray classifier for installation on hospital servers, where the weights leave its control, embeds a trigger set before each release and keeps the commitments. When a near-identical model appears in a rival's product, it queries that product with the trigger images to decide whether there is enough evidence to pursue a licence breach.",
+      "goal": "Security"
+    },
+    {
+      "description": "Before relying on the watermark in its licence terms, the security team of a retailer that sells access to a visual product-search model runs the fine-tuning and pruning attacks in its threat model against the watermarked model, and reports the trigger-set accuracy that survives each, to set the verification threshold and state what the watermark can and cannot evidence.",
+      "goal": "Security"
+    },
+    {
+      "description": "In a licensing dispute over a satellite-imagery land-use classifier used by a local authority, the developer opens its pre-release commitments to an independent expert, who queries the disputed model's prediction service with the trigger images and reports the match rate against a threshold agreed in advance, without either party handing over model weights.",
+      "goal": "Transparency"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "Removal attacks defeat it in practice. A systematic evaluation of published schemes, trigger-set schemes among them, found none robust against adaptive removal attacks or known ways of deriving a surrogate model, and in the originating paper re-training all layers sharply reduced trigger-set accuracy in models watermarked by fine-tuning. A failed verification does not show a model was not copied, and a robustness claim holds only for the attacks tested."
+    },
+    {
+      "description": "It evidences copying of the model, not theft through its prediction interface. A copy built by querying the deployed model and training a new one on its answers (model extraction or distillation) need never see the trigger inputs, and the systematic evaluation found these schemes fail against such surrogate-derivation methods, so extraction needs other defences."
+    },
+    {
+      "description": "Verification reveals the secret. Sending trigger inputs to a suspect's interface, or showing them to an arbiter, exposes them; an adversary who learns them can fine-tune them away or filter those queries, so verification is in effect single-use unless several trigger sets were embedded or a zero-knowledge protocol is used, both of which the originating paper describes and both of which add work."
+    },
+    {
+      "description": "Without commitments lodged before release the evidence is weak: whoever holds a copy can embed a second trigger set of their own and claim ownership, which the originating paper shows is possible while the first watermark survives. A claim stands only if the owner can show its commitments existed before the disputed model did."
+    },
+    {
+      "description": "The scheme and its evaluations cover image classifiers that the owner can train or fine-tune with access to the training data. Generative and language models need different designs, and the threshold must reflect the number of classes: an unwatermarked model matched 7.0% of trigger labels on 10-class CIFAR-10 but 1.0% on 100-class CIFAR-100, so chance agreement is far higher with few classes."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Protecting Intellectual Property of Deep Neural Networks with Watermarking",
+      "url": "https://doi.org/10.1145/3196494.3196550",
+      "source_type": "technical_paper",
+      "authors": [
+        "Jialong Zhang",
+        "Zhongshu Gu",
+        "Jiyong Jang",
+        "Hui Wu",
+        "M. Stoecklin",
+        "Heqing Huang",
+        "Ian Molloy"
+      ],
+      "publication_date": "2018",
+      "citationKey": "zhangProtectingIntellectualProperty2018",
+      "abstract": "Deep learning technologies, which are the key components of state-of-the-art Artificial Intelligence (AI) services, have shown great success in providing human-level capabilities for a variety of tasks, such as visual analysis, speech recognition, and natural language processing and etc. Building a production-level deep learning model is a non-trivial task, which requires a large amount of training data, powerful computing resources, and human expertises. Therefore, illegitimate reproducing, distribution, and the derivation of proprietary deep learning models can lead to copyright infringement and economic harm to model creators. Therefore, it is essential to devise a technique to protect the intellectual property of deep learning models and enable external verification of the model ownership. In this paper, we generalize the \"digital watermarking'' concept from multimedia ownership verification to deep neural network (DNNs) models. We investigate three DNN-applicable watermark generation algorithms, propose a watermark implanting approach to infuse watermark into deep learning models, and design a remote verification mechanism to determine the model ownership. By extending the intrinsic generalization and memorization capabilities of deep neural networks, we enable the models to learn specially crafted watermarks at training and activate with pre-specified predictions when observing the watermark patterns at inference. We evaluate our approach with two image recognition benchmark datasets. Our framework accurately (100%) and quickly verifies the ownership of all the remotely deployed deep learning models without affecting the model accuracy for normal input data. In addition, the embedded watermarks in DNN models are robust and resilient to different counter-watermark mechanisms, such as fine-tuning, parameter pruning, and model inversion attacks."
+    },
+    {
+      "title": "Watermark-Robustness-Toolbox",
+      "url": "https://github.com/dnn-security/Watermark-Robustness-Toolbox",
+      "source_type": "software_package",
+      "publication_date": "2021-08-09",
+      "citationKey": "dnn-securityWatermarkRobustnessToolbox2021",
+      "abstract": "The official implementation of the IEEE S&P`22 paper \"SoK: How Robust is Deep Neural Network Image Classification Watermarking\"."
+    },
+    {
+      "title": "Turning Your Weakness Into a Strength: Watermarking Deep Neural Networks by Backdooring",
+      "url": "https://www.usenix.org/conference/usenixsecurity18/presentation/adi",
+      "source_type": "technical_paper",
+      "authors": [
+        "Yossi Adi",
+        "Carsten Baum",
+        "Moustapha Cisse",
+        "Benny Pinkas",
+        "Joseph Keshet"
+      ],
+      "publication_date": "2018",
+      "citationKey": "adiTurningYourWeakness2018"
+    },
+    {
+      "title": "WatermarkNN (PyTorch implementation of Adi et al. 2018)",
+      "url": "https://github.com/adiyoss/WatermarkNN",
+      "source_type": "software_package",
+      "publication_date": "2026-09-16T15:01:21Z",
+      "citationKey": "adiWatermarkNNPyTorchImplementation2026",
+      "abstract": "Watermarking Deep Neural Networks (USENIX 2018)"
+    },
+    {
+      "title": "Neural Network Watermarking (MPAI-NNW)",
+      "url": "https://mpai.community/standards/mpai-nnw/",
+      "source_type": "documentation",
+      "citationKey": "NeuralNetworkWatermarking",
+      "abstract": "Technical Specification: Neural Network Watermarking (MPAI-NNW) – Technologies (NNW-TEC) V1.0 (html, pdf) Technical Specification: Neural Network Watermarking (MPAI-NNW) – Neural Network Traceability (NNW-NNT) V1.1 (html, pdf) MPAI-NNW Reference Software V1.2 Reference Software code Introduction to NNW-TEC V1.0 What MPAI-NNW is about Description of MPAI-NNW Neural Network Watermarking (MPAI-NNW) is an MPAI project developing Technical Specifications […]"
+    },
+    {
+      "title": "SoK: How Robust is Image Classification Deep Neural Network Watermarking?",
+      "url": "https://doi.org/10.1109/sp46214.2022.9833693",
+      "source_type": "application_paper",
+      "authors": [
+        "Nils Lukas",
+        "Edward Jiang",
+        "Xinda Li",
+        "Florian Kerschbaum"
+      ],
+      "publication_date": "2022-5",
+      "citationKey": "lukasSoKHowRobust2022"
+    }
+  ],
+  "related_techniques": [
+    "data-poisoning-detection",
+    "model-extraction-defence-testing",
+    "membership-inference-attack-testing"
+  ],
+  "sample_claims": [
+    {
+      "text": "The released model carries a trigger-set watermark whose trigger inputs and labels were committed to, and the commitments lodged, before release",
+      "domain": "general",
+      "assuranceGoal": "security"
+    },
+    {
+      "text": "Embedding the watermark reduced the diagnostic model's test accuracy by no more than the tolerance agreed with the clinical safety team",
+      "domain": "healthcare",
+      "assuranceGoal": "security"
+    },
+    {
+      "text": "The watermark remained verifiable above the decision threshold after each fine-tuning and pruning attack in the stated threat model",
+      "domain": "general",
+      "assuranceGoal": "security"
+    },
+    {
+      "text": "Models trained independently on the same task matched the trigger labels at no more than chance level, giving the verification threshold a measured margin against false ownership claims",
+      "domain": "general",
+      "assuranceGoal": "security"
+    },
+    {
+      "text": "Ownership of the licensed model can be demonstrated to an independent arbiter through prediction queries alone, without disclosing either party's model weights",
+      "domain": "public sector",
+      "assuranceGoal": "transparency"
+    }
+  ]
+}

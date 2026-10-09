@@ -1,62 +1,55 @@
 {
   "slug": "fair-adversarial-networks",
   "name": "Fair Adversarial Networks",
-  "description": "An in-processing fairness technique that employs adversarial training with dual neural networks to learn fair representations. The method consists of a predictor network that learns the main task whilst an adversarial discriminator network simultaneously attempts to predict sensitive attributes from the predictor's hidden representations. Through this adversarial min-max game, the predictor is incentivised to learn features that are informative for the task but statistically independent of protected attributes, effectively removing bias at the representation level in deep learning models.",
+  "description": "Fair Adversarial Networks is a pre-processing method, proposed by Cevora (2020), that produces a de-biased copy of a dataset from which a protected characteristic such as race, sex or age can no longer be predicted, including through proxies such as postcode or occupation. It trains two neural networks against each other: an autoencoder (a network that learns to reproduce its input) rewrites each record while trying to keep it as close to the original as possible, and an adversary network tries to predict the protected characteristic from the rewritten records. The autoencoder's loss adds its reconstruction error to the adversary's predictive success, so over alternating rounds of training it learns to remove the information the adversary relies on while changing the data as little as it can. The output is the rewritten dataset, which any downstream analysis or model can use without modification, together with the evidence that a freshly trained adversary predicts the characteristic no better than always guessing the most common category.",
   "assurance_goals": [
-    "Fairness",
-    "Transparency"
+    "Fairness"
   ],
   "tags": [
-    "applicable-models/architecture/neural-networks",
-    "applicable-models/paradigm/discriminative",
-    "applicable-models/paradigm/parametric",
+    "applicable-models/architecture/model-agnostic",
     "applicable-models/paradigm/supervised",
-    "applicable-models/requirements/gradient-access",
-    "applicable-models/requirements/model-internals",
-    "data-requirements/access-to-training-data",
-    "applicable-models/requirements/white-box",
+    "applicable-models/requirements/black-box",
     "assurance-goal-category/fairness",
-    "assurance-goal-category/fairness/in-processing",
-    "assurance-goal-category/transparency",
-    "assurance-goal-category/transparency/assessment-results",
-    "data-requirements/labelled-data",
+    "assurance-goal-category/fairness/pre-processing",
+    "data-requirements/access-to-training-data",
     "data-requirements/sensitive-attributes",
-    "data-type/any",
+    "data-type/tabular",
+    "evidence-type/modified-dataset",
+    "expertise-needed/deep-learning",
     "expertise-needed/ml-engineering",
-    "expertise-needed/statistics",
     "lifecycle-stage/model-development",
-    "lifecycle-stage/model-development/model-selection-and-training",
-    "technique-type/algorithmic",
-    "evidence-type/model-artefact"
+    "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+    "technique-type/algorithmic"
   ],
   "example_use_cases": [
     {
-      "description": "Training a facial recognition system that maintains high accuracy for person identification whilst ensuring equal performance across different ethnic groups, using adversarial training to remove race-related features from learned representations.",
+      "description": "A probation service's analytics team wants to model reoffending from defendant records in which race is encoded indirectly, through charge descriptions and neighbourhood. It runs the records through a Fair Adversarial Network before modelling, confirms that a freshly trained classifier can no longer predict race from the transformed data better than chance, and then checks that predicted risk no longer differs by race among defendants with the same recorded outcome.",
       "goal": "Fairness"
     },
     {
-      "description": "Developing a resume screening neural network that provides transparent evidence of bias mitigation by demonstrating that learned features cannot predict gender, whilst maintaining predictive performance for job suitability assessment.",
-      "goal": "Transparency"
+      "description": "An HR analytics team at a courier company building an absenteeism model removes information about employees' age group from its personnel records, including through proxies such as length of service and family circumstances, so that the standard modelling tools its analysts already use can run on the transformed data unchanged.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "A local education authority allocating support funding with a model of school performance data de-biases the data with respect to each school's majority ethnic composition before modelling, and keeps the adversary's chance-level result and the reconstruction error with the funding model's documentation as evidence of what was removed and how much the data changed.",
+      "goal": "Fairness"
     }
   ],
   "limitations": [
     {
-      "description": "Implementation complexity is high, requiring careful design of adversarial loss functions and balancing multiple competing objectives during training."
+      "description": "No public implementation exists. The paper withholds the parts that make training practical (an approximation of how well a fully trained adversary would do, a stabilising mechanism and regularisers) as its company's intellectual property, saying only that standard approaches can replicate the result on a one-off basis with heavy tuning, and the company's web tool is no longer online. Adopting the method means reimplementing it from the paper."
     },
     {
-      "description": "Sensitive to hyperparameter choices, particularly the trade-off weights between prediction accuracy and adversarial loss, which require extensive tuning."
+      "description": "It removes every trace of the protected characteristic, including relationships that are legitimate or deliberately protective; the author notes it also removes positive discrimination. Where the characteristic carries legitimate information, such as sex in some clinical data, that information goes along with the bias, and the accuracy drops seen on the demonstration datasets cannot be split into bias removed and signal lost."
     },
     {
-      "description": "Adversarial training can be unstable, with potential for mode collapse or failure to converge, especially in complex deep learning architectures."
+      "description": "Success is judged against one adversary: in the paper, a single-hidden-layer network trained from three random starts. A more capable model may still recover the characteristic from the rewritten data, and the author states that residual discrimination is likely still present and was not analysed, so a chance-level adversary is weaker evidence than it appears."
     },
     {
-      "description": "Interpretability of fairness improvements can be limited, as it may be difficult to verify that sensitive attributes are truly removed from learned representations."
+      "description": "Every variable in every record can be altered by the autoencoder, so the de-biased dataset no longer contains the original values. Individual records cannot be checked against source data, feature meanings drift, and any explanation of a downstream model refers to transformed features rather than to the applicant's actual postcode or income."
     },
     {
-      "description": "Computational overhead is significant due to training two networks simultaneously, increasing both training time and resource requirements."
-    },
-    {
-      "description": "The adversarial objective only removes dependence on explicitly labelled sensitive attributes; proxy variables that correlate with protected characteristics will remain encoded in learned representations. Extending to intersectional fairness across multiple protected attributes requires separate discriminator components or multi-task adversarial architectures, substantially increasing design complexity and training instability."
+      "description": "Adversarial training is unstable and its settings have no principled choice: the weight balancing reconstruction against the adversary, the network architectures and the stopping point all need tuning per dataset. The paper keeps the lowest-loss state to guard against run-away training and describes its own convergence as fairly sub-optimal."
     }
   ],
   "resources": [
@@ -93,24 +86,19 @@
   ],
   "sample_claims": [
     {
-      "text": "The model's learned representations cannot be used to infer applicants' protected characteristics",
-      "domain": "finance",
+      "text": "A classifier trained on the de-biased reoffending dataset cannot predict defendants' race better than always guessing the majority group.",
+      "domain": "public sector",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The hiring system's internal features maintain predictive power for job performance whilst being statistically independent of demographic attributes",
+      "text": "The personnel records used to train the absenteeism model carry no recoverable information about employees' age group, including through proxies such as length of service.",
       "domain": "general",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The diagnostic model provides evidence that its decision-making features do not encode sensitive patient demographics",
-      "domain": "healthcare",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The model's intermediate representations are demonstrably uninformative about protected attributes whilst preserving task-relevant information",
+      "text": "The school funding model was trained on data de-biased with respect to majority ethnic composition, and its predictions no longer differ by that composition among schools with the same recorded performance.",
       "domain": "public sector",
-      "assuranceGoal": "transparency"
+      "assuranceGoal": "fairness"
     }
   ]
 }

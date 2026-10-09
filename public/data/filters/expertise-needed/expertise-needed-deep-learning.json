@@ -2,61 +2,74 @@
   "tag": {
     "name": "expertise-needed/deep-learning",
     "slug": "expertise-needed-deep-learning",
-    "count": 8,
+    "count": 10,
     "category": "expertise-needed"
   },
   "techniques": [
     {
       "slug": "integrated-gradients",
       "name": "Integrated Gradients",
-      "description": "Integrated Gradients is an attribution technique that explains a model's prediction by quantifying the contribution of each input feature. It works by accumulating gradients along a straight path from a user-defined baseline input (e.g., a black image or an all-zero vector) to the actual input. This path integral ensures that the attributions satisfy fundamental axioms like completeness (attributions sum up to the difference between the prediction and the baseline prediction) and sensitivity (non-zero attributions for features that change the prediction). The output is a set of importance scores, often visualised as heatmaps, indicating which parts of the input were most influential for the model's decision.",
+      "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
       "assurance_goals": [
-        "Explainability"
+        "Explainability",
+        "Fairness"
       ],
       "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/differentiable",
+        "applicable-models/requirements/gradient-access",
         "assurance-goal-category/explainability",
         "assurance-goal-category/explainability/attribution-methods/gradient-based",
         "assurance-goal-category/explainability/explains/feature-importance",
         "assurance-goal-category/explainability/property/completeness",
-        "assurance-goal-category/explainability/property/consistency",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
         "data-requirements/reference-dataset",
-        "data-type/any",
+        "data-type/image",
+        "data-type/tabular",
+        "data-type/text",
         "evidence-type/quantitative-metric",
         "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
         "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
         "explanatory-scope/local",
-        "technique-type/algorithmic",
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/differentiable",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a medical image classification model to understand which specific pixels or regions in an X-ray image contribute most to a diagnosis of pneumonia, ensuring the model focuses on relevant pathological features rather than artifacts.",
+          "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading.",
           "goal": "Explainability"
         },
         {
-          "description": "Explaining the sentiment prediction of a natural language processing model by highlighting which words or phrases in a review most strongly influenced its classification as positive or negative, revealing the model's interpretative focus.",
+          "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question.",
           "goal": "Explainability"
+        },
+        {
+          "description": "A trust-and-safety team investigating false positives in a toxic-content classifier aggregates token attributions over wrongly flagged posts to see whether identity terms, such as the name of a religion or a sexual orientation, rather than abusive language drive the score, and adds counter-examples to the training data where they do.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A lender's model-risk team runs Integrated Gradients over a classifier that reads the free-text statements in loan applications, ranking the most highly attributed words across a sample of declined applications to check whether words that reveal a protected characteristic, or stand in for one, carry weight in the decision.",
+          "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Requires a carefully chosen and meaningful baseline input; an inappropriate baseline can lead to misleading or uninformative attributions."
+          "description": "Attributions are measured against the baseline and no choice is neutral. Features that match the baseline score near zero even when the model relies on them: with a black-image baseline, dark pixels on the object get little credit. A comparison of blurred, noise and training-data baselines found none best, so the baseline is an assumption to state and to vary before drawing conclusions."
         },
         {
-          "description": "The model must be differentiable, which limits its direct application to models with non-differentiable components or discrete inputs without workarounds."
+          "description": "Requires gradient access to a differentiable model, so it cannot explain tree ensembles, rule-based components or a model reached only through an API. For text, the path runs through token embeddings whose intermediate points are not real words, and subword tokenisation splits a word across several scores that must be recombined before a reviewer can read them."
         },
         {
-          "description": "Computationally more expensive than simple gradient-based methods, as it requires multiple gradient calculations along the integration path."
+          "description": "Each explanation needs one gradient computation per step along the path; the original authors found 20 to 300 steps were usually enough for the scores to sum to within 5% of the output difference. Explaining long documents, high-resolution images or a large audit sample therefore costs tens to hundreds of forward and backward passes per prediction."
         },
         {
-          "description": "While satisfying completeness, the attributions can sometimes be visually noisy or difficult for humans to interpret intuitively, especially for complex inputs."
+          "description": "A score shows how sensitive the output was to a feature along one straight path, not that the feature causes the outcome in the world or that removing it would change the decision. Maps over neighbouring pixels or tokens are often noisy, and a plausible-looking heatmap does not show that the model's reasoning is sound."
         }
       ],
       "resources": [
@@ -68,14 +81,6 @@
           "abstract": "Model Interpretability for PyTorch"
         },
         {
-          "title": "Integrated-Gradients",
-          "url": "https://github.com/ankurtaly/Integrated-Gradients",
-          "source_type": "software_package",
-          "publication_date": "2016-11-04",
-          "citationKey": "ankurtalyIntegratedGradients2016",
-          "abstract": "Attributing predictions made by the Inception network using the Integrated Gradients method"
-        },
-        {
           "title": "captum",
           "url": "https://github.com/meta-pytorch/captum",
           "source_type": "software_package",
@@ -85,7 +90,7 @@
         },
         {
           "title": "Axiomatic Attribution for Deep Networks",
-          "url": "https://arxiv.org/abs/1703.01365",
+          "url": "https://proceedings.mlr.press/v70/sundararajan17a.html",
           "source_type": "technical_paper",
           "authors": [
             "Mukund Sundararajan",
@@ -131,17 +136,26 @@
           "citationKey": "sayresUsingDeepLearning2019"
         },
         {
-          "title": "Did the Model Understand the Question?",
-          "url": "https://doi.org/10.18653/v1/p18-1176",
-          "source_type": "application_paper",
+          "title": "Visualizing the Impact of Feature Attribution Baselines",
+          "url": "https://doi.org/10.23915/distill.00022",
+          "source_type": "tutorial",
           "authors": [
-            "Pramod Kaushik Mudrakarta",
-            "Ankur Taly",
-            "Mukund Sundararajan",
-            "Kedar Dhamdhere"
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee",
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee"
           ],
-          "publication_date": "2018",
-          "citationKey": "mudrakartaDidModelUnderstand2018"
+          "publication_date": "2020",
+          "citationKey": "sturmfelsVisualizingImpactFeature2020"
+        },
+        {
+          "title": "Interpreting BERT Models (Part 1) — Captum tutorial",
+          "url": "https://captum.ai/tutorials/Bert_SQUAD_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingBERTModels",
+          "abstract": "Model Interpretability for PyTorch"
         }
       ],
       "complexity_rating": 4,
@@ -154,29 +168,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are attributable to specific anatomical features rather than spurious image artifacts",
+          "text": "The retinopathy grading model's referral predictions are attributable to lesion regions in the retinal image rather than to imaging artefacts, as shown by Integrated Gradients review of a stratified sample of graded cases",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The feature importance scores provided to credit analysts sum exactly to the difference between the model's prediction and its neutral baseline",
+          "text": "The attribution scores given to credit analysts for each decision sum, within a stated tolerance, to the difference between the model's score for the applicant and its score for the documented reference applicant",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The perception system's object detection decisions are traceable to specific visual elements within the sensor input",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's attribution of prediction confidence to input measurements respects the principle that zero-valued features receive proportional credit",
-          "domain": "environmental",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's explanation quantifies each input feature's contribution along the path from a neutral reference state to the actual input",
+          "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
           "domain": "general",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         }
       ]
     },
@@ -882,6 +896,160 @@
       ]
     },
     {
+      "slug": "attention-weight-analysis",
+      "name": "Attention Weight Analysis",
+      "description": "Attention weight analysis inspects the weights an attention-based neural network computes for an input, to see which input positions the model draws on as it builds each part of its output. In recurrent encoder-decoder models, such as early neural machine translation, the weights for each output step form an alignment matrix over the source tokens, which is plotted as a heatmap and read as a soft alignment between source and target. In transformers, each attention head (one of several parallel attention units in a layer) produces its own matrix of how strongly every token attends to every other token; the analyst extracts these matrices from the model, for example by asking a Hugging Face model to return its attentions, and views them per head and layer or aggregates them over many inputs to characterise what individual heads do. The output is a set of heatmaps and head-level summaries showing how information is routed inside the model; on its own it does not measure how much each input contributed to the prediction.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/recurrent",
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/requirements/architecture-specific",
+        "applicable-models/requirements/model-internals",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explains/internal-mechanisms",
+        "assurance-goal-category/explainability/property/efficiency",
+        "assurance-goal-category/explainability/visualization-methods/attention-patterns",
+        "data-requirements/no-special-requirements",
+        "data-type/image",
+        "data-type/text",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/global",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic",
+        "technique-type/visualisation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A localisation team validating an in-house neural translation model for equipment manuals plots the encoder-decoder attention matrix for a sample of sentences and checks that each translated term attends to its source counterpart, sending sentences whose attention collapses onto punctuation or end-of-sentence tokens for human review.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A team assessing an image-captioning model for an alt-text service overlays each generated word's attention weights on the image to check that words such as 'wheelchair' or 'crossing' fall on the matching objects, and records captions whose nouns attend mainly to background regions.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A clinical NLP team reviewing a transformer that extracts medication details from discharge letters uses head and model views on a sample of letters to find heads that link each drug name to its dose and frequency, then checks whether those heads behave the same way on letters from a second hospital before describing them in the model documentation.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A model-risk team reviewing a contract-clause classifier uses attention maps as a first look at which phrases the model draws on, then tests the highlighted phrases with an attribution or ablation method before reporting them, because its validation policy does not accept attention weights alone as evidence of what drove a decision.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Attention weights are not a measure of feature importance. Across several text tasks, attention weights often disagreed with gradient-based importance, and quite different attention distributions produced the same prediction; a reply showed the verdict depends on the test used. Treat a heatmap as a hypothesis to confirm with attribution or ablation, not as the reason for a decision."
+        },
+        {
+          "description": "In transformers, residual connections and stacked layers mix information from different tokens, so one layer's weights do not show which input tokens a later representation depends on. Raw attention agreed less well with ablation and gradient importance than aggregates across layers such as attention rollout, which are themselves approximations."
+        },
+        {
+          "description": "A transformer produces one matrix per head per layer for every input, often well over a hundred, and many heads attend mostly to delimiter tokens such as the separator. Saying what a head does requires aggregating over many inputs, and a few hand-picked examples can suggest patterns that do not hold across the data."
+        },
+        {
+          "description": "Applies only to models that compute attention explicitly, and the meaning of the weights depends on the mechanism: an encoder-decoder alignment over source words is not the same object as self-attention among tokens of one sequence. Head roles found in one model or domain do not carry over to another, so the analysis must be repeated for each model assessed."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Neural Machine Translation by Jointly Learning to Align and Translate",
+          "url": "http://arxiv.org/abs/1409.0473",
+          "source_type": "technical_paper",
+          "authors": [
+            "Dzmitry Bahdanau",
+            "Kyunghyun Cho",
+            "Yoshua Bengio"
+          ],
+          "publication_date": "2016-05-19",
+          "citationKey": "bahdanauNeuralMachineTranslation2016",
+          "abstract": "Neural machine translation is a recently proposed approach to machine translation. Unlike the traditional statistical machine translation, the neural machine translation aims at building a single neural network that can be jointly tuned to maximize the translation performance. The models proposed recently for neural machine translation often belong to a family of encoder-decoders and consists of an encoder that encodes a source sentence into a fixed-length vector from which a decoder generates a translation. In this paper, we conjecture that the use of a fixed-length vector is a bottleneck in improving the performance of this basic encoder-decoder architecture, and propose to extend this by allowing a model to automatically (soft-)search for parts of a source sentence that are relevant to predicting a target word, without having to form these parts as a hard segment explicitly. With this new approach, we achieve a translation performance comparable to the existing state-of-the-art phrase-based system on the task of English-to-French translation. Furthermore, qualitative analysis reveals that the (soft-)alignments found by the model agree well with our intuition."
+        },
+        {
+          "title": "bertviz",
+          "url": "https://github.com/jessevig/bertviz",
+          "source_type": "software_package",
+          "publication_date": "2018-12-16",
+          "citationKey": "jessevigBertviz2018",
+          "abstract": "BertViz: Visualize Attention in NLP Models (BERT, GPT2, BART, etc.)"
+        },
+        {
+          "title": "Model outputs — Hugging Face Transformers documentation",
+          "url": "https://huggingface.co/docs/transformers/main_classes/output",
+          "source_type": "documentation",
+          "citationKey": "ModelOutputsHugging",
+          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
+        },
+        {
+          "title": "BertViz Interactive Tutorial (Colab)",
+          "url": "https://colab.research.google.com/drive/1hXIQ77A4TYS4y3UthWF-Ci7V7vVUoxmQ",
+          "source_type": "tutorial",
+          "citationKey": "BertVizInteractiveTutorial"
+        },
+        {
+          "title": "NLP From Scratch: Translation with a Sequence to Sequence Network and Attention — PyTorch Tutorials",
+          "url": "https://docs.pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html",
+          "source_type": "tutorial",
+          "citationKey": "NLPScratchTranslation"
+        },
+        {
+          "title": "What Does BERT Look At? An Analysis of BERT's Attention",
+          "url": "https://doi.org/10.18653/v1/W19-4828",
+          "source_type": "application_paper",
+          "authors": [
+            "Kevin Clark",
+            "Urvashi Khandelwal",
+            "Omer Levy",
+            "Christopher D. Manning"
+          ],
+          "publication_date": "2019-06-11",
+          "citationKey": "clarkWhatDoesBERT2019",
+          "abstract": "Large pre-trained neural networks such as BERT have had great recent success in NLP, motivating a growing body of research investigating what aspects of language they are able to learn from unlabeled data. Most recent analysis has focused on model outputs (e.g., language model surprisal) or internal vector representations (e.g., probing classifiers). Complementary to these works, we propose methods for analyzing the attention mechanisms of pre-trained models and apply them to BERT. BERT's attention heads exhibit patterns such as attending to delimiter tokens, specific positional offsets, or broadly attending over the whole sentence, with heads in the same layer often exhibiting similar behaviors. We further show that certain attention heads correspond well to linguistic notions of syntax and coreference. For example, we find heads that attend to the direct objects of verbs, determiners of nouns, objects of prepositions, and coreferent mentions with remarkably high accuracy. Lastly, we propose an attention-based probing classifier and use it to further demonstrate that substantial syntactic information is captured in BERT's attention."
+        },
+        {
+          "title": "Attention is not Explanation",
+          "url": "https://doi.org/10.18653/v1/n19-1357",
+          "source_type": "application_paper",
+          "authors": [
+            "Sarthak Jain",
+            "Byron C. Wallace"
+          ],
+          "publication_date": "2019",
+          "citationKey": "jainAttentionNotExplanation2019"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For the sampled sentences, the translation model's encoder-decoder attention aligns each translated technical term with its source term, and sentences where it does not were reviewed by a translator",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The captioning model's attention for each generated object noun falls on the corresponding object in the image for the reviewed sample of alt-text outputs",
+          "domain": "public sector",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The attention heads identified as linking drug names to doses behave consistently across discharge letters from both hospitals in the validation set",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Phrases that attention maps suggested were decisive for the clause classifier were confirmed by an independent attribution method before being reported to reviewers",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
+        }
+      ]
+    },
+    {
       "slug": "neuron-activation-analysis",
       "name": "Neuron Activation Analysis",
       "description": "Neuron activation analysis examines the firing patterns of individual neurons in neural networks by probing them with diverse inputs and analysing their activation responses. This technique helps understand what concepts, features, or patterns different neurons have learned to recognise, providing insights into the model's internal representations. For large language models, this can reveal neurons specialised for linguistic concepts, semantic categories, or even potentially harmful patterns, enabling targeted interventions and deeper model understanding.",
@@ -1220,8 +1388,8 @@
       "complexity_rating": 5,
       "computational_cost_rating": 4,
       "related_techniques": [
-        "attention-visualisation-in-transformers",
-        "feature-attribution-with-integrated-gradients-in-nlp",
+        "attention-weight-analysis",
+        "integrated-gradients",
         "neuron-activation-analysis"
       ],
       "sample_claims": [
@@ -1248,186 +1416,230 @@
       ]
     },
     {
-      "slug": "attention-visualisation-in-transformers",
-      "name": "Attention Visualisation in Transformers",
-      "description": "Attention Visualisation in Transformers analyses the multi-head self-attention mechanisms that enable transformers to process sequences by attending to different positions simultaneously. The technique visualises attention weights as heatmaps showing how strongly each token attends to every other token across different heads and layers. By examining these attention patterns, practitioners can understand how models like BERT, GPT, and T5 build contextual representations, identify which tokens influence predictions most strongly, and detect potential biases in how the model processes different types of input. This provides insights into positional encoding effects, head specialisation patterns, and the evolution of attention from local to global context across layers.",
+      "slug": "fair-adversarial-networks",
+      "name": "Fair Adversarial Networks",
+      "description": "Fair Adversarial Networks is a pre-processing method, proposed by Cevora (2020), that produces a de-biased copy of a dataset from which a protected characteristic such as race, sex or age can no longer be predicted, including through proxies such as postcode or occupation. It trains two neural networks against each other: an autoencoder (a network that learns to reproduce its input) rewrites each record while trying to keep it as close to the original as possible, and an adversary network tries to predict the protected characteristic from the rewritten records. The autoencoder's loss adds its reconstruction error to the adversary's predictive success, so over alternating rounds of training it learns to remove the information the adversary relies on while changing the data as little as it can. The output is the rewritten dataset, which any downstream analysis or model can use without modification, together with the evidence that a freshly trained adversary predicts the characteristic no better than always guessing the most common category.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
-        "applicable-models/architecture/neural-networks/transformer",
-        "applicable-models/requirements/architecture-specific",
-        "applicable-models/requirements/model-internals",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/data-patterns",
-        "assurance-goal-category/explainability/explains/internal-mechanisms",
-        "assurance-goal-category/explainability/property/comprehensibility",
-        "assurance-goal-category/explainability/property/efficiency",
-        "assurance-goal-category/explainability/visualization-methods/attention-patterns",
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
         "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/decision-reasons",
-        "data-type/text",
-        "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
+        "assurance-goal-category/fairness/pre-processing",
+        "data-requirements/access-to-training-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/modified-dataset",
         "expertise-needed/deep-learning",
-        "explanatory-scope/global",
-        "explanatory-scope/local",
+        "expertise-needed/ml-engineering",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation",
-        "technique-type/algorithmic",
-        "technique-type/visualisation",
-        "data-requirements/no-special-requirements"
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+        "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "Examining attention patterns in a medical language model processing clinical notes to verify it focuses on relevant symptoms and conditions rather than irrelevant demographic identifiers, revealing that certain attention heads specialise in medical terminology whilst others track syntactic relationships between diagnoses and treatments.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a sentiment analysis model for customer reviews by visualising how attention weights differ when processing reviews from different demographic groups, discovering that the model pays disproportionate attention to certain cultural expressions or colloquialisms that could lead to biased sentiment predictions.",
+          "description": "A probation service's analytics team wants to model reoffending from defendant records in which race is encoded indirectly, through charge descriptions and neighbourhood. It runs the records through a Fair Adversarial Network before modelling, confirms that a freshly trained classifier can no longer predict race from the transformed data better than chance, and then checks that predicted risk no longer differs by race among defendants with the same recorded outcome.",
           "goal": "Fairness"
         },
         {
-          "description": "Creating visual explanations for regulatory compliance in a financial document classification system, showing which specific words and phrases in loan applications or contracts triggered particular risk assessments, enabling auditors to verify that decisions are based on legitimate financial factors rather than discriminatory language patterns.",
-          "goal": "Transparency"
+          "description": "An HR analytics team at a courier company building an absenteeism model removes information about employees' age group from its personnel records, including through proxies such as length of service and family circumstances, so that the standard modelling tools its analysts already use can run on the transformed data unchanged.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A local education authority allocating support funding with a model of school performance data de-biases the data with respect to each school's majority ethnic composition before modelling, and keeps the adversary's chance-level result and the reconstruction error with the funding model's documentation as evidence of what was removed and how much the data changed.",
+          "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "High attention weights do not necessarily indicate causal importance for predictions, as models may attend strongly to tokens that serve structural rather than semantic purposes."
+          "description": "No public implementation exists. The paper withholds the parts that make training practical (an approximation of how well a fully trained adversary would do, a stabilising mechanism and regularisers) as its company's intellectual property, saying only that standard approaches can replicate the result on a one-off basis with heavy tuning, and the company's web tool is no longer online. Adopting the method means reimplementing it from the paper."
         },
         {
-          "description": "The sheer number of attention heads and layers in modern transformers creates visualisation overload, making it difficult to identify meaningful patterns without systematic analysis tools."
+          "description": "It removes every trace of the protected characteristic, including relationships that are legitimate or deliberately protective; the author notes it also removes positive discrimination. Where the characteristic carries legitimate information, such as sex in some clinical data, that information goes along with the bias, and the accuracy drops seen on the demonstration datasets cannot be split into bias removed and signal lost."
         },
         {
-          "description": "Attention patterns can be misleading when models use residual connections and layer normalisation, as the final representation incorporates information beyond what attention weights suggest."
+          "description": "Success is judged against one adversary: in the paper, a single-hidden-layer network trained from three random starts. A more capable model may still recover the characteristic from the rewritten data, and the author states that residual discrimination is likely still present and was not analysed, so a chance-level adversary is weaker evidence than it appears."
         },
         {
-          "description": "Different transformer architectures (encoder-only, decoder-only, encoder-decoder) exhibit fundamentally different attention patterns, limiting the generalisability of insights across model types."
+          "description": "Every variable in every record can be altered by the autoencoder, so the de-biased dataset no longer contains the original values. Individual records cannot be checked against source data, feature meanings drift, and any explanation of a downstream model refers to transformed features rather than to the applicant's actual postcode or income."
         },
         {
-          "description": "The technique cannot explain the reasoning process within feed-forward layers or how attention patterns translate into specific predictions, providing only a partial view of model behaviour."
+          "description": "Adversarial training is unstable and its settings have no principled choice: the weight balancing reconstruction against the adversary, the network architectures and the stopping point all need tuning per dataset. The paper keeps the lowest-loss state to guard against run-away training and describes its own convergence as fairly sub-optimal."
         }
       ],
       "resources": [
         {
-          "title": "Model outputs — Hugging Face Transformers documentation",
-          "url": "https://huggingface.co/docs/transformers/main_classes/output",
-          "source_type": "documentation",
-          "citationKey": "ModelOutputsHugging",
-          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
-        },
-        {
-          "title": "bertviz",
-          "url": "https://github.com/jessevig/bertviz",
-          "source_type": "software_package",
-          "publication_date": "2018-12-16",
-          "citationKey": "jessevigBertviz2018",
-          "abstract": "BertViz: Visualize Attention in NLP Models (BERT, GPT2, BART, etc.)"
-        },
-        {
-          "title": "Attention Is All You Need",
-          "url": "https://arxiv.org/abs/1706.03762",
+          "title": "Fair Adversarial Networks",
+          "url": "https://arxiv.org/abs/2002.12144",
           "source_type": "technical_paper",
           "authors": [
-            "Ashish Vaswani",
-            "Noam Shazeer",
-            "Niki Parmar",
-            "Jakob Uszkoreit",
-            "Llion Jones",
-            "Aidan N. Gomez",
-            "Lukasz Kaiser",
-            "Illia Polosukhin"
+            "George Cevora"
           ],
-          "publication_date": "2017-06-12",
-          "citationKey": "vaswaniAttentionAllYou2017",
-          "abstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks in an encoder-decoder configuration. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles by over 2 BLEU. On the WMT 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art BLEU score of 41.8 after training for 3.5 days on eight GPUs, a small fraction of the training costs of the best models from the literature. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data."
+          "publication_date": "2020-02-23",
+          "citationKey": "cevoraFairAdversarialNetworks2020",
+          "abstract": "The influence of human judgement is ubiquitous in datasets used across the analytics industry, yet humans are known to be sub-optimal decision makers prone to various biases. Analysing biased datasets then leads to biased outcomes of the analysis. Bias by protected characteristics (e.g. race) is of particular interest as it may not only make the output of analytical process sub-optimal, but also illegal. Countering the bias by constraining the analytical outcomes to be fair is problematic because A) fairness lacks a universally accepted definition, while at the same time some definitions are mutually exclusive, and B) the use of optimisation constraints ensuring fairness is incompatible with most analytical pipelines. Both problems are solved by methods which remove bias from the data and returning an altered dataset. This approach aims to not only remove the actual bias variable (e.g. race), but also alter all proxy variables (e.g. postcode) so the bias variable is not detectable from the rest of the data. The advantage of using this approach is that the definition of fairness as a lack of detectable bias in the data (as opposed to the output of analysis) is universal and therefore solves problem (A). Furthermore, as the data is altered to remove bias the problem (B) disappears because the analytical pipelines can remain unchanged. This approach has been adopted by several technical solutions. None of them, however, seems to be satisfactory in terms of ability to remove multivariate, non-linear and non-binary biases. Therefore, in this paper I propose the concept of Fair Adversarial Networks as an easy-to-implement general method for removing bias from data. This paper demonstrates that Fair Adversarial Networks achieve this aim."
         },
         {
-          "title": "Analyzing Multi-Head Self-Attention: Specialized Heads Do the Heavy Lifting, the Rest Can Be Pruned",
-          "url": "https://doi.org/10.18653/v1/P19-1580",
+          "title": "Demonstrating Rosa: the fairness solution for any Data Analytic pipeline",
+          "url": "https://arxiv.org/abs/2003.00899",
           "source_type": "application_paper",
           "authors": [
-            "Elena Voita",
-            "David Talbot",
-            "Fedor Moiseev",
-            "Rico Sennrich",
-            "Ivan Titov"
+            "Kate Wilkinson",
+            "George Cevora"
           ],
-          "publication_date": "2019-05-23",
-          "citationKey": "voitaAnalyzingMultiHeadSelfAttention2019",
-          "abstract": "Multi-head self-attention is a key component of the Transformer, a state-of-the-art architecture for neural machine translation. In this work we evaluate the contribution made by individual attention heads in the encoder to the overall performance of the model and analyze the roles played by them. We find that the most important and confident heads play consistent and often linguistically-interpretable roles. When pruning heads using a method based on stochastic gates and a differentiable relaxation of the L0 penalty, we observe that specialized heads are last to be pruned. Our novel pruning method removes the vast majority of heads without seriously affecting performance. For example, on the English-Russian WMT dataset, pruning 38 out of 48 encoder heads results in a drop of only 0.15 BLEU."
-        },
-        {
-          "title": "What Does BERT Look At? An Analysis of BERT's Attention",
-          "url": "https://doi.org/10.18653/v1/W19-4828",
-          "source_type": "application_paper",
-          "authors": [
-            "Kevin Clark",
-            "Urvashi Khandelwal",
-            "Omer Levy",
-            "Christopher D. Manning"
-          ],
-          "publication_date": "2019-06-11",
-          "citationKey": "clarkWhatDoesBERT2019",
-          "abstract": "Large pre-trained neural networks such as BERT have had great recent success in NLP, motivating a growing body of research investigating what aspects of language they are able to learn from unlabeled data. Most recent analysis has focused on model outputs (e.g., language model surprisal) or internal vector representations (e.g., probing classifiers). Complementary to these works, we propose methods for analyzing the attention mechanisms of pre-trained models and apply them to BERT. BERT's attention heads exhibit patterns such as attending to delimiter tokens, specific positional offsets, or broadly attending over the whole sentence, with heads in the same layer often exhibiting similar behaviors. We further show that certain attention heads correspond well to linguistic notions of syntax and coreference. For example, we find heads that attend to the direct objects of verbs, determiners of nouns, objects of prepositions, and coreferent mentions with remarkably high accuracy. Lastly, we propose an attention-based probing classifier and use it to further demonstrate that substantial syntactic information is captured in BERT's attention."
-        },
-        {
-          "title": "A Multiscale Visualization of Attention in the Transformer Model",
-          "url": "https://doi.org/10.18653/v1/p19-3007",
-          "source_type": "technical_paper",
-          "authors": [
-            "Jesse Vig"
-          ],
-          "publication_date": "2019",
-          "citationKey": "vigMultiscaleVisualizationAttention2019"
-        },
-        {
-          "title": "BertViz Interactive Tutorial (Colab)",
-          "url": "https://colab.research.google.com/drive/1hXIQ77A4TYS4y3UthWF-Ci7V7vVUoxmQ",
-          "source_type": "tutorial",
-          "citationKey": "BertVizInteractiveTutorial"
+          "publication_date": "2020-02-28",
+          "citationKey": "wilkinsonDemonstratingRosaFairness2020",
+          "abstract": "Most datasets of interest to the analytics industry are impacted by various forms of human bias. The outcomes of Data Analytics [DA] or Machine Learning [ML] on such data are therefore prone to replicating the bias. As a result, a large number of biased decision-making systems based on DA/ML have recently attracted attention. In this paper we introduce Rosa, a free, web-based tool to easily de-bias datasets with respect to a chosen characteristic. Rosa is based on the principles of Fair Adversarial Networks, developed by illumr Ltd., and can therefore remove interactive, non-linear, and non-binary bias. Rosa is stand-alone pre-processing step / API, meaning it can be used easily with any DA/ML pipeline. We test the efficacy of Rosa in removing bias from data-driven decision making systems by performing standard DA tasks on five real-world datasets, selected for their relevance to current DA problems, and also their high potential for bias. We use simple ML models to model a characteristic of analytical interest, and compare the level of bias in the model output both with and without Rosa as a pre-processing step. We find that in all cases there is a substantial decrease in bias of the data-driven decision making systems when the data is pre-processed with Rosa."
         }
       ],
-      "complexity_rating": 3,
-      "computational_cost_rating": 2,
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
       "related_techniques": [
-        "feature-attribution-with-integrated-gradients-in-nlp",
-        "causal-mediation-analysis-in-language-models",
-        "classical-attention-analysis-in-neural-networks"
+        "adversarial-debiasing",
+        "exponentiated-gradient-reduction",
+        "fairness-gan"
       ],
       "sample_claims": [
         {
-          "text": "The language model's attention patterns demonstrate how contextual representations are built across multiple heads and layers",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The text processing system's attention mechanisms treat input tokens from different demographic groups with comparable weighting patterns",
+          "text": "A classifier trained on the de-biased reoffending dataset cannot predict defendants' race better than always guessing the majority group.",
           "domain": "public sector",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The model's decision-making process is traceable through attention weight distributions across transformer layers",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The document classification system's attention heads are interpretable in terms of which semantic and syntactic features they capture",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The content moderation model's attention to sensitive attributes is quantifiable and auditable across different input types",
+          "text": "The personnel records used to train the absenteeism model carry no recoverable information about employees' age group, including through proxies such as length of service.",
           "domain": "general",
           "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The school funding model was trained on data de-biased with respect to majority ethnic composition, and its predictions no longer differ by that composition among schools with the same recorded performance.",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        }
+      ]
+    },
+    {
+      "slug": "learning-adversarially-fair-and-transferable-representations",
+      "name": "Learning Adversarially Fair and Transferable Representations",
+      "description": "Learning Adversarially Fair and Transferable Representations (LAFTR) trains an encoder that turns each record into a representation, a vector of learned features, from which a protected attribute is hard to recover, so that models later built on that representation by other parties, including for prediction tasks not known in advance, also treat groups fairly. It was designed for a data owner who shares encoded data with downstream model builders and cannot control how they train. During training, the encoder, a decoder that reconstructs the input and a classifier for the original task play against an adversary network that tries to predict the protected attribute from the representation; the encoder is updated to defeat the adversary while keeping the information the other two need. The adversary's objective is matched to demographic parity, equalised odds or equal opportunity, and the authors prove that an optimal adversary's objective bounds that unfairness measure for any classifier trained on the representation (for the two error-rate measures, with respect to the labels used in training). The output is a frozen encoder, delivered with the accuracy and fairness of classifiers trained on top of it.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/gradient-access",
+        "applicable-models/requirements/model-internals",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/in-processing",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/image",
+        "data-type/tabular",
+        "evidence-type/model-artefact",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A data marketplace that supplies customer records to advertisers wants assurance that the targeting models advertisers build will not show offers to men and women at different rates. It trains LAFTR with the demographic parity adversary, releases only the encoded features, and audits a sample of advertisers' models for the gap in positive rates and for how well a fresh classifier can recover gender from the released features.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A health insurer's data team shares encoded claims and prescription data with external analytics suppliers who build their own risk models. It trains LAFTR with an equalised-odds adversary on a comorbidity-risk task, with patients aged 70 or over as the protected group, then measures error-rate gaps for classifiers trained on held-out condition-prediction tasks, because fairness on those new tasks has to be measured rather than assumed.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A hospital imaging research group compares LAFTR with standard training for a chest X-ray triage classifier, with patient sex as the protected attribute and the model-selection rule fixed in advance, to decide whether debiasing the representation narrows the gap in error rates enough to justify its extra training cost.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The fairness bound holds only for an optimal adversary. A weak or under-trained adversary underestimates how much protected information the representation still carries, so downstream models can be less fair than training suggested; the authors report uneven results in places, which they attribute to unstable adversarial training. Audit downstream models directly, including with a fresh classifier trained to recover the protected attribute from the representation."
+        },
+        {
+          "description": "Transfer to new tasks is not guaranteed for the error-rate criteria. The equalised-odds and equal-opportunity adversaries use the original task's labels, so fairness on a new task with different labels is an empirical result: in the paper's health-data experiment LAFTR was the fairest method on seven of ten transfer tasks, and the authors leave open which tasks transfer fairly."
+        },
+        {
+          "description": "As formulated, it handles one binary protected attribute and a binary task label, so intersectional groups, several attributes or multi-class outcomes need an extension the original work does not provide. It needs the protected attribute, and for the error-rate criteria the task labels, at training time, though not when the representation is used."
+        },
+        {
+          "description": "Measured gains can be small in practice. MEDFAIR, a peer-reviewed benchmark that ran LAFTR among eleven bias-mitigation methods on medical imaging datasets from several modalities, found that the methods did not significantly improve fairness over standard training, and that the choice of model-selection criterion changed fairness results substantially. Compare against a standard model under a selection rule stated in advance before adopting it."
+        },
+        {
+          "description": "Four networks (encoder, decoder, classifier and adversary) are trained together, with three weights balancing accuracy, reconstruction and fairness; the paper found the reconstruction term necessary for transfer, and tuning the weights is laborious. The authors' reference code (2018) requires Python 3.6 and TensorFlow 1.9, and the available reimplementations sit inside research benchmarks rather than a supported fairness toolkit."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Learning Adversarially Fair and Transferable Representations",
+          "url": "https://proceedings.mlr.press/v80/madras18a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "David Madras",
+            "Elliot Creager",
+            "Toniann Pitassi",
+            "Richard Zemel"
+          ],
+          "publication_date": "2018-07-03",
+          "citationKey": "madrasLearningAdversariallyFair2018",
+          "abstract": "In this paper, we advocate for representation learning as the key to mitigating unfair prediction outcomes downstream. Motivated by a scenario where learned representations are used by third parties with unknown objectives, we propose and explore adversarial representation learning as a natural method of ensuring those parties act fairly. We connect group fairness (demographic parity, equalized odds, and equal opportunity) to different adversarial objectives. Through worst-case theoretical guarantees and experimental validation, we show that the choice of this objective is crucial to fair prediction. Furthermore, we present the first in-depth experimental demonstration of fair transfer learning and demonstrate empirically that our learned representations admit fair predictions on new tasks while maintaining utility, an essential goal of fair representation learning."
+        },
+        {
+          "title": "laftr: Learning Adversarially Fair and Transferable Representations (VectorInstitute/laftr)",
+          "url": "https://github.com/VectorInstitute/laftr",
+          "source_type": "software_package",
+          "publication_date": "2025-09-26T19:35:33Z",
+          "citationKey": "LaftrLearningAdversarially2025",
+          "abstract": "Learning Adversarially Fair and Transferable Representations"
+        },
+        {
+          "title": "MEDFAIR: Benchmarking Fairness for Medical Imaging",
+          "url": "https://openreview.net/forum?id=6ve2CkeQe5S",
+          "source_type": "application_paper",
+          "citationKey": "MEDFAIRBenchmarkingFairness"
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
+      "acronym": "LAFTR",
+      "related_techniques": [
+        "reweighing",
+        "adversarial-debiasing",
+        "fair-adversarial-networks"
+      ],
+      "sample_claims": [
+        {
+          "text": "Classifiers trained by external parties on the released representation show a demographic parity difference below the agreed threshold on every downstream task audited.",
+          "assuranceGoal": "fairness",
+          "domain": "general"
+        },
+        {
+          "text": "A classifier trained to recover the protected attribute from the released representation does no better than always predicting the majority group.",
+          "assuranceGoal": "fairness",
+          "domain": "general"
+        },
+        {
+          "text": "The fairness of downstream risk models built on the shared encoded data was measured on each new prediction task rather than assumed from the task the encoder was trained on.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Under a model-selection rule fixed in advance, the debiased imaging model narrows the gap in error rates between patient groups relative to standard training by a measured margin.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
         }
       ]
     }
   ],
-  "count": 8
+  "count": 10
 }

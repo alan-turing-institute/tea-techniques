@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/paradigm/parametric",
     "slug": "applicable-models-paradigm-parametric",
-    "count": 16,
+    "count": 13,
     "category": "applicable-models"
   },
   "techniques": [
@@ -88,7 +88,7 @@
         },
         {
           "title": "The Elements of Statistical Learning",
-          "url": "https://hastie.su.domains/ElemStatLearn",
+          "url": "https://doi.org/10.1007/978-0-387-84858-7",
           "source_type": "technical_paper",
           "publication_date": "2009",
           "citationKey": "ElementsStatisticalLearning2009"
@@ -154,54 +154,67 @@
     {
       "slug": "integrated-gradients",
       "name": "Integrated Gradients",
-      "description": "Integrated Gradients is an attribution technique that explains a model's prediction by quantifying the contribution of each input feature. It works by accumulating gradients along a straight path from a user-defined baseline input (e.g., a black image or an all-zero vector) to the actual input. This path integral ensures that the attributions satisfy fundamental axioms like completeness (attributions sum up to the difference between the prediction and the baseline prediction) and sensitivity (non-zero attributions for features that change the prediction). The output is a set of importance scores, often visualised as heatmaps, indicating which parts of the input were most influential for the model's decision.",
+      "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
       "assurance_goals": [
-        "Explainability"
+        "Explainability",
+        "Fairness"
       ],
       "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/differentiable",
+        "applicable-models/requirements/gradient-access",
         "assurance-goal-category/explainability",
         "assurance-goal-category/explainability/attribution-methods/gradient-based",
         "assurance-goal-category/explainability/explains/feature-importance",
         "assurance-goal-category/explainability/property/completeness",
-        "assurance-goal-category/explainability/property/consistency",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
         "data-requirements/reference-dataset",
-        "data-type/any",
+        "data-type/image",
+        "data-type/tabular",
+        "data-type/text",
         "evidence-type/quantitative-metric",
         "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
         "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
         "explanatory-scope/local",
-        "technique-type/algorithmic",
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/differentiable",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a medical image classification model to understand which specific pixels or regions in an X-ray image contribute most to a diagnosis of pneumonia, ensuring the model focuses on relevant pathological features rather than artifacts.",
+          "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading.",
           "goal": "Explainability"
         },
         {
-          "description": "Explaining the sentiment prediction of a natural language processing model by highlighting which words or phrases in a review most strongly influenced its classification as positive or negative, revealing the model's interpretative focus.",
+          "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question.",
           "goal": "Explainability"
+        },
+        {
+          "description": "A trust-and-safety team investigating false positives in a toxic-content classifier aggregates token attributions over wrongly flagged posts to see whether identity terms, such as the name of a religion or a sexual orientation, rather than abusive language drive the score, and adds counter-examples to the training data where they do.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A lender's model-risk team runs Integrated Gradients over a classifier that reads the free-text statements in loan applications, ranking the most highly attributed words across a sample of declined applications to check whether words that reveal a protected characteristic, or stand in for one, carry weight in the decision.",
+          "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Requires a carefully chosen and meaningful baseline input; an inappropriate baseline can lead to misleading or uninformative attributions."
+          "description": "Attributions are measured against the baseline and no choice is neutral. Features that match the baseline score near zero even when the model relies on them: with a black-image baseline, dark pixels on the object get little credit. A comparison of blurred, noise and training-data baselines found none best, so the baseline is an assumption to state and to vary before drawing conclusions."
         },
         {
-          "description": "The model must be differentiable, which limits its direct application to models with non-differentiable components or discrete inputs without workarounds."
+          "description": "Requires gradient access to a differentiable model, so it cannot explain tree ensembles, rule-based components or a model reached only through an API. For text, the path runs through token embeddings whose intermediate points are not real words, and subword tokenisation splits a word across several scores that must be recombined before a reviewer can read them."
         },
         {
-          "description": "Computationally more expensive than simple gradient-based methods, as it requires multiple gradient calculations along the integration path."
+          "description": "Each explanation needs one gradient computation per step along the path; the original authors found 20 to 300 steps were usually enough for the scores to sum to within 5% of the output difference. Explaining long documents, high-resolution images or a large audit sample therefore costs tens to hundreds of forward and backward passes per prediction."
         },
         {
-          "description": "While satisfying completeness, the attributions can sometimes be visually noisy or difficult for humans to interpret intuitively, especially for complex inputs."
+          "description": "A score shows how sensitive the output was to a feature along one straight path, not that the feature causes the outcome in the world or that removing it would change the decision. Maps over neighbouring pixels or tokens are often noisy, and a plausible-looking heatmap does not show that the model's reasoning is sound."
         }
       ],
       "resources": [
@@ -213,14 +226,6 @@
           "abstract": "Model Interpretability for PyTorch"
         },
         {
-          "title": "Integrated-Gradients",
-          "url": "https://github.com/ankurtaly/Integrated-Gradients",
-          "source_type": "software_package",
-          "publication_date": "2016-11-04",
-          "citationKey": "ankurtalyIntegratedGradients2016",
-          "abstract": "Attributing predictions made by the Inception network using the Integrated Gradients method"
-        },
-        {
           "title": "captum",
           "url": "https://github.com/meta-pytorch/captum",
           "source_type": "software_package",
@@ -230,7 +235,7 @@
         },
         {
           "title": "Axiomatic Attribution for Deep Networks",
-          "url": "https://arxiv.org/abs/1703.01365",
+          "url": "https://proceedings.mlr.press/v70/sundararajan17a.html",
           "source_type": "technical_paper",
           "authors": [
             "Mukund Sundararajan",
@@ -276,17 +281,26 @@
           "citationKey": "sayresUsingDeepLearning2019"
         },
         {
-          "title": "Did the Model Understand the Question?",
-          "url": "https://doi.org/10.18653/v1/p18-1176",
-          "source_type": "application_paper",
+          "title": "Visualizing the Impact of Feature Attribution Baselines",
+          "url": "https://doi.org/10.23915/distill.00022",
+          "source_type": "tutorial",
           "authors": [
-            "Pramod Kaushik Mudrakarta",
-            "Ankur Taly",
-            "Mukund Sundararajan",
-            "Kedar Dhamdhere"
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee",
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee"
           ],
-          "publication_date": "2018",
-          "citationKey": "mudrakartaDidModelUnderstand2018"
+          "publication_date": "2020",
+          "citationKey": "sturmfelsVisualizingImpactFeature2020"
+        },
+        {
+          "title": "Interpreting BERT Models (Part 1) — Captum tutorial",
+          "url": "https://captum.ai/tutorials/Bert_SQUAD_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingBERTModels",
+          "abstract": "Model Interpretability for PyTorch"
         }
       ],
       "complexity_rating": 4,
@@ -299,29 +313,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are attributable to specific anatomical features rather than spurious image artifacts",
+          "text": "The retinopathy grading model's referral predictions are attributable to lesion regions in the retinal image rather than to imaging artefacts, as shown by Integrated Gradients review of a stratified sample of graded cases",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The feature importance scores provided to credit analysts sum exactly to the difference between the model's prediction and its neutral baseline",
+          "text": "The attribution scores given to credit analysts for each decision sum, within a stated tolerance, to the difference between the model's score for the applicant and its score for the documented reference applicant",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The perception system's object detection decisions are traceable to specific visual elements within the sensor input",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's attribution of prediction confidence to input measurements respects the principle that zero-valued features receive proportional credit",
-          "domain": "environmental",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's explanation quantifies each input feature's contribution along the path from a neutral reference state to the actual input",
+          "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
           "domain": "general",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         }
       ]
     },
@@ -1482,7 +1496,7 @@
         "conformal-prediction",
         "bootstrapping",
         "jackknife-resampling",
-        "empirical-calibration"
+        "platt-scaling"
       ],
       "sample_claims": [
         {
@@ -2142,122 +2156,6 @@
       ]
     },
     {
-      "slug": "fair-adversarial-networks",
-      "name": "Fair Adversarial Networks",
-      "description": "An in-processing fairness technique that employs adversarial training with dual neural networks to learn fair representations. The method consists of a predictor network that learns the main task whilst an adversarial discriminator network simultaneously attempts to predict sensitive attributes from the predictor's hidden representations. Through this adversarial min-max game, the predictor is incentivised to learn features that are informative for the task but statistically independent of protected attributes, effectively removing bias at the representation level in deep learning models.",
-      "assurance_goals": [
-        "Fairness",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/discriminative",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/model-internals",
-        "data-requirements/access-to-training-data",
-        "applicable-models/requirements/white-box",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/in-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
-        "data-type/any",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-selection-and-training",
-        "technique-type/algorithmic",
-        "evidence-type/model-artefact"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Training a facial recognition system that maintains high accuracy for person identification whilst ensuring equal performance across different ethnic groups, using adversarial training to remove race-related features from learned representations.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Developing a resume screening neural network that provides transparent evidence of bias mitigation by demonstrating that learned features cannot predict gender, whilst maintaining predictive performance for job suitability assessment.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Implementation complexity is high, requiring careful design of adversarial loss functions and balancing multiple competing objectives during training."
-        },
-        {
-          "description": "Sensitive to hyperparameter choices, particularly the trade-off weights between prediction accuracy and adversarial loss, which require extensive tuning."
-        },
-        {
-          "description": "Adversarial training can be unstable, with potential for mode collapse or failure to converge, especially in complex deep learning architectures."
-        },
-        {
-          "description": "Interpretability of fairness improvements can be limited, as it may be difficult to verify that sensitive attributes are truly removed from learned representations."
-        },
-        {
-          "description": "Computational overhead is significant due to training two networks simultaneously, increasing both training time and resource requirements."
-        },
-        {
-          "description": "The adversarial objective only removes dependence on explicitly labelled sensitive attributes; proxy variables that correlate with protected characteristics will remain encoded in learned representations. Extending to intersectional fairness across multiple protected attributes requires separate discriminator components or multi-task adversarial architectures, substantially increasing design complexity and training instability."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Fair Adversarial Networks",
-          "url": "https://arxiv.org/abs/2002.12144",
-          "source_type": "technical_paper",
-          "authors": [
-            "George Cevora"
-          ],
-          "publication_date": "2020-02-23",
-          "citationKey": "cevoraFairAdversarialNetworks2020",
-          "abstract": "The influence of human judgement is ubiquitous in datasets used across the analytics industry, yet humans are known to be sub-optimal decision makers prone to various biases. Analysing biased datasets then leads to biased outcomes of the analysis. Bias by protected characteristics (e.g. race) is of particular interest as it may not only make the output of analytical process sub-optimal, but also illegal. Countering the bias by constraining the analytical outcomes to be fair is problematic because A) fairness lacks a universally accepted definition, while at the same time some definitions are mutually exclusive, and B) the use of optimisation constraints ensuring fairness is incompatible with most analytical pipelines. Both problems are solved by methods which remove bias from the data and returning an altered dataset. This approach aims to not only remove the actual bias variable (e.g. race), but also alter all proxy variables (e.g. postcode) so the bias variable is not detectable from the rest of the data. The advantage of using this approach is that the definition of fairness as a lack of detectable bias in the data (as opposed to the output of analysis) is universal and therefore solves problem (A). Furthermore, as the data is altered to remove bias the problem (B) disappears because the analytical pipelines can remain unchanged. This approach has been adopted by several technical solutions. None of them, however, seems to be satisfactory in terms of ability to remove multivariate, non-linear and non-binary biases. Therefore, in this paper I propose the concept of Fair Adversarial Networks as an easy-to-implement general method for removing bias from data. This paper demonstrates that Fair Adversarial Networks achieve this aim."
-        },
-        {
-          "title": "Demonstrating Rosa: the fairness solution for any Data Analytic pipeline",
-          "url": "https://arxiv.org/abs/2003.00899",
-          "source_type": "application_paper",
-          "authors": [
-            "Kate Wilkinson",
-            "George Cevora"
-          ],
-          "publication_date": "2020-02-28",
-          "citationKey": "wilkinsonDemonstratingRosaFairness2020",
-          "abstract": "Most datasets of interest to the analytics industry are impacted by various forms of human bias. The outcomes of Data Analytics [DA] or Machine Learning [ML] on such data are therefore prone to replicating the bias. As a result, a large number of biased decision-making systems based on DA/ML have recently attracted attention. In this paper we introduce Rosa, a free, web-based tool to easily de-bias datasets with respect to a chosen characteristic. Rosa is based on the principles of Fair Adversarial Networks, developed by illumr Ltd., and can therefore remove interactive, non-linear, and non-binary bias. Rosa is stand-alone pre-processing step / API, meaning it can be used easily with any DA/ML pipeline. We test the efficacy of Rosa in removing bias from data-driven decision making systems by performing standard DA tasks on five real-world datasets, selected for their relevance to current DA problems, and also their high potential for bias. We use simple ML models to model a characteristic of analytical interest, and compare the level of bias in the model output both with and without Rosa as a pre-processing step. We find that in all cases there is a substantial decrease in bias of the data-driven decision making systems when the data is pre-processed with Rosa."
-        }
-      ],
-      "complexity_rating": 5,
-      "computational_cost_rating": 4,
-      "related_techniques": [
-        "adversarial-debiasing",
-        "exponentiated-gradient-reduction",
-        "fairness-gan"
-      ],
-      "sample_claims": [
-        {
-          "text": "The model's learned representations cannot be used to infer applicants' protected characteristics",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The hiring system's internal features maintain predictive power for job performance whilst being statistically independent of demographic attributes",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The diagnostic model provides evidence that its decision-making features do not encode sensitive patient demographics",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The model's intermediate representations are demonstrably uninformative about protected attributes whilst preserving task-relevant information",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        }
-      ]
-    },
-    {
       "slug": "exponentiated-gradient-reduction",
       "name": "Exponentiated Gradient Reduction",
       "description": "An in-processing fairness technique based on Agarwal et al.'s reductions approach that transforms fair classification into a sequence of cost-sensitive classification problems. The method uses an exponentiated gradient algorithm to iteratively reweight training data, returning a randomised classifier that achieves the lowest empirical error whilst satisfying fairness constraints. This reduction-based framework provides theoretical guarantees about both accuracy and constraint violation, making it suitable for various fairness criteria including demographic parity and equalised odds.",
@@ -2411,7 +2309,7 @@
       "complexity_rating": 4,
       "computational_cost_rating": 3,
       "related_techniques": [
-        "adaptive-sensitive-reweighting",
+        "reweighing",
         "meta-fair-classifier"
       ],
       "sample_claims": [
@@ -2438,12 +2336,11 @@
       ]
     },
     {
-      "slug": "fair-transfer-learning",
-      "name": "Fair Transfer Learning",
-      "description": "An in-processing fairness technique that adapts pre-trained models from one domain to another whilst explicitly preserving fairness constraints across different contexts or populations. The method addresses the challenge that fairness properties may not transfer when adapting models to new domains with different demographic compositions or data distributions. Fair transfer learning typically involves constraint-aware fine-tuning, domain adaptation techniques, or adversarial training that maintains equitable performance across groups in the target domain, ensuring that bias mitigation efforts carry over from source to target domains.",
+      "slug": "learning-adversarially-fair-and-transferable-representations",
+      "name": "Learning Adversarially Fair and Transferable Representations",
+      "description": "Learning Adversarially Fair and Transferable Representations (LAFTR) trains an encoder that turns each record into a representation, a vector of learned features, from which a protected attribute is hard to recover, so that models later built on that representation by other parties, including for prediction tasks not known in advance, also treat groups fairly. It was designed for a data owner who shares encoded data with downstream model builders and cannot control how they train. During training, the encoder, a decoder that reconstructs the input and a classifier for the original task play against an adversary network that tries to predict the protected attribute from the representation; the encoder is updated to defeat the adversary while keeping the information the other two need. The adversary's objective is matched to demographic parity, equalised odds or equal opportunity, and the authors prove that an optimal adversary's objective bounds that unfairness measure for any classifier trained on the representation (for the two error-rate measures, with respect to the labels used in training). The output is a frozen encoder, delivered with the accuracy and fairness of classifiers trained on top of it.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -2451,343 +2348,114 @@
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/gradient-access",
         "applicable-models/requirements/model-internals",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/in-processing",
         "data-requirements/access-to-training-data",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/in-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
-        "data-type/any",
-        "expertise-needed/domain-expertise",
+        "data-type/image",
+        "data-type/tabular",
+        "evidence-type/model-artefact",
+        "expertise-needed/deep-learning",
         "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/model-selection-and-training",
-        "technique-type/algorithmic",
-        "evidence-type/model-artefact"
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+        "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "Adapting a hiring algorithm trained on one country's recruitment data to another region whilst maintaining fairness across gender and ethnicity groups, ensuring equitable candidate evaluation despite different local demographic distributions and cultural contexts.",
+          "description": "A data marketplace that supplies customer records to advertisers wants assurance that the targeting models advertisers build will not show offers to men and women at different rates. It trains LAFTR with the demographic parity adversary, releases only the encoded features, and audits a sample of advertisers' models for the gap in positive rates and for how well a fresh classifier can recover gender from the released features.",
           "goal": "Fairness"
         },
         {
-          "description": "Transferring a medical diagnosis model from urban hospital data to rural clinics whilst providing transparent evidence that fairness constraints are preserved across age, gender, and socioeconomic groups despite different patient populations and healthcare infrastructure.",
-          "goal": "Transparency"
+          "description": "A health insurer's data team shares encoded claims and prescription data with external analytics suppliers who build their own risk models. It trains LAFTR with an equalised-odds adversary on a comorbidity-risk task, with patients aged 70 or over as the protected group, then measures error-rate gaps for classifiers trained on held-out condition-prediction tasks, because fairness on those new tasks has to be measured rather than assumed.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A hospital imaging research group compares LAFTR with standard training for a chest X-ray triage classifier, with patient sex as the protected attribute and the model-selection rule fixed in advance, to decide whether debiasing the representation narrows the gap in error rates enough to justify its extra training cost.",
+          "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Fairness properties achieved in the source domain may not translate directly to the target domain if demographic distributions or data characteristics differ significantly."
+          "description": "The fairness bound holds only for an optimal adversary. A weak or under-trained adversary underestimates how much protected information the representation still carries, so downstream models can be less fair than training suggested; the authors report uneven results in places, which they attribute to unstable adversarial training. Audit downstream models directly, including with a fresh classifier trained to recover the protected attribute from the representation."
         },
         {
-          "description": "Requires careful hyperparameter tuning and constraint specification to balance fairness preservation with model performance in the new domain."
+          "description": "Transfer to new tasks is not guaranteed for the error-rate criteria. The equalised-odds and equal-opportunity adversaries use the original task's labels, so fairness on a new task with different labels is an empirical result: in the paper's health-data experiment LAFTR was the fairest method on seven of ten transfer tasks, and the authors leave open which tasks transfer fairly."
         },
         {
-          "description": "Implementation complexity is high, requiring expertise in both transfer learning techniques and fairness constraint optimisation methods."
+          "description": "As formulated, it handles one binary protected attribute and a binary task label, so intersectional groups, several attributes or multi-class outcomes need an extension the original work does not provide. It needs the protected attribute, and for the error-rate criteria the task labels, at training time, though not when the representation is used."
         },
         {
-          "description": "May suffer from negative transfer effects where fairness constraints that worked well in the source domain actually harm performance in the target domain."
+          "description": "Measured gains can be small in practice. MEDFAIR, a peer-reviewed benchmark that ran LAFTR among eleven bias-mitigation methods on medical imaging datasets from several modalities, found that the methods did not significantly improve fairness over standard training, and that the choice of model-selection criterion changed fairness results substantially. Compare against a standard model under a selection rule stated in advance before adopting it."
         },
         {
-          "description": "Evaluation challenges arise from needing to validate fairness across multiple domains and demographic groups simultaneously."
+          "description": "Four networks (encoder, decoder, classifier and adversary) are trained together, with three weights balancing accuracy, reconstruction and fairness; the paper found the reconstruction term necessary for transfer, and tuning the weights is laborious. The authors' reference code (2018) requires Python 3.6 and TensorFlow 1.9, and the available reimplementations sit inside research benchmarks rather than a supported fairness toolkit."
         }
       ],
       "resources": [
         {
-          "title": "Segmenting across places: The need for fair transfer learning with satellite imagery",
-          "url": "http://arxiv.org/abs/2204.04358v3",
+          "title": "Learning Adversarially Fair and Transferable Representations",
+          "url": "https://proceedings.mlr.press/v80/madras18a.html",
           "source_type": "technical_paper",
           "authors": [
-            "Miao Zhang",
-            "Harvineet Singh",
-            "Lazarus Chok",
-            "Rumi Chunara"
+            "David Madras",
+            "Elliot Creager",
+            "Toniann Pitassi",
+            "Richard Zemel"
           ],
-          "publication_date": "2022-04-09",
-          "citationKey": "zhangSegmentingPlacesNeed2022",
-          "abstract": "The increasing availability of high-resolution satellite imagery has enabled the use of machine learning to support land-cover measurement and inform policy-making. However, labelling satellite images is expensive and is available for only some locations. This prompts the use of transfer learning to adapt models from data-rich locations to others. Given the potential for high-impact applications of satellite imagery across geographies, a systematic assessment of transfer learning implications is warranted. In this work, we consider the task of land-cover segmentation and study the fairness implications of transferring models across locations. We leverage a large satellite image segmentation benchmark with 5987 images from 18 districts (9 urban and 9 rural). Via fairness metrics we quantify disparities in model performance along two axes -- across urban-rural locations and across land-cover classes. Findings show that state-of-the-art models have better overall accuracy in rural areas compared to urban areas, through unsupervised domain adaptation methods transfer learning better to urban versus rural areas and enlarge fairness gaps. In analysis of reasons for these findings, we show that raw satellite images are overall more dissimilar between source and target districts for rural than for urban locations. This work highlights the need to conduct fairness analysis for satellite imagery segmentation models and motivates the development of methods for fair transfer learning in order not to introduce disparities between places, particularly urban and rural locations."
+          "publication_date": "2018-07-03",
+          "citationKey": "madrasLearningAdversariallyFair2018",
+          "abstract": "In this paper, we advocate for representation learning as the key to mitigating unfair prediction outcomes downstream. Motivated by a scenario where learned representations are used by third parties with unknown objectives, we propose and explore adversarial representation learning as a natural method of ensuring those parties act fairly. We connect group fairness (demographic parity, equalized odds, and equal opportunity) to different adversarial objectives. Through worst-case theoretical guarantees and experimental validation, we show that the choice of this objective is crucial to fair prediction. Furthermore, we present the first in-depth experimental demonstration of fair transfer learning and demonstrate empirically that our learned representations admit fair predictions on new tasks while maintaining utility, an essential goal of fair representation learning."
         },
         {
-          "title": "Trustworthy Transfer Learning: A Survey",
-          "url": "https://www.semanticscholar.org/paper/7ee5c5b58ed0b4e585e0c30790c206bea07faacf",
-          "source_type": "technical_paper",
-          "authors": [
-            "Jun Wu",
-            "Jingrui He"
-          ],
-          "publication_date": "2024",
-          "citationKey": "wuTrustworthyTransferLearning2024",
-          "abstract": "Transfer learning aims to transfer knowledge or information from a source domain to a relevant target domain. In this paper, we understand transfer learning from the perspectives of knowledge transferability and trustworthiness. This involves two research questions: How is knowledge transferability quantitatively measured and enhanced across domains? Can we trust the transferred knowledge in the transfer learning process? To answer these questions, this paper provides a comprehensive review of trustworthy transfer learning from various aspects, including problem definitions, theoretical analysis, empirical algorithms, and real-world applications. Specifically, we summarize recent theories and algorithms for understanding knowledge transferability under (within-domain) IID and non-IID assumptions. In addition to knowledge transferability, we review the impact of trustworthiness on transfer learning, e.g., whether the transferred knowledge is adversarially robust or algorithmically fair, how to transfer the knowledge under privacy-preserving constraints, etc. Beyond discussing the current advancements, we highlight the open questions and future directions for understanding transfer learning in a reliable and trustworthy manner."
+          "title": "laftr: Learning Adversarially Fair and Transferable Representations (VectorInstitute/laftr)",
+          "url": "https://github.com/VectorInstitute/laftr",
+          "source_type": "software_package",
+          "publication_date": "2025-09-26T19:35:33Z",
+          "citationKey": "LaftrLearningAdversarially2025",
+          "abstract": "Learning Adversarially Fair and Transferable Representations"
         },
         {
-          "title": "Cross-Institutional Transfer Learning for Educational Models: Implications for Model Performance, Fairness, and Equity",
-          "url": "https://arxiv.org/abs/2305.00927",
-          "source_type": "technical_paper",
-          "authors": [
-            "Josh Gardner",
-            "Renzhe Yu",
-            "Quan Nguyen",
-            "Christopher Brooks",
-            "Rene Kizilcec"
-          ],
-          "publication_date": "2023-05-01",
-          "citationKey": "gardnerCrossInstitutionalTransferLearning2023",
-          "abstract": "Modern machine learning increasingly supports paradigms that are multi-institutional (using data from multiple institutions during training) or cross-institutional (using models from multiple institutions for inference), but the empirical effects of these paradigms are not well understood. This study investigates cross-institutional learning via an empirical case study in higher education. We propose a framework and metrics for assessing the utility and fairness of student dropout prediction models that are transferred across institutions. We examine the feasibility of cross-institutional transfer under real-world data- and model-sharing constraints, quantifying model biases for intersectional student identities, characterizing potential disparate impact due to these biases, and investigating the impact of various cross-institutional ensembling approaches on fairness and overall model performance. We perform this analysis on data representing over 200,000 enrolled students annually from four universities without sharing training data between institutions.   We find that a simple zero-shot cross-institutional transfer procedure can achieve similar performance to locally-trained models for all institutions in our study, without sacrificing model fairness. We also find that stacked ensembling provides no additional benefits to overall performance or fairness compared to either a local model or the zero-shot transfer procedure we tested. We find no evidence of a fairness-accuracy tradeoff across dozens of models and transfer schemes evaluated. Our auditing procedure also highlights the importance of intersectional fairness analysis, revealing performance disparities at the intersection of sensitive identity groups that are concealed under one-dimensional analysis."
+          "title": "MEDFAIR: Benchmarking Fairness for Medical Imaging",
+          "url": "https://openreview.net/forum?id=6ve2CkeQe5S",
+          "source_type": "application_paper",
+          "citationKey": "MEDFAIRBenchmarkingFairness"
         }
       ],
       "complexity_rating": 5,
       "computational_cost_rating": 4,
+      "acronym": "LAFTR",
       "related_techniques": [
-        "adaptive-sensitive-reweighting",
+        "reweighing",
         "adversarial-debiasing",
         "fair-adversarial-networks"
       ],
       "sample_claims": [
         {
-          "text": "The model maintains equitable performance across demographic groups when deployed in contexts with different population characteristics than the training environment",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
+          "text": "Classifiers trained by external parties on the released representation show a demographic parity difference below the agreed threshold on every downstream task audited.",
+          "assuranceGoal": "fairness",
+          "domain": "general"
         },
         {
-          "text": "The hiring system produces consistent outcomes across protected attributes when applied to regional markets with distinct demographic compositions",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
+          "text": "A classifier trained to recover the protected attribute from the released representation does no better than always predicting the majority group.",
+          "assuranceGoal": "fairness",
+          "domain": "general"
         },
         {
-          "text": "The model's equitable treatment of demographic groups is documented across multiple deployment contexts",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        }
-      ]
-    },
-    {
-      "slug": "adaptive-sensitive-reweighting",
-      "name": "Adaptive Sensitive Reweighting",
-      "description": "Adaptive Sensitive Reweighting dynamically adjusts the importance of training examples during model training based on real-time performance across different demographic groups. Unlike traditional static reweighting that fixes weights at the start, this technique continuously monitors fairness metrics and automatically increases the weight of examples from underperforming groups whilst decreasing weights for overrepresented groups. The adaptive mechanism prevents models from perpetuating historical biases by ensuring balanced learning across all demographics throughout the training process.",
-      "assurance_goals": [
-        "Fairness"
-      ],
-      "tags": [
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gray-box",
-        "data-requirements/access-to-training-data",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/in-processing",
-        "applicable-models/requirements/model-internals",
-        "data-type/any",
-        "expertise-needed/ml-engineering",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-selection-and-training",
-        "technique-type/algorithmic",
-        "evidence-type/model-artefact"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Training speech recognition systems that adapt weights during training to ensure consistent accuracy across different accents, dialects, and linguistic backgrounds, preventing models from favouring dominant accent groups in the training data.",
-          "goal": "Fairness"
+          "text": "The fairness of downstream risk models built on the shared encoded data was measured on each new prediction task rather than assumed from the task the encoder was trained on.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
         },
         {
-          "description": "Developing hiring algorithms that dynamically adjust training example weights to maintain consistent evaluation performance across demographic groups, ensuring the model doesn't learn to favour candidates from overrepresented backgrounds.",
-          "goal": "Fairness"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Training instability can occur when adaptive weight adjustments cause oscillations between demographic groups, potentially preventing convergence if reweighting parameters are not carefully tuned."
-        },
-        {
-          "description": "Computational overhead increases significantly due to continuous monitoring of fairness metrics across groups during training, requiring additional memory and processing time."
-        },
-        {
-          "description": "Risk of overfitting to specific demographic subgroups if the adaptation mechanism becomes too aggressive in correcting for observed performance disparities during training."
-        },
-        {
-          "description": "Requires careful hyperparameter tuning for adaptation rates and fairness thresholds, making the technique sensitive to configuration choices that may not generalise across different datasets."
-        },
-        {
-          "description": "May inadvertently harm overall model performance if the reweighting process prioritises fairness at the expense of learning important patterns that benefit all groups."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Adaptive Sensitive Reweighting to Mitigate Bias in Fairness-aware Classification",
-          "url": "https://dl.acm.org/doi/10.1145/3178876.3186133",
-          "source_type": "technical_paper",
-          "authors": [
-            "Emmanouil Krasanakis",
-            "Eleftherios Spyromitros Xioufis",
-            "S. Papadopoulos",
-            "Y. Kompatsiaris"
-          ],
-          "publication_date": "2018",
-          "citationKey": "krasanakisAdaptiveSensitiveReweighting2018"
-        }
-      ],
-      "complexity_rating": 4,
-      "computational_cost_rating": 3,
-      "related_techniques": [
-        "exponentiated-gradient-reduction",
-        "preferential-sampling",
-        "reweighing"
-      ],
-      "sample_claims": [
-        {
-          "text": "The model maintains equitable performance across demographic groups throughout the entire training process",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The hiring system's candidate evaluation accuracy is balanced across gender and ethnicity groups despite historical imbalances in recruitment data",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The speech recognition system achieves consistent accuracy across speakers with different accents and linguistic backgrounds",
-          "domain": "autonomous systems",
-          "assuranceGoal": "fairness"
-        }
-      ]
-    },
-    {
-      "slug": "bayesian-fairness-regularization",
-      "name": "Bayesian Fairness Regularization",
-      "description": "Bayesian Fairness Regularization incorporates fairness constraints into machine learning models through Bayesian methods, treating fairness as a prior distribution or regularization term. This approach includes techniques like Fair Bayesian Optimization that use constrained optimization to tune model hyperparameters whilst enforcing fairness constraints, and methods that add regularization terms to objective functions to penalize discriminatory predictions. The technique allows for probabilistic interpretation of fairness constraints and can account for uncertainty in both model parameters and fairness requirements.",
-      "assurance_goals": [
-        "Fairness"
-      ],
-      "tags": [
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "data-requirements/access-to-training-data",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
-        "applicable-models/requirements/white-box",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/in-processing",
-        "data-type/any",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "technique-type/algorithmic",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-selection-and-training",
-        "evidence-type/model-artefact"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Using Fair Bayesian Optimization to tune hyperparameters of credit risk models, automatically balancing predictive accuracy with fairness constraints across different demographic groups whilst accounting for uncertainty in both model performance and fairness requirements.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Implementing Bayesian neural networks with fairness-aware priors for hiring recommendation systems, where uncertainty in fairness constraints is modeled probabilistically to ensure robust fair decision-making across different candidate populations.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Developing insurance premium calculation models using Bayesian fairness regularization to ensure actuarially sound pricing that meets regulatory fairness requirements, with probabilistic modeling of both risk assessment accuracy and demographic equity.",
-          "goal": "Fairness"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Prior selection challenges make it difficult to specify appropriate prior distributions for fairness constraints, requiring domain expertise and potentially leading to suboptimal or biased outcomes if priors are poorly chosen."
-        },
-        {
-          "description": "Computational complexity increases significantly due to Bayesian inference requirements, including sampling methods, variational inference, or optimization over probability distributions, making the approach less scalable for large datasets."
-        },
-        {
-          "description": "Sensitivity to hyperparameters affects both the Bayesian inference process and fairness regularization terms, requiring careful tuning of multiple parameters that control the trade-off between accuracy, fairness, and computational efficiency."
-        },
-        {
-          "description": "Convergence and stability issues may arise in Bayesian optimization with fairness constraints, particularly when fairness objectives conflict with performance objectives or when the constraint space becomes highly complex."
-        },
-        {
-          "description": "Limited theoretical understanding exists for the interaction between Bayesian uncertainty quantification and fairness constraints, making it challenging to provide guarantees about both predictive performance and fairness under uncertainty."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Bayesian fairness",
-          "url": "https://arxiv.org/abs/1706.00119",
-          "source_type": "technical_paper",
-          "authors": [
-            "Christos Dimitrakakis",
-            "Yang Liu",
-            "David Parkes",
-            "Goran Radanovic"
-          ],
-          "publication_date": "2017-05-31",
-          "citationKey": "dimitrakakisBayesianFairness2017",
-          "abstract": "We consider the problem of how decision making can be fair when the underlying probabilistic model of the world is not known with certainty. We argue that recent notions of fairness in machine learning need to explicitly incorporate parameter uncertainty, hence we introduce the notion of {\\em Bayesian fairness} as a suitable candidate for fair decision rules. Using balance, a definition of fairness introduced by Kleinberg et al (2016), we show how a Bayesian perspective can lead to well-performing, fair decision rules even under high uncertainty."
-        },
-        {
-          "title": "Fair Bayesian Optimization",
-          "url": "https://arxiv.org/abs/2006.05109",
-          "source_type": "technical_paper",
-          "authors": [
-            "Valerio Perrone",
-            "Michele Donini",
-            "Muhammad Bilal Zafar",
-            "Robin Schmucker",
-            "Krishnaram Kenthapadi",
-            "Cédric Archambeau"
-          ],
-          "publication_date": "2020-06-09",
-          "citationKey": "perroneFairBayesianOptimization2020",
-          "abstract": "Given the increasing importance of machine learning (ML) in our lives, several algorithmic fairness techniques have been proposed to mitigate biases in the outcomes of the ML models. However, most of these techniques are specialized to cater to a single family of ML models and a specific definition of fairness, limiting their adaptibility in practice. We introduce a general constrained Bayesian optimization (BO) framework to optimize the performance of any ML model while enforcing one or multiple fairness constraints. BO is a model-agnostic optimization method that has been successfully applied to automatically tune the hyperparameters of ML models. We apply BO with fairness constraints to a range of popular models, including random forests, gradient boosting, and neural networks, showing that we can obtain accurate and fair solutions by acting solely on the hyperparameters. We also show empirically that our approach is competitive with specialized techniques that enforce model-specific fairness constraints, and outperforms preprocessing methods that learn fair representations of the input data. Moreover, our method can be used in synergy with such specialized fairness techniques to tune their hyperparameters. Finally, we study the relationship between fairness and the hyperparameters selected by BO. We observe a correlation between regularization and unbiased models, explaining why acting on the hyperparameters leads to ML models that generalize well and are fair."
-        },
-        {
-          "title": "fgp",
-          "url": "https://github.com/ztanml/fgp",
-          "source_type": "software_package",
-          "publication_date": "2019-06-21",
-          "citationKey": "ztanmlFgp2019",
-          "abstract": "Fair Gaussian Processes"
-        },
-        {
-          "title": "Fairness-Aware Classifier with Prejudice Remover Regularizer",
-          "url": "https://doi.org/10.1007/978-3-642-33486-3_3",
-          "source_type": "technical_paper",
-          "authors": [
-            "Toshihiro Kamishima",
-            "Shotaro Akaho",
-            "Hideki Asoh",
-            "Jun Sakuma"
-          ],
-          "publication_date": "2012-09-24",
-          "citationKey": "kamishimaFairnessAwareClassifierPrejudice2012"
-        }
-      ],
-      "complexity_rating": 5,
-      "computational_cost_rating": 4,
-      "related_techniques": [
-        "prejudice-remover-regulariser",
-        "exponentiated-gradient-reduction"
-      ],
-      "sample_claims": [
-        {
-          "text": "The lending model's fairness guarantees account for uncertainty in both demographic data quality and group membership boundaries",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The hiring system's decisions balance predictive accuracy with equity constraints through probabilistically-weighted regularization",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The risk assessment model quantifies confidence in its fairness properties alongside prediction uncertainty",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
+          "text": "Under a model-selection rule fixed in advance, the debiased imaging model narrows the gap in error rates between patient groups relative to standard training by a measured margin.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
         }
       ]
     }
   ],
-  "count": 16
+  "count": 13
 }

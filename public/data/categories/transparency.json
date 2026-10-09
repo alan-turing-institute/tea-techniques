@@ -2,7 +2,7 @@
   "goal": {
     "name": "Transparency",
     "slug": "transparency",
-    "count": 75,
+    "count": 71,
     "description": "Making AI systems and their decision-making processes open and understandable."
   },
   "techniques": [
@@ -88,7 +88,7 @@
         },
         {
           "title": "The Elements of Statistical Learning",
-          "url": "https://hastie.su.domains/ElemStatLearn",
+          "url": "https://doi.org/10.1007/978-0-387-84858-7",
           "source_type": "technical_paper",
           "publication_date": "2009",
           "citationKey": "ElementsStatisticalLearning2009"
@@ -619,8 +619,8 @@
       "related_techniques": [
         "layer-wise-relevance-propagation",
         "deeplift",
-        "feature-attribution-with-integrated-gradients-in-nlp",
-        "classical-attention-analysis-in-neural-networks"
+        "integrated-gradients",
+        "attention-weight-analysis"
       ],
       "sample_claims": [
         {
@@ -1266,7 +1266,6 @@
     {
       "slug": "anchor",
       "name": "ANCHOR",
-      "acronym": "ANCHOR",
       "description": "ANCHOR generates high-precision if-then rules that explain individual predictions by identifying the minimal set of feature conditions that guarantee a specific prediction with high confidence. It searches for 'anchor' conditions (e.g., 'age > 30 AND income < £50k') that ensure the model gives the same prediction at least 95% of the time when those conditions are met. This creates human-readable rules that users can trust as sufficient conditions for understanding why a particular decision was made.",
       "assurance_goals": [
         "Explainability",
@@ -1387,6 +1386,7 @@
       ],
       "complexity_rating": 3,
       "computational_cost_rating": 3,
+      "acronym": "ANCHOR",
       "related_techniques": [
         "local-interpretable-model-agnostic-explanations",
         "shapley-additive-explanations",
@@ -2035,7 +2035,7 @@
         "conformal-prediction",
         "bootstrapping",
         "jackknife-resampling",
-        "empirical-calibration"
+        "platt-scaling"
       ],
       "sample_claims": [
         {
@@ -2221,9 +2221,9 @@
       ]
     },
     {
-      "slug": "empirical-calibration",
-      "name": "Empirical Calibration",
-      "description": "Empirical calibration adjusts a model's predicted probabilities to match observed frequencies. For example, if events predicted with 80% confidence only occur 60% of the time, calibration would correct this overconfidence. Common techniques include Platt scaling and isotonic regression, which learn transformations that map the model's raw scores to well-calibrated probabilities, improving the reliability of confidence measures for downstream decisions.",
+      "slug": "platt-scaling",
+      "name": "Platt Scaling",
+      "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score or log loss before and after.",
       "assurance_goals": [
         "Reliability",
         "Transparency",
@@ -2233,118 +2233,130 @@
         "applicable-models/architecture/model-agnostic",
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/black-box",
-        "applicable-models/requirements/probabilistic-output",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/calibration",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/confidence-and-limits",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/performance-by-group",
         "data-requirements/calibration-set",
         "data-type/any",
-        "evidence-type/quantitative-metric",
         "evidence-type/model-artefact",
+        "evidence-type/quantitative-metric",
         "expertise-needed/statistics",
-        "explanatory-scope/global",
         "technique-type/algorithmic",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
       ],
       "example_use_cases": [
         {
-          "description": "Adjusting a credit default prediction model's probabilities to ensure that loan applicants with a predicted 30% default risk actually default 30% of the time, improving decision-making.",
+          "description": "A retail bank's credit-risk team finds that its gradient-boosted default model ranks applicants well but squeezes predicted default probabilities towards the middle of the range. Before the probabilities feed expected-loss provisioning, the team fits Platt scaling on a held-out year of loan outcomes and checks on a reliability diagram that predicted and observed default rates agree in every score decile.",
           "goal": "Reliability"
         },
         {
-          "description": "Calibrating a medical diagnosis model's confidence scores so that stakeholders can meaningfully interpret probability outputs, enabling doctors to make informed decisions about treatment urgency based on reliable confidence estimates.",
+          "description": "A benefits agency uses a linear support vector machine to flag claims for manual review, but its margin scores mean nothing to caseworkers. The team applies Platt scaling so the review screen can show the probability that a claim needs correcting, publishes the calibration curve in the caseworker guidance, and explains that the figure is a rate across similar claims rather than a verdict on the individual.",
           "goal": "Transparency"
         },
         {
-          "description": "Ensuring that a hiring algorithm's confidence scores are equally well-calibrated across different demographic groups, preventing systematically overconfident predictions for certain populations that could lead to biased decision-making.",
+          "description": "A hospital network recalibrates a deployed malnutrition-risk model by fitting a two-parameter logistic map to the model's log-odds on recent admissions, then compares calibration intercept and slope separately for Black and White patients and for men and women, to check that the same risk score means the same likelihood of malnutrition in each group before the scores guide dietitian referrals.",
           "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Requires a separate held-out calibration dataset, which reduces the amount of data available for model training."
+          "description": "The sigmoid shape is an assumption. It corrects the S-shaped distortion typical of support vector machines and boosted trees, whose probabilities bunch towards the middle, but not the reverse distortion of overconfident models such as naive Bayes, whose probabilities pile up near 0 and 1. Where the reliability diagram shows that pattern, a flexible method such as isotonic regression is needed."
         },
         {
-          "description": "Calibration performance can degrade over time if the underlying data distribution shifts, requiring periodic recalibration."
+          "description": "It works best when the classifier's scores for the two classes are spread in a similar way (roughly normal with equal variance). In highly imbalanced problems this often fails, and a two-parameter fit can leave the rare class poorly calibrated, which an overall score such as the Brier score can hide."
         },
         {
-          "description": "May sacrifice some discriminative power in favour of calibration, potentially reducing the model's ability to distinguish between classes."
+          "description": "The curve must be fitted on labelled cases that played no part in training. The classifier separates its own training data better than new data, so a curve fitted to training scores overstates confidence in use; the cost is a held-out calibration set taken from scarce labelled data, or cross-validation with several model fits."
         },
         {
-          "description": "Calibration methods assume that the calibration set is representative of future data, which may not hold in dynamic environments."
+          "description": "A single curve fitted across the whole population does not guarantee calibration within each subgroup. Fitting a separate curve per group needs group membership at prediction time, which may be unavailable or unlawful to use, and enough labelled cases in every group to estimate two parameters reliably."
+        },
+        {
+          "description": "It is defined for two classes. For multiclass problems each class is calibrated against the rest and the resulting probabilities are renormalised to sum to one, adding two parameters per class; for multiclass neural networks, temperature scaling, which fits one parameter shared by all classes, is the simpler alternative."
         }
       ],
       "resources": [
         {
-          "title": "empirical_calibration",
-          "url": "https://github.com/google/empirical_calibration",
+          "title": "1.16. Probability calibration — scikit-learn user guide",
+          "url": "https://scikit-learn.org/stable/modules/calibration.html",
+          "source_type": "documentation",
+          "citationKey": "116ProbabilityCalibration",
+          "abstract": "When performing classification you often want not only to predict the class label, but also obtain a probability of the respective label. This probability gives you some kind of confidence on the p..."
+        },
+        {
+          "title": "scikit-learn",
+          "url": "https://github.com/scikit-learn/scikit-learn",
           "source_type": "software_package",
-          "publication_date": "2019-02-01",
-          "citationKey": "googleEmpirical_calibration2019"
+          "citationKey": "Scikitlearn",
+          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
         },
         {
-          "title": "A Python Library For Empirical Calibration",
-          "url": "http://arxiv.org/abs/1906.11920v2",
+          "title": "Probabilities for SV Machines",
+          "url": "https://doi.org/10.7551/mitpress/1113.003.0008",
           "source_type": "technical_paper",
           "authors": [
-            "Xiaojing Wang",
-            "Jingang Miao",
-            "Yunting Sun"
+            "John C. Platt"
           ],
-          "publication_date": "2019-06-27",
-          "citationKey": "wangPythonLibraryEmpirical2019",
-          "abstract": "Dealing with biased data samples is a common task across many statistical fields. In survey sampling, bias often occurs due to unrepresentative samples. In causal studies with observational data, the treated versus untreated group assignment is often correlated with covariates, i.e., not random. Empirical calibration is a generic weighting method that presents a unified view on correcting or reducing the data biases for the tasks mentioned above. We provide a Python library EC to compute the empirical calibration weights. The problem is formulated as convex optimization and solved efficiently in the dual form. Compared to existing software, EC is both more efficient and robust. EC also accommodates different optimization objectives, supports weight clipping, and allows inexact calibration, which improves usability. We demonstrate its usage across various experiments with both simulated and real-world data."
+          "publication_date": "2000-9-29",
+          "citationKey": "plattProbabilitiesSVMachines2000"
         },
         {
-          "title": "Assessing the effectiveness of empirical calibration under different bias scenarios",
-          "url": "http://arxiv.org/abs/2111.04233v2",
-          "source_type": "technical_paper",
+          "title": "Probability Calibration curves — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
+          "source_type": "tutorial",
+          "citationKey": "ProbabilityCalibrationCurves",
+          "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
+        },
+        {
+          "title": "Assessing calibration and bias of a deployed machine learning malnutrition prediction model within a large healthcare system",
+          "url": "https://doi.org/10.1038/s41746-024-01141-5",
+          "source_type": "application_paper",
           "authors": [
-            "Hon Hwang",
-            "Juan C Quiroz",
-            "Blanca Gallego"
+            "Lathan Liou",
+            "Erick Scott",
+            "Prathamesh Parchure",
+            "Yuxia Ouyang",
+            "Natalia Egorova",
+            "Robert Freeman",
+            "Ira S. Hofer",
+            "Girish N. Nadkarni",
+            "Prem Timsina",
+            "Arash Kia",
+            "Matthew A. Levin"
           ],
-          "publication_date": "2021-11-08",
-          "citationKey": "hwangAssessingEffectivenessEmpirical2021",
-          "abstract": "Background: Estimations of causal effects from observational data are subject to various sources of bias. One method of adjusting for the residual biases in the estimation of a treatment effect is through negative control outcomes, where the treatment does not affect the outcome. The empirical calibration procedure is a technique that uses negative controls to calibrate p-values. An extension of empirical calibration calibrates the coverage of the 95% confidence interval of a treatment effect estimate by using negative control outcomes as well as positive control outcomes (where treatment affects the outcome).   Methods: The effect of empirical calibration of confidence intervals was analyzed using simulated datasets with known treatment effects. The simulations consisted of binary treatment and binary outcome, with biases resulting from unmeasured confounder, model misspecification, measurement error, and lack of positivity. The performance of the empirical calibration was evaluated by determining the change in the coverage of the confidence interval and the bias in the treatment effect estimate.   Results: Empirical calibration increased coverage of the 95% confidence interval of the treatment effect estimate under most bias scenarios but was inconsistent in adjusting the bias in the treatment effect estimate. Empirical calibration of confidence intervals was most effective when adjusting for the unmeasured confounding bias. Suitable negative controls had a large impact on the adjustment made by empirical calibration, but small improvements in the coverage of the outcome of interest were also observable when using unsuitable negative controls."
+          "publication_date": "2024-6-6",
+          "citationKey": "liouAssessingCalibrationBias2024"
         }
       ],
-      "complexity_rating": 2,
-      "computational_cost_rating": 2,
-      "related_techniques": [
-        "temperature-scaling",
-        "conformal-prediction",
-        "confidence-thresholding"
-      ],
+      "complexity_rating": 1,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
       "sample_claims": [
         {
-          "text": "The model's predicted probabilities align with observed outcome frequencies across the decision space",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "After Platt scaling on a held-out year of loan outcomes, the default model's predicted probabilities agree with observed default rates in every score decile, within the tolerance set in the model risk policy.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
         },
         {
-          "text": "The system's confidence scores are interpretable as genuine probability estimates for critical decisions",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
+          "text": "Recalibrating the defect classifier with Platt scaling left its ranking of parts, measured by the area under the ROC curve on the test set, unchanged while reducing its log loss.",
+          "assuranceGoal": "reliability",
+          "domain": "manufacturing"
         },
         {
-          "text": "The model's probability estimates maintain consistent calibration quality across protected demographic groups",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
+          "text": "The probability shown to caseworkers for each flagged claim is calibrated against held-out review outcomes, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
         },
         {
-          "text": "The autonomous system's predicted risk levels correspond to actual failure rates in operational conditions",
-          "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The forecasting model's stated confidence intervals reflect empirically measured prediction accuracy",
-          "domain": "environmental",
-          "assuranceGoal": "transparency"
+          "text": "After recalibration, the malnutrition-risk model's calibration intercept and slope do not differ materially between patients grouped by race or by sex.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
         }
       ]
     },
@@ -2447,7 +2459,7 @@
       "complexity_rating": 1,
       "computational_cost_rating": 1,
       "related_techniques": [
-        "empirical-calibration",
+        "platt-scaling",
         "deep-ensembles",
         "conformal-prediction"
       ],
@@ -3178,9 +3190,9 @@
       ]
     },
     {
-      "slug": "internal-review-boards",
-      "name": "Internal Review Boards",
-      "description": "Internal Review Boards (IRBs) provide independent, systematic evaluation of AI/ML projects throughout their lifecycle to identify ethical, safety, and societal risks before they materialise. Typically composed of multidisciplinary experts including ethicists, domain specialists, legal counsel, community representatives, and technical staff, IRBs review project proposals, assess potential harms to individuals and communities, evaluate mitigation strategies, and establish ongoing monitoring requirements. Unlike traditional research ethics committees, AI-focused IRBs address algorithmic bias, fairness concerns, privacy implications, and societal impact at scale, providing essential governance for responsible AI development and deployment.",
+      "slug": "algorithm-review-boards",
+      "name": "Algorithm Review Boards",
+      "description": "An algorithm review board is a standing, multidisciplinary body inside an organisation that examines proposed AI systems or AI research projects at set points and decides whether, and on what conditions, they may proceed. The literature also calls these bodies AI ethics boards or AI review boards. They differ from an Institutional Review Board (IRB), which protects the human subjects of research, because they also weigh harms to the people a system will affect and to society. A risk-based triage decides which projects need full review; the project team then submits a written account of the system's purpose, data, foreseeable harms and planned mitigations, and members drawn from technical, legal, ethical and domain backgrounds, sometimes with people from affected communities, question the team and iterate on that account with them. The board approves, approves with conditions such as a monitoring plan or a re-review date, or rejects, and the output is a dated decision record with its reasons and conditions that later reviews and audits can check against what was built.",
       "assurance_goals": [
         "General",
         "Transparency"
@@ -3211,33 +3223,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Reviewing a proposed criminal risk assessment tool to evaluate potential discriminatory impacts, privacy implications, and societal consequences before development begins, ensuring vulnerable communities are protected from algorithmic harm.",
-          "goal": "Safety"
+          "description": "A hospital group's algorithm review board examines a sepsis early-warning model before a ward pilot. It approves the pilot on condition of a monitoring plan for alert rates and missed cases, names who may switch the model off, and sets a re-review once six months of local performance data are in, before any wider roll-out.",
+          "goal": "General"
         },
         {
-          "description": "Evaluating a hiring algorithm for bias across demographic groups, requiring algorithmic audits and ongoing monitoring to ensure equitable treatment of all candidates and compliance with employment law.",
-          "goal": "Fairness"
+          "description": "A bank's board reviews a proposed credit-limit model before launch. It asks the team for its disparate-impact analysis by protected group and for evidence that applicants can contest a decision, and withholds approval until both are supplied, so the decision to deploy rests with a body outside the development team.",
+          "goal": "General"
         },
         {
-          "description": "Establishing transparent governance processes for a healthcare AI system, requiring clear documentation of decision-making criteria, model limitations, and performance metrics that can be communicated to patients and regulators.",
+          "description": "A university AI research programme releases grant funding only after each project has passed an ethics and society review, in which researchers state the risks their work poses to society and to particular groups, commit to mitigations, and revise them with an interdisciplinary faculty panel.",
+          "goal": "General"
+        },
+        {
+          "description": "A government department publishes the board's decision record for a benefits-triage tool, giving the reasons for approval, the conditions attached and the re-review date, so that its oversight committee and the public can see what was examined, by whom and when, and check later that the conditions were met.",
           "goal": "Transparency"
         }
       ],
       "limitations": [
         {
-          "description": "Can significantly slow development timelines and increase project costs, potentially making organisations less competitive or delaying beneficial AI applications from reaching users."
+          "description": "Review adds time and cost to every project that goes through it, and organisations under commercial pressure may route work around the board or narrow its remit, so the board's coverage, not just its existence, needs to be shown."
         },
         {
-          "description": "Effectiveness heavily depends on board composition, with inadequate diversity or expertise leading to blind spots in risk assessment and biased decision-making."
+          "description": "Its judgements are only as good as its membership. A board without the relevant technical, domain or community expertise will miss harms that fall outside what its members know, and a board drawn mainly from inside the team's own reporting line is open to group-think."
         },
         {
-          "description": "May face internal pressure to approve revenue-generating projects or strategic initiatives, compromising independence and rigorous ethical evaluation."
+          "description": "Independence is hard to keep inside an organisation. Practitioners report tension between profit and the cost of responsible-AI review, and a board can come under pressure to approve projects that leadership has already committed to, which weakens it most where review matters most."
         },
         {
-          "description": "Limited authority or enforcement mechanisms can result in recommendations being ignored, particularly when they conflict with business objectives or technical constraints."
+          "description": "Without authority to stop or delay a project, and a way to check that its conditions are met, a board's recommendations can be ignored. Evidence from a board is strong only when its decision record shows what it could block and what happened to its conditions."
         },
         {
-          "description": "Risk of becoming bureaucratic or box-ticking exercises rather than substantive evaluations, especially in organisations without strong ethical leadership or clear accountability structures."
+          "description": "There is no agreed measure of whether a board works, and review can become box-ticking. A record that a project was reviewed shows that a process ran, not that the review was substantive or that its concerns were addressed."
         }
       ],
       "resources": [
@@ -3331,7 +3347,6 @@
       ],
       "complexity_rating": 4,
       "computational_cost_rating": 1,
-      "acronym": "IRBs",
       "related_techniques": [
         "human-in-the-loop-safeguards",
         "model-cards",
@@ -3339,29 +3354,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The deployment of high-risk AI systems is subject to independent multidisciplinary review before operational use",
+          "text": "Every high-risk AI system was reviewed and approved by the organisation's algorithm review board before operational use, and the board could have blocked deployment",
           "domain": "general",
-          "assuranceGoal": "safety"
+          "assuranceGoal": "general"
         },
         {
-          "text": "The hiring algorithm's potential discriminatory impacts are evaluated by experts representing diverse perspectives before deployment",
+          "text": "The conditions the review board attached to the credit-limit model's approval, including a disparate-impact analysis by protected group and a re-review date, were met before and after launch",
           "domain": "finance",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "general"
         },
         {
-          "text": "The criminal risk assessment tool undergoes ethical review by community representatives and legal counsel before use in sentencing decisions",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
+          "text": "The clinical decision-support model was deployed under a monitoring plan and re-review schedule set by a multidisciplinary review board independent of the development team",
+          "domain": "healthcare",
+          "assuranceGoal": "general"
         },
         {
-          "text": "The diagnostic AI system's development and deployment decisions are traceable to independent board reviews that assessed patient safety risks",
+          "text": "The diagnostic AI system's development and deployment decisions are traceable to dated board decision records that state the risks assessed, the reasons for approval and the conditions attached",
           "domain": "healthcare",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The autonomous vehicle system's safety-critical design choices are subject to ongoing monitoring requirements established by an independent review board",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
+          "text": "The review board's decision record for the risk assessment tool, with its reasons and conditions, is available to the oversight body and the public",
+          "domain": "public sector",
+          "assuranceGoal": "transparency"
         }
       ]
     },
@@ -3605,7 +3620,7 @@
         "jailbreak-resistance-testing",
         "prompt-injection-testing",
         "safety-envelope-testing",
-        "internal-review-boards"
+        "algorithm-review-boards"
       ],
       "sample_claims": [
         {
@@ -3766,7 +3781,7 @@
       "computational_cost_rating": 2,
       "related_techniques": [
         "confidence-thresholding",
-        "internal-review-boards",
+        "algorithm-review-boards",
         "runtime-monitoring-and-circuit-breakers"
       ],
       "sample_claims": [
@@ -3919,7 +3934,7 @@
       "computational_cost_rating": 1,
       "related_techniques": [
         "human-in-the-loop-safeguards",
-        "empirical-calibration",
+        "platt-scaling",
         "out-of-domain-detection",
         "runtime-monitoring-and-circuit-breakers"
       ],
@@ -3954,7 +3969,7 @@
     {
       "slug": "runtime-monitoring-and-circuit-breakers",
       "name": "Runtime Monitoring and Circuit Breakers",
-      "description": "Runtime monitoring and circuit breakers establish continuous surveillance of AI/ML systems in production, tracking critical metrics such as prediction accuracy, response times, input characteristics, output distributions, and system resource usage. When monitored parameters exceed predefined safety thresholds or exhibit anomalous patterns, automated circuit breakers immediately trigger protective actions including request throttling, service degradation, system shutdown, or failover to backup mechanisms. This approach provides real-time defensive capabilities that prevent cascading failures, ensure consistent service reliability, and maintain transparent operation status for stakeholders monitoring system health.",
+      "description": "Runtime monitoring and circuit breakers watch a deployed AI system's operational and model-level signals and automatically stop, limit or reroute calls to the model when those signals cross preset limits. The circuit breaker, a software resilience pattern, wraps calls to the model: while closed it passes requests through and counts failures in a rolling time window; when failures pass a threshold it opens, so further requests fail at once or receive a fallback such as a cached answer, a simpler model, a rule-based default or referral to a person; after a cooldown it half-opens and lets a few trial requests through, closing again only if they succeed. For a machine learning model, what counts as a failure is widened from errors and timeouts to model-level signals available at the moment of prediction, such as input drift scores, low prediction confidence, out-of-range outputs or limits on the actions the system may take, because true accuracy usually cannot be measured until outcomes arrive later. The output is a log of breaker state changes, the metrics that triggered them and the alerts raised, which shows when and why the system was restricted; the protection is only as good as the chosen thresholds and the fallback behind the breaker.",
       "assurance_goals": [
         "General",
         "Reliability",
@@ -4015,32 +4030,83 @@
       ],
       "resources": [
         {
-          "title": "aiobreaker",
-          "url": "https://github.com/arlyon/aiobreaker",
+          "title": "Circuit Breaker pattern — Azure Architecture Center",
+          "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker",
+          "source_type": "documentation",
+          "authors": [
+            "claytonsiemens77"
+          ],
+          "citationKey": "claytonsiemens77CircuitBreakerPattern",
+          "abstract": "Learn how to handle faults that might take varying amounts of time to fix when applications connect to a remote service or resource."
+        },
+        {
+          "title": "pybreaker: Python implementation of the Circuit Breaker pattern",
+          "url": "https://github.com/danielfm/pybreaker",
           "source_type": "software_package",
-          "publication_date": "2018-07-27",
-          "citationKey": "arlyonAiobreaker2018",
+          "publication_date": "2026-10-06T18:45:18Z",
+          "citationKey": "martinsPybreakerPythonImplementation2026",
           "abstract": "Python implementation of the Circuit Breaker pattern."
         },
         {
-          "title": "Improving Alignment and Robustness with Circuit Breakers",
-          "url": "https://arxiv.org/abs/2406.04313",
+          "title": "Evidently: open-source ML and LLM observability framework",
+          "url": "https://github.com/evidentlyai/evidently",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T04:16:51Z",
+          "citationKey": "EvidentlyOpensourceML2026",
+          "abstract": "Evidently is ​​an open-source ML and LLM observability framework. Evaluate, test, and monitor any AI-powered system or data pipeline. From tabular data to Gen AI. 100+ metrics."
+        },
+        {
+          "title": "Release It! Design and Deploy Production-Ready Software (2nd edition)",
+          "url": "https://pragprog.com/titles/mnee2/release-it-second-edition/",
+          "source_type": "technical_paper",
+          "citationKey": "ReleaseItDesign",
+          "abstract": "Design your application for maximum uptime, performance, and return on investment in the face of the harsh realities of the real world."
+        },
+        {
+          "title": "Hidden Technical Debt in Machine Learning Systems",
+          "url": "https://proceedings.neurips.cc/paper/2015/hash/86df7dcfd896fcaf2674f757a2463eba-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
-            "Andy Zou",
-            "Long Phan",
-            "Justin Wang",
-            "Derek Duenas",
-            "Maxwell Lin",
-            "Maksym Andriushchenko",
-            "Rowan Wang",
-            "Zico Kolter",
-            "Matt Fredrikson",
-            "Dan Hendrycks"
+            "D. Sculley",
+            "Gary Holt",
+            "Daniel Golovin",
+            "Eugene Davydov",
+            "Todd Phillips",
+            "Dietmar Ebner",
+            "Vinay Chaudhary",
+            "Michael Young",
+            "Jean-François Crespo",
+            "Dan Dennison"
           ],
-          "publication_date": "2024",
-          "citationKey": "zouImprovingAlignmentRobustness2024",
-          "abstract": "AI systems can take harmful actions and are highly vulnerable to adversarial attacks. We present an approach, inspired by recent advances in representation engineering, that interrupts the models as they respond with harmful outputs with “circuit breakers.” Existing techniques aimed at improving alignment, such as refusal training, are often bypassed. Techniques such as adversarial training try to plug these holes by countering specific attacks. As an alternative to refusal training and adversarial training, circuit-breaking directly controls the representations that are responsible for harmful outputs in the first place. Our technique can be applied to both text-only and multimodal language models to prevent the generation of harmful outputs without sacrificing utility—even in the presence of powerful unseen attacks. Notably, while adversarial robustness in standalone image recognition remains an open challenge, circuit breakers allow the larger multimodal system to reliably withstand image “hijacks” that aim to produce harmful content. Finally, we extend our approach to AI agents, demonstrating considerable reductions in the rate of harmful actions when they are under attack. Our approach represents a significant step forward in the development of reliable safeguards to harmful behavior and adversarial attacks. Code is available at github.com/GraySwanAI/circuit-breakers."
+          "publication_date": "2015",
+          "citationKey": "sculleyHiddenTechnicalDebt2015",
+          "abstract": "Machine learning offers a fantastically powerful toolkit for building useful complexprediction systems quickly. This paper argues it is dangerous to think ofthese quick wins as coming for free. Using the software engineering frameworkof technical debt, we find it is common to incur massive ongoing maintenancecosts in real-world ML systems. We explore several ML-specific risk factors toaccount for in system design. These include boundary erosion, entanglement,hidden feedback loops, undeclared consumers, data dependencies, configurationissues, changes in the external world, and a variety of system-level anti-patterns."
+        },
+        {
+          "title": "CircuitBreaker — Martin Fowler",
+          "url": "https://martinfowler.com/bliki/CircuitBreaker.html",
+          "source_type": "tutorial",
+          "authors": [
+            "Martin Fowler"
+          ],
+          "citationKey": "fowlerCircuitBreakerMartinFowler",
+          "abstract": "You use software circuit breakers on connections to remote services. These breakers trip when the supplier becomes unresponsive, once tripped the breaker no longer calls the supplier until reset."
+        },
+        {
+          "title": "Amazon SageMaker Model Monitor: A System for Real-Time Insights into Deployed Machine Learning Models",
+          "url": "https://doi.org/10.1145/3534678.3539145",
+          "source_type": "application_paper",
+          "authors": [
+            "David Nigenda",
+            "Zohar Karnin",
+            "Muhammad Bilal Zafar",
+            "Raghu Ramesha",
+            "Alan Tan",
+            "Michele Donini",
+            "Krishnaram Kenthapadi"
+          ],
+          "publication_date": "2022-8-14",
+          "citationKey": "nigendaAmazonSageMakerModel2022"
         }
       ],
       "complexity_rating": 3,
@@ -4238,7 +4304,7 @@
       "related_techniques": [
         "datasheets-for-datasets",
         "model-development-audit-trails",
-        "internal-review-boards"
+        "algorithm-review-boards"
       ],
       "sample_claims": [
         {
@@ -5199,190 +5265,9 @@
       ]
     },
     {
-      "slug": "attention-visualisation-in-transformers",
-      "name": "Attention Visualisation in Transformers",
-      "description": "Attention Visualisation in Transformers analyses the multi-head self-attention mechanisms that enable transformers to process sequences by attending to different positions simultaneously. The technique visualises attention weights as heatmaps showing how strongly each token attends to every other token across different heads and layers. By examining these attention patterns, practitioners can understand how models like BERT, GPT, and T5 build contextual representations, identify which tokens influence predictions most strongly, and detect potential biases in how the model processes different types of input. This provides insights into positional encoding effects, head specialisation patterns, and the evolution of attention from local to global context across layers.",
-      "assurance_goals": [
-        "Explainability",
-        "Fairness",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks/transformer",
-        "applicable-models/requirements/architecture-specific",
-        "applicable-models/requirements/model-internals",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/data-patterns",
-        "assurance-goal-category/explainability/explains/internal-mechanisms",
-        "assurance-goal-category/explainability/property/comprehensibility",
-        "assurance-goal-category/explainability/property/efficiency",
-        "assurance-goal-category/explainability/visualization-methods/attention-patterns",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/decision-reasons",
-        "data-type/text",
-        "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/deep-learning",
-        "explanatory-scope/global",
-        "explanatory-scope/local",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation",
-        "technique-type/algorithmic",
-        "technique-type/visualisation",
-        "data-requirements/no-special-requirements"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Examining attention patterns in a medical language model processing clinical notes to verify it focuses on relevant symptoms and conditions rather than irrelevant demographic identifiers, revealing that certain attention heads specialise in medical terminology whilst others track syntactic relationships between diagnoses and treatments.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a sentiment analysis model for customer reviews by visualising how attention weights differ when processing reviews from different demographic groups, discovering that the model pays disproportionate attention to certain cultural expressions or colloquialisms that could lead to biased sentiment predictions.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Creating visual explanations for regulatory compliance in a financial document classification system, showing which specific words and phrases in loan applications or contracts triggered particular risk assessments, enabling auditors to verify that decisions are based on legitimate financial factors rather than discriminatory language patterns.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "High attention weights do not necessarily indicate causal importance for predictions, as models may attend strongly to tokens that serve structural rather than semantic purposes."
-        },
-        {
-          "description": "The sheer number of attention heads and layers in modern transformers creates visualisation overload, making it difficult to identify meaningful patterns without systematic analysis tools."
-        },
-        {
-          "description": "Attention patterns can be misleading when models use residual connections and layer normalisation, as the final representation incorporates information beyond what attention weights suggest."
-        },
-        {
-          "description": "Different transformer architectures (encoder-only, decoder-only, encoder-decoder) exhibit fundamentally different attention patterns, limiting the generalisability of insights across model types."
-        },
-        {
-          "description": "The technique cannot explain the reasoning process within feed-forward layers or how attention patterns translate into specific predictions, providing only a partial view of model behaviour."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Model outputs — Hugging Face Transformers documentation",
-          "url": "https://huggingface.co/docs/transformers/main_classes/output",
-          "source_type": "documentation",
-          "citationKey": "ModelOutputsHugging",
-          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
-        },
-        {
-          "title": "bertviz",
-          "url": "https://github.com/jessevig/bertviz",
-          "source_type": "software_package",
-          "publication_date": "2018-12-16",
-          "citationKey": "jessevigBertviz2018",
-          "abstract": "BertViz: Visualize Attention in NLP Models (BERT, GPT2, BART, etc.)"
-        },
-        {
-          "title": "Attention Is All You Need",
-          "url": "https://arxiv.org/abs/1706.03762",
-          "source_type": "technical_paper",
-          "authors": [
-            "Ashish Vaswani",
-            "Noam Shazeer",
-            "Niki Parmar",
-            "Jakob Uszkoreit",
-            "Llion Jones",
-            "Aidan N. Gomez",
-            "Lukasz Kaiser",
-            "Illia Polosukhin"
-          ],
-          "publication_date": "2017-06-12",
-          "citationKey": "vaswaniAttentionAllYou2017",
-          "abstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks in an encoder-decoder configuration. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles by over 2 BLEU. On the WMT 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art BLEU score of 41.8 after training for 3.5 days on eight GPUs, a small fraction of the training costs of the best models from the literature. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data."
-        },
-        {
-          "title": "Analyzing Multi-Head Self-Attention: Specialized Heads Do the Heavy Lifting, the Rest Can Be Pruned",
-          "url": "https://doi.org/10.18653/v1/P19-1580",
-          "source_type": "application_paper",
-          "authors": [
-            "Elena Voita",
-            "David Talbot",
-            "Fedor Moiseev",
-            "Rico Sennrich",
-            "Ivan Titov"
-          ],
-          "publication_date": "2019-05-23",
-          "citationKey": "voitaAnalyzingMultiHeadSelfAttention2019",
-          "abstract": "Multi-head self-attention is a key component of the Transformer, a state-of-the-art architecture for neural machine translation. In this work we evaluate the contribution made by individual attention heads in the encoder to the overall performance of the model and analyze the roles played by them. We find that the most important and confident heads play consistent and often linguistically-interpretable roles. When pruning heads using a method based on stochastic gates and a differentiable relaxation of the L0 penalty, we observe that specialized heads are last to be pruned. Our novel pruning method removes the vast majority of heads without seriously affecting performance. For example, on the English-Russian WMT dataset, pruning 38 out of 48 encoder heads results in a drop of only 0.15 BLEU."
-        },
-        {
-          "title": "What Does BERT Look At? An Analysis of BERT's Attention",
-          "url": "https://doi.org/10.18653/v1/W19-4828",
-          "source_type": "application_paper",
-          "authors": [
-            "Kevin Clark",
-            "Urvashi Khandelwal",
-            "Omer Levy",
-            "Christopher D. Manning"
-          ],
-          "publication_date": "2019-06-11",
-          "citationKey": "clarkWhatDoesBERT2019",
-          "abstract": "Large pre-trained neural networks such as BERT have had great recent success in NLP, motivating a growing body of research investigating what aspects of language they are able to learn from unlabeled data. Most recent analysis has focused on model outputs (e.g., language model surprisal) or internal vector representations (e.g., probing classifiers). Complementary to these works, we propose methods for analyzing the attention mechanisms of pre-trained models and apply them to BERT. BERT's attention heads exhibit patterns such as attending to delimiter tokens, specific positional offsets, or broadly attending over the whole sentence, with heads in the same layer often exhibiting similar behaviors. We further show that certain attention heads correspond well to linguistic notions of syntax and coreference. For example, we find heads that attend to the direct objects of verbs, determiners of nouns, objects of prepositions, and coreferent mentions with remarkably high accuracy. Lastly, we propose an attention-based probing classifier and use it to further demonstrate that substantial syntactic information is captured in BERT's attention."
-        },
-        {
-          "title": "A Multiscale Visualization of Attention in the Transformer Model",
-          "url": "https://doi.org/10.18653/v1/p19-3007",
-          "source_type": "technical_paper",
-          "authors": [
-            "Jesse Vig"
-          ],
-          "publication_date": "2019",
-          "citationKey": "vigMultiscaleVisualizationAttention2019"
-        },
-        {
-          "title": "BertViz Interactive Tutorial (Colab)",
-          "url": "https://colab.research.google.com/drive/1hXIQ77A4TYS4y3UthWF-Ci7V7vVUoxmQ",
-          "source_type": "tutorial",
-          "citationKey": "BertVizInteractiveTutorial"
-        }
-      ],
-      "complexity_rating": 3,
-      "computational_cost_rating": 2,
-      "related_techniques": [
-        "feature-attribution-with-integrated-gradients-in-nlp",
-        "causal-mediation-analysis-in-language-models",
-        "classical-attention-analysis-in-neural-networks"
-      ],
-      "sample_claims": [
-        {
-          "text": "The language model's attention patterns demonstrate how contextual representations are built across multiple heads and layers",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The text processing system's attention mechanisms treat input tokens from different demographic groups with comparable weighting patterns",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The model's decision-making process is traceable through attention weight distributions across transformer layers",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The document classification system's attention heads are interpretable in terms of which semantic and syntactic features they capture",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The content moderation model's attention to sensitive attributes is quantifiable and auditable across different input types",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        }
-      ]
-    },
-    {
       "slug": "reweighing",
       "name": "Reweighing",
-      "description": "Reweighing is a pre-processing technique that mitigates bias by assigning different weights to training examples based on their group membership and class label. The weights are calculated to ensure that privileged and unprivileged groups have equal influence on the model's training process, effectively balancing the dataset without altering the feature values themselves. This helps to train fairer models by correcting for historical imbalances in how different groups are represented in the data.",
+      "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
       "assurance_goals": [
         "Fairness",
         "Transparency"
@@ -5391,47 +5276,51 @@
         "applicable-models/architecture/model-agnostic",
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/black-box",
-        "data-requirements/access-to-training-data",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/audit-trail",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
         "data-type/any",
+        "evidence-type/modified-dataset",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/statistics",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
-        "technique-type/algorithmic",
-        "expertise-needed/statistics",
-        "expertise-needed/domain-expertise",
-        "evidence-type/modified-dataset"
+        "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "In a loan application system, if historical data shows that a higher proportion of applicants from a minority group were denied loans (negative outcome), reweighing would assign higher weights to these instances. This forces the model to pay more attention to correctly classifying the underrepresented group, aiming to correct for historical bias and improve fairness metrics like equal opportunity.",
+          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model.",
           "goal": "Fairness"
         },
         {
-          "description": "When developing a hiring model, if the training data contains fewer female applicants for senior roles, reweighing can be applied to increase the importance of these instances. This helps to prevent the model from learning a spurious correlation between gender and seniority, ensuring that female candidates are evaluated more equitably during the screening process.",
+          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one.",
           "goal": "Fairness"
         },
         {
-          "description": "In a medical diagnosis system, reweighing provides transparency by explicitly showing which demographic groups required adjustment for balanced representation. The computed weights serve as documentation of historical bias patterns in medical data, helping clinicians understand potential disparities and ensuring the model's decisions are based on medical evidence rather than demographic correlations.",
+          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "An auditor reviewing a benefits-fraud model asks for the table of reweighing weights kept with the training run. A weight of 1.8 on one nationality group's not-fraud cases shows how far that group's historical labels departed from independence, and the table records exactly how the training data were adjusted, so the auditor can reconstruct the intervention without rerunning it.",
           "goal": "Transparency"
         }
       ],
       "limitations": [
         {
-          "description": "The technique only adjusts the overall influence of demographic groups and does not address biases that may be encoded within the features themselves."
+          "description": "Its target is fixed: equal rates of positive labels across groups in the weighted training data (statistical parity). It does not aim at equal error rates such as equal opportunity, and the weights are computed once, before training, so they cannot respond to where the trained model actually errs. An adaptive variant (Krasanakis et al., 2018) re-estimates weights during training for error-rate criteria, but it has no maintained implementation."
         },
         {
-          "description": "Assigning very high weights to a small number of instances from an underrepresented group can increase the model's variance and make it sensitive to outliers, potentially harming generalisation."
+          "description": "It removes all association between group and label, including any part a legitimate factor explains. Kamiran and Calders give the example of car insurance, where more accidents among men may justify different outcomes by sex; reweighing erases that difference too, so it over-corrects wherever some gap between groups is warranted."
         },
         {
-          "description": "The effectiveness of reweighing depends on the assumption that the labels in the training data are accurate; it cannot correct for label bias where outcomes were themselves the result of historical discrimination."
+          "description": "The learning algorithm must accept example weights; where it cannot, the data have to be resampled instead, which is a different method. Only the training data are balanced, so the trained model's predictions are not guaranteed to be: outcome rates by group must be measured on held-out data after training rather than assumed."
         },
         {
-          "description": "It may not be effective if the feature distributions for different groups are fundamentally different, as it cannot change the underlying data relationships."
+          "description": "When a group-label combination is rare its weight is large (a combination with a tenth of its expected count gets a weight of ten), so a handful of examples can dominate training. This raises variance and amplifies any labelling errors in exactly the group the method is meant to protect, and it bites hardest with small or intersectional groups."
         }
       ],
       "resources": [
@@ -5511,18 +5400,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The lending model's training process gives equal consideration to applicants from all demographic groups regardless of their representation in historical data",
+          "text": "The approval model was trained on loan history reweighed so that every ethnic group has the same approval rate in the weighted data, and its approval-rate gap on held-out applicants is reported alongside its accuracy.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The hiring system's learned patterns reflect balanced influence from all candidate demographics rather than reinforcing historical application imbalances",
+          "text": "The postpartum depression outreach model, trained with reweighing by race, has a disparate impact ratio within the agreed range on held-out patients.",
+          "domain": "healthcare",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The model training adjustments applied to address historical group imbalances are quantified and documented for regulatory review",
-          "domain": "finance",
+          "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
+          "domain": "public sector",
           "assuranceGoal": "transparency"
         }
       ]
@@ -6019,7 +5913,7 @@
         },
         {
           "title": "Counterfactual Fairness",
-          "url": "https://proceedings.neurips.cc/paper/2017/file/a486cd07e4ac3d270571622f4f316ec5-Paper.pdf",
+          "url": "https://proceedings.neurips.cc/paper/2017/hash/a486cd07e4ac3d270571622f4f316ec5-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
             "Matt J. Kusner",
@@ -6050,8 +5944,8 @@
       "complexity_rating": 1,
       "computational_cost_rating": 1,
       "related_techniques": [
-        "bayesian-fairness-regularization",
-        "sensitivity-analysis-for-fairness",
+        "fair-bayesian-optimisation",
+        "fairness-testing",
         "reweighing"
       ],
       "sample_claims": [
@@ -6077,122 +5971,6 @@
         },
         {
           "text": "All decision-making processes are auditable to verify that legally protected characteristics are not used as input features",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        }
-      ]
-    },
-    {
-      "slug": "fair-adversarial-networks",
-      "name": "Fair Adversarial Networks",
-      "description": "An in-processing fairness technique that employs adversarial training with dual neural networks to learn fair representations. The method consists of a predictor network that learns the main task whilst an adversarial discriminator network simultaneously attempts to predict sensitive attributes from the predictor's hidden representations. Through this adversarial min-max game, the predictor is incentivised to learn features that are informative for the task but statistically independent of protected attributes, effectively removing bias at the representation level in deep learning models.",
-      "assurance_goals": [
-        "Fairness",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/discriminative",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/model-internals",
-        "data-requirements/access-to-training-data",
-        "applicable-models/requirements/white-box",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/in-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
-        "data-type/any",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-selection-and-training",
-        "technique-type/algorithmic",
-        "evidence-type/model-artefact"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Training a facial recognition system that maintains high accuracy for person identification whilst ensuring equal performance across different ethnic groups, using adversarial training to remove race-related features from learned representations.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Developing a resume screening neural network that provides transparent evidence of bias mitigation by demonstrating that learned features cannot predict gender, whilst maintaining predictive performance for job suitability assessment.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Implementation complexity is high, requiring careful design of adversarial loss functions and balancing multiple competing objectives during training."
-        },
-        {
-          "description": "Sensitive to hyperparameter choices, particularly the trade-off weights between prediction accuracy and adversarial loss, which require extensive tuning."
-        },
-        {
-          "description": "Adversarial training can be unstable, with potential for mode collapse or failure to converge, especially in complex deep learning architectures."
-        },
-        {
-          "description": "Interpretability of fairness improvements can be limited, as it may be difficult to verify that sensitive attributes are truly removed from learned representations."
-        },
-        {
-          "description": "Computational overhead is significant due to training two networks simultaneously, increasing both training time and resource requirements."
-        },
-        {
-          "description": "The adversarial objective only removes dependence on explicitly labelled sensitive attributes; proxy variables that correlate with protected characteristics will remain encoded in learned representations. Extending to intersectional fairness across multiple protected attributes requires separate discriminator components or multi-task adversarial architectures, substantially increasing design complexity and training instability."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Fair Adversarial Networks",
-          "url": "https://arxiv.org/abs/2002.12144",
-          "source_type": "technical_paper",
-          "authors": [
-            "George Cevora"
-          ],
-          "publication_date": "2020-02-23",
-          "citationKey": "cevoraFairAdversarialNetworks2020",
-          "abstract": "The influence of human judgement is ubiquitous in datasets used across the analytics industry, yet humans are known to be sub-optimal decision makers prone to various biases. Analysing biased datasets then leads to biased outcomes of the analysis. Bias by protected characteristics (e.g. race) is of particular interest as it may not only make the output of analytical process sub-optimal, but also illegal. Countering the bias by constraining the analytical outcomes to be fair is problematic because A) fairness lacks a universally accepted definition, while at the same time some definitions are mutually exclusive, and B) the use of optimisation constraints ensuring fairness is incompatible with most analytical pipelines. Both problems are solved by methods which remove bias from the data and returning an altered dataset. This approach aims to not only remove the actual bias variable (e.g. race), but also alter all proxy variables (e.g. postcode) so the bias variable is not detectable from the rest of the data. The advantage of using this approach is that the definition of fairness as a lack of detectable bias in the data (as opposed to the output of analysis) is universal and therefore solves problem (A). Furthermore, as the data is altered to remove bias the problem (B) disappears because the analytical pipelines can remain unchanged. This approach has been adopted by several technical solutions. None of them, however, seems to be satisfactory in terms of ability to remove multivariate, non-linear and non-binary biases. Therefore, in this paper I propose the concept of Fair Adversarial Networks as an easy-to-implement general method for removing bias from data. This paper demonstrates that Fair Adversarial Networks achieve this aim."
-        },
-        {
-          "title": "Demonstrating Rosa: the fairness solution for any Data Analytic pipeline",
-          "url": "https://arxiv.org/abs/2003.00899",
-          "source_type": "application_paper",
-          "authors": [
-            "Kate Wilkinson",
-            "George Cevora"
-          ],
-          "publication_date": "2020-02-28",
-          "citationKey": "wilkinsonDemonstratingRosaFairness2020",
-          "abstract": "Most datasets of interest to the analytics industry are impacted by various forms of human bias. The outcomes of Data Analytics [DA] or Machine Learning [ML] on such data are therefore prone to replicating the bias. As a result, a large number of biased decision-making systems based on DA/ML have recently attracted attention. In this paper we introduce Rosa, a free, web-based tool to easily de-bias datasets with respect to a chosen characteristic. Rosa is based on the principles of Fair Adversarial Networks, developed by illumr Ltd., and can therefore remove interactive, non-linear, and non-binary bias. Rosa is stand-alone pre-processing step / API, meaning it can be used easily with any DA/ML pipeline. We test the efficacy of Rosa in removing bias from data-driven decision making systems by performing standard DA tasks on five real-world datasets, selected for their relevance to current DA problems, and also their high potential for bias. We use simple ML models to model a characteristic of analytical interest, and compare the level of bias in the model output both with and without Rosa as a pre-processing step. We find that in all cases there is a substantial decrease in bias of the data-driven decision making systems when the data is pre-processed with Rosa."
-        }
-      ],
-      "complexity_rating": 5,
-      "computational_cost_rating": 4,
-      "related_techniques": [
-        "adversarial-debiasing",
-        "exponentiated-gradient-reduction",
-        "fairness-gan"
-      ],
-      "sample_claims": [
-        {
-          "text": "The model's learned representations cannot be used to infer applicants' protected characteristics",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The hiring system's internal features maintain predictive power for job performance whilst being statistically independent of demographic attributes",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The diagnostic model provides evidence that its decision-making features do not encode sensitive patient demographics",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The model's intermediate representations are demonstrably uninformative about protected attributes whilst preserving task-relevant information",
           "domain": "public sector",
           "assuranceGoal": "transparency"
         }
@@ -6342,7 +6120,7 @@
       "complexity_rating": 3,
       "computational_cost_rating": 2,
       "related_techniques": [
-        "adaptive-sensitive-reweighting",
+        "reweighing",
         "adversarial-debiasing",
         "meta-fair-classifier"
       ],
@@ -6684,7 +6462,7 @@
       "complexity_rating": 4,
       "computational_cost_rating": 3,
       "related_techniques": [
-        "adaptive-sensitive-reweighting",
+        "reweighing",
         "meta-fair-classifier"
       ],
       "sample_claims": [
@@ -6706,131 +6484,6 @@
         {
           "text": "The fraud detection system's fairness guarantees are accompanied by formal bounds on constraint violation across demographic groups",
           "domain": "finance",
-          "assuranceGoal": "transparency"
-        }
-      ]
-    },
-    {
-      "slug": "fair-transfer-learning",
-      "name": "Fair Transfer Learning",
-      "description": "An in-processing fairness technique that adapts pre-trained models from one domain to another whilst explicitly preserving fairness constraints across different contexts or populations. The method addresses the challenge that fairness properties may not transfer when adapting models to new domains with different demographic compositions or data distributions. Fair transfer learning typically involves constraint-aware fine-tuning, domain adaptation techniques, or adversarial training that maintains equitable performance across groups in the target domain, ensuring that bias mitigation efforts carry over from source to target domains.",
-      "assurance_goals": [
-        "Fairness",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/model-internals",
-        "data-requirements/access-to-training-data",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/in-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
-        "data-type/any",
-        "expertise-needed/domain-expertise",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-selection-and-training",
-        "technique-type/algorithmic",
-        "evidence-type/model-artefact"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Adapting a hiring algorithm trained on one country's recruitment data to another region whilst maintaining fairness across gender and ethnicity groups, ensuring equitable candidate evaluation despite different local demographic distributions and cultural contexts.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Transferring a medical diagnosis model from urban hospital data to rural clinics whilst providing transparent evidence that fairness constraints are preserved across age, gender, and socioeconomic groups despite different patient populations and healthcare infrastructure.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Fairness properties achieved in the source domain may not translate directly to the target domain if demographic distributions or data characteristics differ significantly."
-        },
-        {
-          "description": "Requires careful hyperparameter tuning and constraint specification to balance fairness preservation with model performance in the new domain."
-        },
-        {
-          "description": "Implementation complexity is high, requiring expertise in both transfer learning techniques and fairness constraint optimisation methods."
-        },
-        {
-          "description": "May suffer from negative transfer effects where fairness constraints that worked well in the source domain actually harm performance in the target domain."
-        },
-        {
-          "description": "Evaluation challenges arise from needing to validate fairness across multiple domains and demographic groups simultaneously."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Segmenting across places: The need for fair transfer learning with satellite imagery",
-          "url": "http://arxiv.org/abs/2204.04358v3",
-          "source_type": "technical_paper",
-          "authors": [
-            "Miao Zhang",
-            "Harvineet Singh",
-            "Lazarus Chok",
-            "Rumi Chunara"
-          ],
-          "publication_date": "2022-04-09",
-          "citationKey": "zhangSegmentingPlacesNeed2022",
-          "abstract": "The increasing availability of high-resolution satellite imagery has enabled the use of machine learning to support land-cover measurement and inform policy-making. However, labelling satellite images is expensive and is available for only some locations. This prompts the use of transfer learning to adapt models from data-rich locations to others. Given the potential for high-impact applications of satellite imagery across geographies, a systematic assessment of transfer learning implications is warranted. In this work, we consider the task of land-cover segmentation and study the fairness implications of transferring models across locations. We leverage a large satellite image segmentation benchmark with 5987 images from 18 districts (9 urban and 9 rural). Via fairness metrics we quantify disparities in model performance along two axes -- across urban-rural locations and across land-cover classes. Findings show that state-of-the-art models have better overall accuracy in rural areas compared to urban areas, through unsupervised domain adaptation methods transfer learning better to urban versus rural areas and enlarge fairness gaps. In analysis of reasons for these findings, we show that raw satellite images are overall more dissimilar between source and target districts for rural than for urban locations. This work highlights the need to conduct fairness analysis for satellite imagery segmentation models and motivates the development of methods for fair transfer learning in order not to introduce disparities between places, particularly urban and rural locations."
-        },
-        {
-          "title": "Trustworthy Transfer Learning: A Survey",
-          "url": "https://www.semanticscholar.org/paper/7ee5c5b58ed0b4e585e0c30790c206bea07faacf",
-          "source_type": "technical_paper",
-          "authors": [
-            "Jun Wu",
-            "Jingrui He"
-          ],
-          "publication_date": "2024",
-          "citationKey": "wuTrustworthyTransferLearning2024",
-          "abstract": "Transfer learning aims to transfer knowledge or information from a source domain to a relevant target domain. In this paper, we understand transfer learning from the perspectives of knowledge transferability and trustworthiness. This involves two research questions: How is knowledge transferability quantitatively measured and enhanced across domains? Can we trust the transferred knowledge in the transfer learning process? To answer these questions, this paper provides a comprehensive review of trustworthy transfer learning from various aspects, including problem definitions, theoretical analysis, empirical algorithms, and real-world applications. Specifically, we summarize recent theories and algorithms for understanding knowledge transferability under (within-domain) IID and non-IID assumptions. In addition to knowledge transferability, we review the impact of trustworthiness on transfer learning, e.g., whether the transferred knowledge is adversarially robust or algorithmically fair, how to transfer the knowledge under privacy-preserving constraints, etc. Beyond discussing the current advancements, we highlight the open questions and future directions for understanding transfer learning in a reliable and trustworthy manner."
-        },
-        {
-          "title": "Cross-Institutional Transfer Learning for Educational Models: Implications for Model Performance, Fairness, and Equity",
-          "url": "https://arxiv.org/abs/2305.00927",
-          "source_type": "technical_paper",
-          "authors": [
-            "Josh Gardner",
-            "Renzhe Yu",
-            "Quan Nguyen",
-            "Christopher Brooks",
-            "Rene Kizilcec"
-          ],
-          "publication_date": "2023-05-01",
-          "citationKey": "gardnerCrossInstitutionalTransferLearning2023",
-          "abstract": "Modern machine learning increasingly supports paradigms that are multi-institutional (using data from multiple institutions during training) or cross-institutional (using models from multiple institutions for inference), but the empirical effects of these paradigms are not well understood. This study investigates cross-institutional learning via an empirical case study in higher education. We propose a framework and metrics for assessing the utility and fairness of student dropout prediction models that are transferred across institutions. We examine the feasibility of cross-institutional transfer under real-world data- and model-sharing constraints, quantifying model biases for intersectional student identities, characterizing potential disparate impact due to these biases, and investigating the impact of various cross-institutional ensembling approaches on fairness and overall model performance. We perform this analysis on data representing over 200,000 enrolled students annually from four universities without sharing training data between institutions.   We find that a simple zero-shot cross-institutional transfer procedure can achieve similar performance to locally-trained models for all institutions in our study, without sacrificing model fairness. We also find that stacked ensembling provides no additional benefits to overall performance or fairness compared to either a local model or the zero-shot transfer procedure we tested. We find no evidence of a fairness-accuracy tradeoff across dozens of models and transfer schemes evaluated. Our auditing procedure also highlights the importance of intersectional fairness analysis, revealing performance disparities at the intersection of sensitive identity groups that are concealed under one-dimensional analysis."
-        }
-      ],
-      "complexity_rating": 5,
-      "computational_cost_rating": 4,
-      "related_techniques": [
-        "adaptive-sensitive-reweighting",
-        "adversarial-debiasing",
-        "fair-adversarial-networks"
-      ],
-      "sample_claims": [
-        {
-          "text": "The model maintains equitable performance across demographic groups when deployed in contexts with different population characteristics than the training environment",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The hiring system produces consistent outcomes across protected attributes when applied to regional markets with distinct demographic compositions",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The model's equitable treatment of demographic groups is documented across multiple deployment contexts",
-          "domain": "public sector",
           "assuranceGoal": "transparency"
         }
       ]
@@ -6971,9 +6624,8 @@
       "complexity_rating": 5,
       "computational_cost_rating": 4,
       "related_techniques": [
-        "adaptive-sensitive-reweighting",
-        "adversarial-debiasing",
-        "reweighing"
+        "reweighing",
+        "adversarial-debiasing"
       ],
       "sample_claims": [
         {
@@ -7000,140 +6652,6 @@
           "text": "The loan approval system maintains uniform prediction quality across applicant demographics without disproportionate errors for minority groups",
           "domain": "finance",
           "assuranceGoal": "reliability"
-        }
-      ]
-    },
-    {
-      "slug": "equalised-odds-post-processing",
-      "name": "Equalised Odds Post-Processing",
-      "description": "A post-processing fairness technique based on Hardt et al.'s seminal work that adjusts classification thresholds after model training to achieve equal true positive rates and false positive rates across demographic groups. The method uses group-specific decision thresholds, potentially with randomisation, to satisfy the equalised odds constraint whilst preserving model utility. This approach enables fairness mitigation without retraining, making it applicable to existing deployed models or when training data access is restricted.",
-      "assurance_goals": [
-        "Fairness",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/paradigm/discriminative",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/black-box",
-        "applicable-models/requirements/probabilistic-output",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/post-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
-        "data-type/any",
-        "expertise-needed/regulatory-compliance",
-        "expertise-needed/statistics",
-        "technique-type/algorithmic",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation",
-        "lifecycle-stage/system-deployment",
-        "lifecycle-stage/system-deployment/system-implementation",
-        "evidence-type/model-artefact"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Post-processing a criminal recidivism risk assessment model to ensure equal error rates across racial groups, using group-specific thresholds to achieve equal TPR and FPR whilst maintaining predictive accuracy for judicial decision support.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Adjusting a hiring algorithm's decision thresholds to ensure equal opportunities for qualified candidates across gender groups, providing transparent evidence that the screening process treats all demographics equitably.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "May require randomisation in decision-making, leading to inconsistent outcomes for similar individuals to achieve group-level fairness constraints."
-        },
-        {
-          "description": "Post-processing can reduce overall model accuracy or confidence scores, particularly when group-specific ROC curves do not intersect favourably."
-        },
-        {
-          "description": "Violates calibration properties of the original model, creating a trade-off between equalised odds and predictive rate parity."
-        },
-        {
-          "description": "Limited to combinations of error rates that lie on the intersection of group-specific ROC curves, which may represent poor trade-offs."
-        },
-        {
-          "description": "Requires access to sensitive attributes during deployment, which may not be available or legally permissible in all contexts."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Equality of Opportunity in Supervised Learning",
-          "url": "https://proceedings.neurips.cc/paper_files/paper/2016/hash/6a9659feb1216f14f7384ba499518b38-Abstract.html",
-          "source_type": "technical_paper",
-          "authors": [
-            "Moritz Hardt",
-            "Eric Price",
-            "Nathan Srebro"
-          ],
-          "publication_date": "2016-10-07",
-          "citationKey": "hardtEqualityOpportunitySupervised2016",
-          "abstract": "We propose a criterion for discrimination against a specified sensitive attribute in supervised learning, where the goal is to predict some target based on available features. Assuming data about the predictor, target, and membership in the protected group are available, we show how to optimally adjust any learned predictor so as to remove discrimination according to our definition. Our framework also improves incentives by shifting the cost of poor classification from disadvantaged groups to the decision maker, who can respond by improving the classification accuracy.   In line with other studies, our notion is oblivious: it depends only on the joint statistics of the predictor, the target and the protected attribute, but not on interpretation of individualfeatures. We study the inherent limits of defining and identifying biases based on such oblivious measures, outlining what can and cannot be inferred from different oblivious tests.   We illustrate our notion using a case study of FICO credit scores."
-        },
-        {
-          "title": "Equalized odds postprocessing under imperfect group information",
-          "url": "https://arxiv.org/abs/1906.03284",
-          "source_type": "technical_paper",
-          "authors": [
-            "Pranjal Awasthi",
-            "Matthäus Kleindessner",
-            "Jamie Morgenstern"
-          ],
-          "publication_date": "2019-06-07",
-          "citationKey": "awasthiEqualizedOddsPostprocessing2019",
-          "abstract": "Most approaches aiming to ensure a model's fairness with respect to a protected attribute (such as gender or race) assume to know the true value of the attribute for every data point. In this paper, we ask to what extent fairness interventions can be effective even when only imperfect information about the protected attribute is available. In particular, we study the prominent equalized odds postprocessing method of Hardt et al. (2016) under a perturbation of the attribute. We identify conditions on the perturbation that guarantee that the bias of a classifier is reduced even by running equalized odds with the perturbed attribute. We also study the error of the resulting classifier. We empirically observe that under our identified conditions most often the error does not suffer from a perturbation of the protected attribute. For a special case, we formally prove this observation to be true."
-        },
-        {
-          "title": "Fairlearn: ThresholdOptimizer",
-          "url": "https://fairlearn.org/main/api_reference/generated/fairlearn.postprocessing.ThresholdOptimizer.html",
-          "source_type": "documentation",
-          "authors": [
-            "Fairlearn Developers"
-          ],
-          "publication_date": "2018",
-          "citationKey": "fairlearndevelopersFairlearnThresholdOptimizer2018"
-        },
-        {
-          "title": "AIF360",
-          "url": "https://github.com/Trusted-AI/AIF360",
-          "source_type": "software_package",
-          "publication_date": "2018-08-22",
-          "citationKey": "trusted-aiAIF3602018",
-          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
-        }
-      ],
-      "complexity_rating": 3,
-      "computational_cost_rating": 2,
-      "related_techniques": [
-        "calibration-with-equality-of-opportunity",
-        "reject-option-classification",
-        "reweighing",
-        "threshold-optimiser"
-      ],
-      "sample_claims": [
-        {
-          "text": "The criminal risk assessment system produces equal rates of both correct and incorrect predictions across racial groups",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The loan approval model achieves equitable performance by maintaining parity in both false acceptances and false rejections across demographic groups",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The hiring algorithm's decisions can be audited to verify that qualified candidates and unqualified candidates are treated equitably across all protected groups",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The fraud detection model maintains consistent true positive and false positive rates across customer segments without requiring retraining",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
         }
       ]
     },
@@ -7277,7 +6795,6 @@
       "complexity_rating": 3,
       "computational_cost_rating": 2,
       "related_techniques": [
-        "equalised-odds-post-processing",
         "threshold-optimiser",
         "conformal-prediction",
         "confidence-thresholding"
@@ -7445,9 +6962,8 @@
       "complexity_rating": 4,
       "computational_cost_rating": 2,
       "related_techniques": [
-        "equalised-odds-post-processing",
-        "reject-option-classification",
-        "threshold-optimiser"
+        "threshold-optimiser",
+        "reject-option-classification"
       ],
       "sample_claims": [
         {
@@ -7793,7 +7309,7 @@
       "computational_cost_rating": 4,
       "related_techniques": [
         "counterfactual-fairness-assessment",
-        "sensitivity-analysis-for-fairness"
+        "fairness-testing"
       ],
       "sample_claims": [
         {
@@ -8898,7 +8414,7 @@
         }
       ],
       "related_techniques": [
-        "attention-visualisation-in-transformers",
+        "attention-weight-analysis",
         "concept-activation-vectors",
         "few-shot-fairness-evaluation",
         "toxicity-detection"
@@ -9060,7 +8576,7 @@
       "related_techniques": [
         "prompt-robustness-testing",
         "toxicity-detection",
-        "sensitivity-analysis-for-fairness",
+        "fairness-testing",
         "embedding-bias-analysis"
       ],
       "sample_claims": [
@@ -9570,7 +9086,7 @@
       ],
       "related_techniques": [
         "membership-inference-attack-testing",
-        "model-watermarking-and-theft-detection",
+        "trigger-set-model-watermarking",
         "api-usage-pattern-monitoring"
       ],
       "sample_claims": [
@@ -9765,96 +9281,68 @@
       ]
     },
     {
-      "slug": "model-watermarking-and-theft-detection",
-      "name": "Model Watermarking and Theft Detection",
-      "description": "Model watermarking and theft detection techniques protect AI systems from unauthorised replication by embedding detectable signatures in model outputs and identifying suspiciously similar prediction patterns. This includes watermarking schemes that survive knowledge distillation, fingerprinting methods that create unique statistical signatures, and detection methods that identify when a model has been stolen or replicated through model extraction, distillation, or imitation. These techniques enable model owners to prove intellectual property theft and protect proprietary AI systems.",
+      "slug": "trigger-set-model-watermarking",
+      "name": "Trigger-Set Model Watermarking",
+      "description": "Trigger-set model watermarking lets the owner of a trained classifier show later that a suspect model was copied from theirs, by planting a secret behaviour that only the owner can demonstrate. Before release, the owner chooses a small secret trigger set (in the originating scheme, 100 abstract images), gives each input a label the model would not otherwise predict, and trains or fine-tunes the model to return those labels while keeping its accuracy on the real task. In the originating scheme the owner also records cryptographic commitments to the trigger inputs and their labels, which fix the watermark at release so that a trigger set cannot be invented once a dispute has begun. To verify, the owner, or an arbiter shown the opened commitments, sends the trigger inputs to the suspect model through its ordinary prediction interface and counts how many return the assigned labels; an independently trained model matches them at about chance level, so a match rate above a preset threshold is evidence of copying. The technique produces the watermarked model, the commitments and, for each verification, the suspect model's trigger-set accuracy against the threshold.",
       "assurance_goals": [
         "Security",
         "Transparency"
       ],
       "tags": [
-        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/supervised",
         "applicable-models/requirements/black-box",
         "assurance-goal-category/security",
         "assurance-goal-category/security/protection",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/confidential-verification",
-        "data-type/any",
-        "data-requirements/no-special-requirements",
+        "data-requirements/access-to-training-data",
+        "data-type/image",
         "technique-type/algorithmic",
         "evidence-type/quantitative-metric",
+        "evidence-type/model-artefact",
         "expertise-needed/ml-engineering",
         "expertise-needed/security",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
         "lifecycle-stage/system-deployment",
-        "lifecycle-stage/system-deployment/system-implementation"
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
       ],
       "example_use_cases": [
         {
-          "description": "Protecting a proprietary medical imaging diagnostic model from theft by embedding watermarks that survive if competitors attempt to distill or extract the model, enabling hospitals to verify they're using legitimate licensed versions.",
+          "description": "A medical-imaging company that licenses a chest X-ray classifier for installation on hospital servers, where the weights leave its control, embeds a trigger set before each release and keeps the commitments. When a near-identical model appears in a rival's product, it queries that product with the trigger images to decide whether there is enough evidence to pursue a licence breach.",
           "goal": "Security"
         },
         {
-          "description": "Providing forensic evidence in intellectual property litigation by demonstrating through watermark extraction and statistical fingerprinting that a competitor's fraud detection system was derived from a bank's proprietary model.",
+          "description": "Before relying on the watermark in its licence terms, the security team of a retailer that sells access to a visual product-search model runs the fine-tuning and pruning attacks in its threat model against the watermarked model, and reports the trigger-set accuracy that survives each, to set the verification threshold and state what the watermark can and cannot evidence.",
+          "goal": "Security"
+        },
+        {
+          "description": "In a licensing dispute over a satellite-imagery land-use classifier used by a local authority, the developer opens its pre-release commitments to an independent expert, who queries the disputed model's prediction service with the trigger images and reports the match rate against a threshold agreed in advance, without either party handing over model weights.",
           "goal": "Transparency"
         }
       ],
       "limitations": [
         {
-          "description": "Watermarks may be removed or degraded through post-processing, fine-tuning, or adversarial training by sophisticated attackers."
+          "description": "Removal attacks defeat it in practice. A systematic evaluation of published schemes, trigger-set schemes among them, found none robust against adaptive removal attacks or known ways of deriving a surrogate model, and in the originating paper re-training all layers sharply reduced trigger-set accuracy in models watermarked by fine-tuning. A failed verification does not show a model was not copied, and a robustness claim holds only for the attacks tested."
         },
         {
-          "description": "Difficult to distinguish between independent development of similar capabilities and actual behavioral cloning, especially for simple tasks."
+          "description": "It evidences copying of the model, not theft through its prediction interface. A copy built by querying the deployed model and training a new one on its answers (model extraction or distillation) need never see the trigger inputs, and the systematic evaluation found these schemes fail against such surrogate-derivation methods, so extraction needs other defences."
         },
         {
-          "description": "Detection methods may produce false positives when models trained on similar data naturally develop comparable behaviors."
+          "description": "Verification reveals the secret. Sending trigger inputs to a suspect's interface, or showing them to an arbiter, exposes them; an adversary who learns them can fine-tune them away or filter those queries, so verification is in effect single-use unless several trigger sets were embedded or a zero-knowledge protocol is used, both of which the originating paper describes and both of which add work."
         },
         {
-          "description": "Watermarking can slightly degrade model performance or be detectable by attackers, creating trade-offs between protection strength and model quality."
+          "description": "Without commitments lodged before release the evidence is weak: whoever holds a copy can embed a second trigger set of their own and claim ownership, which the originating paper shows is possible while the first watermark survives. A claim stands only if the owner can show its commitments existed before the disputed model did."
         },
         {
-          "description": "Effectiveness varies significantly by model type and task, with some architectures (like transformers) and domains (like natural language) being more amenable to watermarking than others (like small computer vision models)."
-        },
-        {
-          "description": "Legal frameworks for using watermarking evidence in intellectual property cases are still evolving, and successful theft claims may require complementary evidence beyond watermark detection alone."
+          "description": "The scheme and its evaluations cover image classifiers that the owner can train or fine-tune with access to the training data. Generative and language models need different designs, and the threshold must reflect the number of classes: an unwatermarked model matched 7.0% of trigger labels on 10-class CIFAR-10 but 1.0% on 100-class CIFAR-100, so chance agreement is far higher with few classes."
         }
       ],
       "resources": [
         {
-          "title": "A Systematic Review on Model Watermarking for Neural Networks",
-          "url": "https://www.frontiersin.org/journals/big-data/articles/10.3389/fdata.2021.729663/full",
-          "source_type": "technical_paper",
-          "authors": [
-            "Franziska Boenisch"
-          ],
-          "publication_date": "2021-11-29",
-          "citationKey": "boenischSystematicReviewModel2021",
-          "abstract": "Machine learning (ML) models are applied in an increasing variety of domains. The availability of large amounts of data and computational resources encourages the development of ever more complex and valuable models. These models are considered the intellectual property of the legitimate parties who have trained them, which makes their protection against stealing, illegitimate redistribution, and unauthorized application an urgent need. Digital watermarking presents a strong mechanism for marking model ownership and, thereby, offers protection against those threats. This work presents a taxonomy identifying and analyzing different classes of watermarking schemes for ML models. It introduces a unified threat model to allow structured reasoning on and comparison of the effectiveness of watermarking methods in different scenarios. Furthermore, it systematizes desired security requirements and attacks against ML model watermarking. Based on that framework, representative literature from the field is surveyed to illustrate the taxonomy. Finally, shortcomings and general limitations of existing approaches are discussed, and an outlook on future research directions is given."
-        },
-        {
-          "title": "Watermark-Robustness-Toolbox",
-          "url": "https://github.com/dnn-security/Watermark-Robustness-Toolbox",
-          "source_type": "software_package",
-          "publication_date": "2021-08-09",
-          "citationKey": "dnn-securityWatermarkRobustnessToolbox2021",
-          "abstract": "The official implementation of the IEEE S&P`22 paper \"SoK: How Robust is Deep Neural Network Image Classification Watermarking\"."
-        },
-        {
-          "title": "dnn-watermark",
-          "url": "https://github.com/yu4u/dnn-watermark",
-          "source_type": "software_package",
-          "publication_date": "2017-01-15",
-          "citationKey": "yu4uDnnwatermark2017",
-          "abstract": "Implementation of \"Embedding Watermarks into Deep Neural Networks,\" in Proc. of ICMR'17."
-        },
-        {
-          "title": "Watermark and protect your Deep Neural Networks!",
-          "url": "https://medium.com/@PrincyJ/watermark-and-protect-your-deep-neural-networks-c5d8e8824029",
-          "source_type": "tutorial",
-          "citationKey": "WatermarkProtectYour"
-        },
-        {
           "title": "Protecting Intellectual Property of Deep Neural Networks with Watermarking",
-          "url": "https://dl.acm.org/doi/abs/10.1145/3196494.3196550",
+          "url": "https://doi.org/10.1145/3196494.3196550",
           "source_type": "technical_paper",
           "authors": [
             "Jialong Zhang",
@@ -9868,6 +9356,56 @@
           "publication_date": "2018",
           "citationKey": "zhangProtectingIntellectualProperty2018",
           "abstract": "Deep learning technologies, which are the key components of state-of-the-art Artificial Intelligence (AI) services, have shown great success in providing human-level capabilities for a variety of tasks, such as visual analysis, speech recognition, and natural language processing and etc. Building a production-level deep learning model is a non-trivial task, which requires a large amount of training data, powerful computing resources, and human expertises. Therefore, illegitimate reproducing, distribution, and the derivation of proprietary deep learning models can lead to copyright infringement and economic harm to model creators. Therefore, it is essential to devise a technique to protect the intellectual property of deep learning models and enable external verification of the model ownership. In this paper, we generalize the \"digital watermarking'' concept from multimedia ownership verification to deep neural network (DNNs) models. We investigate three DNN-applicable watermark generation algorithms, propose a watermark implanting approach to infuse watermark into deep learning models, and design a remote verification mechanism to determine the model ownership. By extending the intrinsic generalization and memorization capabilities of deep neural networks, we enable the models to learn specially crafted watermarks at training and activate with pre-specified predictions when observing the watermark patterns at inference. We evaluate our approach with two image recognition benchmark datasets. Our framework accurately (100%) and quickly verifies the ownership of all the remotely deployed deep learning models without affecting the model accuracy for normal input data. In addition, the embedded watermarks in DNN models are robust and resilient to different counter-watermark mechanisms, such as fine-tuning, parameter pruning, and model inversion attacks."
+        },
+        {
+          "title": "Watermark-Robustness-Toolbox",
+          "url": "https://github.com/dnn-security/Watermark-Robustness-Toolbox",
+          "source_type": "software_package",
+          "publication_date": "2021-08-09",
+          "citationKey": "dnn-securityWatermarkRobustnessToolbox2021",
+          "abstract": "The official implementation of the IEEE S&P`22 paper \"SoK: How Robust is Deep Neural Network Image Classification Watermarking\"."
+        },
+        {
+          "title": "Turning Your Weakness Into a Strength: Watermarking Deep Neural Networks by Backdooring",
+          "url": "https://www.usenix.org/conference/usenixsecurity18/presentation/adi",
+          "source_type": "technical_paper",
+          "authors": [
+            "Yossi Adi",
+            "Carsten Baum",
+            "Moustapha Cisse",
+            "Benny Pinkas",
+            "Joseph Keshet"
+          ],
+          "publication_date": "2018",
+          "citationKey": "adiTurningYourWeakness2018"
+        },
+        {
+          "title": "WatermarkNN (PyTorch implementation of Adi et al. 2018)",
+          "url": "https://github.com/adiyoss/WatermarkNN",
+          "source_type": "software_package",
+          "publication_date": "2026-09-16T15:01:21Z",
+          "citationKey": "adiWatermarkNNPyTorchImplementation2026",
+          "abstract": "Watermarking Deep Neural Networks (USENIX 2018)"
+        },
+        {
+          "title": "Neural Network Watermarking (MPAI-NNW)",
+          "url": "https://mpai.community/standards/mpai-nnw/",
+          "source_type": "documentation",
+          "citationKey": "NeuralNetworkWatermarking",
+          "abstract": "Technical Specification: Neural Network Watermarking (MPAI-NNW) – Technologies (NNW-TEC) V1.0 (html, pdf) Technical Specification: Neural Network Watermarking (MPAI-NNW) – Neural Network Traceability (NNW-NNT) V1.1 (html, pdf) MPAI-NNW Reference Software V1.2 Reference Software code Introduction to NNW-TEC V1.0 What MPAI-NNW is about Description of MPAI-NNW Neural Network Watermarking (MPAI-NNW) is an MPAI project developing Technical Specifications […]"
+        },
+        {
+          "title": "SoK: How Robust is Image Classification Deep Neural Network Watermarking?",
+          "url": "https://doi.org/10.1109/sp46214.2022.9833693",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Edward Jiang",
+            "Xinda Li",
+            "Florian Kerschbaum"
+          ],
+          "publication_date": "2022-5",
+          "citationKey": "lukasSoKHowRobust2022"
         }
       ],
       "related_techniques": [
@@ -9877,28 +9415,28 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's ownership can be cryptographically verified through detectable signatures that persist even after knowledge distillation or fine-tuning",
+          "text": "The released model carries a trigger-set watermark whose trigger inputs and labels were committed to, and the commitments lodged, before release",
           "domain": "general",
           "assuranceGoal": "security"
         },
         {
-          "text": "The fraud detection system provides forensic evidence demonstrating whether competing implementations were derived from proprietary model outputs",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The autonomous vehicle perception model's deployment is verifiable as a licensed version that has undergone mandatory safety validation",
-          "domain": "autonomous systems",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The diagnostic imaging model's statistical fingerprint distinguishes authorized deployments from unauthorized replications in clinical settings",
+          "text": "Embedding the watermark reduced the diagnostic model's test accuracy by no more than the tolerance agreed with the clinical safety team",
           "domain": "healthcare",
           "assuranceGoal": "security"
         },
         {
-          "text": "The system's intellectual property protection mechanisms are transparent and auditable without exposing the underlying model architecture",
+          "text": "The watermark remained verifiable above the decision threshold after each fine-tuning and pruning attack in the stated threat model",
           "domain": "general",
+          "assuranceGoal": "security"
+        },
+        {
+          "text": "Models trained independently on the same task matched the trigger labels at no more than chance level, giving the verification threshold a measured margin against false ownership claims",
+          "domain": "general",
+          "assuranceGoal": "security"
+        },
+        {
+          "text": "Ownership of the licensed model can be demonstrated to an independent arbiter through prediction queries alone, without disclosing either party's model weights",
+          "domain": "public sector",
           "assuranceGoal": "transparency"
         }
       ]
@@ -10214,7 +9752,7 @@
         "data-poisoning-detection",
         "gan-based-tabular-synthetic-data",
         "statistical-oversampling-methods",
-        "simulation-based-synthetic-data"
+        "sequential-cart-synthesis"
       ],
       "sample_claims": [
         {
@@ -10416,157 +9954,127 @@
       ]
     },
     {
-      "slug": "reward-hacking-detection",
-      "name": "Reward Hacking Detection",
-      "description": "Reward hacking detection identifies when AI systems achieve stated objectives through unintended shortcuts or loopholes rather than genuine task mastery. This technique analyses whether systems exploit reward specification ambiguities, reward function bugs, or simulator artifacts to maximise rewards without actually solving the intended problem. Detection involves adversarial specification testing, human evaluation of solution quality, transfer testing to slightly modified tasks, and analysis of unexpected strategy patterns that suggest reward hacking rather than genuine learning.",
+      "slug": "isotonic-regression-calibration",
+      "name": "Isotonic Regression Calibration",
+      "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score before and after.",
       "assurance_goals": [
         "Reliability",
-        "Safety",
         "Transparency"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
-        "applicable-models/paradigm/reinforcement",
+        "applicable-models/paradigm/supervised",
         "applicable-models/requirements/black-box",
         "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/behavioural-consistency",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-identification",
+        "assurance-goal-category/reliability/calibration",
         "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
+        "assurance-goal-category/transparency/confidence-and-limits",
+        "data-requirements/calibration-set",
         "data-type/any",
-        "data-requirements/no-special-requirements",
-        "technique-type/testing",
-        "evidence-type/qualitative-report",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/domain-expertise",
-        "expertise-needed/evaluation-design",
+        "evidence-type/model-artefact",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "technique-type/algorithmic",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
       ],
       "example_use_cases": [
         {
-          "description": "Detecting when a reinforcement learning agent for robot manipulation learns to exploit physics simulator quirks rather than developing real-world-transferable manipulation skills, preventing failures in physical deployment.",
+          "description": "A clinical research team builds a random forest on electronic health records to predict which adolescents will attempt suicide. The forest ranks patients well, but its vote shares are not probabilities, so the team fits isotonic regression on held-out records and reports calibration slope, intercept and Brier score before the risk estimates are used to prioritise clinical follow-up.",
           "goal": "Reliability"
         },
         {
-          "description": "Identifying when an AI-based healthcare scheduling system appears to optimize patient wait times by gaming appointment classifications or encouraging cancellations rather than genuinely improving clinic efficiency, preventing patient care degradation.",
-          "goal": "Safety"
-        },
-        {
-          "description": "Detecting when a loan approval system achieves target approval rates by exploiting specification loopholes in creditworthiness definitions rather than accurately assessing borrower risk, ensuring reliable lending decisions.",
+          "description": "An insurer's pricing team applies isotonic recalibration to the output of its claim-probability model, fitted on a large portfolio, so that within each band of predicted risk the average prediction equals the observed claim rate on the calibration data and no group of policyholders systematically subsidises another.",
           "goal": "Reliability"
         },
         {
-          "description": "Verifying that an educational content recommendation system optimizes for genuine learning outcomes rather than gaming engagement metrics through strategies like repeatedly presenting easier content that inflates measured progress.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Producing a documented audit trail for a high-risk AI deployment by running reward hacking detection tests and recording which specification loopholes were identified and remediated, enabling auditors and regulators to verify that the system achieves its stated objectives through legitimate means rather than gaming its evaluation criteria.",
+          "description": "An online marketplace scores listings for fraud with a naive Bayes text classifier whose probabilities cluster near 0 and 1, and analysts had been treating them as near-certainties. With tens of thousands of labelled past cases available, the team fits isotonic calibration so the review queue shows probabilities that match observed fraud rates, and shares the reliability diagram with the analysts.",
           "goal": "Transparency"
         }
       ],
       "limitations": [
         {
-          "description": "Difficult to distinguish between clever problem-solving and specification gaming without deep understanding of task intent."
+          "description": "It needs plenty of calibration data. With fewer than about a thousand labelled cases the step function follows noise in the calibration set, and the two-parameter curve of Platt scaling usually does as well or better; isotonic regression pays off when calibration data are plentiful."
         },
         {
-          "description": "Novel gaming strategies may not be detected until systems are deployed in real environments where gaming becomes apparent."
+          "description": "The output is a step function, so many different scores receive exactly the same probability. These ties discard distinctions the model made within a step, can change ranking measures such as the area under the ROC curve after calibration, and matter when a decision threshold falls inside a wide step."
         },
         {
-          "description": "Closing detected loopholes may simply push systems to discover new gaming strategies rather than solving the fundamental specification challenge."
+          "description": "It relies on the classifier's ordering being right: a higher score must never mean a lower chance of the outcome. Where the model ranks cases wrongly over some range of scores, isotonic regression cannot repair the ranking and instead flattens that range into a single probability."
         },
         {
-          "description": "Perfect specifications that eliminate all gaming opportunities may be impossible for complex, open-ended tasks."
-        },
-        {
-          "description": "Requires domain expertise and clear articulation of task intent to distinguish between legitimate optimization strategies and gaming behaviors, which can be subjective in complex domains."
-        },
-        {
-          "description": "Detection often requires access to detailed behavioral logs and environment state information that may not be available in black-box deployment scenarios."
-        },
-        {
-          "description": "Establishing ground truth for 'correct' task completion without gaming requires independent verification methods that may be as resource-intensive as the original task."
+          "description": "Probabilities at the extremes rest on little data. The outermost steps can be fitted from a handful of cases and may sit at or near 0 or 1, and common implementations clip scores beyond the range seen in calibration to the end values, so the most extreme predictions are the least trustworthy."
         }
       ],
       "resources": [
         {
-          "title": "Detecting and Mitigating Reward Hacking in Reinforcement Learning Systems: A Comprehensive Empirical Study",
-          "url": "https://www.semanticscholar.org/paper/f71379b765f01c333ebaab5736dbf7f1005b19c9",
+          "title": "1.16. Probability calibration — scikit-learn user guide",
+          "url": "https://scikit-learn.org/stable/modules/calibration.html",
+          "source_type": "documentation",
+          "citationKey": "116ProbabilityCalibration",
+          "abstract": "When performing classification you often want not only to predict the class label, but also obtain a probability of the respective label. This probability gives you some kind of confidence on the p..."
+        },
+        {
+          "title": "scikit-learn",
+          "url": "https://github.com/scikit-learn/scikit-learn",
+          "source_type": "software_package",
+          "citationKey": "Scikitlearn",
+          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
+        },
+        {
+          "title": "Transforming classifier scores into accurate multiclass probability estimates",
+          "url": "https://doi.org/10.1145/775047.775151",
           "source_type": "technical_paper",
           "authors": [
-            "Ibne Farabi Shihab",
-            "Sanjeda Akter",
-            "Anuj Sharma"
+            "Bianca Zadrozny",
+            "Charles Elkan"
           ],
-          "publication_date": "2025",
-          "citationKey": "farabishihabDetectingMitigatingReward2025",
-          "abstract": "Reward hacking in Reinforcement Learning (RL) systems poses a critical threat to the deployment of autonomous agents, where agents exploit flaws in reward functions to achieve high scores without fulfilling intended objectives. Despite growing awareness of this problem, systematic detection and mitigation approaches remain limited. This paper presents a large-scale empirical study of reward hacking across diverse RL environments and algorithms. We analyze 15,247 training episodes across 15 RL environments (Atari, MuJoCo, custom domains) and 5 algorithms (PPO, SAC, DQN, A3C, Rainbow), implementing automated detection algorithms for six categories of reward hacking: specification gaming, reward tampering, proxy optimization, objective misalignment, exploitation patterns, and wireheading. Our detection framework achieves 78.4% precision and 81.7% recall across environments, with computational overhead under 5%. Through controlled experiments varying reward function properties, we demonstrate that reward density and alignment with true objectives significantly impact hacking frequency ($p<0.001$, Cohen's $d = 1.24$). We validate our approach through three simulated application studies representing recommendation systems, competitive gaming, and robotic control scenarios. Our mitigation techniques reduce hacking frequency by up to 54.6% in controlled scenarios, though we find these trade-offs are more challenging in practice due to concept drift, false positive costs, and adversarial adaptation. All detection algorithms, datasets, and experimental protocols are publicly available to support reproducible research in RL safety."
+          "publication_date": "2002-7-23",
+          "citationKey": "zadroznyTransformingClassifierScores2002"
         },
         {
-          "title": "Preventing Reward Hacking with Occupancy Measure Regularization",
-          "url": "https://www.semanticscholar.org/paper/878e2c80a9247b6106b479bf8d74c02427947176",
-          "source_type": "technical_paper",
-          "authors": [
-            "Cassidy Laidlaw",
-            "Shivam Singhal",
-            "A. Dragan"
-          ],
-          "publication_date": "2024",
-          "citationKey": "laidlawPreventingRewardHacking2024"
-        },
-        {
-          "title": "Fine-tuning & RL for LLMs: Intro to Post-training - DeepLearning.AI",
-          "url": "https://learn.deeplearning.ai/courses/fine-tuning-and-reinforcement-learning-for-llms-intro-to-post-training/lesson/wr7ye4/evals-for-post-training:-test-sets-and-metrics",
+          "title": "Probability Calibration curves — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
           "source_type": "tutorial",
-          "authors": [
-            "Sharon Zhou"
-          ],
-          "publication_date": "2025",
-          "citationKey": "zhouFinetuningRLLLMs2025"
+          "citationKey": "ProbabilityCalibrationCurves",
+          "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
         },
         {
-          "title": "How to Make a Reward Function in Reinforcement Learning ...",
-          "url": "https://www.geeksforgeeks.org/machine-learning/how-to-make-a-reward-function-in-reinforcement-learning",
-          "source_type": "tutorial",
-          "publication_date": "2024-10-01",
-          "citationKey": "HowMakeReward2024"
+          "title": "Predicting suicide attempts in adolescents with longitudinal clinical data and machine learning",
+          "url": "https://doi.org/10.1111/jcpp.12916",
+          "source_type": "application_paper",
+          "authors": [
+            "Colin G. Walsh",
+            "Jessica D. Ribeiro",
+            "Joseph C. Franklin"
+          ],
+          "publication_date": "2018-4-30",
+          "citationKey": "walshPredictingSuicideAttempts2018"
         }
       ],
-      "related_techniques": [
-        "chain-of-thought-faithfulness-evaluation",
-        "adversarial-training-evaluation",
-        "constitutional-ai-evaluation",
-        "red-teaming"
-      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
       "sample_claims": [
         {
-          "text": "The autonomous vehicle's lane-keeping performance transfers reliably to real-world conditions rather than exploiting simulator artifacts",
-          "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
+          "text": "The recalibrated suicide-attempt risk model's predicted probabilities match observed attempt rates across risk deciles in held-out records, with calibration slope and intercept within pre-agreed bounds.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
         },
         {
-          "text": "The healthcare scheduling system improves patient outcomes through genuine efficiency gains rather than manipulating appointment metrics",
-          "domain": "healthcare",
-          "assuranceGoal": "safety"
+          "text": "Within each band of predicted claim probability, the average prediction equals the observed claim rate on the calibration data, so no band of policyholders systematically subsidises another.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
         },
         {
-          "text": "The system's strategy for achieving stated objectives is interpretable and consistent with task intent rather than relying on unintended shortcuts",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The loan processing system maintains creditworthiness assessment accuracy when evaluated on modified criteria that close potential loopholes",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The educational recommendation system's learning outcome improvements reflect genuine student progress rather than optimisation of engagement proxies",
-          "domain": "public sector",
-          "assuranceGoal": "safety"
+          "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases, and the reliability diagram is published alongside the review tool.",
+          "assuranceGoal": "transparency",
+          "domain": "e-commerce"
         }
       ]
     }
   ],
-  "count": 66
+  "count": 62
 }

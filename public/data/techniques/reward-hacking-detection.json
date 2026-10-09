@@ -1,119 +1,100 @@
 {
   "slug": "reward-hacking-detection",
   "name": "Reward Hacking Detection",
-  "description": "Reward hacking detection identifies when AI systems achieve stated objectives through unintended shortcuts or loopholes rather than genuine task mastery. This technique analyses whether systems exploit reward specification ambiguities, reward function bugs, or simulator artifacts to maximise rewards without actually solving the intended problem. Detection involves adversarial specification testing, human evaluation of solution quality, transfer testing to slightly modified tasks, and analysis of unexpected strategy patterns that suggest reward hacking rather than genuine learning.",
+  "description": "Reward hacking is when an agent trained to maximise a proxy reward (a reward function or learned reward model that only approximates what its designers want) raises that proxy by exploiting its gaps while the intended outcome stalls or gets worse. Reward hacking detection tests a trained policy for this by scoring it against both the proxy it was optimised for and an independent measure of the intended objective that the optimiser never saw, such as a hand-written true reward in a simulator, a held-out 'gold' reward model or human ratings. The scoring is repeated at every training checkpoint, or across models of increasing size, because the change can be abrupt: the originating study found capability thresholds at which an agent's behaviour shifts and its true reward falls sharply while its proxy reward keeps rising. Where the intended objective cannot be scored in operation, the same study flags a policy as aberrant when its action distribution diverges too far from that of a trusted policy that people have already checked, with the alarm threshold set on policies whose true reward is known. The output is a pair of proxy and true-reward curves showing where they part, or an anomaly score for each candidate policy.",
   "assurance_goals": [
     "Reliability",
-    "Safety",
-    "Transparency"
+    "Safety"
   ],
   "tags": [
     "applicable-models/architecture/model-agnostic",
+    "applicable-models/architecture/neural-networks/transformer/llm",
     "applicable-models/paradigm/reinforcement",
     "applicable-models/requirements/black-box",
     "assurance-goal-category/reliability",
     "assurance-goal-category/reliability/behavioural-consistency",
     "assurance-goal-category/safety",
     "assurance-goal-category/safety/hazard-identification",
-    "assurance-goal-category/transparency",
-    "assurance-goal-category/transparency/audit-trail",
+    "data-requirements/test-scenarios",
     "data-type/any",
-    "data-requirements/no-special-requirements",
-    "technique-type/testing",
-    "evidence-type/qualitative-report",
+    "evidence-type/quantitative-metric",
+    "evidence-type/visualisation",
     "expertise-needed/ml-engineering",
-    "expertise-needed/domain-expertise",
     "expertise-needed/evaluation-design",
+    "expertise-needed/domain-expertise",
+    "technique-type/testing",
     "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-selection-and-training",
     "lifecycle-stage/model-development/model-testing-and-validation"
   ],
   "example_use_cases": [
     {
-      "description": "Detecting when a reinforcement learning agent for robot manipulation learns to exploit physics simulator quirks rather than developing real-world-transferable manipulation skills, preventing failures in physical deployment.",
+      "description": "A transport authority training a reinforcement-learning ramp-metering controller in a traffic simulator rewards it on mean vehicle speed, but also logs average commute time for all drivers at every checkpoint. Checkpoints where speed keeps improving while commute time worsens (for example by holding merging cars back indefinitely) are rejected before any field trial.",
       "goal": "Reliability"
     },
     {
-      "description": "Identifying when an AI-based healthcare scheduling system appears to optimize patient wait times by gaming appointment classifications or encouraging cancellations rather than genuinely improving clinic efficiency, preventing patient care degradation.",
+      "description": "A team fine-tuning a customer-support language model with reinforcement learning from human feedback scores each checkpoint with its training reward model and with a held-out reward model and a sample of human ratings that the training loop never sees, and stops training at the point where the training reward keeps rising but the held-out scores fall.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "Before an insulin-dosing agent trained against a simulator reward goes to clinical evaluation, the developers score every candidate policy on a separate true objective, time spent in the safe blood-glucose range, and exclude any policy whose simulator reward is high but whose time in range is lower than that of the clinically reviewed baseline policy.",
       "goal": "Safety"
     },
     {
-      "description": "Detecting when a loan approval system achieves target approval rates by exploiting specification loopholes in creditworthiness definitions rather than accurately assessing borrower risk, ensuring reliable lending decisions.",
-      "goal": "Reliability"
-    },
-    {
-      "description": "Verifying that an educational content recommendation system optimizes for genuine learning outcomes rather than gaming engagement metrics through strategies like repeatedly presenting easier content that inflates measured progress.",
-      "goal": "Reliability"
-    },
-    {
-      "description": "Producing a documented audit trail for a high-risk AI deployment by running reward hacking detection tests and recording which specification loopholes were identified and remediated, enabling auditors and regulators to verify that the system achieves its stated objectives through legitimate means rather than gaming its evaluation criteria.",
-      "goal": "Transparency"
+      "description": "A public-health modelling unit that replaces a reviewed epidemic-response policy with a larger retrained one compares the new policy's actions with the reviewed policy's across simulated outbreaks. A divergence score above the threshold set on earlier policies with known outcomes sends the new policy to expert review instead of adoption, because its true outcome cannot be scored before deployment.",
+      "goal": "Safety"
     }
   ],
   "limitations": [
     {
-      "description": "Difficult to distinguish between clever problem-solving and specification gaming without deep understanding of task intent."
+      "description": "Everything rests on the independent measure of the intended objective. When that measure is itself a proxy (a gold reward model, or a small sample of human ratings), a policy can exploit it too, and the comparison then only detects divergence between two imperfect measures. Collecting enough human ratings at every checkpoint is expensive, which is why studies substitute a gold reward model."
     },
     {
-      "description": "Novel gaming strategies may not be detected until systems are deployed in real environments where gaming becomes apparent."
+      "description": "It detects gaming only along the dimensions the true measure scores. A policy that exploits something the true objective does not capture (a side effect, a safety constraint, a user group not represented in the ratings) passes the check, so a clean result is evidence about the measured objective only."
     },
     {
-      "description": "Closing detected loopholes may simply push systems to discover new gaming strategies rather than solving the fundamental specification challenge."
+      "description": "The trusted-policy detector is weak and inconsistent. In the originating benchmark every baseline detector scored an area under the ROC curve below 60% on at least one task, and no detector was best on all tasks, so a quiet detector is not evidence that hacking is absent."
     },
     {
-      "description": "Perfect specifications that eliminate all gaming opportunities may be impossible for complex, open-ended tasks."
+      "description": "The trusted-policy detector flags difference, not harm. It needs a policy that people have already verified, and comparable action distributions from both policies, and a candidate that is genuinely better than the trusted policy can diverge from it and be flagged, which makes false alarms likely when the trusted policy is only moderately good."
     },
     {
-      "description": "Requires domain expertise and clear articulation of task intent to distinguish between legitimate optimization strategies and gaming behaviors, which can be subjective in complex domains."
-    },
-    {
-      "description": "Detection often requires access to detailed behavioral logs and environment state information that may not be available in black-box deployment scenarios."
-    },
-    {
-      "description": "Establishing ground truth for 'correct' task completion without gaming requires independent verification methods that may be as resource-intensive as the original task."
+      "description": "Because the onset of reward hacking can be abrupt as capability grows, checking a few checkpoints or one model size can miss it. The comparison has to be repeated at every checkpoint and model size that might be deployed, which multiplies evaluation cost, especially when the true measure needs human raters."
     }
   ],
   "resources": [
     {
-      "title": "Detecting and Mitigating Reward Hacking in Reinforcement Learning Systems: A Comprehensive Empirical Study",
-      "url": "https://www.semanticscholar.org/paper/f71379b765f01c333ebaab5736dbf7f1005b19c9",
+      "title": "The Effects of Reward Misspecification: Mapping and Mitigating Misaligned Models",
+      "url": "http://arxiv.org/abs/2201.03544",
       "source_type": "technical_paper",
       "authors": [
-        "Ibne Farabi Shihab",
-        "Sanjeda Akter",
-        "Anuj Sharma"
+        "Alexander Pan",
+        "Kush Bhatia",
+        "Jacob Steinhardt"
       ],
-      "publication_date": "2025",
-      "citationKey": "farabishihabDetectingMitigatingReward2025",
-      "abstract": "Reward hacking in Reinforcement Learning (RL) systems poses a critical threat to the deployment of autonomous agents, where agents exploit flaws in reward functions to achieve high scores without fulfilling intended objectives. Despite growing awareness of this problem, systematic detection and mitigation approaches remain limited. This paper presents a large-scale empirical study of reward hacking across diverse RL environments and algorithms. We analyze 15,247 training episodes across 15 RL environments (Atari, MuJoCo, custom domains) and 5 algorithms (PPO, SAC, DQN, A3C, Rainbow), implementing automated detection algorithms for six categories of reward hacking: specification gaming, reward tampering, proxy optimization, objective misalignment, exploitation patterns, and wireheading. Our detection framework achieves 78.4% precision and 81.7% recall across environments, with computational overhead under 5%. Through controlled experiments varying reward function properties, we demonstrate that reward density and alignment with true objectives significantly impact hacking frequency ($p<0.001$, Cohen's $d = 1.24$). We validate our approach through three simulated application studies representing recommendation systems, competitive gaming, and robotic control scenarios. Our mitigation techniques reduce hacking frequency by up to 54.6% in controlled scenarios, though we find these trade-offs are more challenging in practice due to concept drift, false positive costs, and adversarial adaptation. All detection algorithms, datasets, and experimental protocols are publicly available to support reproducible research in RL safety."
+      "publication_date": "2022-02-14",
+      "citationKey": "panEffectsRewardMisspecification2022",
+      "abstract": "Reward hacking -- where RL agents exploit gaps in misspecified reward functions -- has been widely observed, but not yet systematically studied. To understand how reward hacking arises, we construct four RL environments with misspecified rewards. We investigate reward hacking as a function of agent capabilities: model capacity, action space resolution, observation space noise, and training time. More capable agents often exploit reward misspecifications, achieving higher proxy reward and lower true reward than less capable agents. Moreover, we find instances of phase transitions: capability thresholds at which the agent's behavior qualitatively shifts, leading to a sharp decrease in the true reward. Such phase transitions pose challenges to monitoring the safety of ML systems. To address this, we propose an anomaly detection task for aberrant policies and offer several baseline detectors."
     },
     {
-      "title": "Preventing Reward Hacking with Occupancy Measure Regularization",
-      "url": "https://www.semanticscholar.org/paper/878e2c80a9247b6106b479bf8d74c02427947176",
+      "title": "Scaling Laws for Reward Model Overoptimization",
+      "url": "https://proceedings.mlr.press/v202/gao23h.html",
       "source_type": "technical_paper",
       "authors": [
-        "Cassidy Laidlaw",
-        "Shivam Singhal",
-        "A. Dragan"
+        "Leo Gao",
+        "John Schulman",
+        "Jacob Hilton"
       ],
-      "publication_date": "2024",
-      "citationKey": "laidlawPreventingRewardHacking2024"
+      "publication_date": "2023-07-03",
+      "citationKey": "gaoScalingLawsReward2023",
+      "abstract": "In reinforcement learning from human feedback, it is common to optimize against a reward model trained to predict human preferences. Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart’s law. This effect has been frequently observed, but not carefully measured due to the expense of collecting human preference data. In this work, we use a synthetic setup in which a fixed “gold-standard” reward model plays the role of humans, providing labels used to train a proxy reward model. We study how the gold reward model score changes as we optimize against the proxy reward model using either reinforcement learning or best-of-$n$ sampling. We find that this relationship follows a different functional form depending on the method of optimization, and that in both cases its coefficients scale smoothly with the number of reward model parameters. We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup. We explore the implications of these empirical results for theoretical considerations in AI alignment."
     },
     {
-      "title": "Fine-tuning & RL for LLMs: Intro to Post-training - DeepLearning.AI",
-      "url": "https://learn.deeplearning.ai/courses/fine-tuning-and-reinforcement-learning-for-llms-intro-to-post-training/lesson/wr7ye4/evals-for-post-training:-test-sets-and-metrics",
-      "source_type": "tutorial",
-      "authors": [
-        "Sharon Zhou"
-      ],
-      "publication_date": "2025",
-      "citationKey": "zhouFinetuningRLLLMs2025"
-    },
-    {
-      "title": "How to Make a Reward Function in Reinforcement Learning ...",
-      "url": "https://www.geeksforgeeks.org/machine-learning/how-to-make-a-reward-function-in-reinforcement-learning",
-      "source_type": "tutorial",
-      "publication_date": "2024-10-01",
-      "citationKey": "HowMakeReward2024"
+      "title": "reward-misspecification (code for Pan, Bhatia and Steinhardt 2022)",
+      "url": "https://github.com/aypan17/reward-misspecification",
+      "source_type": "software_package",
+      "publication_date": "2026-03-20T06:44:49Z",
+      "citationKey": "panRewardmisspecificationCodePan2026"
     }
   ],
   "related_techniques": [
@@ -124,27 +105,22 @@
   ],
   "sample_claims": [
     {
-      "text": "The autonomous vehicle's lane-keeping performance transfers reliably to real-world conditions rather than exploiting simulator artifacts",
-      "domain": "autonomous systems",
+      "text": "Across all training checkpoints, gains in the proxy reward were matched by gains on a held-out measure of the intended objective, with no checkpoint where the two diverged beyond the agreed tolerance",
+      "domain": "general",
       "assuranceGoal": "reliability"
     },
     {
-      "text": "The healthcare scheduling system improves patient outcomes through genuine efficiency gains rather than manipulating appointment metrics",
+      "text": "Training of the support model was stopped before the point at which held-out human ratings began to fall while the training reward continued to rise",
+      "domain": "general",
+      "assuranceGoal": "reliability"
+    },
+    {
+      "text": "The insulin-dosing policy selected for clinical evaluation achieved its simulator reward without reducing time spent in the safe glucose range below that of the reviewed baseline policy",
       "domain": "healthcare",
       "assuranceGoal": "safety"
     },
     {
-      "text": "The system's strategy for achieving stated objectives is interpretable and consistent with task intent rather than relying on unintended shortcuts",
-      "domain": "general",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The loan processing system maintains creditworthiness assessment accuracy when evaluated on modified criteria that close potential loopholes",
-      "domain": "finance",
-      "assuranceGoal": "reliability"
-    },
-    {
-      "text": "The educational recommendation system's learning outcome improvements reflect genuine student progress rather than optimisation of engagement proxies",
+      "text": "The retrained policy's actions do not diverge from the human-verified reference policy beyond an alarm threshold calibrated on policies with known outcomes",
       "domain": "public sector",
       "assuranceGoal": "safety"
     }

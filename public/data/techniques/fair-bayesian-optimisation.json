@@ -1,0 +1,127 @@
+{
+  "slug": "fair-bayesian-optimisation",
+  "name": "Fair Bayesian Optimisation",
+  "description": "Fair Bayesian Optimisation (FairBO) tunes a model's hyperparameters, the settings fixed before training such as tree depth or regularisation strength, to find the most accurate model that also meets a fairness threshold chosen in advance, for example a difference in positive-prediction rates between two groups of at most 0.05. Because it only changes hyperparameters and retrains, it treats the model and its training pipeline as a black box, so it works with any model class and any group fairness metric, can enforce several metrics at once, and leaves a model that needs no protected attribute at prediction time. Each step trains a model with a candidate configuration and measures its validation accuracy and fairness, and two Gaussian processes (statistical models that predict a value together with its uncertainty) are fitted to the results of the configurations tried so far. The next configuration is the one with the highest expected improvement in accuracy weighted by the predicted probability of meeting the fairness constraint; until a fair configuration has been found, the search maximises that probability alone. The output is the best configuration that met the constraint, with its accuracy and fairness measurements.",
+  "assurance_goals": [
+    "Fairness"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/paradigm/supervised",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/fairness",
+    "assurance-goal-category/fairness/in-processing",
+    "data-requirements/access-to-training-data",
+    "data-requirements/labelled-data",
+    "data-requirements/sensitive-attributes",
+    "data-type/tabular",
+    "evidence-type/model-artefact",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/statistics",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-selection-and-training",
+    "technique-type/algorithmic"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A lender's model risk team tunes a gradient-boosted credit-risk model under a constraint that the approval-rate difference between applicants of different nationality stays at or below 0.05. It records the most accurate configuration that met the constraint beside the result of unconstrained tuning, so the model approval committee can see what accuracy the constraint cost.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "An HR analytics team at a large employer tunes a random forest that ranks job applications for interview, enforcing limits on the gender gap in true positive rates and on the gap in shortlisting rates at the same time, because its policy commits to both equal opportunity and comparable shortlisting rates.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "A data science team at a health insurer already runs an adversarially debiased claims-triage model whose fairness changed sharply with its learning rate and adversary weight. It uses FairBO to tune those hyperparameters under a statistical parity constraint, rather than tuning them for accuracy alone and checking fairness afterwards.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "A local authority building a model to prioritise benefit-fraud reviews cannot use ethnicity as an input at decision time. It holds ethnicity only in a validation extract, uses FairBO to select hyperparameters that keep the referral-rate gap within its equality impact assessment threshold, and then confirms the gap on a separate held-out sample before deployment.",
+      "goal": "Fairness"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "It can only reach fairness that some hyperparameter setting already provides. If no configuration in the search space meets the threshold, it returns no fair model. The originating paper found that regularisation hyperparameters (tree depth, weight penalties, learning rate) drive most of the effect, so a search space without them leaves far fewer fair options."
+    },
+    {
+      "description": "The fairness metric and its threshold must be fixed before the search, and the result says nothing about metrics that were not constrained. Choosing them is a normative decision the method does not make. If decision-makers need to see the whole accuracy-fairness trade-off before picking a threshold, a multi-objective search is needed, which the paper found slower to reach a model meeting a given threshold."
+    },
+    {
+      "description": "A constraint can be met by a model that barely distinguishes between anyone. The paper shows that as regularisation grows, predictions approach a constant and satisfy every group fairness metric, and on its benchmarks random search found fair models only at the accuracy of always predicting the majority class. Check accuracy and error rates within each group, not only the fairness gap, before accepting the result."
+    },
+    {
+      "description": "Every step trains a full model, so the cost is the training cost multiplied by the number of evaluations (the paper used up to 100), which is expensive for large models. The fairness value guiding the search is estimated on the validation split used during tuning, so it carries sampling error that is large when a group is small; confirm the gap on held-out data before relying on it."
+    },
+    {
+      "description": "No maintained implementation exists. The authors released it in AutoGluon 0.3.1 (2021), which dropped it from version 0.4.0; it later lived in Syne Tune until version 0.13.0 (2024), and later Syne Tune releases removed the constrained searcher although the current documentation still describes it. Using it today means pinning an old release or rebuilding the method on a general constrained Bayesian optimisation library."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Fair Bayesian Optimization",
+      "url": "https://doi.org/10.1145/3461702.3462629",
+      "source_type": "technical_paper",
+      "authors": [
+        "Valerio Perrone",
+        "Michele Donini",
+        "Muhammad Bilal Zafar",
+        "Robin Schmucker",
+        "Krishnaram Kenthapadi",
+        "Cédric Archambeau"
+      ],
+      "publication_date": "2021",
+      "citationKey": "perroneFairBayesianOptimization2020",
+      "abstract": "Given the increasing importance of machine learning (ML) in our lives, several algorithmic fairness techniques have been proposed to mitigate biases in the outcomes of the ML models. However, most of these techniques are specialized to cater to a single family of ML models and a specific definition of fairness, limiting their adaptibility in practice. We introduce a general constrained Bayesian optimization (BO) framework to optimize the performance of any ML model while enforcing one or multiple fairness constraints. BO is a model-agnostic optimization method that has been successfully applied to automatically tune the hyperparameters of ML models. We apply BO with fairness constraints to a range of popular models, including random forests, gradient boosting, and neural networks, showing that we can obtain accurate and fair solutions by acting solely on the hyperparameters. We also show empirically that our approach is competitive with specialized techniques that enforce model-specific fairness constraints, and outperforms preprocessing methods that learn fair representations of the input data. Moreover, our method can be used in synergy with such specialized fairness techniques to tune their hyperparameters. Finally, we study the relationship between fairness and the hyperparameters selected by BO. We observe a correlation between regularization and unbiased models, explaining why acting on the hyperparameters leads to ML models that generalize well and are fair."
+    },
+    {
+      "title": "Syne Tune v0.13.0: constrained Bayesian optimisation searcher (ConstrainedGPFIFOSearcher)",
+      "url": "https://github.com/syne-tune/syne-tune/tree/v0.13.0/syne_tune/optimizer/schedulers/searchers/constrained",
+      "source_type": "software_package",
+      "citationKey": "SyneTuneV0130",
+      "abstract": "Large scale and asynchronous Hyperparameter and Architecture Optimization at your fingertips. - syne-tune/syne-tune"
+    },
+    {
+      "title": "AutoGluon v0.3.1: constrained GP FIFO searcher (constrained_bayesopt)",
+      "url": "https://github.com/autogluon/autogluon/blob/v0.3.1/core/src/autogluon/core/searcher/bayesopt/autogluon/constrained_gp_fifo_searcher.py",
+      "source_type": "software_package",
+      "citationKey": "AutoGluonV031Constrained",
+      "abstract": "Fast and Accurate ML in 3 Lines of Code. Contribute to autogluon/autogluon development by creating an account on GitHub."
+    },
+    {
+      "title": "Fair Bayesian Optimization (AutoGluon 0.3.1 tutorial)",
+      "url": "https://auto.gluon.ai/0.3.1/tutorials/course/fairbo.html",
+      "source_type": "tutorial",
+      "citationKey": "FairBayesianOptimization"
+    }
+  ],
+  "complexity_rating": 5,
+  "computational_cost_rating": 4,
+  "acronym": "FairBO",
+  "related_techniques": [
+    "prejudice-remover-regulariser",
+    "exponentiated-gradient-reduction"
+  ],
+  "sample_claims": [
+    {
+      "text": "The credit model is the most accurate of the hyperparameter configurations searched whose approval-rate difference between groups was at most 0.05 on validation data, and the gap was confirmed on held-out data.",
+      "assuranceGoal": "fairness",
+      "domain": "finance"
+    },
+    {
+      "text": "The screening model meets the agreed limits on both the true-positive-rate gap and the selection-rate gap between groups when measured on held-out data.",
+      "assuranceGoal": "fairness",
+      "domain": "general"
+    },
+    {
+      "text": "The deployed model meets the fairness threshold without needing the protected attribute at prediction time.",
+      "assuranceGoal": "fairness",
+      "domain": "public sector"
+    },
+    {
+      "text": "The accuracy given up to meet the fairness threshold has been measured against unconstrained tuning of the same model and is documented.",
+      "assuranceGoal": "fairness",
+      "domain": "general"
+    }
+  ]
+}

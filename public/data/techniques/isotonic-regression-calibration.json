@@ -1,0 +1,122 @@
+{
+  "slug": "isotonic-regression-calibration",
+  "name": "Isotonic Regression Calibration",
+  "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score before and after.",
+  "assurance_goals": [
+    "Reliability",
+    "Transparency"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/paradigm/supervised",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/calibration",
+    "assurance-goal-category/transparency",
+    "assurance-goal-category/transparency/confidence-and-limits",
+    "data-requirements/calibration-set",
+    "data-type/any",
+    "evidence-type/model-artefact",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/statistics",
+    "technique-type/algorithmic",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A clinical research team builds a random forest on electronic health records to predict which adolescents will attempt suicide. The forest ranks patients well, but its vote shares are not probabilities, so the team fits isotonic regression on held-out records and reports calibration slope, intercept and Brier score before the risk estimates are used to prioritise clinical follow-up.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "An insurer's pricing team applies isotonic recalibration to the output of its claim-probability model, fitted on a large portfolio, so that within each band of predicted risk the average prediction equals the observed claim rate on the calibration data and no group of policyholders systematically subsidises another.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "An online marketplace scores listings for fraud with a naive Bayes text classifier whose probabilities cluster near 0 and 1, and analysts had been treating them as near-certainties. With tens of thousands of labelled past cases available, the team fits isotonic calibration so the review queue shows probabilities that match observed fraud rates, and shares the reliability diagram with the analysts.",
+      "goal": "Transparency"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "It needs plenty of calibration data. With fewer than about a thousand labelled cases the step function follows noise in the calibration set, and the two-parameter curve of Platt scaling usually does as well or better; isotonic regression pays off when calibration data are plentiful."
+    },
+    {
+      "description": "The output is a step function, so many different scores receive exactly the same probability. These ties discard distinctions the model made within a step, can change ranking measures such as the area under the ROC curve after calibration, and matter when a decision threshold falls inside a wide step."
+    },
+    {
+      "description": "It relies on the classifier's ordering being right: a higher score must never mean a lower chance of the outcome. Where the model ranks cases wrongly over some range of scores, isotonic regression cannot repair the ranking and instead flattens that range into a single probability."
+    },
+    {
+      "description": "Probabilities at the extremes rest on little data. The outermost steps can be fitted from a handful of cases and may sit at or near 0 or 1, and common implementations clip scores beyond the range seen in calibration to the end values, so the most extreme predictions are the least trustworthy."
+    }
+  ],
+  "resources": [
+    {
+      "title": "1.16. Probability calibration — scikit-learn user guide",
+      "url": "https://scikit-learn.org/stable/modules/calibration.html",
+      "source_type": "documentation",
+      "citationKey": "116ProbabilityCalibration",
+      "abstract": "When performing classification you often want not only to predict the class label, but also obtain a probability of the respective label. This probability gives you some kind of confidence on the p..."
+    },
+    {
+      "title": "scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn",
+      "source_type": "software_package",
+      "citationKey": "Scikitlearn",
+      "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
+    },
+    {
+      "title": "Transforming classifier scores into accurate multiclass probability estimates",
+      "url": "https://doi.org/10.1145/775047.775151",
+      "source_type": "technical_paper",
+      "authors": [
+        "Bianca Zadrozny",
+        "Charles Elkan"
+      ],
+      "publication_date": "2002-7-23",
+      "citationKey": "zadroznyTransformingClassifierScores2002"
+    },
+    {
+      "title": "Probability Calibration curves — scikit-learn",
+      "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
+      "source_type": "tutorial",
+      "citationKey": "ProbabilityCalibrationCurves",
+      "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
+    },
+    {
+      "title": "Predicting suicide attempts in adolescents with longitudinal clinical data and machine learning",
+      "url": "https://doi.org/10.1111/jcpp.12916",
+      "source_type": "application_paper",
+      "authors": [
+        "Colin G. Walsh",
+        "Jessica D. Ribeiro",
+        "Joseph C. Franklin"
+      ],
+      "publication_date": "2018-4-30",
+      "citationKey": "walshPredictingSuicideAttempts2018"
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 1,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "The recalibrated suicide-attempt risk model's predicted probabilities match observed attempt rates across risk deciles in held-out records, with calibration slope and intercept within pre-agreed bounds.",
+      "assuranceGoal": "reliability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "Within each band of predicted claim probability, the average prediction equals the observed claim rate on the calibration data, so no band of policyholders systematically subsidises another.",
+      "assuranceGoal": "reliability",
+      "domain": "finance"
+    },
+    {
+      "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases, and the reliability diagram is published alongside the review tool.",
+      "assuranceGoal": "transparency",
+      "domain": "e-commerce"
+    }
+  ]
+}

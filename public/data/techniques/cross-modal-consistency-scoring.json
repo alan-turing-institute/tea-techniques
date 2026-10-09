@@ -1,0 +1,167 @@
+{
+  "slug": "cross-modal-consistency-scoring",
+  "name": "Cross-Modal Consistency Scoring",
+  "description": "Cross-modal consistency scoring checks whether content in one modality matches content in another, such as an image and its caption, a generated image and the prompt that produced it, or an audio clip and its description. It uses a contrastively trained model, CLIP for images and text or CLAP for audio and text, which has learned from large collections of paired examples to turn each item into an embedding (a numerical vector describing its content) and to place matching pairs close together. The score for a pair is the cosine similarity of its two embeddings; in the standard image form, CLIPScore, negative similarities are set to zero and the result is rescaled, and no human-written reference is needed. A practitioner scores every pair in an evaluation set or in production, sets a threshold against a sample of human judgements, and then compares average scores between systems or sends pairs below the threshold for review. The score shows whether two items are about the same things, not whether every detail of a description is correct.",
+  "assurance_goals": [
+    "Reliability"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/performance-assessment",
+    "data-requirements/no-special-requirements",
+    "data-type/image",
+    "data-type/text",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/evaluation-design",
+    "expertise-needed/ml-engineering",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/project-design",
+    "lifecycle-stage/project-design/data-extraction-or-procurement",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring",
+    "technique-type/metric"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A public library deploying an automatic alt-text generator for its digitised photograph collection scores every generated description against its image and routes those below a threshold, set on a sample rated by staff, to a cataloguer, so that visitors using screen readers are not given descriptions of the wrong content.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A design-software company deciding whether to ship a new version of its text-to-image model generates images for the same few thousand varied prompts with fixed random seeds, compares the average image-prompt scores of the old and new versions, and checks the comparison against human ratings on a subset before release.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A team assembling an image-caption training set from web data drops pairs whose image-text similarity falls below a threshold, as the builders of LAION-5B did, and audits a sample of the discarded pairs by subject and demographic group before accepting the filter, because such filters remove some groups' images at higher rates.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A broadcaster's archive team generating text descriptions for an untagged sound-effects library scores each description against its clip with an audio-text model, uses the scores only to order clips for human listening checks rather than to accept descriptions automatically, and records the agreement between scores and listeners' judgements.",
+      "goal": "Reliability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "Contrastively trained image-text models largely ignore word order, relations between objects and which attribute belongs to which object, so a description that names the right things in the wrong relationship can score almost as well as a correct one. The score checks that the right content is mentioned, not that the description of how it fits together is right."
+    },
+    {
+      "description": "It cannot check what is not visible or audible. Names, places, events and other context in a news photograph or an archive recording are outside what the encoder can match, and the original authors found the image score weaker than reference-based metrics on news captions, so it should not be the only check where such facts matter."
+    },
+    {
+      "description": "Scores inherit the encoder's training data, which is mostly web alt-text, and its biases. An audit of CLIP-based filtering found that data associated with LGBTQ+ people, older women and younger men was excluded at higher rates, so a single threshold can be stricter for some subjects than others and needs checking by group."
+    },
+    {
+      "description": "Scores have no absolute meaning: they depend on the encoder checkpoint, are not comparable across checkpoints, and the default CLIP text encoder reads at most 77 tokens, so longer descriptions are judged on their opening only. Thresholds must be set and reported for the specific model and settings used."
+    },
+    {
+      "description": "The audio form is weaker still: CLAP-based scores have been found to correlate only weakly with human ratings of how well audio matches its text, so for audio the score is a coarse screen to prioritise human checks rather than evidence of consistency on its own."
+    }
+  ],
+  "resources": [
+    {
+      "title": "CLIP",
+      "url": "https://huggingface.co/docs/transformers/en/model_doc/clip",
+      "source_type": "documentation",
+      "publication_date": "2021",
+      "citationKey": "CLIP2021"
+    },
+    {
+      "title": "CLIP Score — TorchMetrics documentation",
+      "url": "https://lightning.ai/docs/torchmetrics/stable/multimodal/clip_score.html",
+      "source_type": "documentation",
+      "citationKey": "CLIPScoreTorchMetrics",
+      "abstract": "From the PyTorch Lightning creators. Own your AI, don't rent it. Lightning is the AI cloud to build, train, and deploy your own models on 36,000+ NVIDIA GPUs."
+    },
+    {
+      "title": "TorchMetrics (Lightning-AI/torchmetrics)",
+      "url": "https://github.com/Lightning-AI/torchmetrics",
+      "source_type": "software_package",
+      "publication_date": "2022-02",
+      "citationKey": "nickiskaftedetlefsenTorchMetricsLightningAITorchmetrics2022",
+      "abstract": "Machine learning metrics for distributed, scalable PyTorch applications."
+    },
+    {
+      "title": "CLIPScore: A Reference-free Evaluation Metric for Image Captioning",
+      "url": "https://doi.org/10.18653/v1/2021.emnlp-main.595",
+      "source_type": "technical_paper",
+      "authors": [
+        "Jack Hessel",
+        "Ari Holtzman",
+        "Maxwell Forbes",
+        "Ronan Le Bras",
+        "Yejin Choi"
+      ],
+      "publication_date": "2021",
+      "citationKey": "hesselCLIPScoreReferencefreeEvaluation2021"
+    },
+    {
+      "title": "Evaluating Diffusion Models — Hugging Face Diffusers documentation",
+      "url": "https://huggingface.co/docs/diffusers/main/en/conceptual/evaluation",
+      "source_type": "tutorial",
+      "citationKey": "EvaluatingDiffusionModels",
+      "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
+    },
+    {
+      "title": "LAION-5B: An Open Large-Scale Dataset for Training Next Generation Image-Text Models",
+      "url": "https://doi.org/10.52202/068431-1833",
+      "source_type": "application_paper",
+      "authors": [
+        "Christoph Schuhmann",
+        "Romain Beaumont",
+        "Richard Vencu",
+        "Cade Gordon",
+        "Ross Wightman",
+        "Mehdi Cherti",
+        "Theo Coombes",
+        "Aarush Katta",
+        "Clayton Mullis",
+        "Mitchell Wortsman",
+        "Patrick Schramowski",
+        "Srivatsa Kundurthy",
+        "Katherine Crowson",
+        "Ludwig Schmidt",
+        "Robert Kaczmarczyk",
+        "Jenia Jitsev"
+      ],
+      "publication_date": "2022",
+      "citationKey": "schuhmannLAION5BOpenLargeScale2022"
+    },
+    {
+      "title": "Who's in and who's out? A case study of multimodal CLIP-filtering in DataComp",
+      "url": "https://doi.org/10.1145/3689904.3694702",
+      "source_type": "application_paper",
+      "authors": [
+        "Rachel Hong",
+        "William Agnew",
+        "Tadayoshi Kohno",
+        "Jamie Morgenstern"
+      ],
+      "publication_date": "2024-10-29",
+      "citationKey": "hongWhosWhosOut2024"
+    }
+  ],
+  "related_techniques": [
+    "constitutional-ai-evaluation",
+    "chain-of-thought-faithfulness-evaluation",
+    "jailbreak-resistance-testing"
+  ],
+  "sample_claims": [
+    {
+      "text": "Every automatically generated alt-text description published on the collection website has an image-text consistency score above the threshold validated against staff ratings, or has been reviewed by a cataloguer",
+      "domain": "public sector",
+      "assuranceGoal": "reliability"
+    },
+    {
+      "text": "The new text-to-image model version follows prompts at least as well as the current version, measured by average image-prompt consistency on a fixed, varied prompt set and confirmed by human ratings on a subset",
+      "domain": "general",
+      "assuranceGoal": "reliability"
+    },
+    {
+      "text": "Image-caption pairs in the training set meet the stated consistency threshold, and the pairs the filter removed were audited for disproportionate exclusion of any demographic group",
+      "domain": "general",
+      "assuranceGoal": "reliability"
+    }
+  ]
+}

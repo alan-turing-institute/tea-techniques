@@ -120,8 +120,8 @@
       "related_techniques": [
         "layer-wise-relevance-propagation",
         "deeplift",
-        "feature-attribution-with-integrated-gradients-in-nlp",
-        "classical-attention-analysis-in-neural-networks"
+        "integrated-gradients",
+        "attention-weight-analysis"
       ],
       "sample_claims": [
         {
@@ -152,81 +152,67 @@
       ]
     },
     {
-      "slug": "classical-attention-analysis-in-neural-networks",
-      "name": "Classical Attention Analysis in Neural Networks",
-      "description": "Classical attention mechanisms in RNNs and CNNs create alignment matrices and temporal attention patterns that show how models focus on different input elements over time or space. This technique analyses these traditional attention patterns, particularly in encoder-decoder architectures and sequence-to-sequence models, where attention weights reveal which source elements influence each output step. Unlike transformer self-attention analysis, this focuses on understanding alignment patterns, temporal dependencies, and encoder-decoder attention dynamics in classical neural architectures.",
+      "slug": "attention-weight-analysis",
+      "name": "Attention Weight Analysis",
+      "description": "Attention weight analysis inspects the weights an attention-based neural network computes for an input, to see which input positions the model draws on as it builds each part of its output. In recurrent encoder-decoder models, such as early neural machine translation, the weights for each output step form an alignment matrix over the source tokens, which is plotted as a heatmap and read as a soft alignment between source and target. In transformers, each attention head (one of several parallel attention units in a layer) produces its own matrix of how strongly every token attends to every other token; the analyst extracts these matrices from the model, for example by asking a Hugging Face model to return its attentions, and views them per head and layer or aggregates them over many inputs to characterise what individual heads do. The output is a set of heatmaps and head-level summaries showing how information is routed inside the model; on its own it does not measure how much each input contributed to the prediction.",
       "assurance_goals": [
         "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/recurrent",
+        "applicable-models/architecture/neural-networks/transformer",
         "applicable-models/requirements/architecture-specific",
         "applicable-models/requirements/model-internals",
         "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/feature-importance",
         "assurance-goal-category/explainability/explains/internal-mechanisms",
-        "assurance-goal-category/explainability/property/fidelity",
-        "assurance-goal-category/explainability/representation-analysis/decomposition",
+        "assurance-goal-category/explainability/property/efficiency",
         "assurance-goal-category/explainability/visualization-methods/attention-patterns",
+        "data-requirements/no-special-requirements",
         "data-type/image",
         "data-type/text",
         "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
         "expertise-needed/ml-engineering",
+        "explanatory-scope/global",
         "explanatory-scope/local",
-        "technique-type/algorithmic",
-        "data-requirements/no-special-requirements",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic",
+        "technique-type/visualisation"
       ],
       "example_use_cases": [
         {
-          "description": "Analysing encoder-decoder attention in a neural machine translation model to verify the alignment between source and target words, ensuring the model learns proper translation correspondences rather than positional biases.",
+          "description": "A localisation team validating an in-house neural translation model for equipment manuals plots the encoder-decoder attention matrix for a sample of sentences and checks that each translated term attends to its source counterpart, sending sentences whose attention collapses onto punctuation or end-of-sentence tokens for human review.",
           "goal": "Explainability"
         },
         {
-          "description": "Examining temporal attention patterns in an RNN-based image captioning model to understand how attention moves across different image regions as it generates each word of the caption description.",
+          "description": "A team assessing an image-captioning model for an alt-text service overlays each generated word's attention weights on the image to check that words such as 'wheelchair' or 'crossing' fall on the matching objects, and records captions whose nouns attend mainly to background regions.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A clinical NLP team reviewing a transformer that extracts medication details from discharge letters uses head and model views on a sample of letters to find heads that link each drug name to its dose and frequency, then checks whether those heads behave the same way on letters from a second hospital before describing them in the model documentation.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A model-risk team reviewing a contract-clause classifier uses attention maps as a first look at which phrases the model draws on, then tests the highlighted phrases with an attribution or ablation method before reporting them, because its validation policy does not accept attention weights alone as evidence of what drove a decision.",
           "goal": "Explainability"
         }
       ],
       "limitations": [
         {
-          "description": "Attention weights are not always strongly correlated with feature importance for the final prediction."
+          "description": "Attention weights are not a measure of feature importance. Across several text tasks, attention weights often disagreed with gradient-based importance, and quite different attention distributions produced the same prediction; a reply showed the verdict depends on the test used. Treat a heatmap as a hypothesis to confirm with attribution or ablation, not as the reason for a decision."
         },
         {
-          "description": "High attention does not necessarily imply causal influence - models can attend to irrelevant but correlated features."
+          "description": "In transformers, residual connections and stacked layers mix information from different tokens, so one layer's weights do not show which input tokens a later representation depends on. Raw attention agreed less well with ablation and gradient importance than aggregates across layers such as attention rollout, which are themselves approximations."
         },
         {
-          "description": "Only applicable to neural network architectures that explicitly use attention mechanisms."
+          "description": "A transformer produces one matrix per head per layer for every input, often well over a hundred, and many heads attend mostly to delimiter tokens such as the separator. Saying what a head does requires aggregating over many inputs, and a few hand-picked examples can suggest patterns that do not hold across the data."
         },
         {
-          "description": "Interpretation can be misleading without understanding the specific attention mechanism implementation and training dynamics."
+          "description": "Applies only to models that compute attention explicitly, and the meaning of the weights depends on the mechanism: an encoder-decoder alignment over source words is not the same object as self-attention among tokens of one sequence. Head roles found in one model or domain do not carry over to another, so the analysis must be repeated for each model assessed."
         }
       ],
       "resources": [
-        {
-          "title": "AdditiveAttention layer — Keras 3 API reference",
-          "url": "https://keras.io/api/layers/attention_layers/additive_attention/",
-          "source_type": "documentation",
-          "authors": [
-            "Keras Team"
-          ],
-          "citationKey": "teamAdditiveAttentionLayerKeras",
-          "abstract": "Keras documentation: AdditiveAttention layer"
-        },
-        {
-          "title": "An Attentive Survey of Attention Models",
-          "url": "https://doi.org/10.1145/3465055",
-          "source_type": "technical_paper",
-          "authors": [
-            "S. Chaudhari",
-            "Gungor Polatkan",
-            "R. Ramanath",
-            "Varun Mithal"
-          ],
-          "publication_date": "2019",
-          "citationKey": "chaudhariAttentiveSurveyAttention2019",
-          "abstract": "Attention Model has now become an important concept in neural networks that has been researched within diverse application domains. This survey provides a structured and comprehensive overview of the developments in modeling attention. In particular, we propose a taxonomy that groups existing techniques into coherent categories. We review salient neural architectures in which attention has been incorporated and discuss applications in which modeling attention has shown a significant impact. We also describe how attention has been used to improve the interpretability of neural networks. Finally, we discuss some future research directions in attention. We hope this survey will provide a succinct introduction to attention models and guide practitioners while developing approaches for their applications."
-        },
         {
           "title": "Neural Machine Translation by Jointly Learning to Align and Translate",
           "url": "http://arxiv.org/abs/1409.0473",
@@ -241,16 +227,45 @@
           "abstract": "Neural machine translation is a recently proposed approach to machine translation. Unlike the traditional statistical machine translation, the neural machine translation aims at building a single neural network that can be jointly tuned to maximize the translation performance. The models proposed recently for neural machine translation often belong to a family of encoder-decoders and consists of an encoder that encodes a source sentence into a fixed-length vector from which a decoder generates a translation. In this paper, we conjecture that the use of a fixed-length vector is a bottleneck in improving the performance of this basic encoder-decoder architecture, and propose to extend this by allowing a model to automatically (soft-)search for parts of a source sentence that are relevant to predicting a target word, without having to form these parts as a hard segment explicitly. With this new approach, we achieve a translation performance comparable to the existing state-of-the-art phrase-based system on the task of English-to-French translation. Furthermore, qualitative analysis reveals that the (soft-)alignments found by the model agree well with our intuition."
         },
         {
+          "title": "bertviz",
+          "url": "https://github.com/jessevig/bertviz",
+          "source_type": "software_package",
+          "publication_date": "2018-12-16",
+          "citationKey": "jessevigBertviz2018",
+          "abstract": "BertViz: Visualize Attention in NLP Models (BERT, GPT2, BART, etc.)"
+        },
+        {
+          "title": "Model outputs — Hugging Face Transformers documentation",
+          "url": "https://huggingface.co/docs/transformers/main_classes/output",
+          "source_type": "documentation",
+          "citationKey": "ModelOutputsHugging",
+          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
+        },
+        {
+          "title": "BertViz Interactive Tutorial (Colab)",
+          "url": "https://colab.research.google.com/drive/1hXIQ77A4TYS4y3UthWF-Ci7V7vVUoxmQ",
+          "source_type": "tutorial",
+          "citationKey": "BertVizInteractiveTutorial"
+        },
+        {
           "title": "NLP From Scratch: Translation with a Sequence to Sequence Network and Attention — PyTorch Tutorials",
           "url": "https://docs.pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html",
           "source_type": "tutorial",
           "citationKey": "NLPScratchTranslation"
         },
         {
-          "title": "Neural machine translation with attention — TensorFlow Text tutorial",
-          "url": "https://www.tensorflow.org/text/tutorials/nmt_with_attention",
-          "source_type": "tutorial",
-          "citationKey": "NeuralMachineTranslation"
+          "title": "What Does BERT Look At? An Analysis of BERT's Attention",
+          "url": "https://doi.org/10.18653/v1/W19-4828",
+          "source_type": "application_paper",
+          "authors": [
+            "Kevin Clark",
+            "Urvashi Khandelwal",
+            "Omer Levy",
+            "Christopher D. Manning"
+          ],
+          "publication_date": "2019-06-11",
+          "citationKey": "clarkWhatDoesBERT2019",
+          "abstract": "Large pre-trained neural networks such as BERT have had great recent success in NLP, motivating a growing body of research investigating what aspects of language they are able to learn from unlabeled data. Most recent analysis has focused on model outputs (e.g., language model surprisal) or internal vector representations (e.g., probing classifiers). Complementary to these works, we propose methods for analyzing the attention mechanisms of pre-trained models and apply them to BERT. BERT's attention heads exhibit patterns such as attending to delimiter tokens, specific positional offsets, or broadly attending over the whole sentence, with heads in the same layer often exhibiting similar behaviors. We further show that certain attention heads correspond well to linguistic notions of syntax and coreference. For example, we find heads that attend to the direct objects of verbs, determiners of nouns, objects of prepositions, and coreferent mentions with remarkably high accuracy. Lastly, we propose an attention-based probing classifier and use it to further demonstrate that substantial syntactic information is captured in BERT's attention."
         },
         {
           "title": "Attention is not Explanation",
@@ -262,45 +277,29 @@
           ],
           "publication_date": "2019",
           "citationKey": "jainAttentionNotExplanation2019"
-        },
-        {
-          "title": "Attention is not not Explanation",
-          "url": "https://doi.org/10.18653/v1/d19-1002",
-          "source_type": "application_paper",
-          "authors": [
-            "Sarah Wiegreffe",
-            "Yuval Pinter"
-          ],
-          "publication_date": "2019",
-          "citationKey": "wiegreffeAttentionNotNot2019"
         }
       ],
-      "complexity_rating": 2,
-      "computational_cost_rating": 1,
-      "related_techniques": [
-        "contextual-decomposition",
-        "attention-visualisation-in-transformers",
-        "layer-wise-relevance-propagation",
-        "deeplift"
-      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
       "sample_claims": [
         {
-          "text": "The translation model's alignment between source and target sequences reflects semantic correspondence rather than positional artifacts",
+          "text": "For the sampled sentences, the translation model's encoder-decoder attention aligns each translated technical term with its source term, and sentences where it does not were reviewed by a translator",
           "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The medical image captioning system's attention shifts systematically across anatomical regions as it generates each descriptive phrase",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The document summarization model's encoder-decoder attention weights reveal which source sentences contribute to each summary statement",
+          "text": "The captioning model's attention for each generated object noun falls on the corresponding object in the image for the reviewed sample of alt-text outputs",
           "domain": "public sector",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The financial report generation system focuses on relevant numerical data and contextual information when producing narrative descriptions",
+          "text": "The attention heads identified as linking drug names to doses behave consistently across discharge letters from both hospitals in the validation set",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Phrases that attention maps suggested were decisive for the clause classifier were confirmed by an independent attribution method before being reported to reviewers",
           "domain": "finance",
           "assuranceGoal": "explainability"
         }
