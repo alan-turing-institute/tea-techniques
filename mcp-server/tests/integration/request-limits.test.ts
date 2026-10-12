@@ -107,17 +107,79 @@ describe('request size limit on /mcp', () => {
     });
   });
 
-  it('still answers a call carrying a 2,560-number vector', async () => {
-    const vector = Array.from({ length: 2560 }, (_, i) => (i === 0 ? 1 : 0));
+  it('answers 400 to a batch of calls and keeps serving', async () => {
+    const call = JSON.parse(
+      callOf({ claim: 'explain model predictions' }).toString()
+    );
+    const reply = await post([Buffer.from(JSON.stringify([call, call]))], true);
+    expect(reply.status).toBe(400);
+    expect(JSON.parse(reply.body)).toEqual({
+      jsonrpc: '2.0',
+      error: { code: -32_600, message: 'Batch requests are not supported' },
+      id: null,
+    });
+    expect(await healthz()).toBe(200);
+  });
+
+  it('still answers a call carrying a realistic 2,560-number vector and a long claim', async () => {
+    const vector = Array.from({ length: 2560 }, () => Math.random() * 2 - 1);
     const body = callOf({
-      claim: 'explain model predictions',
+      claim: 'The model identifies unreliable predictions. '.repeat(44),
       queryEmbedding: { model: 'any', vector },
     });
+    // A real call is tens of kilobytes, well inside the limit but far above a toy one.
+    expect(body.length).toBeGreaterThan(50_000);
     expect(body.length).toBeLessThan(MAX_REQUEST_BYTES);
     const reply = await post([body], true);
     expect(reply.status).toBe(200);
     expect(JSON.parse(reply.body).result.structuredContent.semanticUsed).toBe(
       false
     );
+  });
+
+  it('answers 413 while the body is still being sent, and closes the connection', async () => {
+    // The body is never ended: a 413 here proves the server decided from the bytes
+    // received so far, and the socket closing proves it released the connection.
+    const outcome = await new Promise<{
+      status: number;
+      connection: string | undefined;
+    }>((resolve, reject) => {
+      let answered: number | undefined;
+      const timer = setTimeout(
+        () =>
+          reject(
+            new Error(
+              answered
+                ? `Answered ${answered} but kept the connection open`
+                : 'No answer while the body was open'
+            )
+          ),
+        4000
+      );
+      const request = http.request(
+        {
+          port,
+          host: '127.0.0.1',
+          method: 'POST',
+          path: '/mcp',
+          headers: { 'Content-Type': 'application/json' },
+        },
+        (response) => {
+          answered = response.statusCode ?? 0;
+          const connection = response.headers.connection;
+          response.resume();
+          response.socket.once('close', () => {
+            clearTimeout(timer);
+            resolve({ status: answered ?? 0, connection });
+          });
+        }
+      );
+      request.on('error', () => {
+        // The server may reset the connection once it has answered.
+      });
+      request.write(Buffer.alloc(300 * 1024, 'x'));
+    });
+    expect(outcome).toEqual({ status: 413, connection: 'close' });
+    expect(await healthz()).toBe(200);
   });
 });

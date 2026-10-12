@@ -103,7 +103,10 @@ function serveEmbeddingSpec(
   });
 }
 
-/** Largest request body the service reads. A call carrying a 2,560-number vector is about 6 KB. */
+/**
+ * Largest request body the service reads. A call carrying a 2,560-number vector is
+ * 35 to 55 KB, and about 57 KB with a 2,000-character claim.
+ */
 export const MAX_REQUEST_BYTES = 256 * 1024;
 
 /**
@@ -146,9 +149,32 @@ function readBody(request: http.IncomingMessage): Promise<Buffer | null> {
 }
 
 /**
+ * Answers 413 and releases the connection: the response says it will close, and the
+ * request is destroyed once the response is sent, so a body that never ends cannot
+ * hold the socket open.
+ */
+function refuseTooLarge(
+  request: http.IncomingMessage,
+  response: http.ServerResponse
+): void {
+  response.writeHead(413, {
+    'Content-Type': 'application/json',
+    Connection: 'close',
+  });
+  response.end(JSON.stringify({ error: 'Request body too large' }), () => {
+    request.destroy();
+  });
+}
+
+function refuseBody(response: http.ServerResponse, error: object): void {
+  sendJson(response, 400, { jsonrpc: '2.0', error, id: null });
+}
+
+/**
  * The request's JSON body, read within the size limit. Answers 413 for a body over
- * the limit (by its declared length, or by the bytes actually received) and 400 for
- * one that is not JSON, and returns null in both cases.
+ * the limit (by its declared length, or by the bytes actually received), 400 for
+ * one that is not JSON and 400 for a JSON-RPC batch (an array), which would run every
+ * message in it and build one response for all of them. Returns null in each case.
  */
 async function readJsonBody(
   request: http.IncomingMessage,
@@ -157,23 +183,27 @@ async function readJsonBody(
   const declared = Number(request.headers['content-length']);
   const body = declared > MAX_REQUEST_BYTES ? null : await readBody(request);
   if (!body) {
-    sendJson(response, 413, { error: 'Request body too large' });
-    request.resume();
+    refuseTooLarge(request, response);
     return null;
   }
+  let value: unknown;
   try {
-    return { value: JSON.parse(body.toString('utf8')) };
+    value = JSON.parse(body.toString('utf8'));
   } catch {
-    sendJson(response, 400, {
-      jsonrpc: '2.0',
-      error: {
-        code: -32_700,
-        message: 'Parse error: the body is not valid JSON',
-      },
-      id: null,
+    refuseBody(response, {
+      code: -32_700,
+      message: 'Parse error: the body is not valid JSON',
     });
     return null;
   }
+  if (Array.isArray(value)) {
+    refuseBody(response, {
+      code: -32_600,
+      message: 'Batch requests are not supported',
+    });
+    return null;
+  }
+  return { value };
 }
 
 async function serveMcp(
