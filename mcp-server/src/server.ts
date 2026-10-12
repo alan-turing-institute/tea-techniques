@@ -306,12 +306,13 @@ export function createServer(graph: KnowledgeGraph): McpServer {
           .object({
             model: z
               .string()
-              .max(200)
               .describe(
                 "The id of the model that made the vector; it must equal the catalogue's (the HTTP service reports that id at GET /embedding-spec)"
               ),
+            // Elements are checked by the service, which answers a bad vector with
+            // keyword results; a schema error would fail the whole call instead.
             vector: z
-              .array(z.number())
+              .array(z.unknown())
               .describe(
                 'The claim embedded with the catalogue model and its query prefix: one finite number per dimension, at most 4096'
               ),

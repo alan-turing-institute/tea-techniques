@@ -449,7 +449,8 @@ export interface ClaimContext {
 }
 export interface ClaimSuggestions {
   rankingAvailable: boolean;
-  embeddingModel: string;
+  /** Model of the loaded vectors, or null when none are loaded. */
+  embeddingModel: string | null;
   rankingModel: string;
   /** True when the semantic leg returned results and was fused with the keyword leg. */
   semanticUsed: boolean;
@@ -848,7 +849,7 @@ export class KnowledgeGraph {
     const ranked = await this.ranker.rank(claimText, candidates);
     return {
       rankingAvailable: ranked.rankingAvailable,
-      embeddingModel: this.embeddings?.modelId ?? MODEL_ID,
+      embeddingModel: this.embeddings?.modelId ?? null,
       rankingModel: RANKING_MODEL,
       semanticUsed: embedSlugs.length > 0,
       results: ranked.candidates

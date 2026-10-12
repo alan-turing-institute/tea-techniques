@@ -21,7 +21,7 @@ export const MAX_QUERY_VECTOR_LENGTH = 4096;
 /** A question vector sent by the caller, with the id of the model that made it. */
 export interface QueryEmbeddingInput {
   model: string;
-  vector: number[];
+  vector: readonly unknown[];
 }
 
 export type PreparedQueryEmbedding =

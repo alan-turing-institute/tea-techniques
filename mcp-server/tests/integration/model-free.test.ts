@@ -177,43 +177,89 @@ describe('/healthz without a model', () => {
   });
 });
 
+interface ToolResult {
+  semanticUsed: boolean;
+  embeddingModel: string | null;
+  results: Array<{ slug: string; summary: string; tags: string[] }>;
+}
+
+/** Calls suggest_techniques_for_claim over HTTP; throws if the call failed instead of returning results. */
+async function suggest(
+  base: string,
+  queryEmbedding?: unknown
+): Promise<ToolResult> {
+  const response = await fetch(`${base}/mcp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: {
+        name: 'suggest_techniques_for_claim',
+        arguments: { claim: 'explain model predictions', queryEmbedding },
+      },
+    }),
+  });
+  const { result } = await response.json();
+  if (!result?.structuredContent || result.isError) {
+    throw new Error(`Tool call failed: ${JSON.stringify(result)}`);
+  }
+  return result.structuredContent;
+}
+
 describe('tools/call with a supplied vector', () => {
   it('uses the vector and reports semanticUsed over HTTP', async () => {
     vi.stubEnv('RRF_KEYWORD_WEIGHT', '0');
     const { base, stop } = await serve(serviceGraph(index(true)));
     try {
-      const call = async (queryEmbedding: unknown) => {
-        const response = await fetch(`${base}/mcp`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'tools/call',
-            params: {
-              name: 'suggest_techniques_for_claim',
-              arguments: { claim: 'explain model predictions', queryEmbedding },
-            },
-          }),
-        });
-        return (await response.json()).result.structuredContent as {
-          semanticUsed: boolean;
-          embeddingModel: string;
-          results: Array<{ slug: string; summary: string; tags: string[] }>;
-        };
-      };
-      const used = await call({ model: MODEL_ID, vector: basis(2) });
+      const used = await suggest(base, { model: MODEL_ID, vector: basis(2) });
       expect(used.semanticUsed).toBe(true);
       expect(used.embeddingModel).toBe(MODEL_ID);
       expect(used.results[0].slug).toBe('mean-decrease-impurity');
       expect(used.results[0].summary.length).toBeGreaterThan(0);
       expect(used.results[0].tags.length).toBeGreaterThan(0);
-      const ignored = await call({ model: 'another-model', vector: basis(2) });
+      const ignored = await suggest(base, {
+        model: 'another-model',
+        vector: basis(2),
+      });
       expect(ignored.semanticUsed).toBe(false);
       expect(getEmbeddingModel).not.toHaveBeenCalled();
+    } finally {
+      await stop();
+    }
+  });
+
+  it.each([
+    [
+      'an element that is not a number',
+      { model: MODEL_ID, vector: basis(2).map((v, i) => (i === 3 ? null : v)) },
+    ],
+    [
+      'a vector that is not a list of numbers at all',
+      { model: MODEL_ID, vector: ['a', { b: 1 }, null] },
+    ],
+    ['a very long model id', { model: 'x'.repeat(5000), vector: basis(2) }],
+  ])(
+    'answers keyword results, not a tool error, for %s',
+    async (_label, queryEmbedding) => {
+      const { base, stop } = await serve(serviceGraph(index(true)));
+      try {
+        const result = await suggest(base, queryEmbedding);
+        expect(result.semanticUsed).toBe(false);
+        expect(result.results.length).toBeGreaterThan(0);
+      } finally {
+        await stop();
+      }
+    }
+  );
+
+  it('reports no embedding model when no vectors are loaded', async () => {
+    const { base, stop } = await serve(serviceGraph(null));
+    try {
+      const result = await suggest(base);
+      expect(result.embeddingModel).toBeNull();
+      expect(result.semanticUsed).toBe(false);
     } finally {
       await stop();
     }

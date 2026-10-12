@@ -103,6 +103,79 @@ function serveEmbeddingSpec(
   });
 }
 
+/** Largest request body the service reads. A call carrying a 2,560-number vector is about 6 KB. */
+export const MAX_REQUEST_BYTES = 256 * 1024;
+
+/**
+ * Collects the body, counting bytes as they arrive. Resolves null as soon as the
+ * body exceeds the limit; the rest of it is read and thrown away, never buffered.
+ */
+function readBody(request: http.IncomingMessage): Promise<Buffer | null> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    let settled = false;
+    request.on('data', (chunk: Buffer) => {
+      if (settled) {
+        return;
+      }
+      size += chunk.length;
+      if (size > MAX_REQUEST_BYTES) {
+        settled = true;
+        chunks.length = 0;
+        resolve(null);
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on('end', () => {
+      if (!settled) {
+        settled = true;
+        resolve(Buffer.concat(chunks));
+      }
+    });
+    for (const event of ['error', 'close'] as const) {
+      request.on(event, () => {
+        if (!settled) {
+          settled = true;
+          reject(new Error('Request ended before its body did'));
+        }
+      });
+    }
+  });
+}
+
+/**
+ * The request's JSON body, read within the size limit. Answers 413 for a body over
+ * the limit (by its declared length, or by the bytes actually received) and 400 for
+ * one that is not JSON, and returns null in both cases.
+ */
+async function readJsonBody(
+  request: http.IncomingMessage,
+  response: http.ServerResponse
+): Promise<{ value: unknown } | null> {
+  const declared = Number(request.headers['content-length']);
+  const body = declared > MAX_REQUEST_BYTES ? null : await readBody(request);
+  if (!body) {
+    sendJson(response, 413, { error: 'Request body too large' });
+    request.resume();
+    return null;
+  }
+  try {
+    return { value: JSON.parse(body.toString('utf8')) };
+  } catch {
+    sendJson(response, 400, {
+      jsonrpc: '2.0',
+      error: {
+        code: -32_700,
+        message: 'Parse error: the body is not valid JSON',
+      },
+      id: null,
+    });
+    return null;
+  }
+}
+
 async function serveMcp(
   graph: KnowledgeGraph,
   request: http.IncomingMessage,
@@ -110,6 +183,15 @@ async function serveMcp(
 ): Promise<void> {
   if (request.method !== 'POST') {
     response.writeHead(405, { Allow: 'POST' }).end();
+    return;
+  }
+  let body: { value: unknown } | null;
+  try {
+    body = await readJsonBody(request, response);
+  } catch {
+    return; // The client went away before sending its body.
+  }
+  if (!body) {
     return;
   }
   normalizeAcceptHeader(request);
@@ -125,7 +207,7 @@ async function serveMcp(
   });
   try {
     await server.connect(transport);
-    await transport.handleRequest(request, response);
+    await transport.handleRequest(request, response, body.value);
   } catch {
     if (!response.headersSent) {
       response
