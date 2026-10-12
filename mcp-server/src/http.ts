@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { loadGraphData } from './data/loader.js';
 import { loadEmbeddings } from './embedding/loader.js';
+import { CATALOGUE_MODEL } from './embedding/specs.js';
 import { KnowledgeGraph } from './graph/index.js';
 import {
   ClefRanker,
@@ -28,14 +29,16 @@ export function createRanker(): Ranker {
 /**
  * Loads the catalogue and its vectors. The embedding model is never loaded: the
  * semantic leg uses vectors supplied with each request. Offline start-up needs
- * the vectors but no model files.
+ * the vectors but no model files. Vectors made from a different corpus than the
+ * graph's are refused, because their slugs would no longer describe the texts
+ * they were made from.
  */
 export async function loadRuntime(
   dataDir: string
 ): Promise<{ graph: KnowledgeGraph; dataVersion: string }> {
   const [data, embeddings] = await Promise.all([
     loadGraphData({ local: true, dataDir }),
-    loadEmbeddings({ local: true, dataDir }),
+    loadEmbeddings({ local: true, dataDir, expect: CATALOGUE_MODEL }),
   ]);
   if (process.env.TEA_OFFLINE === '1' && !embeddings) {
     throw new Error('Offline image requires valid embeddings');
@@ -43,12 +46,15 @@ export async function loadRuntime(
   const version = await fs
     .readFile(path.join(dataDir, 'data-version'), 'utf8')
     .catch(() => 'local-unversioned');
-  return {
-    graph: new KnowledgeGraph(data, embeddings, createRanker(), {
-      inProcessEmbedding: false,
-    }),
-    dataVersion: version.trim(),
-  };
+  const graph = new KnowledgeGraph(data, embeddings, createRanker(), {
+    inProcessEmbedding: false,
+  });
+  if (embeddings && graph.embeddingsCorpusHash() !== graph.corpusHash()) {
+    throw new Error(
+      'Embeddings were not made from this graph: the corpus hash differs. Regenerate the vectors or use the graph they were made from'
+    );
+  }
+  return { graph, dataVersion: version.trim() };
 }
 
 function sendJson(
@@ -174,6 +180,12 @@ async function main(): Promise<void> {
       fileURLToPath(new URL('../../public/data', import.meta.url))
   );
   const { graph, dataVersion } = await loadRuntime(dataDir);
+  if (process.argv.includes('--check')) {
+    // Image builds run the start-up checks without listening.
+    // biome-ignore lint/suspicious/noConsole: startup logging to stderr
+    console.error(`Data check passed (${dataVersion})`);
+    return;
+  }
   const server = createHttpServer(graph, dataVersion);
   const port = Number(process.env.PORT ?? 3100);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) {

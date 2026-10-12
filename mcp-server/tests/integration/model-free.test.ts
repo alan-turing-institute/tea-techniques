@@ -3,17 +3,12 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  DOCUMENT_FORMAT,
-  EMBEDDING_DIMENSIONS,
-  EMBEDDING_PRECISION,
-  getEmbeddingModel,
-  MODEL_ID,
-  MODEL_REVISION,
-  QUERY_PREFIX,
-} from '../../src/embedding/model.js';
+import { buildCorpus, corpusHash } from '../../src/embedding/corpus.js';
+import { getEmbeddingModel } from '../../src/embedding/model.js';
 import { PROBE_TEXTS } from '../../src/embedding/probes.js';
+import { CATALOGUE_MODEL } from '../../src/embedding/specs.js';
 import type { EmbeddingsIndex } from '../../src/embedding/types.js';
+import { encodeVector } from '../../src/embedding/vectors.js';
 import { KnowledgeGraph } from '../../src/graph/index.js';
 import type { JsonLdGraph } from '../../src/graph/types.js';
 import { createHttpServer, createRanker, loadRuntime } from '../../src/http.js';
@@ -25,6 +20,8 @@ vi.mock('../../src/embedding/model.js', async (importOriginal) => ({
 }));
 
 const EMBEDDINGS_REQUIRED = /embeddings/;
+const DIFFERENT_CORPUS = /corpus hash differs/;
+const { modelId: MODEL_ID, dimensions: DIMENSIONS } = CATALOGUE_MODEL;
 const data = fixture as unknown as JsonLdGraph;
 const slugs = [
   'shapley-additive-explanations',
@@ -32,12 +29,14 @@ const slugs = [
   'mean-decrease-impurity',
 ];
 const basis = (i: number): number[] =>
-  Array.from({ length: EMBEDDING_DIMENSIONS }, (_, j) => (j === i ? 1 : 0));
+  Array.from({ length: DIMENSIONS }, (_, j) => (j === i ? 1 : 0));
 const index = (withProbes: boolean): EmbeddingsIndex => ({
   modelId: MODEL_ID,
-  dimensions: EMBEDDING_DIMENSIONS,
+  dimensions: DIMENSIONS,
   slugs,
   vectors: slugs.map((_, i) => new Float32Array(basis(i))),
+  queryPrefix: CATALOGUE_MODEL.queryPrefix,
+  documentFormat: CATALOGUE_MODEL.documentFormat,
   ...(withProbes
     ? { probes: PROBE_TEXTS.map((text, i) => ({ text, vector: basis(i) })) }
     : {}),
@@ -90,6 +89,11 @@ async function serve(graph: KnowledgeGraph): Promise<{
   };
 }
 
+const serviceGraph = (embeddings: EmbeddingsIndex | null) =>
+  new KnowledgeGraph(data, embeddings, createRanker(), {
+    inProcessEmbedding: false,
+  });
+
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -97,12 +101,8 @@ afterEach(() => {
 });
 
 describe('GET /embedding-spec', () => {
-  it('returns the model, prefixes, data version and the probe vectors', async () => {
-    const { base, stop } = await serve(
-      new KnowledgeGraph(data, index(true), undefined, {
-        inProcessEmbedding: false,
-      })
-    );
+  it('returns the model, prefixes, data version and the probe vectors from the file', async () => {
+    const { base, stop } = await serve(serviceGraph(index(true)));
     try {
       const { status, body } = await get<Spec>(base, '/embedding-spec');
       expect(status).toBe(200);
@@ -116,15 +116,16 @@ describe('GET /embedding-spec', () => {
       ]);
       expect(body).toMatchObject({
         modelId: MODEL_ID,
-        dimensions: EMBEDDING_DIMENSIONS,
-        queryPrefix: QUERY_PREFIX,
-        documentFormat: DOCUMENT_FORMAT,
+        dimensions: DIMENSIONS,
+        queryPrefix: CATALOGUE_MODEL.queryPrefix,
+        documentFormat: CATALOGUE_MODEL.documentFormat,
         dataVersion: 'test-cut',
       });
+      expect(body.queryPrefix.endsWith('\nQuery:')).toBe(true);
       expect(body.probes.map((p) => p.text)).toEqual(PROBE_TEXTS);
-      expect(
-        body.probes.every((p) => p.vector.length === EMBEDDING_DIMENSIONS)
-      ).toBe(true);
+      expect(body.probes.every((p) => p.vector.length === DIMENSIONS)).toBe(
+        true
+      );
     } finally {
       await stop();
     }
@@ -133,9 +134,7 @@ describe('GET /embedding-spec', () => {
   it('is unavailable when the loaded vectors carry no probes', async () => {
     await Promise.all(
       [index(false), null].map(async (embeddings) => {
-        const { base, stop } = await serve(
-          new KnowledgeGraph(data, embeddings)
-        );
+        const { base, stop } = await serve(serviceGraph(embeddings));
         try {
           expect((await get(base, '/embedding-spec')).status).toBe(404);
         } finally {
@@ -152,11 +151,7 @@ describe('/healthz without a model', () => {
   it('reports the model from the vectors and makes no Ollama call', async () => {
     const fetchSpy = vi.fn(() => Promise.reject(new Error('unreachable')));
     vi.stubGlobal('fetch', fetchSpy);
-    const { base, stop } = await serve(
-      new KnowledgeGraph(data, index(true), createRanker(), {
-        inProcessEmbedding: false,
-      })
-    );
+    const { base, stop } = await serve(serviceGraph(index(true)));
     try {
       const { body } = await get(base, '/healthz');
       expect(body).toMatchObject({
@@ -169,9 +164,7 @@ describe('/healthz without a model', () => {
 
       // Positive control: with ranking enabled the same probe does reach for Ollama.
       vi.stubEnv('RANKING_ENABLED', 'true');
-      const probing = await serve(
-        new KnowledgeGraph(data, index(true), createRanker())
-      );
+      const probing = await serve(serviceGraph(index(true)));
       try {
         await get(probing.base, '/healthz');
         expect(fetchSpy).toHaveBeenCalled();
@@ -187,11 +180,7 @@ describe('/healthz without a model', () => {
 describe('tools/call with a supplied vector', () => {
   it('uses the vector and reports semanticUsed over HTTP', async () => {
     vi.stubEnv('RRF_KEYWORD_WEIGHT', '0');
-    const { base, stop } = await serve(
-      new KnowledgeGraph(data, index(true), createRanker(), {
-        inProcessEmbedding: false,
-      })
-    );
+    const { base, stop } = await serve(serviceGraph(index(true)));
     try {
       const call = async (queryEmbedding: unknown) => {
         const response = await fetch(`${base}/mcp`, {
@@ -212,11 +201,13 @@ describe('tools/call with a supplied vector', () => {
         });
         return (await response.json()).result.structuredContent as {
           semanticUsed: boolean;
+          embeddingModel: string;
           results: Array<{ slug: string; summary: string; tags: string[] }>;
         };
       };
       const used = await call({ model: MODEL_ID, vector: basis(2) });
       expect(used.semanticUsed).toBe(true);
+      expect(used.embeddingModel).toBe(MODEL_ID);
       expect(used.results[0].slug).toBe('mean-decrease-impurity');
       expect(used.results[0].summary.length).toBeGreaterThan(0);
       expect(used.results[0].tags.length).toBeGreaterThan(0);
@@ -230,24 +221,39 @@ describe('tools/call with a supplied vector', () => {
 });
 
 describe('start-up', () => {
-  async function dataDir(withEmbeddings: boolean): Promise<string> {
+  const corpus = buildCorpus(new KnowledgeGraph(data).getAllTechniques());
+
+  async function dataDir(
+    embeddings: 'none' | 'matching' | 'other-corpus' | 'no-hash'
+  ): Promise<string> {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mcpfree-data-'));
     await fs.mkdir(path.join(dir, 'ld'));
     await fs.writeFile(path.join(dir, 'ld/graph.jsonld'), JSON.stringify(data));
     await fs.writeFile(path.join(dir, 'data-version'), 'abc123\n');
-    if (withEmbeddings) {
+    if (embeddings !== 'none') {
+      const unit = encodeVector(basis(0));
       await fs.writeFile(
         path.join(dir, 'ld/embeddings.json'),
         JSON.stringify({
           modelId: MODEL_ID,
-          modelRevision: MODEL_REVISION,
-          dtype: EMBEDDING_PRECISION,
-          queryPrefix: QUERY_PREFIX,
-          documentFormat: DOCUMENT_FORMAT,
-          dimensions: EMBEDDING_DIMENSIONS,
-          corpusSize: 1,
-          probes: [{ text: PROBE_TEXTS[0], vector: basis(0) }],
-          entries: [{ slug: slugs[0], vector: basis(0) }],
+          modelRepo: CATALOGUE_MODEL.repo,
+          modelRevision: CATALOGUE_MODEL.revision,
+          dtype: CATALOGUE_MODEL.dtype,
+          queryPrefix: CATALOGUE_MODEL.queryPrefix,
+          documentFormat: CATALOGUE_MODEL.documentFormat,
+          dimensions: DIMENSIONS,
+          corpusSize: corpus.length,
+          ...(embeddings === 'no-hash'
+            ? {}
+            : {
+                corpusSha256: corpusHash(
+                  embeddings === 'matching'
+                    ? corpus
+                    : [{ slug: 'x', text: 'another corpus' }]
+                ),
+              }),
+          probes: [{ text: PROBE_TEXTS[0], vector: unit }],
+          entries: corpus.map((e) => ({ slug: e.slug, vector: unit })),
         })
       );
     }
@@ -255,7 +261,7 @@ describe('start-up', () => {
   }
 
   it('succeeds offline with vectors and no model cache, and never loads a model', async () => {
-    const dir = await dataDir(true);
+    const dir = await dataDir('matching');
     const emptyCache = await fs.mkdtemp(
       path.join(os.tmpdir(), 'mcpfree-cache-')
     );
@@ -275,10 +281,23 @@ describe('start-up', () => {
   });
 
   it('refuses to start offline without vectors', async () => {
-    const dir = await dataDir(false);
+    const dir = await dataDir('none');
     vi.stubEnv('TEA_OFFLINE', '1');
     try {
       await expect(loadRuntime(dir)).rejects.toThrow(EMBEDDINGS_REQUIRED);
+    } finally {
+      await fs.rm(dir, { recursive: true });
+    }
+  });
+
+  it.each([
+    ['vectors made from a different corpus', 'other-corpus'],
+    ['vectors that record no corpus hash', 'no-hash'],
+  ] as const)('refuses to start with %s', async (_label, embeddings) => {
+    const dir = await dataDir(embeddings);
+    vi.stubEnv('TEA_OFFLINE', '1');
+    try {
+      await expect(loadRuntime(dir)).rejects.toThrow(DIFFERENT_CORPUS);
     } finally {
       await fs.rm(dir, { recursive: true });
     }

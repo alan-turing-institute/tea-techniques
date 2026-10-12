@@ -3,13 +3,12 @@
  */
 
 import Fuse from 'fuse.js';
+import { buildCorpus, corpusHash } from '../embedding/corpus.js';
 import {
-  DOCUMENT_FORMAT,
   EMBEDDING_DIMENSIONS,
   embedQuery,
   getEmbeddingModel,
   MODEL_ID,
-  QUERY_PREFIX,
 } from '../embedding/model.js';
 import {
   computeRRFScores,
@@ -499,7 +498,9 @@ export class KnowledgeGraph {
     ranker: Ranker = new ClefRanker(),
     options: KnowledgeGraphOptions = {}
   ) {
+    const inProcessEmbedding = options.inProcessEmbedding ?? true;
     if (
+      inProcessEmbedding &&
       embeddings &&
       (embeddings.modelId !== MODEL_ID ||
         embeddings.dimensions !== EMBEDDING_DIMENSIONS)
@@ -507,7 +508,7 @@ export class KnowledgeGraph {
       throw new Error('Embedding index does not match the query model');
     }
     this.ranker = ranker;
-    this.inProcessEmbedding = options.inProcessEmbedding ?? true;
+    this.inProcessEmbedding = inProcessEmbedding;
     this.index = buildGraphIndex(graphData['@graph']);
     this.embeddings = embeddings ?? null;
 
@@ -740,21 +741,35 @@ export class KnowledgeGraph {
     return this.embeddings?.modelId ?? null;
   }
 
+  /** SHA-256 of the corpus the loaded vectors were made from, if the file recorded one. */
+  embeddingsCorpusHash(): string | null {
+    return this.embeddings?.corpusSha256 ?? null;
+  }
+
+  /** SHA-256 of the corpus this graph's techniques produce (see `corpusHash`). */
+  corpusHash(): string {
+    return corpusHash(buildCorpus(this.getAllTechniques()));
+  }
+
   /**
    * What a client needs to embed questions compatibly with the loaded vectors,
    * with the build-time probe vectors to check itself against. Null when no
-   * vectors are loaded or the file carries no probes.
+   * vectors are loaded or the file carries no probes or prefixes.
    */
   embeddingSpec(): EmbeddingSpec | null {
-    const probes = this.embeddings?.probes;
-    if (!(this.embeddings && probes?.length)) {
+    const embeddings = this.embeddings;
+    if (!embeddings?.probes?.length) {
+      return null;
+    }
+    const { queryPrefix, documentFormat, probes } = embeddings;
+    if (queryPrefix === undefined || documentFormat === undefined) {
       return null;
     }
     return {
-      modelId: this.embeddings.modelId,
-      dimensions: this.embeddings.dimensions,
-      queryPrefix: QUERY_PREFIX,
-      documentFormat: DOCUMENT_FORMAT,
+      modelId: embeddings.modelId,
+      dimensions: embeddings.dimensions,
+      queryPrefix,
+      documentFormat,
       probes,
     };
   }
@@ -833,7 +848,7 @@ export class KnowledgeGraph {
     const ranked = await this.ranker.rank(claimText, candidates);
     return {
       rankingAvailable: ranked.rankingAvailable,
-      embeddingModel: MODEL_ID,
+      embeddingModel: this.embeddings?.modelId ?? MODEL_ID,
       rankingModel: RANKING_MODEL,
       semanticUsed: embedSlugs.length > 0,
       results: ranked.candidates

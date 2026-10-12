@@ -73,7 +73,9 @@ describe('supplied query vector', () => {
     });
     expect(result.semanticUsed).toBe(false);
     expect(errors).toHaveBeenCalledTimes(1);
-    expect(String(errors.mock.calls[0][0])).toContain('767 values');
+    expect(String(errors.mock.calls[0][0])).toContain(
+      `${EMBEDDING_DIMENSIONS - 1} values`
+    );
     expect(String(errors.mock.calls[0][0])).not.toContain('0.123');
   });
 
