@@ -3299,7 +3299,7 @@
     {
       "slug": "temperature-scaling",
       "name": "Temperature Scaling",
-      "description": "Temperature scaling adjusts a model's confidence by applying a single parameter (temperature) to its predictions. When a model is too confident in its wrong answers, temperature scaling can fix this by making the predictions more realistic. It works by dividing the model's outputs by the temperature value before converting them to probabilities. Higher temperatures make the model less confident, whilst lower temperatures increase confidence. The technique maintains the model's accuracy whilst ensuring that when it says it's 90% confident, it's actually right about 90% of the time.",
+      "description": "Temperature scaling is a correction applied after training to a classifier that is more confident than it is accurate, a common problem in modern neural networks. It divides the model's raw scores (logits) by a single number, the temperature, before they are turned into probabilities, so a temperature above one lowers confidence and one below one raises it. The temperature is fitted on a labelled validation set kept apart from training by minimising negative log-likelihood, a measure that penalises confident wrong answers, and the model's own weights are not changed. Because dividing by one positive number never changes which class scores highest, predictions and accuracy stay the same. Stated confidence usually moves much closer to observed accuracy on data like the validation set, which a reliability diagram (a chart of stated confidence against how often the model was right) can show, but some miscalibration remains.",
       "assurance_goals": [
         "Reliability",
         "Transparency"
@@ -3327,26 +3327,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Adjusting a deep learning image classifier's confidence scores to be realistic, ensuring that when it's 90% confident, it's right 90% of the time.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A trust-and-safety team auto-removes posts only when its neural text classifier reports at least 95% confidence. The team fits a temperature on one labelled validation set, then checks on a second, unseen labelled set that posts scored near 95% really are abusive about 95% of the time, and adjusts the removal threshold if they are not."
         },
         {
-          "description": "Making medical diagnosis model predictions more trustworthy by providing realistic confidence scores that doctors can interpret and use to make informed decisions about patient care.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "An environmental agency's land-cover classifier was trained on summer satellite images and is now used on winter scenes, where it is overconfident. The team fits a fresh temperature on a small labelled winter sample and compares calibration error before and after on separate winter test scenes, rather than reusing the summer temperature."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A hospital radiology department displays the model's confidence beside each chest X-ray finding. Before display, the team fits a temperature on held-out scans from its own hospital and reports expected calibration error on a test set, so that clinicians can read a displayed 70% as roughly 70 correct findings in 100 similar cases."
         }
       ],
       "limitations": [
         {
-          "description": "Only addresses calibration at the overall dataset level, not subgroup-specific miscalibration issues."
+          "description": "A single temperature is fitted for the whole dataset, so it corrects average overconfidence but not differences between groups or regions of the input space. A minority group can stay overconfident while overall calibration looks good, and only a per-group calibration check shows it."
         },
         {
-          "description": "Does not improve the rank ordering or accuracy of predictions, only adjusts confidence levels."
+          "description": "It leaves predicted classes unchanged, so accuracy and the model's mistakes stay as they were. A weak model remains weak and only becomes more honest about it, so calibration cannot substitute for improving the model."
         },
         {
-          "description": "Assumes that calibration errors are consistent across different types of inputs and feature values."
+          "description": "The temperature is fitted on data resembling the training distribution, and calibration can degrade when deployment data shifts. In one large benchmark, error in stated confidence rose significantly as shift increased, even though it was low on unshifted data."
         },
         {
-          "description": "Requires a separate validation set for temperature parameter optimisation, which may not be available in small datasets."
+          "description": "It needs labelled held-out data that resembles deployment, separate from the training data, and a further separate set to measure the result, because scoring calibration on the data used to fit the temperature flatters it. Small datasets may not leave enough for both."
+        },
+        {
+          "description": "Calibration is judged on the confidence of the predicted class only. The probabilities given to the other classes are not checked by that measure, so uses that read the whole probability list, such as ranking several likely diagnoses, need separate testing."
         }
       ],
       "resources": [
@@ -3394,24 +3401,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical diagnosis system's confidence scores align with observed clinical outcome frequencies across all prediction confidence levels",
+          "assuranceGoal": "reliability",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "On a test set not used to fit the temperature, the diagnostic model's expected calibration error is below the agreed threshold, and observed accuracy in each confidence band is within tolerance of its stated confidence."
         },
         {
-          "text": "The credit risk model's probability estimates reflect true default rates without sacrificing discriminative accuracy",
+          "assuranceGoal": "reliability",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "Calibrating the credit risk model with a single temperature left its predicted classes, and therefore its accuracy, unchanged, while its default probabilities now track the observed default rates on held-out data."
         },
         {
-          "text": "The image classifier communicates prediction confidence through calibrated probabilities that match empirical correctness rates",
+          "assuranceGoal": "transparency",
           "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "A displayed confidence of 80% corresponds to about 80 correct predictions in 100, as shown by a reliability diagram on data not used to fit the temperature."
         },
         {
-          "text": "The environmental forecasting model's stated uncertainty levels correspond to actual prediction accuracy across diverse weather conditions",
+          "assuranceGoal": "reliability",
           "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "After refitting the temperature on a labelled sample from the new region, the land-cover classifier's calibration error on that region's test data is no worse than on the original region."
         }
       ]
     },
@@ -3807,10 +3814,9 @@
     {
       "slug": "cross-validation",
       "name": "Cross-validation",
-      "description": "Cross-validation evaluates model performance and robustness by systematically partitioning data into multiple subsets (folds) and training/testing repeatedly on different combinations. Common approaches include k-fold (splitting into k equal parts), stratified (preserving class distributions), and leave-one-out variants. By testing on multiple independent holdout sets, it reveals how performance varies across different data subsamples, provides robust estimates of generalisation ability, and helps detect overfitting or model instability that single train-test splits might miss.",
+      "description": "Cross-validation estimates how well a model will perform on data it has not seen, and how much that estimate depends on the particular data used. The dataset is divided into k parts called folds, the model is trained on all but one fold and scored on the held-out fold, and this repeats until every fold has served as the held-out set once. The scores are averaged to give a performance estimate, and their spread gives a rough indication of how much the result depends on which data the model was trained on. Common variants are stratified cross-validation, where each fold keeps the overall class proportions, and leave-one-out, where each fold is a single example. A large gap between training scores and held-out scores points to overfitting, where a model has learned quirks of its training data that do not carry over to new data.",
       "assurance_goals": [
-        "Reliability",
-        "Fairness"
+        "Reliability"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -3825,36 +3831,38 @@
         "technique-type/testing",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/performance-assessment",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/model-testing-and-validation"
       ],
       "example_use_cases": [
         {
-          "description": "Using 10-fold cross-validation to estimate a healthcare prediction model's true accuracy and detect overfitting, ensuring robust performance estimates that generalise beyond the specific training sample to new patient populations.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A hospital data-science team has records for about 900 patients and is building a readmission-risk model. It runs 10-fold cross-validation with each patient's admissions kept in the same fold, then reports the mean and spread of held-out scores. A wide spread, or a large gap to the training score, tells the team the model is not yet stable enough to take to a prospective trial."
         },
         {
-          "description": "Ensuring fair model evaluation across demographic groups by using stratified cross-validation that maintains representative proportions of protected classes in each fold, revealing whether performance is consistent across different population segments.",
-          "goal": "Fairness"
+          "goal": "Reliability",
+          "description": "A bank's fraud team compares three candidate classifiers by running the same stratified 10-fold cross-validation on a year of labelled transactions, so every candidate is scored on identical folds and the rare fraud cases are spread evenly across them. They select the model with the best mean recall at a fixed false-alarm rate and drop any candidate whose fold-to-fold scores vary widely."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A materials-science group has only 120 labelled samples from costly experiments. Instead of trusting one train-test split, it repeats 5-fold cross-validation with different random splits and reports the spread of the accuracy estimate, which decides whether the model is reliable enough to guide the next round of experiments."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive for large datasets or complex models, requiring multiple training runs that scale linearly with the number of folds."
+          "description": "The number of folds trades cost against bias and variance. Each fold is another training run. Few folds (2 to 5) train on less data and tend to understate performance, whereas leave-one-out has little bias but unstable estimates and the highest cost. Ten folds is a common compromise, not a rule."
         },
         {
-          "description": "Can provide overly optimistic performance estimates when data has dependencies or structure (e.g., time series, grouped observations) that violate independence assumptions."
+          "description": "Assumes records are independent. If the same patient, customer or site appears in several records, a fold can be trained on records nearly identical to those it is tested on, and the score is optimistic. Folds must then be built by group, not drawn at random."
         },
         {
-          "description": "May not reflect real-world performance if the training data distribution differs significantly from future deployment conditions or population shifts."
+          "description": "Ignores time order. Training on later records and testing on earlier ones lets future information leak into the estimate and flatters the model. For time-ordered data, use an evaluation that always tests on data later than the training data, such as rolling-origin evaluation."
         },
         {
-          "description": "Choice of fold number (k) involves a bias-variance trade-off: fewer folds reduce computational cost but increase variance in estimates, whilst more folds increase computation but may introduce bias."
+          "description": "Anything learned from the data must be fitted inside each training fold, including scaling, feature selection and hyperparameter tuning. Done once on the full dataset beforehand, it leaks test-fold information and inflates the scores. Tuning and reporting on the same folds is also optimistic, so nested cross-validation is needed for both."
         },
         {
-          "description": "Standard cross-validation doesn't account for temporal ordering in sequential data, potentially leading to data leakage where future information influences past predictions."
+          "description": "A score from a small sample is imprecise, and the spread across folds understates the true uncertainty. In one neuroimaging study, error bars on a cross-validated score were roughly plus or minus 10% with 100 samples, so a small gain between two models can be noise."
         }
       ],
       "resources": [
@@ -3925,19 +3933,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's performance estimate is robust to the particular train-test partition used",
+          "assuranceGoal": "reliability",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "text": "Across ten stratified folds, the model's AUC varied by no more than 0.03 around its mean, so the reported performance does not depend on which records were held out."
         },
         {
-          "text": "The fraud detection system generalizes consistently across different subsets of historical transaction data",
+          "assuranceGoal": "reliability",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "The fraud detection model's recall on fraudulent transactions stays within the agreed band in every fold of the historical data, with no fold below the minimum acceptable recall."
         },
         {
-          "text": "The system maintains equitable performance across demographic groups when evaluated on different data partitions",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "reliability",
+          "domain": "healthcare",
+          "text": "With all preprocessing and feature selection fitted inside each training fold, repeated cross-validation shows the readmission model's performance estimate is not inflated by information from the test folds."
+        },
+        {
+          "assuranceGoal": "reliability",
+          "domain": "healthcare",
+          "text": "The readmission-risk model shows no sign of overfitting, with held-out scores on every fold within the agreed margin of its training score."
         }
       ]
     },
@@ -8080,7 +8093,7 @@
     {
       "slug": "reward-hacking-detection",
       "name": "Reward Hacking Detection",
-      "description": "Reward hacking is when an agent trained to maximise a proxy reward (a reward function or learned reward model that only approximates what its designers want) raises that proxy by exploiting its gaps while the intended outcome stalls or gets worse. Reward hacking detection tests a trained policy for this by scoring it against both the proxy it was optimised for and an independent measure of the intended objective that the optimiser never saw, such as a hand-written true reward in a simulator, a held-out 'gold' reward model or human ratings. The scoring is repeated at every training checkpoint, or across models of increasing size, because the change can be abrupt: the originating study found capability thresholds at which an agent's behaviour shifts and its true reward falls sharply while its proxy reward keeps rising. Where the intended objective cannot be scored in operation, the same study flags a policy as aberrant when its action distribution diverges too far from that of a trusted policy that people have already checked, with the alarm threshold set on policies whose true reward is known. The output is a pair of proxy and true-reward curves showing where they part, or an anomaly score for each candidate policy.",
+      "description": "Reward hacking is when an agent trained to maximise a proxy reward (a score that only approximates what its designers want) raises that score by exploiting its gaps while the intended outcome stalls or worsens. Detection scores each trained policy (the agent's decision rule) on the proxy and on an independent measure of the intended objective that training never used, such as a true reward from a simulator, a held-out 'gold' reward model or human ratings. Repeating this at every saved training checkpoint and model size matters because the originating study found capability thresholds at which the true reward drops sharply while the proxy keeps rising. When the true objective cannot be scored in operation, the study instead flags a policy whose actions diverge too far from those of a trusted policy that people have already verified. The output is a pair of reward curves showing where they part, or an anomaly score for each candidate policy.",
       "assurance_goals": [
         "Reliability",
         "Safety"

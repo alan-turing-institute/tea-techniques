@@ -615,7 +615,7 @@
     {
       "slug": "conformal-prediction",
       "name": "Conformal Prediction",
-      "description": "Conformal prediction provides mathematically guaranteed uncertainty quantification by creating prediction sets that contain the true outcome with a specified probability (e.g., exactly 95% coverage). The technique works by measuring how 'strange' or 'nonconforming' new predictions are compared to calibration data - if a prediction seems unusual, it gets wider intervals. For example, in medical diagnosis, instead of saying 'likely cancer', it might say 'possible diagnoses: {cancer, benign tumour} with 95% confidence'. This distribution-free method works with any underlying model (neural networks, random forests, etc.) and requires no assumptions about data distribution, making it a robust framework for reliable uncertainty estimates in high-stakes applications.",
+      "description": "Conformal prediction wraps any trained model so that, instead of a single answer, it returns a set of plausible answers (an interval, for a numeric prediction) that contains the true outcome at a chosen rate, such as at least 95% of the time. It first scores, on a calibration set of labelled data kept apart from training, how unusual each known outcome looks given the model's prediction, using a nonconformity score, and for a new case it keeps every candidate answer whose score falls below a threshold taken from those calibration scores. A diagnostic model might then return 'cancer or benign tumour' rather than 'likely cancer', and with a suitable score the sets grow larger where the model is less certain. The guarantee is distribution-free, meaning it assumes nothing about the shape of the data, but it does assume the calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. It holds on average over all cases, not within each subgroup, unless the calibration is done separately within each predefined group (Mondrian conformal prediction), which needs enough calibration cases in every group.",
       "assurance_goals": [
         "Reliability",
         "Transparency",
@@ -642,33 +642,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Creating prediction sets for drug discovery that guarantee 95% coverage, such as 'this compound will likely have activity against {target A, target B, target C}', ensuring reliable decision-making in costly experimental validation.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A medicinal chemistry team screening compounds in silico builds prediction sets of the protein targets each compound may be active against, at 95% coverage. Compounds with a single-target set go to lab testing for that target, and those with several targets go to a wider panel, so costly experiments follow how uncertain the model is."
         },
         {
-          "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories with guaranteed coverage, enabling judges to see the full range of possibilities rather than just a single point estimate.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories at the stated coverage level, enabling judges to see the full range of possibilities rather than just a single point estimate."
         },
         {
-          "description": "Ensuring fair uncertainty quantification across demographic groups in college admissions by verifying that prediction set sizes (number of possible outcomes) are consistent across protected groups, preventing discriminatory overconfidence for certain populations.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A university predicts whether first-year students will complete their degree and offers early support when the 90% prediction set includes 'withdraws'. To keep that 90% true for every group, not only on average, the data team calibrates the sets separately within each demographic group, then checks coverage and average set size per group on held-out students. A group with too few calibration cases is reported as not covered by the guarantee."
         }
       ],
       "limitations": [
         {
-          "description": "Prediction sets can be unnecessarily wide when nonconformity scores vary greatly across the feature space, leading to conservative intervals that reduce practical utility."
+          "description": "Sets can be wide enough to be useless. A multi-class set holding most classes, or an interval spanning the plausible range, meets the coverage target but tells the decision-maker little, and sets containing opposing outcomes make decisions hard. Width depends on the model's quality and the scoring rule chosen, and the guarantee says nothing about it."
         },
         {
-          "description": "Requires a held-out calibration set separate from training data, reducing the amount of data available for model training, which can impact performance on small datasets."
+          "description": "Needs labelled calibration data kept apart from training. On small datasets that means less data to train on, or a coarse and unstable coverage level, and variants that avoid a separate calibration set need several model fits."
         },
         {
-          "description": "Guarantees only hold under the exchangeability assumption - if test data distribution differs significantly from calibration data, coverage guarantees may be violated."
+          "description": "The guarantee assumes calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. Drift, a changed population or strongly time-ordered data break it, and coverage then falls below target with no warning. In Shafer and Vovk's example, a nominal 5% error rate rose to 8% on a systematically different test set."
         },
         {
-          "description": "For multi-class problems, prediction sets may include many classes when the model is uncertain, making decisions difficult when sets contain opposing outcomes."
+          "description": "Coverage is guaranteed on average over all cases, not for each individual or subgroup, so a model can reach 95% overall while covering a minority group far less often. Mondrian calibration fixes this only for predefined, non-overlapping groups. It needs each new case's group at prediction time and is unstable when a group has few calibration cases (MAPIE's tutorial gives under 200 as an example)."
         },
         {
-          "description": "Computational cost increases with the number of calibration samples, and efficient implementation requires careful design for large-scale or real-time applications."
+          "description": "Cost depends on the variant. Split conformal prediction adds little beyond scoring a held-out set, but full conformal prediction re-evaluates every candidate outcome and cross-conformal variants refit the model several times, which can be prohibitive for large models or real-time use."
         }
       ],
       "resources": [
@@ -742,29 +742,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic system's prediction sets contain the correct outcome with a guaranteed minimum coverage rate across all patient presentations",
+          "assuranceGoal": "reliability",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "On a held-out test set from the same patient population as the calibration data, the 95% prediction sets contained the true diagnosis in at least 95% of cases, within sampling error."
         },
         {
-          "text": "The system's uncertainty estimates maintain their specified validity guarantees regardless of the underlying data distribution",
+          "assuranceGoal": "reliability",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "text": "Prediction-set coverage on the latest quarter of live data stays within the agreed margin of its nominal level, so there is no sign that the exchangeability assumption has broken down in deployment."
         },
         {
-          "text": "The model communicates uncertainty by providing a set of plausible outcomes rather than a single point prediction",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The prediction sets achieve equivalent coverage rates across demographic groups without requiring distributional assumptions",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The autonomous system's safety-critical predictions are accompanied by statistically guaranteed confidence bounds",
+          "assuranceGoal": "reliability",
           "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
+          "text": "For the perception model, the 95% prediction sets contained the true object class in at least 95% of held-out frames, and frames whose set holds more than one class trigger the cautious fallback behaviour."
+        },
+        {
+          "assuranceGoal": "transparency",
+          "domain": "finance",
+          "text": "Every credit-limit recommendation is shown with a set of plausible limit bands at 90% coverage, and any case whose set holds more than one band is routed to a human underwriter."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "public sector",
+          "text": "The 90% prediction sets are calibrated separately within each demographic group, and on held-out cases their coverage is within three percentage points of 90% in every group, with each group's number of calibration and test cases reported."
         }
       ]
     },

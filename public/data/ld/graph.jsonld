@@ -3997,7 +3997,7 @@
       "@type": "Technique",
       "name": "Conformal Prediction",
       "slug": "conformal-prediction",
-      "description": "Conformal prediction provides mathematically guaranteed uncertainty quantification by creating prediction sets that contain the true outcome with a specified probability (e.g., exactly 95% coverage). The technique works by measuring how 'strange' or 'nonconforming' new predictions are compared to calibration data - if a prediction seems unusual, it gets wider intervals. For example, in medical diagnosis, instead of saying 'likely cancer', it might say 'possible diagnoses: {cancer, benign tumour} with 95% confidence'. This distribution-free method works with any underlying model (neural networks, random forests, etc.) and requires no assumptions about data distribution, making it a robust framework for reliable uncertainty estimates in high-stakes applications.",
+      "description": "Conformal prediction wraps any trained model so that, instead of a single answer, it returns a set of plausible answers (an interval, for a numeric prediction) that contains the true outcome at a chosen rate, such as at least 95% of the time. It first scores, on a calibration set of labelled data kept apart from training, how unusual each known outcome looks given the model's prediction, using a nonconformity score, and for a new case it keeps every candidate answer whose score falls below a threshold taken from those calibration scores. A diagnostic model might then return 'cancer or benign tumour' rather than 'likely cancer', and with a suitable score the sets grow larger where the model is less certain. The guarantee is distribution-free, meaning it assumes nothing about the shape of the data, but it does assume the calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. It holds on average over all cases, not within each subgroup, unless the calibration is done separately within each predefined group (Mondrian conformal prediction), which needs enough calibration cases in every group.",
       "addressesGoal": [
         "tea:goal/reliability",
         "tea:goal/transparency",
@@ -4038,60 +4038,60 @@
       ],
       "exampleUseCases": [
         {
-          "description": "Creating prediction sets for drug discovery that guarantee 95% coverage, such as 'this compound will likely have activity against {target A, target B, target C}', ensuring reliable decision-making in costly experimental validation.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A medicinal chemistry team screening compounds in silico builds prediction sets of the protein targets each compound may be active against, at 95% coverage. Compounds with a single-target set go to lab testing for that target, and those with several targets go to a wider panel, so costly experiments follow how uncertain the model is."
         },
         {
-          "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories with guaranteed coverage, enabling judges to see the full range of possibilities rather than just a single point estimate.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories at the stated coverage level, enabling judges to see the full range of possibilities rather than just a single point estimate."
         },
         {
-          "description": "Ensuring fair uncertainty quantification across demographic groups in college admissions by verifying that prediction set sizes (number of possible outcomes) are consistent across protected groups, preventing discriminatory overconfidence for certain populations.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A university predicts whether first-year students will complete their degree and offers early support when the 90% prediction set includes 'withdraws'. To keep that 90% true for every group, not only on average, the data team calibrates the sets separately within each demographic group, then checks coverage and average set size per group on held-out students. A group with too few calibration cases is reported as not covered by the guarantee."
         }
       ],
       "limitations": [
         {
-          "description": "Prediction sets can be unnecessarily wide when nonconformity scores vary greatly across the feature space, leading to conservative intervals that reduce practical utility."
+          "description": "Sets can be wide enough to be useless. A multi-class set holding most classes, or an interval spanning the plausible range, meets the coverage target but tells the decision-maker little, and sets containing opposing outcomes make decisions hard. Width depends on the model's quality and the scoring rule chosen, and the guarantee says nothing about it."
         },
         {
-          "description": "Requires a held-out calibration set separate from training data, reducing the amount of data available for model training, which can impact performance on small datasets."
+          "description": "Needs labelled calibration data kept apart from training. On small datasets that means less data to train on, or a coarse and unstable coverage level, and variants that avoid a separate calibration set need several model fits."
         },
         {
-          "description": "Guarantees only hold under the exchangeability assumption - if test data distribution differs significantly from calibration data, coverage guarantees may be violated."
+          "description": "The guarantee assumes calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. Drift, a changed population or strongly time-ordered data break it, and coverage then falls below target with no warning. In Shafer and Vovk's example, a nominal 5% error rate rose to 8% on a systematically different test set."
         },
         {
-          "description": "For multi-class problems, prediction sets may include many classes when the model is uncertain, making decisions difficult when sets contain opposing outcomes."
+          "description": "Coverage is guaranteed on average over all cases, not for each individual or subgroup, so a model can reach 95% overall while covering a minority group far less often. Mondrian calibration fixes this only for predefined, non-overlapping groups. It needs each new case's group at prediction time and is unstable when a group has few calibration cases (MAPIE's tutorial gives under 200 as an example)."
         },
         {
-          "description": "Computational cost increases with the number of calibration samples, and efficient implementation requires careful design for large-scale or real-time applications."
+          "description": "Cost depends on the variant. Split conformal prediction adds little beyond scoring a held-out set, but full conformal prediction re-evaluates every candidate outcome and cross-conformal variants refit the model several times, which can be prohibitive for large models or real-time use."
         }
       ],
       "sampleClaims": [
         {
-          "text": "The diagnostic system's prediction sets contain the correct outcome with a guaranteed minimum coverage rate across all patient presentations",
+          "assuranceGoal": "reliability",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "On a held-out test set from the same patient population as the calibration data, the 95% prediction sets contained the true diagnosis in at least 95% of cases, within sampling error."
         },
         {
-          "text": "The system's uncertainty estimates maintain their specified validity guarantees regardless of the underlying data distribution",
+          "assuranceGoal": "reliability",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "text": "Prediction-set coverage on the latest quarter of live data stays within the agreed margin of its nominal level, so there is no sign that the exchangeability assumption has broken down in deployment."
         },
         {
-          "text": "The model communicates uncertainty by providing a set of plausible outcomes rather than a single point prediction",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The prediction sets achieve equivalent coverage rates across demographic groups without requiring distributional assumptions",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The autonomous system's safety-critical predictions are accompanied by statistically guaranteed confidence bounds",
+          "assuranceGoal": "reliability",
           "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
+          "text": "For the perception model, the 95% prediction sets contained the true object class in at least 95% of held-out frames, and frames whose set holds more than one class trigger the cautious fallback behaviour."
+        },
+        {
+          "assuranceGoal": "transparency",
+          "domain": "finance",
+          "text": "Every credit-limit recommendation is shown with a set of plausible limit bands at 90% coverage, and any case whose set holds more than one band is routed to a human underwriter."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "public sector",
+          "text": "The 90% prediction sets are calibrated separately within each demographic group, and on held-out cases their coverage is within three percentage points of 90% in every group, with each group's number of calibration and test cases reported."
         }
       ]
     },
@@ -4183,7 +4183,7 @@
       "@type": "Technique",
       "name": "Temperature Scaling",
       "slug": "temperature-scaling",
-      "description": "Temperature scaling adjusts a model's confidence by applying a single parameter (temperature) to its predictions. When a model is too confident in its wrong answers, temperature scaling can fix this by making the predictions more realistic. It works by dividing the model's outputs by the temperature value before converting them to probabilities. Higher temperatures make the model less confident, whilst lower temperatures increase confidence. The technique maintains the model's accuracy whilst ensuring that when it says it's 90% confident, it's actually right about 90% of the time.",
+      "description": "Temperature scaling is a correction applied after training to a classifier that is more confident than it is accurate, a common problem in modern neural networks. It divides the model's raw scores (logits) by a single number, the temperature, before they are turned into probabilities, so a temperature above one lowers confidence and one below one raises it. The temperature is fitted on a labelled validation set kept apart from training by minimising negative log-likelihood, a measure that penalises confident wrong answers, and the model's own weights are not changed. Because dividing by one positive number never changes which class scores highest, predictions and accuracy stay the same. Stated confidence usually moves much closer to observed accuracy on data like the validation set, which a reliability diagram (a chart of stated confidence against how often the model was right) can show, but some miscalibration remains.",
       "addressesGoal": [
         "tea:goal/reliability",
         "tea:goal/transparency"
@@ -4224,48 +4224,55 @@
       ],
       "exampleUseCases": [
         {
-          "description": "Adjusting a deep learning image classifier's confidence scores to be realistic, ensuring that when it's 90% confident, it's right 90% of the time.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A trust-and-safety team auto-removes posts only when its neural text classifier reports at least 95% confidence. The team fits a temperature on one labelled validation set, then checks on a second, unseen labelled set that posts scored near 95% really are abusive about 95% of the time, and adjusts the removal threshold if they are not."
         },
         {
-          "description": "Making medical diagnosis model predictions more trustworthy by providing realistic confidence scores that doctors can interpret and use to make informed decisions about patient care.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "An environmental agency's land-cover classifier was trained on summer satellite images and is now used on winter scenes, where it is overconfident. The team fits a fresh temperature on a small labelled winter sample and compares calibration error before and after on separate winter test scenes, rather than reusing the summer temperature."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A hospital radiology department displays the model's confidence beside each chest X-ray finding. Before display, the team fits a temperature on held-out scans from its own hospital and reports expected calibration error on a test set, so that clinicians can read a displayed 70% as roughly 70 correct findings in 100 similar cases."
         }
       ],
       "limitations": [
         {
-          "description": "Only addresses calibration at the overall dataset level, not subgroup-specific miscalibration issues."
+          "description": "A single temperature is fitted for the whole dataset, so it corrects average overconfidence but not differences between groups or regions of the input space. A minority group can stay overconfident while overall calibration looks good, and only a per-group calibration check shows it."
         },
         {
-          "description": "Does not improve the rank ordering or accuracy of predictions, only adjusts confidence levels."
+          "description": "It leaves predicted classes unchanged, so accuracy and the model's mistakes stay as they were. A weak model remains weak and only becomes more honest about it, so calibration cannot substitute for improving the model."
         },
         {
-          "description": "Assumes that calibration errors are consistent across different types of inputs and feature values."
+          "description": "The temperature is fitted on data resembling the training distribution, and calibration can degrade when deployment data shifts. In one large benchmark, error in stated confidence rose significantly as shift increased, even though it was low on unshifted data."
         },
         {
-          "description": "Requires a separate validation set for temperature parameter optimisation, which may not be available in small datasets."
+          "description": "It needs labelled held-out data that resembles deployment, separate from the training data, and a further separate set to measure the result, because scoring calibration on the data used to fit the temperature flatters it. Small datasets may not leave enough for both."
+        },
+        {
+          "description": "Calibration is judged on the confidence of the predicted class only. The probabilities given to the other classes are not checked by that measure, so uses that read the whole probability list, such as ranking several likely diagnoses, need separate testing."
         }
       ],
       "sampleClaims": [
         {
-          "text": "The medical diagnosis system's confidence scores align with observed clinical outcome frequencies across all prediction confidence levels",
+          "assuranceGoal": "reliability",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "On a test set not used to fit the temperature, the diagnostic model's expected calibration error is below the agreed threshold, and observed accuracy in each confidence band is within tolerance of its stated confidence."
         },
         {
-          "text": "The credit risk model's probability estimates reflect true default rates without sacrificing discriminative accuracy",
+          "assuranceGoal": "reliability",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "Calibrating the credit risk model with a single temperature left its predicted classes, and therefore its accuracy, unchanged, while its default probabilities now track the observed default rates on held-out data."
         },
         {
-          "text": "The image classifier communicates prediction confidence through calibrated probabilities that match empirical correctness rates",
+          "assuranceGoal": "transparency",
           "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "A displayed confidence of 80% corresponds to about 80 correct predictions in 100, as shown by a reliability diagram on data not used to fit the temperature."
         },
         {
-          "text": "The environmental forecasting model's stated uncertainty levels correspond to actual prediction accuracy across diverse weather conditions",
+          "assuranceGoal": "reliability",
           "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "After refitting the temperature on a labelled sample from the new region, the land-cover classifier's calibration error on that region's test data is no worse than on the original region."
         }
       ]
     },
@@ -4564,10 +4571,9 @@
       "@type": "Technique",
       "name": "Cross-validation",
       "slug": "cross-validation",
-      "description": "Cross-validation evaluates model performance and robustness by systematically partitioning data into multiple subsets (folds) and training/testing repeatedly on different combinations. Common approaches include k-fold (splitting into k equal parts), stratified (preserving class distributions), and leave-one-out variants. By testing on multiple independent holdout sets, it reveals how performance varies across different data subsamples, provides robust estimates of generalisation ability, and helps detect overfitting or model instability that single train-test splits might miss.",
+      "description": "Cross-validation estimates how well a model will perform on data it has not seen, and how much that estimate depends on the particular data used. The dataset is divided into k parts called folds, the model is trained on all but one fold and scored on the held-out fold, and this repeats until every fold has served as the held-out set once. The scores are averaged to give a performance estimate, and their spread gives a rough indication of how much the result depends on which data the model was trained on. Common variants are stratified cross-validation, where each fold keeps the overall class proportions, and leave-one-out, where each fold is a single example. A large gap between training scores and held-out scores points to overfitting, where a model has learned quirks of its training data that do not carry over to new data.",
       "addressesGoal": [
-        "tea:goal/reliability",
-        "tea:goal/fairness"
+        "tea:goal/reliability"
       ],
       "hasTag": [
         "tea:tag/applicable-models/architecture/model-agnostic",
@@ -4582,8 +4588,6 @@
         "tea:tag/technique-type/testing",
         "tea:tag/assurance-goal-category/reliability",
         "tea:tag/assurance-goal-category/reliability/performance-assessment",
-        "tea:tag/assurance-goal-category/fairness",
-        "tea:tag/assurance-goal-category/fairness/performance-by-group",
         "tea:tag/lifecycle-stage/model-development",
         "tea:tag/lifecycle-stage/model-development/model-testing-and-validation"
       ],
@@ -4605,46 +4609,55 @@
       ],
       "exampleUseCases": [
         {
-          "description": "Using 10-fold cross-validation to estimate a healthcare prediction model's true accuracy and detect overfitting, ensuring robust performance estimates that generalise beyond the specific training sample to new patient populations.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A hospital data-science team has records for about 900 patients and is building a readmission-risk model. It runs 10-fold cross-validation with each patient's admissions kept in the same fold, then reports the mean and spread of held-out scores. A wide spread, or a large gap to the training score, tells the team the model is not yet stable enough to take to a prospective trial."
         },
         {
-          "description": "Ensuring fair model evaluation across demographic groups by using stratified cross-validation that maintains representative proportions of protected classes in each fold, revealing whether performance is consistent across different population segments.",
-          "goal": "Fairness"
+          "goal": "Reliability",
+          "description": "A bank's fraud team compares three candidate classifiers by running the same stratified 10-fold cross-validation on a year of labelled transactions, so every candidate is scored on identical folds and the rare fraud cases are spread evenly across them. They select the model with the best mean recall at a fixed false-alarm rate and drop any candidate whose fold-to-fold scores vary widely."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A materials-science group has only 120 labelled samples from costly experiments. Instead of trusting one train-test split, it repeats 5-fold cross-validation with different random splits and reports the spread of the accuracy estimate, which decides whether the model is reliable enough to guide the next round of experiments."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive for large datasets or complex models, requiring multiple training runs that scale linearly with the number of folds."
+          "description": "The number of folds trades cost against bias and variance. Each fold is another training run. Few folds (2 to 5) train on less data and tend to understate performance, whereas leave-one-out has little bias but unstable estimates and the highest cost. Ten folds is a common compromise, not a rule."
         },
         {
-          "description": "Can provide overly optimistic performance estimates when data has dependencies or structure (e.g., time series, grouped observations) that violate independence assumptions."
+          "description": "Assumes records are independent. If the same patient, customer or site appears in several records, a fold can be trained on records nearly identical to those it is tested on, and the score is optimistic. Folds must then be built by group, not drawn at random."
         },
         {
-          "description": "May not reflect real-world performance if the training data distribution differs significantly from future deployment conditions or population shifts."
+          "description": "Ignores time order. Training on later records and testing on earlier ones lets future information leak into the estimate and flatters the model. For time-ordered data, use an evaluation that always tests on data later than the training data, such as rolling-origin evaluation."
         },
         {
-          "description": "Choice of fold number (k) involves a bias-variance trade-off: fewer folds reduce computational cost but increase variance in estimates, whilst more folds increase computation but may introduce bias."
+          "description": "Anything learned from the data must be fitted inside each training fold, including scaling, feature selection and hyperparameter tuning. Done once on the full dataset beforehand, it leaks test-fold information and inflates the scores. Tuning and reporting on the same folds is also optimistic, so nested cross-validation is needed for both."
         },
         {
-          "description": "Standard cross-validation doesn't account for temporal ordering in sequential data, potentially leading to data leakage where future information influences past predictions."
+          "description": "A score from a small sample is imprecise, and the spread across folds understates the true uncertainty. In one neuroimaging study, error bars on a cross-validated score were roughly plus or minus 10% with 100 samples, so a small gain between two models can be noise."
         }
       ],
       "sampleClaims": [
         {
-          "text": "The model's performance estimate is robust to the particular train-test partition used",
+          "assuranceGoal": "reliability",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "text": "Across ten stratified folds, the model's AUC varied by no more than 0.03 around its mean, so the reported performance does not depend on which records were held out."
         },
         {
-          "text": "The fraud detection system generalizes consistently across different subsets of historical transaction data",
+          "assuranceGoal": "reliability",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "The fraud detection model's recall on fraudulent transactions stays within the agreed band in every fold of the historical data, with no fold below the minimum acceptable recall."
         },
         {
-          "text": "The system maintains equitable performance across demographic groups when evaluated on different data partitions",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "reliability",
+          "domain": "healthcare",
+          "text": "With all preprocessing and feature selection fitted inside each training fold, repeated cross-validation shows the readmission model's performance estimate is not inflated by information from the test folds."
+        },
+        {
+          "assuranceGoal": "reliability",
+          "domain": "healthcare",
+          "text": "The readmission-risk model shows no sign of overfitting, with held-out scores on every fold within the agreed margin of its training score."
         }
       ]
     },
@@ -5819,7 +5832,7 @@
       "@type": "Technique",
       "name": "Monotonicity Constraints",
       "slug": "monotonicity-constraints",
-      "description": "Monotonicity constraints enforce consistent directional relationships between input features and model predictions, ensuring that increasing a feature value either always increases, always decreases, or has no effect on the output. These constraints integrate domain knowledge into model training, preventing counterintuitive relationships that may arise from spurious correlations in data. By maintaining logical feature relationships (e.g., experience always positively influences salary), monotonicity constraints enhance model trustworthiness, interpretability, and alignment with business logic whilst often improving generalisation to new data.",
+      "description": "Monotonicity constraints require a model's prediction to move only one way as a chosen input rises, with the other inputs held fixed, so that, for example, predicted salary never falls as years of experience increase. The direction for each constrained feature is set from domain knowledge before training, and the learning algorithm or model structure then rules out any fit that breaks it, so the model cannot learn reversals that come from noise or sampling quirks in the data. Boosted-tree libraries apply the constraint when they choose splits and monotonic neural networks build it into their structure, while penalty-based methods only discourage violations. Because a penalty, a constraint set on the wrong column or a later processing step can still let a reversal through, testers then vary each constrained input across its range over many generated or real cases, with the other inputs fixed, and count any prediction that moves the wrong way. The evidence is that violation count, expected to be zero, together with a comparison of held-out accuracy with and without the constraint.",
       "addressesGoal": [
         "tea:goal/transparency",
         "tea:goal/reliability"
@@ -5862,60 +5875,64 @@
       ],
       "exampleUseCases": [
         {
-          "description": "Enforcing that a mortgage approval model always treats higher income, longer employment history, and higher credit scores as positive factors, making the decision logic transparent and intuitive for loan officers and applicants whilst preventing counterintuitive relationships that could undermine trust in the system.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A mortgage lender constrains its approval model so that higher income, longer employment and a higher credit score can only raise the approval score. Loan officers can then tell an applicant that improving any of these factors can only help the application, and the lender can state each factor's direction to its regulator."
         },
         {
-          "description": "Constraining a healthcare cost prediction model so that age and number of chronic conditions always increase predicted costs, ensuring the model generalises reliably to new patient populations and maintains logical behaviour even when training data contains sampling biases or unusual correlations.",
-          "goal": "Reliability"
+          "goal": "Transparency",
+          "description": "A water utility's pipe-burst risk model is constrained so that risk rises with pipe age and operating pressure and falls with the quality of recent maintenance. Asset managers can then explain the ranked inspection list to the regulator through three directional rules, instead of an opaque score."
         },
         {
-          "description": "Implementing monotonic constraints in an insurance premium model where driving experience always reduces premiums and accident history always increases them, creating consistent pricing logic that regulatory authorities can easily validate and customers can understand and trust.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A hospital analytics team builds a tree-based model that predicts the cost of care for each patient and constrains the prediction never to fall as age or number of chronic conditions rises. Before release they sweep each constrained feature across its range for thousands of generated patient records, with the other features held fixed, and confirm that no prediction moves the wrong way. They also compare held-out accuracy with and without the constraints."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A utility's day-ahead demand forecast for office buildings is constrained so that predicted demand never falls as occupancy or floor area rises. The validation team writes this as an automated test that draws random building profiles, raises one constrained input at a time and fails the build if any forecast drops, so a retrained model that breaks the rule is caught before deployment."
         }
       ],
       "limitations": [
         {
-          "description": "Can reduce model accuracy when real-world relationships are inherently non-monotonic, such as the inverted-U relationship between experience and performance, where constraints force oversimplified linear relationships."
+          "description": "Forces a one-way relationship even where the real one reverses, such as an inverted U between experience and performance. The model then fits that feature worse and cannot show the turning point, so held-out accuracy should be compared with and without the constraint."
         },
         {
-          "description": "Requires substantial domain expertise to identify which features should have monotonic relationships, creating dependency on subject matter experts and potential for incorrect constraint specification."
+          "description": "Choosing which features to constrain, and in which direction, needs domain expertise. A wrong constraint builds a false belief into the model, and the check on the trained model will still pass, because it shows only that the constraint holds, not that it is right."
         },
         {
-          "description": "Increases computational complexity during training as optimisation algorithms must respect additional constraints, potentially leading to longer training times and convergence difficulties."
+          "description": "The rule covers one feature with the others held fixed, and says nothing about the size of the effect. A model can meet it by ignoring the feature, and when correlated inputs move together a person's overall score can still fall as one favourable input rises, so the constraint does not make the whole model easy to explain."
         },
         {
-          "description": "May mask important non-linear patterns in data that could be crucial for understanding system behaviour, particularly in exploratory analysis where discovering unexpected relationships is valuable."
+          "description": "Support differs by model family. Tree-boosting libraries such as XGBoost accept constraints directly, while neural networks need a special architecture or a penalty term. With histogram-based tree methods, constraints can remove every candidate split and leave shallow trees that underfit."
         },
         {
-          "description": "Limited applicability to certain model types, with implementation varying significantly across algorithms (well-supported in tree-based models, more complex in neural networks), restricting technique flexibility."
+          "description": "A sweep or property-based test samples the input space. It can find a violation but cannot prove there is none, and a pass depends on how well the generated inputs cover realistic and rare combinations of features."
         }
       ],
       "sampleClaims": [
         {
-          "text": "The lending model's approval probability increases consistently with applicant income without counterintuitive reversals",
+          "assuranceGoal": "transparency",
           "domain": "finance",
-          "assuranceGoal": "transparency"
+          "text": "Every constrained input in the mortgage model has a documented direction of effect, so loan officers can tell an applicant that, other details being equal, higher income never lowers the approval score."
         },
         {
-          "text": "The insurance premium calculation respects logical directional relationships where risk factors monotonically increase costs",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The clinical risk assessment maintains consistent directionality where deteriorating vital signs monotonically increase predicted severity",
+          "assuranceGoal": "transparency",
           "domain": "healthcare",
-          "assuranceGoal": "transparency"
+          "text": "The clinical risk score is documented as never falling when a vital-sign measure worsens, other measures being equal, and clinicians are given that rule before they use the score."
         },
         {
-          "text": "The energy consumption forecast ensures that increased building occupancy always raises predicted demand",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "reliability",
+          "domain": "healthcare",
+          "text": "In property-based testing over generated patient records, raising age or the number of chronic conditions on its own never lowered the cost model's prediction, and the test is rerun on every release"
         },
         {
-          "text": "The hiring suitability score preserves expected relationships where relevant experience monotonically improves candidate ratings",
-          "domain": "general",
-          "assuranceGoal": "transparency"
+          "assuranceGoal": "reliability",
+          "domain": "energy",
+          "text": "In sweeps of each constrained input across its full range, the building demand forecast recorded no case where predicted demand fell as occupancy rose."
+        },
+        {
+          "assuranceGoal": "reliability",
+          "domain": "finance",
+          "text": "Across 100,000 generated applicant records, raising income alone never lowered the lending model's predicted approval probability."
         }
       ]
     },
@@ -10473,7 +10490,7 @@
       "@type": "Technique",
       "name": "Reward Hacking Detection",
       "slug": "reward-hacking-detection",
-      "description": "Reward hacking is when an agent trained to maximise a proxy reward (a reward function or learned reward model that only approximates what its designers want) raises that proxy by exploiting its gaps while the intended outcome stalls or gets worse. Reward hacking detection tests a trained policy for this by scoring it against both the proxy it was optimised for and an independent measure of the intended objective that the optimiser never saw, such as a hand-written true reward in a simulator, a held-out 'gold' reward model or human ratings. The scoring is repeated at every training checkpoint, or across models of increasing size, because the change can be abrupt: the originating study found capability thresholds at which an agent's behaviour shifts and its true reward falls sharply while its proxy reward keeps rising. Where the intended objective cannot be scored in operation, the same study flags a policy as aberrant when its action distribution diverges too far from that of a trusted policy that people have already checked, with the alarm threshold set on policies whose true reward is known. The output is a pair of proxy and true-reward curves showing where they part, or an anomaly score for each candidate policy.",
+      "description": "Reward hacking is when an agent trained to maximise a proxy reward (a score that only approximates what its designers want) raises that score by exploiting its gaps while the intended outcome stalls or worsens. Detection scores each trained policy (the agent's decision rule) on the proxy and on an independent measure of the intended objective that training never used, such as a true reward from a simulator, a held-out 'gold' reward model or human ratings. Repeating this at every saved training checkpoint and model size matters because the originating study found capability thresholds at which the true reward drops sharply while the proxy keeps rising. When the true objective cannot be scored in operation, the study instead flags a policy whose actions diverge too far from those of a trusted policy that people have already verified. The output is a pair of reward curves showing where they part, or an anomaly score for each candidate policy.",
       "addressesGoal": [
         "tea:goal/reliability",
         "tea:goal/safety"
@@ -15748,7 +15765,7 @@
       "name": "Fairness",
       "slug": "fairness",
       "description": "Ensuring AI systems treat different groups and individuals equitably.",
-      "techniqueCount": 64,
+      "techniqueCount": 63,
       "hasTechnique": [
         "tea:technique/shapley-additive-explanations",
         "tea:technique/integrated-gradients",
@@ -15768,7 +15785,6 @@
         "tea:technique/conformal-prediction",
         "tea:technique/bootstrapping",
         "tea:technique/jackknife-resampling",
-        "tea:technique/cross-validation",
         "tea:technique/area-under-precision-recall-curve",
         "tea:technique/red-teaming",
         "tea:technique/model-cards",

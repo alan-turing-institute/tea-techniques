@@ -6,7 +6,7 @@
     {
       "slug": "monotonicity-constraints",
       "name": "Monotonicity Constraints",
-      "description": "Monotonicity constraints enforce consistent directional relationships between input features and model predictions, ensuring that increasing a feature value either always increases, always decreases, or has no effect on the output. These constraints integrate domain knowledge into model training, preventing counterintuitive relationships that may arise from spurious correlations in data. By maintaining logical feature relationships (e.g., experience always positively influences salary), monotonicity constraints enhance model trustworthiness, interpretability, and alignment with business logic whilst often improving generalisation to new data.",
+      "description": "Monotonicity constraints require a model's prediction to move only one way as a chosen input rises, with the other inputs held fixed, so that, for example, predicted salary never falls as years of experience increase. The direction for each constrained feature is set from domain knowledge before training, and the learning algorithm or model structure then rules out any fit that breaks it, so the model cannot learn reversals that come from noise or sampling quirks in the data. Boosted-tree libraries apply the constraint when they choose splits and monotonic neural networks build it into their structure, while penalty-based methods only discourage violations. Because a penalty, a constraint set on the wrong column or a later processing step can still let a reversal through, testers then vary each constrained input across its range over many generated or real cases, with the other inputs fixed, and count any prediction that moves the wrong way. The evidence is that violation count, expected to be zero, together with a comparison of held-out accuracy with and without the constraint.",
       "assurance_goals": [
         "Transparency",
         "Reliability"
@@ -34,33 +34,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Enforcing that a mortgage approval model always treats higher income, longer employment history, and higher credit scores as positive factors, making the decision logic transparent and intuitive for loan officers and applicants whilst preventing counterintuitive relationships that could undermine trust in the system.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A mortgage lender constrains its approval model so that higher income, longer employment and a higher credit score can only raise the approval score. Loan officers can then tell an applicant that improving any of these factors can only help the application, and the lender can state each factor's direction to its regulator."
         },
         {
-          "description": "Constraining a healthcare cost prediction model so that age and number of chronic conditions always increase predicted costs, ensuring the model generalises reliably to new patient populations and maintains logical behaviour even when training data contains sampling biases or unusual correlations.",
-          "goal": "Reliability"
+          "goal": "Transparency",
+          "description": "A water utility's pipe-burst risk model is constrained so that risk rises with pipe age and operating pressure and falls with the quality of recent maintenance. Asset managers can then explain the ranked inspection list to the regulator through three directional rules, instead of an opaque score."
         },
         {
-          "description": "Implementing monotonic constraints in an insurance premium model where driving experience always reduces premiums and accident history always increases them, creating consistent pricing logic that regulatory authorities can easily validate and customers can understand and trust.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A hospital analytics team builds a tree-based model that predicts the cost of care for each patient and constrains the prediction never to fall as age or number of chronic conditions rises. Before release they sweep each constrained feature across its range for thousands of generated patient records, with the other features held fixed, and confirm that no prediction moves the wrong way. They also compare held-out accuracy with and without the constraints."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A utility's day-ahead demand forecast for office buildings is constrained so that predicted demand never falls as occupancy or floor area rises. The validation team writes this as an automated test that draws random building profiles, raises one constrained input at a time and fails the build if any forecast drops, so a retrained model that breaks the rule is caught before deployment."
         }
       ],
       "limitations": [
         {
-          "description": "Can reduce model accuracy when real-world relationships are inherently non-monotonic, such as the inverted-U relationship between experience and performance, where constraints force oversimplified linear relationships."
+          "description": "Forces a one-way relationship even where the real one reverses, such as an inverted U between experience and performance. The model then fits that feature worse and cannot show the turning point, so held-out accuracy should be compared with and without the constraint."
         },
         {
-          "description": "Requires substantial domain expertise to identify which features should have monotonic relationships, creating dependency on subject matter experts and potential for incorrect constraint specification."
+          "description": "Choosing which features to constrain, and in which direction, needs domain expertise. A wrong constraint builds a false belief into the model, and the check on the trained model will still pass, because it shows only that the constraint holds, not that it is right."
         },
         {
-          "description": "Increases computational complexity during training as optimisation algorithms must respect additional constraints, potentially leading to longer training times and convergence difficulties."
+          "description": "The rule covers one feature with the others held fixed, and says nothing about the size of the effect. A model can meet it by ignoring the feature, and when correlated inputs move together a person's overall score can still fall as one favourable input rises, so the constraint does not make the whole model easy to explain."
         },
         {
-          "description": "May mask important non-linear patterns in data that could be crucial for understanding system behaviour, particularly in exploratory analysis where discovering unexpected relationships is valuable."
+          "description": "Support differs by model family. Tree-boosting libraries such as XGBoost accept constraints directly, while neural networks need a special architecture or a penalty term. With histogram-based tree methods, constraints can remove every candidate split and leave shallow trees that underfit."
         },
         {
-          "description": "Limited applicability to certain model types, with implementation varying significantly across algorithms (well-supported in tree-based models, more complex in neural networks), restricting technique flexibility."
+          "description": "A sweep or property-based test samples the input space. It can find a violation but cannot prove there is none, and a pass depends on how well the generated inputs cover realistic and rare combinations of features."
         }
       ],
       "resources": [
@@ -136,29 +140,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The lending model's approval probability increases consistently with applicant income without counterintuitive reversals",
+          "assuranceGoal": "transparency",
           "domain": "finance",
-          "assuranceGoal": "transparency"
+          "text": "Every constrained input in the mortgage model has a documented direction of effect, so loan officers can tell an applicant that, other details being equal, higher income never lowers the approval score."
         },
         {
-          "text": "The insurance premium calculation respects logical directional relationships where risk factors monotonically increase costs",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The clinical risk assessment maintains consistent directionality where deteriorating vital signs monotonically increase predicted severity",
+          "assuranceGoal": "transparency",
           "domain": "healthcare",
-          "assuranceGoal": "transparency"
+          "text": "The clinical risk score is documented as never falling when a vital-sign measure worsens, other measures being equal, and clinicians are given that rule before they use the score."
         },
         {
-          "text": "The energy consumption forecast ensures that increased building occupancy always raises predicted demand",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "reliability",
+          "domain": "healthcare",
+          "text": "In property-based testing over generated patient records, raising age or the number of chronic conditions on its own never lowered the cost model's prediction, and the test is rerun on every release"
         },
         {
-          "text": "The hiring suitability score preserves expected relationships where relevant experience monotonically improves candidate ratings",
-          "domain": "general",
-          "assuranceGoal": "transparency"
+          "assuranceGoal": "reliability",
+          "domain": "energy",
+          "text": "In sweeps of each constrained input across its full range, the building demand forecast recorded no case where predicted demand fell as occupancy rose."
+        },
+        {
+          "assuranceGoal": "reliability",
+          "domain": "finance",
+          "text": "Across 100,000 generated applicant records, raising income alone never lowered the lending model's predicted approval probability."
         }
       ]
     },
@@ -533,7 +537,7 @@
     {
       "slug": "reward-hacking-detection",
       "name": "Reward Hacking Detection",
-      "description": "Reward hacking is when an agent trained to maximise a proxy reward (a reward function or learned reward model that only approximates what its designers want) raises that proxy by exploiting its gaps while the intended outcome stalls or gets worse. Reward hacking detection tests a trained policy for this by scoring it against both the proxy it was optimised for and an independent measure of the intended objective that the optimiser never saw, such as a hand-written true reward in a simulator, a held-out 'gold' reward model or human ratings. The scoring is repeated at every training checkpoint, or across models of increasing size, because the change can be abrupt: the originating study found capability thresholds at which an agent's behaviour shifts and its true reward falls sharply while its proxy reward keeps rising. Where the intended objective cannot be scored in operation, the same study flags a policy as aberrant when its action distribution diverges too far from that of a trusted policy that people have already checked, with the alarm threshold set on policies whose true reward is known. The output is a pair of proxy and true-reward curves showing where they part, or an anomaly score for each candidate policy.",
+      "description": "Reward hacking is when an agent trained to maximise a proxy reward (a score that only approximates what its designers want) raises that score by exploiting its gaps while the intended outcome stalls or worsens. Detection scores each trained policy (the agent's decision rule) on the proxy and on an independent measure of the intended objective that training never used, such as a true reward from a simulator, a held-out 'gold' reward model or human ratings. Repeating this at every saved training checkpoint and model size matters because the originating study found capability thresholds at which the true reward drops sharply while the proxy keeps rising. When the true objective cannot be scored in operation, the study instead flags a policy whose actions diverge too far from those of a trusted policy that people have already verified. The output is a pair of reward curves showing where they part, or an anomaly score for each candidate policy.",
       "assurance_goals": [
         "Reliability",
         "Safety"

@@ -132,7 +132,7 @@
     {
       "slug": "conformal-prediction",
       "name": "Conformal Prediction",
-      "description": "Conformal prediction provides mathematically guaranteed uncertainty quantification by creating prediction sets that contain the true outcome with a specified probability (e.g., exactly 95% coverage). The technique works by measuring how 'strange' or 'nonconforming' new predictions are compared to calibration data - if a prediction seems unusual, it gets wider intervals. For example, in medical diagnosis, instead of saying 'likely cancer', it might say 'possible diagnoses: {cancer, benign tumour} with 95% confidence'. This distribution-free method works with any underlying model (neural networks, random forests, etc.) and requires no assumptions about data distribution, making it a robust framework for reliable uncertainty estimates in high-stakes applications.",
+      "description": "Conformal prediction wraps any trained model so that, instead of a single answer, it returns a set of plausible answers (an interval, for a numeric prediction) that contains the true outcome at a chosen rate, such as at least 95% of the time. It first scores, on a calibration set of labelled data kept apart from training, how unusual each known outcome looks given the model's prediction, using a nonconformity score, and for a new case it keeps every candidate answer whose score falls below a threshold taken from those calibration scores. A diagnostic model might then return 'cancer or benign tumour' rather than 'likely cancer', and with a suitable score the sets grow larger where the model is less certain. The guarantee is distribution-free, meaning it assumes nothing about the shape of the data, but it does assume the calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. It holds on average over all cases, not within each subgroup, unless the calibration is done separately within each predefined group (Mondrian conformal prediction), which needs enough calibration cases in every group.",
       "assurance_goals": [
         "Reliability",
         "Transparency",
@@ -159,33 +159,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Creating prediction sets for drug discovery that guarantee 95% coverage, such as 'this compound will likely have activity against {target A, target B, target C}', ensuring reliable decision-making in costly experimental validation.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A medicinal chemistry team screening compounds in silico builds prediction sets of the protein targets each compound may be active against, at 95% coverage. Compounds with a single-target set go to lab testing for that target, and those with several targets go to a wider panel, so costly experiments follow how uncertain the model is."
         },
         {
-          "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories with guaranteed coverage, enabling judges to see the full range of possibilities rather than just a single point estimate.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories at the stated coverage level, enabling judges to see the full range of possibilities rather than just a single point estimate."
         },
         {
-          "description": "Ensuring fair uncertainty quantification across demographic groups in college admissions by verifying that prediction set sizes (number of possible outcomes) are consistent across protected groups, preventing discriminatory overconfidence for certain populations.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A university predicts whether first-year students will complete their degree and offers early support when the 90% prediction set includes 'withdraws'. To keep that 90% true for every group, not only on average, the data team calibrates the sets separately within each demographic group, then checks coverage and average set size per group on held-out students. A group with too few calibration cases is reported as not covered by the guarantee."
         }
       ],
       "limitations": [
         {
-          "description": "Prediction sets can be unnecessarily wide when nonconformity scores vary greatly across the feature space, leading to conservative intervals that reduce practical utility."
+          "description": "Sets can be wide enough to be useless. A multi-class set holding most classes, or an interval spanning the plausible range, meets the coverage target but tells the decision-maker little, and sets containing opposing outcomes make decisions hard. Width depends on the model's quality and the scoring rule chosen, and the guarantee says nothing about it."
         },
         {
-          "description": "Requires a held-out calibration set separate from training data, reducing the amount of data available for model training, which can impact performance on small datasets."
+          "description": "Needs labelled calibration data kept apart from training. On small datasets that means less data to train on, or a coarse and unstable coverage level, and variants that avoid a separate calibration set need several model fits."
         },
         {
-          "description": "Guarantees only hold under the exchangeability assumption - if test data distribution differs significantly from calibration data, coverage guarantees may be violated."
+          "description": "The guarantee assumes calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. Drift, a changed population or strongly time-ordered data break it, and coverage then falls below target with no warning. In Shafer and Vovk's example, a nominal 5% error rate rose to 8% on a systematically different test set."
         },
         {
-          "description": "For multi-class problems, prediction sets may include many classes when the model is uncertain, making decisions difficult when sets contain opposing outcomes."
+          "description": "Coverage is guaranteed on average over all cases, not for each individual or subgroup, so a model can reach 95% overall while covering a minority group far less often. Mondrian calibration fixes this only for predefined, non-overlapping groups. It needs each new case's group at prediction time and is unstable when a group has few calibration cases (MAPIE's tutorial gives under 200 as an example)."
         },
         {
-          "description": "Computational cost increases with the number of calibration samples, and efficient implementation requires careful design for large-scale or real-time applications."
+          "description": "Cost depends on the variant. Split conformal prediction adds little beyond scoring a held-out set, but full conformal prediction re-evaluates every candidate outcome and cross-conformal variants refit the model several times, which can be prohibitive for large models or real-time use."
         }
       ],
       "resources": [
@@ -259,29 +259,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic system's prediction sets contain the correct outcome with a guaranteed minimum coverage rate across all patient presentations",
+          "assuranceGoal": "reliability",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "On a held-out test set from the same patient population as the calibration data, the 95% prediction sets contained the true diagnosis in at least 95% of cases, within sampling error."
         },
         {
-          "text": "The system's uncertainty estimates maintain their specified validity guarantees regardless of the underlying data distribution",
+          "assuranceGoal": "reliability",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "text": "Prediction-set coverage on the latest quarter of live data stays within the agreed margin of its nominal level, so there is no sign that the exchangeability assumption has broken down in deployment."
         },
         {
-          "text": "The model communicates uncertainty by providing a set of plausible outcomes rather than a single point prediction",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The prediction sets achieve equivalent coverage rates across demographic groups without requiring distributional assumptions",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The autonomous system's safety-critical predictions are accompanied by statistically guaranteed confidence bounds",
+          "assuranceGoal": "reliability",
           "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
+          "text": "For the perception model, the 95% prediction sets contained the true object class in at least 95% of held-out frames, and frames whose set holds more than one class trigger the cautious fallback behaviour."
+        },
+        {
+          "assuranceGoal": "transparency",
+          "domain": "finance",
+          "text": "Every credit-limit recommendation is shown with a set of plausible limit bands at 90% coverage, and any case whose set holds more than one band is routed to a human underwriter."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "public sector",
+          "text": "The 90% prediction sets are calibrated separately within each demographic group, and on held-out cases their coverage is within three percentage points of 90% in every group, with each group's number of calibration and test cases reported."
         }
       ]
     },
@@ -538,143 +538,6 @@
         },
         {
           "text": "The public benefit allocation system identifies individual case records that exert unusual influence on eligibility determinations",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        }
-      ]
-    },
-    {
-      "slug": "cross-validation",
-      "name": "Cross-validation",
-      "description": "Cross-validation evaluates model performance and robustness by systematically partitioning data into multiple subsets (folds) and training/testing repeatedly on different combinations. Common approaches include k-fold (splitting into k equal parts), stratified (preserving class distributions), and leave-one-out variants. By testing on multiple independent holdout sets, it reveals how performance varies across different data subsamples, provides robust estimates of generalisation ability, and helps detect overfitting or model instability that single train-test splits might miss.",
-      "assurance_goals": [
-        "Reliability",
-        "Fairness"
-      ],
-      "tags": [
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/black-box",
-        "data-requirements/access-to-training-data",
-        "data-requirements/labelled-data",
-        "data-type/any",
-        "evidence-type/quantitative-metric",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "technique-type/testing",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/performance-assessment",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Using 10-fold cross-validation to estimate a healthcare prediction model's true accuracy and detect overfitting, ensuring robust performance estimates that generalise beyond the specific training sample to new patient populations.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Ensuring fair model evaluation across demographic groups by using stratified cross-validation that maintains representative proportions of protected classes in each fold, revealing whether performance is consistent across different population segments.",
-          "goal": "Fairness"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Computationally expensive for large datasets or complex models, requiring multiple training runs that scale linearly with the number of folds."
-        },
-        {
-          "description": "Can provide overly optimistic performance estimates when data has dependencies or structure (e.g., time series, grouped observations) that violate independence assumptions."
-        },
-        {
-          "description": "May not reflect real-world performance if the training data distribution differs significantly from future deployment conditions or population shifts."
-        },
-        {
-          "description": "Choice of fold number (k) involves a bias-variance trade-off: fewer folds reduce computational cost but increase variance in estimates, whilst more folds increase computation but may introduce bias."
-        },
-        {
-          "description": "Standard cross-validation doesn't account for temporal ordering in sequential data, potentially leading to data leakage where future information influences past predictions."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Cross-validation: evaluating estimator performance",
-          "url": "https://scikit-learn.org/stable/modules/cross_validation.html",
-          "source_type": "documentation",
-          "authors": [
-            "Scikit-learn Developers"
-          ],
-          "publication_date": "2007",
-          "citationKey": "scikit-learndevelopersCrossvalidationEvaluatingEstimator2007"
-        },
-        {
-          "title": "scikit-learn",
-          "url": "https://github.com/scikit-learn/scikit-learn",
-          "source_type": "software_package",
-          "citationKey": "Scikitlearn",
-          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
-        },
-        {
-          "title": "A Study of Cross-Validation and Bootstrap for Accuracy Estimation and Model Selection",
-          "url": "https://www.ijcai.org/Proceedings/95-2/Papers/016.pdf",
-          "source_type": "technical_paper",
-          "authors": [
-            "Ron Kohavi"
-          ],
-          "publication_date": "1995-01-01",
-          "citationKey": "kohaviStudyCrossValidationBootstrap1995"
-        },
-        {
-          "title": "Cross-Validatory Choice and Assessment of Statistical Predictions",
-          "url": "https://doi.org/10.1111/j.2517-6161.1974.tb00994.x",
-          "source_type": "technical_paper",
-          "authors": [
-            "M. Stone"
-          ],
-          "publication_date": "1974-1-1",
-          "citationKey": "stoneCrossValidatoryChoiceAssessment1974",
-          "abstract": "A generalized form of the cross-validation criterion is applied to the choice and assessment of prediction using the data-analytic concept of a prescription. The examples used to illustrate the application are drawn from the problem areas of univariate estimation, linear regression and analysis of variance."
-        },
-        {
-          "title": "Visualizing cross-validation behavior in scikit-learn",
-          "url": "https://scikit-learn.org/stable/auto_examples/model_selection/plot_cv_indices.html",
-          "source_type": "tutorial",
-          "citationKey": "VisualizingCrossvalidationBehavior",
-          "abstract": "Choosing the right cross-validation object is a crucial part of fitting a model properly. There are many ways to split data into training and test sets in order to avoid model overfitting, to stand..."
-        },
-        {
-          "title": "Cross-validation failure: Small sample sizes lead to large error bars",
-          "url": "https://doi.org/10.1016/j.neuroimage.2017.06.061",
-          "source_type": "application_paper",
-          "authors": [
-            "Gaël Varoquaux"
-          ],
-          "publication_date": "2018-10",
-          "citationKey": "varoquauxCrossvalidationFailureSmall2018",
-          "abstract": "Predictive models ground many state‐of‐the‐art developments in statistical brain image analysis: decoding, MVPA, searchlight, or extraction of biomarkers. The principled approach to establish their validity and usefulness is cross‐validation, testing prediction on unseen data. Here, I would like to raise awareness on error bars of cross‐validation, which are often underestimated. Simple experiments show that sample sizes of many neuroimaging studies inherently lead to large error bars, eg Symbol for 100 samples. The standard error across folds strongly underestimates them. These large error bars compromise the reliability of conclusions drawn with predictive models, such as biomarkers or methods developments where, unlike with cognitive neuroimaging MVPA approaches, more samples cannot be acquired by repeating the experiment across many subjects. Solutions to increase sample size must be investigated, tackling possible increases in heterogeneity of the data."
-        }
-      ],
-      "complexity_rating": 2,
-      "computational_cost_rating": 3,
-      "related_techniques": [
-        "bootstrapping",
-        "jackknife-resampling",
-        "permutation-tests",
-        "conformal-prediction"
-      ],
-      "sample_claims": [
-        {
-          "text": "The model's performance estimate is robust to the particular train-test partition used",
-          "domain": "general",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The fraud detection system generalizes consistently across different subsets of historical transaction data",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The system maintains equitable performance across demographic groups when evaluated on different data partitions",
           "domain": "public sector",
           "assuranceGoal": "fairness"
         }
@@ -1327,5 +1190,5 @@
       ]
     }
   ],
-  "count": 9
+  "count": 8
 }

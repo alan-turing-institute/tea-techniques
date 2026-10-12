@@ -620,7 +620,7 @@
     {
       "slug": "temperature-scaling",
       "name": "Temperature Scaling",
-      "description": "Temperature scaling adjusts a model's confidence by applying a single parameter (temperature) to its predictions. When a model is too confident in its wrong answers, temperature scaling can fix this by making the predictions more realistic. It works by dividing the model's outputs by the temperature value before converting them to probabilities. Higher temperatures make the model less confident, whilst lower temperatures increase confidence. The technique maintains the model's accuracy whilst ensuring that when it says it's 90% confident, it's actually right about 90% of the time.",
+      "description": "Temperature scaling is a correction applied after training to a classifier that is more confident than it is accurate, a common problem in modern neural networks. It divides the model's raw scores (logits) by a single number, the temperature, before they are turned into probabilities, so a temperature above one lowers confidence and one below one raises it. The temperature is fitted on a labelled validation set kept apart from training by minimising negative log-likelihood, a measure that penalises confident wrong answers, and the model's own weights are not changed. Because dividing by one positive number never changes which class scores highest, predictions and accuracy stay the same. Stated confidence usually moves much closer to observed accuracy on data like the validation set, which a reliability diagram (a chart of stated confidence against how often the model was right) can show, but some miscalibration remains.",
       "assurance_goals": [
         "Reliability",
         "Transparency"
@@ -648,26 +648,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Adjusting a deep learning image classifier's confidence scores to be realistic, ensuring that when it's 90% confident, it's right 90% of the time.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A trust-and-safety team auto-removes posts only when its neural text classifier reports at least 95% confidence. The team fits a temperature on one labelled validation set, then checks on a second, unseen labelled set that posts scored near 95% really are abusive about 95% of the time, and adjusts the removal threshold if they are not."
         },
         {
-          "description": "Making medical diagnosis model predictions more trustworthy by providing realistic confidence scores that doctors can interpret and use to make informed decisions about patient care.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "An environmental agency's land-cover classifier was trained on summer satellite images and is now used on winter scenes, where it is overconfident. The team fits a fresh temperature on a small labelled winter sample and compares calibration error before and after on separate winter test scenes, rather than reusing the summer temperature."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A hospital radiology department displays the model's confidence beside each chest X-ray finding. Before display, the team fits a temperature on held-out scans from its own hospital and reports expected calibration error on a test set, so that clinicians can read a displayed 70% as roughly 70 correct findings in 100 similar cases."
         }
       ],
       "limitations": [
         {
-          "description": "Only addresses calibration at the overall dataset level, not subgroup-specific miscalibration issues."
+          "description": "A single temperature is fitted for the whole dataset, so it corrects average overconfidence but not differences between groups or regions of the input space. A minority group can stay overconfident while overall calibration looks good, and only a per-group calibration check shows it."
         },
         {
-          "description": "Does not improve the rank ordering or accuracy of predictions, only adjusts confidence levels."
+          "description": "It leaves predicted classes unchanged, so accuracy and the model's mistakes stay as they were. A weak model remains weak and only becomes more honest about it, so calibration cannot substitute for improving the model."
         },
         {
-          "description": "Assumes that calibration errors are consistent across different types of inputs and feature values."
+          "description": "The temperature is fitted on data resembling the training distribution, and calibration can degrade when deployment data shifts. In one large benchmark, error in stated confidence rose significantly as shift increased, even though it was low on unshifted data."
         },
         {
-          "description": "Requires a separate validation set for temperature parameter optimisation, which may not be available in small datasets."
+          "description": "It needs labelled held-out data that resembles deployment, separate from the training data, and a further separate set to measure the result, because scoring calibration on the data used to fit the temperature flatters it. Small datasets may not leave enough for both."
+        },
+        {
+          "description": "Calibration is judged on the confidence of the predicted class only. The probabilities given to the other classes are not checked by that measure, so uses that read the whole probability list, such as ranking several likely diagnoses, need separate testing."
         }
       ],
       "resources": [
@@ -715,24 +722,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical diagnosis system's confidence scores align with observed clinical outcome frequencies across all prediction confidence levels",
+          "assuranceGoal": "reliability",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "On a test set not used to fit the temperature, the diagnostic model's expected calibration error is below the agreed threshold, and observed accuracy in each confidence band is within tolerance of its stated confidence."
         },
         {
-          "text": "The credit risk model's probability estimates reflect true default rates without sacrificing discriminative accuracy",
+          "assuranceGoal": "reliability",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "Calibrating the credit risk model with a single temperature left its predicted classes, and therefore its accuracy, unchanged, while its default probabilities now track the observed default rates on held-out data."
         },
         {
-          "text": "The image classifier communicates prediction confidence through calibrated probabilities that match empirical correctness rates",
+          "assuranceGoal": "transparency",
           "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "A displayed confidence of 80% corresponds to about 80 correct predictions in 100, as shown by a reliability diagram on data not used to fit the temperature."
         },
         {
-          "text": "The environmental forecasting model's stated uncertainty levels correspond to actual prediction accuracy across diverse weather conditions",
+          "assuranceGoal": "reliability",
           "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "After refitting the temperature on a labelled sample from the new region, the land-cover classifier's calibration error on that region's test data is no worse than on the original region."
         }
       ]
     },
