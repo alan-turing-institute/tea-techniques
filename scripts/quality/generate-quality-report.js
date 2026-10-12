@@ -28,6 +28,7 @@ import {
   FRESHNESS_OLD_THRESHOLD_YEARS,
   GOAL_CONDITIONAL_RULES,
   MIN_PEER_GROUP_SIZE,
+  MUST_EXEMPTIONS,
   OUTLIER_THRESHOLD,
   REQUIRE_GOAL_BASE_TAG,
   REQUIRED_SUBTAG_RULES,
@@ -81,6 +82,16 @@ function goalToSlug(goal) {
 /** Check if a technique has at least one tag matching a prefix. */
 function hasTagPrefix(technique, prefix) {
   return (technique.tags || []).some((tag) => tag.startsWith(prefix));
+}
+
+/** The goal's `must` prefixes that apply to this technique, after exemptions. */
+function requiredMustPrefixes(technique, rules) {
+  return rules.must.filter(
+    (prefix) =>
+      !(MUST_EXEMPTIONS[prefix] || []).some((exempt) =>
+        hasTagPrefix(technique, exempt)
+      )
+  );
 }
 
 /** Check if a technique has at least one tag in a given top-level category. */
@@ -223,7 +234,7 @@ function getGoalConditionalGapsForGoal(technique, goal) {
   }
 
   // Check "must" rules
-  const mustMissing = rules.must.filter(
+  const mustMissing = requiredMustPrefixes(technique, rules).filter(
     (prefix) => !hasTagPrefix(technique, prefix)
   );
   if (mustMissing.length > 0) {
@@ -543,7 +554,7 @@ function countGoalMustCoverage(technique) {
     if (!rules) {
       continue;
     }
-    for (const prefix of rules.must) {
+    for (const prefix of requiredMustPrefixes(technique, rules)) {
       required++;
       if (hasTagPrefix(technique, prefix)) {
         present++;
@@ -737,7 +748,7 @@ function getGoalMustIssues(technique) {
     if (!rules) {
       continue;
     }
-    for (const prefix of rules.must) {
+    for (const prefix of requiredMustPrefixes(technique, rules)) {
       if (!hasTagPrefix(technique, prefix)) {
         issues.push(
           `${goal}: missing required ${stripTrailingSlash(prefix)} tag`

@@ -297,6 +297,22 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/explainability/causal-analysis/interaction-effects':
     'Analyses feature interactions and their effects (e.g., Sobol Indices, Factor Analysis)',
 
+  // Explanation Evaluation
+  'assurance-goal-category/explainability/explanation-evaluation':
+    'Techniques that test whether an explanation is faithful to the model, stable and efficient, rather than producing one (e.g., deletion and insertion curves, sanity checks for saliency maps)',
+
+  // Human Evaluation
+  'assurance-goal-category/explainability/human-evaluation':
+    'Techniques that test explanations with the people who use them, through studies, questionnaires or measures of their decisions',
+  'assurance-goal-category/explainability/human-evaluation/understanding-test':
+    "Tests whether people can predict or describe the model's behaviour from its explanations (e.g., forward simulation tests, think-aloud studies)",
+  'assurance-goal-category/explainability/human-evaluation/rating-scale':
+    'A validated questionnaire on how people rate an explanation (e.g., the Explanation Satisfaction Scale)',
+  'assurance-goal-category/explainability/human-evaluation/workload-and-attention':
+    'Measures the effort or attention an explanation costs the person using it (e.g., workload ratings, eye-tracking)',
+  'assurance-goal-category/explainability/human-evaluation/decision-study':
+    "Measures whether explanations improve people's decisions with the model (e.g., appropriate-reliance measurement)",
+
   // Model Simplification
   'assurance-goal-category/explainability/model-simplification':
     'Techniques that create simpler, more interpretable models',
@@ -340,6 +356,10 @@ export const tagDefinitions: Record<string, string> = {
     'Computationally efficient to generate',
   'assurance-goal-category/explainability/property/counterfactual-validity':
     'Can show what changes would alter outcomes',
+  'assurance-goal-category/explainability/property/human-effort':
+    'Measures what it costs a person to use the explanation',
+  'assurance-goal-category/explainability/property/decision-support':
+    'Measures whether the explanation improves, or at least preserves, the decisions people make with the model',
 
   'assurance-goal-category/fairness':
     'Techniques that assess or improve fairness in AI systems',
@@ -360,7 +380,7 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/safety':
     'Techniques that prevent harmful or dangerous outcomes',
   'assurance-goal-category/safety/hazard-analysis':
-    'Techniques that work out why unsafe behaviour arises, by tracing it to causes inside the model, its data or its design.',
+    'Techniques that work out why unsafe behaviour arises, by tracing it to causes in the model, its data, its design or its operating context, including the people and environment around it.',
   'assurance-goal-category/safety/monitoring':
     "Techniques that watch a running system's inputs and usage and flag what is unusual, out of scope or misused.",
   'assurance-goal-category/transparency':
@@ -368,7 +388,7 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/transparency/documentation':
     'Techniques that produce a written disclosure about a model, dataset or system, such as a model card, datasheet or system card.',
   'assurance-goal-category/transparency/audit-trail':
-    'Produces a dated record of what was done to a system or its data, so a third party can reconstruct it later.',
+    'Produces a dated record of what was done to a system, its data or its outputs, so a third party can reconstruct it later.',
   'assurance-goal-category/security':
     'Techniques that protect the system from malicious attacks or unauthorized access',
 

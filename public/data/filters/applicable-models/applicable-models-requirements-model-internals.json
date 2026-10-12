@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/requirements/model-internals",
     "slug": "applicable-models-requirements-model-internals",
-    "count": 16,
+    "count": 15,
     "category": "applicable-models"
   },
   "techniques": [
@@ -1010,7 +1010,6 @@
       "name": "Monte Carlo Dropout",
       "description": "Monte Carlo Dropout estimates prediction uncertainty by applying dropout (randomly setting neural network weights to zero) during inference rather than just training. It performs multiple forward passes through the network with different random dropout patterns and collects the resulting predictions to form a distribution. Low variance across predictions indicates epistemic certainty (the model is confident), while high variance suggests epistemic uncertainty (the model is unsure). This technique transforms any dropout-trained neural network into a Bayesian approximation for uncertainty quantification.",
       "assurance_goals": [
-        "Explainability",
         "Reliability"
       ],
       "tags": [
@@ -1020,11 +1019,6 @@
         "applicable-models/requirements/architecture-specific",
         "applicable-models/requirements/model-internals",
         "applicable-models/requirements/probabilistic-output",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/prediction-confidence",
-        "assurance-goal-category/explainability/property/consistency",
-        "assurance-goal-category/explainability/property/efficiency",
-        "assurance-goal-category/explainability/uncertainty-analysis/prediction-uncertainty",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/uncertainty-quantification",
         "data-requirements/no-special-requirements",
@@ -1032,7 +1026,6 @@
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
         "expertise-needed/statistics",
-        "explanatory-scope/global",
         "lifecycle-stage/model-development",
         "lifecycle-stage/system-deployment",
         "lifecycle-stage/model-development/model-testing-and-validation",
@@ -1047,10 +1040,6 @@
         {
           "description": "Estimating prediction confidence in autonomous vehicle perception systems, where high uncertainty in object detection (e.g., variance > 0.3 across MC samples) triggers more conservative driving behaviour or human handover.",
           "goal": "Reliability"
-        },
-        {
-          "description": "Providing uncertainty estimates in financial fraud detection models, where high epistemic uncertainty (wide prediction variance) indicates the model lacks sufficient training data for similar transaction patterns, requiring manual review.",
-          "goal": "Explainability"
         }
       ],
       "limitations": [
@@ -1137,11 +1126,6 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical imaging system's prediction variance across repeated inference passes indicates epistemic uncertainty in borderline diagnostic cases",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
-        },
-        {
           "text": "The autonomous vehicle's object detection model quantifies prediction uncertainty without requiring multiple separately trained networks",
           "domain": "autonomous systems",
           "assuranceGoal": "reliability"
@@ -1150,11 +1134,6 @@
           "text": "The fraud detection system identifies transactions where the model lacks sufficient training data coverage through elevated prediction variance",
           "domain": "finance",
           "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The model's confidence estimates reflect genuine uncertainty in its learned parameters rather than data noise",
-          "domain": "general",
-          "assuranceGoal": "explainability"
         },
         {
           "text": "The environmental forecasting model's prediction distributions reveal when operating conditions lie outside the model's epistemic envelope",
@@ -1442,143 +1421,6 @@
       ]
     },
     {
-      "slug": "model-pruning",
-      "name": "Model Pruning",
-      "description": "Model pruning systematically removes less important weights, neurons, or entire layers from neural networks to create smaller, more efficient models whilst maintaining performance. This process involves iterative removal based on importance criteria (weight magnitudes, gradient information, activation patterns) followed by fine-tuning. Pruning can be structured (removing entire neurons/channels) or unstructured (removing individual weights), with structured pruning providing greater computational benefits and interpretability through simplified architectures.",
-      "assurance_goals": [
-        "Explainability"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/model-internals",
-        "applicable-models/requirements/white-box",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/feature-importance",
-        "assurance-goal-category/explainability/explains/internal-mechanisms",
-        "assurance-goal-category/explainability/model-simplification/pruning",
-        "assurance-goal-category/explainability/property/comprehensibility",
-        "assurance-goal-category/explainability/property/sparsity",
-        "data-type/any",
-        "evidence-type/quantitative-metric",
-        "evidence-type/model-artefact",
-        "expertise-needed/ml-engineering",
-        "explanatory-scope/global",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-selection-and-training",
-        "technique-type/algorithmic",
-        "data-requirements/access-to-training-data"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Compressing a medical imaging model from 100MB to 15MB for deployment on edge devices in remote clinics, enabling healthcare professionals to audit the remaining critical feature detectors and understand which anatomical patterns drive diagnoses whilst maintaining diagnostic accuracy.",
-          "goal": "Explainability"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Determining optimal pruning ratios requires extensive experimentation as over-pruning can cause dramatic accuracy degradation, whilst under-pruning provides minimal benefits, making the process time-consuming and resource-intensive."
-        },
-        {
-          "description": "Structured pruning often requires specific hardware or software framework support to realise computational benefits, limiting deployment flexibility and potentially necessitating model architecture changes."
-        },
-        {
-          "description": "Pruned models may exhibit reduced robustness to out-of-distribution inputs or adversarial attacks, as removing neurons can eliminate defensive redundancy that helped handle edge cases."
-        },
-        {
-          "description": "The iterative pruning and fine-tuning process can be computationally expensive, sometimes requiring more resources than training the original model, particularly for large-scale networks."
-        },
-        {
-          "description": "Pruning criteria based on weight magnitudes or gradients may not align with interpretability goals, potentially removing neurons that contribute to model transparency whilst retaining complex, opaque pathways."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Trim insignificant weights — TensorFlow Model Optimization",
-          "url": "https://www.tensorflow.org/model_optimization/guide/pruning",
-          "source_type": "documentation",
-          "citationKey": "TrimInsignificantWeights"
-        },
-        {
-          "title": "LLM-Pruner",
-          "url": "https://github.com/horseee/LLM-Pruner",
-          "source_type": "software_package",
-          "publication_date": "2023-05-17",
-          "citationKey": "horseeeLLMPruner2023",
-          "abstract": "[NeurIPS 2023] LLM-Pruner: On the Structural Pruning of Large Language Models. Support Llama-3/3.1, Llama-2, LLaMA,  BLOOM, Vicuna, Baichuan, TinyLlama, etc."
-        },
-        {
-          "title": "tensorflow/model-optimization",
-          "url": "https://github.com/tensorflow/model-optimization",
-          "source_type": "software_package",
-          "publication_date": "2026-09-13T03:42:03Z",
-          "citationKey": "TensorflowModeloptimization2026",
-          "abstract": "A toolkit to optimize ML models for deployment for Keras and TensorFlow, including quantization and pruning."
-        },
-        {
-          "title": "Learning both Weights and Connections for Efficient Neural Networks",
-          "url": "https://doi.org/10.48550/arXiv.1506.02626",
-          "source_type": "technical_paper",
-          "authors": [
-            "Song Han",
-            "Jeff Pool",
-            "John Tran",
-            "William J. Dally"
-          ],
-          "publication_date": "2015-10-30",
-          "citationKey": "hanLearningBothWeights2015",
-          "abstract": "Neural networks are both computationally intensive and memory intensive, making them difficult to deploy on embedded systems. Also, conventional networks fix the architecture before training starts; as a result, training cannot improve the architecture. To address these limitations, we describe a method to reduce the storage and computation required by neural networks by an order of magnitude without affecting their accuracy by learning only the important connections. Our method prunes redundant connections using a three-step method. First, we train the network to learn which connections are important. Next, we prune the unimportant connections. Finally, we retrain the network to fine tune the weights of the remaining connections. On the ImageNet dataset, our method reduced the number of parameters of AlexNet by a factor of 9x, from 61 million to 6.7 million, without incurring accuracy loss. Similar experiments with VGG-16 found that the number of parameters can be reduced by 13x, from 138 million to 10.3 million, again with no loss of accuracy."
-        },
-        {
-          "title": "Optimal Brain Damage",
-          "url": "https://papers.nips.cc/paper/1989/hash/6c9882bbac1c7093bd25041881277658-Abstract.html",
-          "source_type": "technical_paper",
-          "authors": [
-            "Yann LeCun",
-            "John Denker",
-            "Sara Solla"
-          ],
-          "publication_date": "1989",
-          "citationKey": "lecunOptimalBrainDamage1989",
-          "abstract": "We  have used  information-theoretic ideas  to derive  a class of prac(cid:173) tical  and  nearly  optimal schemes  for  adapting the size  of a  neural  network.  By  removing  unimportant  weights  from  a  network,  sev(cid:173) eral  improvements  can  be  expected:  better  generalization,  fewer  training examples required,  and improved speed  of learning and/or  classification.  The  basic  idea  is  to  use  second-derivative  informa(cid:173) tion to make a  tradeoff between  network  complexity  and  training  set error.  Experiments confirm  the usefulness  of the methods on a  real-world  application."
-        },
-        {
-          "title": "Pruning Tutorial — PyTorch Tutorials",
-          "url": "https://docs.pytorch.org/tutorials/intermediate/pruning_tutorial.html",
-          "source_type": "tutorial",
-          "citationKey": "PruningTutorialPyTorch"
-        },
-        {
-          "title": "Deep Neural Network Compression Technique Towards Efficient Digital Signal Modulation Recognition in Edge Device",
-          "url": "https://doi.org/10.1109/access.2019.2913945",
-          "source_type": "application_paper",
-          "authors": [
-            "Ya Tu",
-            "Yun Lin"
-          ],
-          "publication_date": "2019",
-          "citationKey": "tuDeepNeuralNetwork2019",
-          "abstract": "Digital signal modulation recognition is meaningful for military application and civilian application. In the non-cooperation communication scenario, digital signal modulation recognition will help people identify communication target and have better management over them. In order to the classification accuracy, deep learning is widely used to complete this task. However, current papers have not considered the deployment of deep learning in compute capability and storage limited edge equipment. In this paper, we utilize neural network pruning techniques to reduce the convolution parameters and floating point operations per second (FLOPs), which will pave a wide way to deploy signal classification convolution neural network (CNN) in edge equipment. We set the Average Percentage of Zeros (APoZ) criterion for convolution layers. Compared to original CNN, the experiment result shows that light CNN convolution layer could use only 1.5%~5% parameter and 33%~35% time without losing significant accuracy."
-        }
-      ],
-      "complexity_rating": 3,
-      "computational_cost_rating": 2,
-      "related_techniques": [
-        "model-distillation",
-        "neuron-activation-analysis",
-        "integrated-gradients"
-      ],
-      "sample_claims": [
-        {
-          "text": "The diagnostic system's decision-making relies on a sparse set of identifiable feature detectors that clinical experts can inspect",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
-        }
-      ]
-    },
-    {
       "slug": "neuron-activation-analysis",
       "name": "Neuron Activation Analysis",
       "description": "Neuron activation analysis examines the firing patterns of individual neurons in neural networks by probing them with diverse inputs and analysing their activation responses. This technique helps understand what concepts, features, or patterns different neurons have learned to recognise, providing insights into the model's internal representations. For large language models, this can reveal neurons specialised for linguistic concepts, semantic categories, or even potentially harmful patterns, enabling targeted interventions and deeper model understanding.",
@@ -1745,7 +1587,6 @@
       "computational_cost_rating": 4,
       "related_techniques": [
         "concept-activation-vectors",
-        "model-pruning",
         "causal-mediation-analysis-in-language-models"
       ],
       "sample_claims": [
@@ -2276,7 +2117,6 @@
       "description": "Embedding bias analysis examines learned representations to identify biases, spurious correlations, and problematic clustering patterns in vector embeddings. This technique uses dimensionality reduction, clustering analysis, and geometric fairness metrics to examine whether embeddings encode sensitive attributes, place certain groups in disadvantaged regions of representation space, or learn stereotypical associations. Analysis reveals whether embeddings used for retrieval, recommendation, or downstream tasks contain fairness issues that will propagate to applications.",
       "assurance_goals": [
         "Fairness",
-        "Explainability",
         "Transparency"
       ],
       "tags": [
@@ -2287,9 +2127,6 @@
         "applicable-models/requirements/model-internals",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/bias-measurement",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/internal-mechanisms",
-        "assurance-goal-category/explainability/visualization-methods/activation-maps",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/assessment-results",
         "data-type/text",
@@ -2301,17 +2138,12 @@
         "evidence-type/fairness-metric",
         "evidence-type/visualisation",
         "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "explanatory-scope/global"
+        "expertise-needed/statistics"
       ],
       "example_use_cases": [
         {
           "description": "Auditing word embeddings for biased gender associations like 'doctor' being closer to 'male' than 'female', identifying problematic stereotypes that could affect downstream NLP applications.",
           "goal": "Fairness"
-        },
-        {
-          "description": "Analyzing face recognition embeddings to understand whether certain demographic groups are clustered more tightly (enabling easier discrimination) or more dispersed (enabling easier misidentification).",
-          "goal": "Explainability"
         },
         {
           "description": "Transparently documenting embedding space properties including which attributes are encoded and what associations exist, enabling informed decisions about appropriate use cases.",
@@ -2320,10 +2152,6 @@
         {
           "description": "Analyzing clinical note embeddings in a medical diagnosis support system to detect whether disease associations cluster along demographic lines (e.g., certain conditions being systematically closer to particular age or ethnic groups in the embedding space), which could lead to biased treatment recommendations.",
           "goal": "Fairness"
-        },
-        {
-          "description": "Examining embeddings in a legal document analysis system to identify whether risk assessment features encode problematic associations between demographic attributes and recidivism concepts, revealing bias that could affect sentencing or parole decisions.",
-          "goal": "Explainability"
         },
         {
           "description": "Auditing loan application embeddings to detect whether protected characteristics (ethnicity, gender, age) cluster near creditworthiness concepts in ways that could enable indirect discrimination in lending decisions.",
@@ -2450,11 +2278,6 @@
           "text": "The medical language model's clinical term embeddings maintain equitable distances across patient demographic attributes",
           "domain": "healthcare",
           "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The hiring system's resume embeddings reveal which candidate attributes are encoded in the representation space and how they cluster",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
         },
         {
           "text": "The content moderation system's embedding space properties are documented including encoded sensitive attributes and their spatial relationships",
@@ -2640,5 +2463,5 @@
       ]
     }
   ],
-  "count": 16
+  "count": 15
 }
