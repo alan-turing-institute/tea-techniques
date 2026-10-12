@@ -370,7 +370,415 @@
           "assuranceGoal": "safety"
         }
       ]
+    },
+    {
+      "slug": "fault-tree-analysis",
+      "name": "Fault Tree Analysis",
+      "description": "Fault tree analysis (FTA) is a deductive, top-down method that starts from one undesired system-level event, such as an automated braking function failing to brake for an obstacle, and works backwards to the combinations of lower-level events that could cause it. The analyst builds a tree of logic gates beneath that top event: an OR gate means any one of its inputs is enough to cause the event above it, an AND gate means all of its inputs must occur together, and the branches end in basic events such as a hardware failure, a human error or a software error. Solving the tree gives its minimal cut sets, the smallest combinations of basic events that produce the top event (a set with a single event is a single point of failure), and, when each basic event has a probability, the probability of the top event, which can be checked against a target or used to set a probability budget for each part. In a system with a machine-learning component, the model's errors enter the tree as basic events of their own, which unlike random hardware failures happen during normal operation at a rate that has to be measured on test or operational data, often depend on conditions such as weather or occlusion that can be added beneath it as conditioning events, and can be correlated from one input to the next. Working down from an acceptable top-event probability turns the model's share into a budget for its error rate, which becomes a performance requirement on the model; the tree shows where model errors matter in the system and how much error it can tolerate, but not why the model makes them.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/hazard-analysis",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/structured-output",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/project-planning",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An avionics team designing an emergency braking system for taxiing aircraft, in which a neural network detects 'No Entry' signs, builds a quantitative fault tree for loss of the restricted-area alert, budgets the detector's misses beside the hardware failures, converts that budget into a maximum per-frame miss probability for the network, and checks on recorded taxi data whether misses in successive frames are independent, as the calculation assumes.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A driving-automation developer analysing the top event 'object not detected in time' adds weather, occlusion and lighting as triggering conditions beneath the camera detector's miss event. Quantifying the tree with rates measured on its own test drives shows which conditions dominate, and it uses the result to decide where a second sensor is needed before widening the vehicle's operating domain.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A hospital pharmacy planning to add a machine-learning dose checker beside pharmacist review draws a tree for 'harmful overdose reaches the patient', with an AND gate requiring both the checker and the pharmacist to miss the error. The analysis shows the claimed risk reduction holds only if the two misses are independent, so the team plans an audit of whether pharmacists check less carefully once the checker is live.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The tree explains only the top events the analysts choose and the causes they think of. Hazards nobody posed as a top event, and losses that arise from interactions between parts that each worked as specified, do not appear, so a fault tree needs a prior hazard identification to decide which top events matter."
+        },
+        {
+          "description": "A probability for a model-error event is only as good as the data it was measured on. A miss rate estimated on test data holds for the conditions and input mix in that data and changes when the operating environment shifts, so the top-event probability can be badly wrong in conditions the test set under-represents. The main aerospace safety-assessment guidance gives no method for such performance failures, so each assessment has to justify its own."
+        },
+        {
+          "description": "Quantifying a tree usually assumes basic events are independent, and machine-learning errors often are not: misses on successive camera frames are correlated, and one condition such as fog can degrade a model and the sensor or person meant to back it up at the same time. Unmodelled dependence makes an AND gate look far more protective than it is, so dependence must be checked on data or modelled explicitly."
+        },
+        {
+          "description": "The model appears in the tree as one or a few basic events, so the analysis says how often the model may err and where its errors matter, not why it errs or which inputs cause the errors. The triggering conditions added beneath a model-error event are only those the analysts already suspect, and finding others needs analysis of the model and its data."
+        },
+        {
+          "description": "Building and maintaining a tree for a large system is laborious, and it must be revised whenever the architecture or the model changes. Quantification needs a probability for every basic event, and for software, human and model events those numbers are often unavailable or disputed; aviation software guidance, for example, does not accept software reliability rates in the system safety assessment."
+        }
+      ],
+      "resources": [
+        {
+          "title": "IEC 61025:2006 Fault tree analysis (FTA)",
+          "url": "https://webstore.iec.ch/en/publication/4311",
+          "source_type": "documentation",
+          "citationKey": "IEC610252006"
+        },
+        {
+          "title": "Public Fault Tree Analyser (PFTA)",
+          "url": "https://github.com/public-fta/pfta",
+          "source_type": "software_package",
+          "citationKey": "PublicFaultTree",
+          "abstract": "Public Fault Tree Analyser (PFTA): free and open-source fault tree analysis - public-fta/pfta"
+        },
+        {
+          "title": "Fault Tree Handbook (NUREG-0492)",
+          "url": "https://www.nrc.gov/reading-rm/doc-collections/nuregs/staff/sr0492/index",
+          "source_type": "technical_paper",
+          "citationKey": "FaultTreeHandbook"
+        },
+        {
+          "title": "Fault Tree Handbook with Aerospace Applications (Version 1.1)",
+          "url": "https://extapps.ksc.nasa.gov/reliability/Documents/Fault_Tree_Handbook_with_Aerospace_Applications_August_2002.pdf",
+          "source_type": "tutorial",
+          "citationKey": "FaultTreeHandbooka"
+        },
+        {
+          "title": "Safety Assessment of a Machine Learning-Based Aircraft Emergency Braking System: A Case Study",
+          "url": "https://doi.org/10.1109/dasc62030.2024.10749696",
+          "source_type": "application_paper",
+          "authors": [
+            "Konstantin Dmitriev",
+            "Julian Rhein",
+            "Lukas Beller",
+            "Johannes Bröcker",
+            "Evangelos Huber",
+            "Johann Schumann",
+            "Florian Holzapfel"
+          ],
+          "publication_date": "2024-9-29",
+          "citationKey": "dmitrievSafetyAssessmentMachine2024"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "acronym": "FTA",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The quantified fault tree shows the probability of losing the restricted-area proximity alert, including the contribution of the sign detector's misses, to be below 1 in 1,000 per flight hour.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "Measured on recorded taxi data, the sign detector's per-frame miss probability is below the budget derived from the fault tree, and the independence assumption used to derive that budget has been checked on the same data.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "No minimal cut set for the top event 'object not detected in time' consists of the camera-based detector's miss alone.",
+          "assuranceGoal": "safety",
+          "domain": "autonomous systems"
+        },
+        {
+          "text": "The estimated probability of a harmful overdose reaching a patient accounts for dependence between the dose checker's misses and the pharmacist's, rather than assuming they are independent.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "machine-learning-fmea",
+      "name": "Machine Learning Failure Mode and Effects Analysis",
+      "description": "Machine Learning Failure Mode and Effects Analysis (ML FMEA) applies the process form of failure mode and effects analysis, a long-established worksheet method in which a team lists what could go wrong at each step of a process, rates each failure and acts on the worst first, to the pipeline that produces a machine-learning model rather than to the model alone. The team works through the pipeline one step at a time (in the 2025 reference version: collect data requests, collect data, ingest data, validate data, preprocess data, train, tune, analyse, deploy and validate the model, and analyse feedback from the field) and, prompted by guide words such as missing, incorrect or too late, records for each step how the resulting model could fail, the effect on the wider system, the pipeline causes, and the current practices that would prevent or catch the failure. Each row is rated for severity, occurrence and detection, and the product of the three, the risk priority number, ranks the rows so that recommended actions and owners go to the highest risks first; severity is taken from the system-level hazard analysis, because the harm a model failure can do depends on the system it sits in. The method's authors publish a pre-populated template listing typical failure modes, causes and mitigations for each step, which a team tailors to its own model and application. The result is a worksheet of ranked pipeline failure modes, their controls and assigned actions, kept up to date as the pipeline changes; it looks at failures one at a time in how the model is built and does not by itself analyse how the deployed system behaves.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/hazard-analysis",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/structured-output",
+        "evidence-type/documentation",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/project-planning",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An autonomous-trucking company's perception team fills in the template for its lane-detection model before each major retraining. One row under 'collect data' records that data gathered in a single season could leave the model unable to see faded or snow-covered markings; its severity comes from the vehicle-level hazard analysis, and it leads to an action, with an owner and a date, to constrain data requests by season and weather before release.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A medical-imaging company preparing a chest X-ray triage model for regulatory review uses the worksheet to show its assessors where the pipeline's controls sit. High-ranked rows include training labels taken from a single radiologist's reading, which could teach the model to miss small nodules, mitigated by double reading of a labelled sample, and online learning in deployment, mitigated by switching it off.",
+          "goal": "Safety"
+        },
+        {
+          "description": "After a warehouse robot's object detector starts misclassifying a new kind of shrink-wrapped pallet, the vendor's safety engineer returns to the worksheet, finds that the 'analyse model feedback' step had no control for new packaging reaching customer sites, adds drift monitoring and a trigger for new data requests, and re-rates the affected rows.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It considers one failure mode at a time, step by step, so it does not show how failures in different steps combine, or how a model that meets its specification can still contribute to an accident through its interaction with people and other parts of the system. Teams that need those combinations and interactions have to pair it with a system-level analysis."
+        },
+        {
+          "description": "Severity, occurrence and detection are judgements on ordinal scales, and there is little data on how often an ML pipeline failure occurs or how reliably a control catches it. The method's authors introduced ML-specific rating criteria in 2026 because traditional FMEA criteria proved ambiguous for ML development; the public template, last updated in April 2025, has no rating criteria, so teams must set and record their own."
+        },
+        {
+          "description": "It analyses how the model is built, not how it behaves in use: a complete worksheet shows that known pipeline failure modes have controls, not that the deployed model performs safely. Severity has to come from a system-level hazard analysis, so the method cannot stand alone, and its authors present it as one part of a safety management system and safety case."
+        },
+        {
+          "description": "The pre-populated template makes a quick start but invites teams to tick through the listed failure modes instead of looking for ones specific to their system. Its examples come mostly from autonomous-vehicle development, so teams in other domains, or with other kinds of model such as language models, must add their own failure modes; the 2026 revision added steps for problem definition and for building ground truth or reward signals."
+        },
+        {
+          "description": "Published evidence that the method finds failures other methods miss is limited. The 2025 paper that introduced it gave no applied example, and the 2026 follow-up reporting applications to autonomous vehicles and humanoid robots is led by the method's originators: four of its twelve authors, including the first author, wrote the 2025 paper, so no independent group has yet reported using it."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Machine Learning FMEA (ML FMEA) Template",
+          "url": "https://github.com/TallPaul67/MachineLearningFMEA",
+          "source_type": "software_package",
+          "citationKey": "MachineLearningFMEA",
+          "abstract": "Repository for the Machine Learning Failure Mode and Effects Analysis (ML FMEA) Template.  The ML FMEA is detailed within the SAE World Congress 2025 publication, &quot;Introducing the ML FMEA&quot..."
+        },
+        {
+          "title": "Introducing the ML FMEA",
+          "url": "https://doi.org/10.4271/2025-01-8078",
+          "source_type": "technical_paper",
+          "authors": [
+            "Paul Schmitt",
+            "Heinz Bodo Seifert",
+            "Mario Bijelic",
+            "Krzysztof Pennar",
+            "Jerry Lopez",
+            "Felix Heide"
+          ],
+          "publication_date": "2025-4-1",
+          "citationKey": "schmittIntroducingMLFMEA2025"
+        },
+        {
+          "title": "The ML FMEA in Action: Lessons from Applications of Machine Learning Safety",
+          "url": "https://doi.org/10.4271/2026-01-0079",
+          "source_type": "application_paper",
+          "authors": [
+            "Paul Schmitt",
+            "Chaitanya Shinde",
+            "Simon Diemert",
+            "Krzysztof Pennar",
+            "Bodo Seifert",
+            "Justin Poh",
+            "Jerry Lopez",
+            "Fahim Mannan",
+            "Majed Mohammed",
+            "Akshay Chalana",
+            "Neil Wadhvana",
+            "Michael Wagner"
+          ],
+          "publication_date": "2026-4-7",
+          "citationKey": "schmittMLFMEAAction2026"
+        },
+        {
+          "title": "The ML FMEA: An Introduction (Torc Robotics publication page)",
+          "url": "https://torc.ai/knowledge-center/publications/the-ml-fmea-an-introduction/",
+          "source_type": "documentation",
+          "citationKey": "MLFMEAIntroduction"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "acronym": "ML-FMEA",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every step of the lane-detection model's development pipeline has been analysed for failure modes, and each failure mode ranked above the agreed action limit has an implemented mitigation with a named owner.",
+          "assuranceGoal": "safety",
+          "domain": "autonomous systems"
+        },
+        {
+          "text": "Severity ratings in the triage model's ML FMEA are taken from the system-level hazard analysis, so each pipeline risk is rated by its possible effect on patients before it is ranked.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Collection and labelling of the perception model's training data are covered by a documented control for each failure mode identified in the ML FMEA, including seasonal and weather coverage.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "Following the field incident, the ML FMEA was revised to add the missing control for unseen packaging types, and the affected failure modes were re-rated.",
+          "assuranceGoal": "safety",
+          "domain": "manufacturing"
+        }
+      ]
+    },
+    {
+      "slug": "system-theoretic-process-analysis",
+      "name": "System-Theoretic Process Analysis",
+      "description": "System-Theoretic Process Analysis (STPA) is a hazard analysis method developed by Nancy Leveson at MIT that treats safety as a control problem: a loss can occur when parts of a system that have not failed interact unsafely, for example when a controller acts on a wrong belief about the process it controls. The analysis has four steps: define the losses to prevent and the system-level hazards that lead to them; model the system as a control structure of controllers, the control actions they issue and the feedback they receive; identify unsafe control actions; and write loss scenarios explaining how each could arise. An unsafe control action is one of four types (not providing an action causes a hazard, providing it causes a hazard, providing it too early, too late or in the wrong order, or stopping it too soon or applying it too long), and loss scenarios cover causes such as missing or wrong feedback, a flawed control algorithm, or a controller's process model (its internal picture of what it controls) that no longer matches reality. In a system with machine-learning components, a learned model appears in the control structure as a controller whose control algorithm and process model were learned from data, or as a feedback source, such as a perception model, whose errors mislead a controller; loss scenarios include training data that missed an operating condition, a shift from training to deployment conditions, and operators who over-rely on the model, and published adaptations also model data collection, training and evaluation as control loops, so that a scenario can trace an unsafe control action back to a development decision such as an incomplete reward function. The output is a traceable set of unsafe control actions, loss scenarios and the safety constraints and requirements derived from them, which the team uses to change the design and to decide what to test; it analyses a model of the system before or alongside testing, and it gives no probabilities.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/hazard-analysis",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/qualitative-report",
+        "evidence-type/structured-output",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/ml-engineering",
+        "technique-type/process",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/project-planning",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An automotive supplier building a pedestrian collision-avoidance function around a neural-network detector models the vehicle's control structure with the detector as the braking controller's source of feedback. It finds the unsafe control action 'emergency braking not applied while a pedestrian is crossing', with scenarios such as missed detections of partly hidden pedestrians at dusk, and turns them into requirements on training-data coverage and on the detector's miss rate.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A hospital's patient-safety team preparing to deploy a machine-learning early-warning score for patient deterioration models the score, the nurses who receive its alerts and the doctors who act on them as one control structure. It finds unsafe control actions such as an escalation that comes too late because vital signs reach the record in batches, and alerts ignored after repeated false alarms, and changes data entry and the alerting rules before go-live.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A frontier AI developer's safety team analysing internal use of an AI coding agent models the engineers who prompt it, the automated monitor that scores its sessions, the human reviewers and the merge gate as controllers of the company codebase. It finds unsafe control actions such as a monitoring alert that arrives after the agent's change has been merged, and sets requirements on how quickly sessions are reviewed and on reviewers' independence from the agent.",
+          "goal": "Safety"
+        },
+        {
+          "description": "An engineering team training a reinforcement-learning policy to land a drone splits the mission into approach, descent and touchdown, identifies unsafe control actions for each phase, such as descending too fast close to the landing pad, and uses the loss scenarios to choose the wind and sensor-noise perturbations for its simulation tests and to adjust the reward before the next round of training.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The analysis depends on judgement at every step: deciding which losses matter, where the system ends, which parts act as controllers and which scenarios to record. Separate teams analysing the same system can reach different models and scenario lists, so the work needs review by people outside the team, and a short list of loss scenarios is not evidence that no others exist."
+        },
+        {
+          "description": "STPA does not estimate how likely a hazard or scenario is, and its authors argue that such estimates are unreliable for software-intensive systems. Where an assurance case or regulator needs a quantitative target, such as a failure rate per hour, it must be paired with a quantitative method, and STPA alone cannot show that a scenario is too rare to need a mitigation."
+        },
+        {
+          "description": "For a learned component the analysts cannot read the process model or the control algorithm, because both are encoded in trained weights. Scenarios explaining why the model would act unsafely are therefore hypotheses about its training data and operating conditions until tests or monitoring confirm them, and for policies with continuous states and actions the analysis has to be split by mission phase or subtask to stay manageable."
+        },
+        {
+          "description": "A control structure that covers only the system in operation misses causes that lie in how the model was built, such as data collection, labelling, reward design or the choice of evaluation set; a survey of 31 studies applying STPA to learning-enabled systems found that most modelled operation only. Adding the development lifecycle as control loops finds these causes but makes the analysis substantially larger."
+        },
+        {
+          "description": "A full analysis of a complex system takes sustained effort from people trained in the method, working with domain and machine-learning experts. A language model can draft loss scenarios faster, but its drafts steer the team towards the scenarios it happens to suggest and can leave gaps, so they need the same review as scenarios written by hand."
+        }
+      ],
+      "resources": [
+        {
+          "title": "STPA Handbook",
+          "url": "https://psas.scripts.mit.edu/home/get_file.php?name=STPA_Handbook.pdf",
+          "source_type": "documentation",
+          "citationKey": "STPAHandbook"
+        },
+        {
+          "title": "PASTA: Pragmatic-Automated System Theoretic Process Analysis (VS Code extension)",
+          "url": "https://github.com/kieler/pasta",
+          "source_type": "software_package",
+          "citationKey": "PASTAPragmaticAutomatedSystem",
+          "abstract": "VS Code extension for STPA-based risk analyses with interactive diagrams and integrations for fault trees, safe-by-construction behavior model generation, and verification. - kieler/pasta"
+        },
+        {
+          "title": "STPA: A New Hazard Analysis Technique",
+          "url": "https://doi.org/10.7551/mitpress/8179.003.0013",
+          "source_type": "technical_paper",
+          "authors": [
+            "Nancy G. Leveson"
+          ],
+          "publication_date": "2012-1-13",
+          "citationKey": "STPANewHazard2012"
+        },
+        {
+          "title": "Introduction to STPA: Anticipating and Preventing Loss Scenarios in Complex Systems (MIT STAMP Workshop tutorial)",
+          "url": "https://psas.scripts.mit.edu/home/wp-content/uploads/2020/07/JThomas-STPA-Introduction.pdf",
+          "source_type": "tutorial",
+          "citationKey": "IntroductionSTPAAnticipating"
+        },
+        {
+          "title": "STPA for Learning-Enabled Systems: A Survey and A New Practice",
+          "url": "https://doi.org/10.1109/itsc57777.2023.10422520",
+          "source_type": "application_paper",
+          "authors": [
+            "Yi Qi",
+            "Yi Dong",
+            "Siddartha Khastgir",
+            "Paul Jennings",
+            "Xingyu Zhao",
+            "Xiaowei Huang"
+          ],
+          "publication_date": "2023-9-24",
+          "citationKey": "qiSTPALearningEnabledSystems2023"
+        },
+        {
+          "title": "Application of STPA for the Elicitation of Safety Requirements for a Machine Learning-Based Perception Component in Automotive",
+          "url": "https://doi.org/10.1007/978-3-031-14835-4_21",
+          "source_type": "application_paper",
+          "authors": [
+            "Esra Acar Celik",
+            "Carmen Cârlan",
+            "Asim Abdulkhaleq",
+            "Fridolin Bauer",
+            "Martin Schels",
+            "Henrik J. Putzer"
+          ],
+          "publication_date": "2022",
+          "citationKey": "acarcelikApplicationSTPAElicitation2022"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 1,
+      "acronym": "STPA",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Each unsafe control action identified for the emergency braking controller, including those caused by missed detections from the pedestrian detector, is traced to a safety constraint and to a verified requirement on the detector or the vehicle.",
+          "assuranceGoal": "safety",
+          "domain": "autonomous systems"
+        },
+        {
+          "text": "The hazard analysis of the early-warning score covered the clinicians who act on its alerts and the data feeds it depends on as well as the model, and every loss scenario it found has a mitigation recorded in the deployment plan.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Unsafe control actions arising from late or missing review of the coding agent's sessions were identified, and each has a design constraint that bounds the time between an agent's action and its review.",
+          "assuranceGoal": "safety",
+          "domain": "general"
+        },
+        {
+          "text": "Each loss scenario derived for the drone-landing policy's approach, descent and touchdown phases is covered by at least one simulation test case.",
+          "assuranceGoal": "safety",
+          "domain": "autonomous systems"
+        }
+      ]
     }
   ],
-  "count": 2
+  "count": 5
 }

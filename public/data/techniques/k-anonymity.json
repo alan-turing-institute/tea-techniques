@@ -1,0 +1,149 @@
+{
+  "slug": "k-anonymity",
+  "name": "k-Anonymity",
+  "description": "k-Anonymity is a property that a table of real records about people can be made to satisfy before it is released or shared, in which every record shares its values on the quasi-identifiers with at least k-1 other records, so anyone linking the table to another source on those columns always matches a group of at least k records, which is k people only when each person has one record. Quasi-identifiers are columns that are not names or ID numbers but could be found elsewhere and combined to single a person out, such as date of birth, sex and postcode, and because the data holder chooses them, the protection covers only those columns. To reach a chosen k, each quasi-identifier is coarsened along a hierarchy set in advance (exact age to five-year band, full postcode to district), and the values or records that would still sit in a group smaller than k are suppressed, with a search choosing the coarsening that loses least information. The output is the transformed table of real records made less specific, not artificial ones, together with the k it achieves and a measure of the detail lost. Unlike differential privacy, it gives no bound on what an observer can learn, because it blocks linking on the listed columns but does not stop someone learning a sensitive value that everyone in a group shares.",
+  "assurance_goals": [
+    "Privacy"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/privacy",
+    "assurance-goal-category/privacy/exposure-reduction",
+    "data-requirements/access-to-training-data",
+    "data-type/tabular",
+    "evidence-type/modified-dataset",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/privacy-engineering",
+    "expertise-needed/statistics",
+    "expertise-needed/domain-expertise",
+    "technique-type/algorithmic",
+    "lifecycle-stage/project-design",
+    "lifecycle-stage/project-design/data-extraction-or-procurement",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A hospital trust preparing an extract of emergency attendances for a university research team treats age, sex, postcode district and attendance date as quasi-identifiers, since local news reports and social media posts about incidents often carry them. Using ARX it generalises age to five-year bands and dates to weeks, suppresses the records still in groups smaller than five, and sends the extract with a note of the k achieved, the columns covered and the share of records suppressed.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "A national statistics office preparing a scientific-use file of a household survey for registered researchers recodes region and occupation into broader groups in sdcMicro, then applies local suppression until every combination of age band, sex, region and household size occurs at least three times, and publishes the number of suppressed values with the file so that users can judge the effect on their analyses.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "A motor insurer sharing a claims table with an analytics firm that will build a fraud-detection model applies 10-anonymity to policyholder age, vehicle model and postcode district. Before release it agrees with the firm that the coarser bands still carry enough signal for the model, and it keeps the generalisation scheme so that later releases are generalised from the same scheme rather than a new one.",
+      "goal": "Privacy"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "k-Anonymity hides which record is a person's, not what their group has in common. If all k records in a group share the same diagnosis, anyone who can place a person in that group learns the diagnosis, and an attacker with extra background knowledge can rule out other members of the group. Extensions such as l-diversity and t-closeness add conditions on the sensitive column for this reason; k-anonymity alone does not prevent sensitive values being disclosed."
+    },
+    {
+      "description": "The protection covers only the columns the data holder lists as quasi-identifiers, and rests on the holder judging correctly which columns an attacker could find elsewhere. A column left off the list, such as a rare diagnosis that a local newspaper has reported, can still single a record out, and the property says nothing about it. Choosing the list needs a realistic picture of the public, commercial and leaked data an attacker could hold."
+    },
+    {
+      "description": "Each release is protected only on its own. Two k-anonymous versions of the same data, generalised differently or produced at different times as records are added, can be joined to narrow groups below k, and two releases that keep the rows in the same order can be lined up row by row. Later releases must be built from the first, or treat all its released columns as quasi-identifiers, and row order must be randomised before each release."
+    },
+    {
+      "description": "With many quasi-identifiers or detailed values such as exact dates and measurements, most records are unique, and reaching k needs coarsening or suppression heavy enough to remove the detail an analysis or model depends on; the method suits continuous variables poorly. Because the suppressed records are those with rare combinations of values, the released table can under-represent exactly the unusual cases a model most needs to handle."
+    },
+    {
+      "description": "Requiring k within the released table treats the attacker as knowing their target is in it. When the table is a small sample of a larger population, a record unique in the table may match many people outside it, so the requirement over-protects; El Emam and Dankar found this over-anonymisation, and the loss of information it causes, greatest at small sampling fractions. A re-identification risk assessment against the population can justify a lighter transformation."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Privacy models – ARX – Data Anonymization Tool",
+      "url": "https://arx.deidentifier.org/overview/privacy-criteria/",
+      "source_type": "documentation",
+      "citationKey": "PrivacyModelsARX"
+    },
+    {
+      "title": "ARX Data Anonymization Tool (arx-deidentifier/arx)",
+      "url": "https://github.com/arx-deidentifier/arx",
+      "source_type": "software_package",
+      "citationKey": "ARXDataAnonymization",
+      "abstract": "ARX is a comprehensive open source data anonymization tool aiming to provide scalability and usability. It supports various anonymization techniques, methods for analyzing data quality and re-ident..."
+    },
+    {
+      "title": "sdcMicro: Statistical Disclosure Control Methods for Anonymization of Data and Risk Estimation",
+      "url": "https://cran.r-project.org/package=sdcMicro",
+      "source_type": "software_package",
+      "publication_date": "2026-06-12",
+      "citationKey": "templSdcMicroStatisticalDisclosure2026",
+      "abstract": "Data from statistical agencies and other institutions are mostly confidential. This package, introduced in Templ, Kowarik and Meindl (2017) <doi:10.18637/jss.v067.i04>, can be used for the generation of anonymized (micro)data, i.e. for the creation of public- and scientific-use files. The theoretical basis for the methods implemented can be found in Templ (2017) <doi:10.1007/978-3-319-50272-4>. Various risk estimation and anonymization methods are included. Note that the package includes a graphical user interface published in Meindl and Templ (2019) <doi:10.3390/a12090191> that allows to use various methods of this package."
+    },
+    {
+      "title": "k-ANONYMITY: A MODEL FOR PROTECTING PRIVACY",
+      "url": "https://doi.org/10.1142/s0218488502001648",
+      "source_type": "technical_paper",
+      "authors": [
+        "LATANYA SWEENEY"
+      ],
+      "publication_date": "2002-10",
+      "citationKey": "sweeneyKANONYMITYMODELPROTECTING2002"
+    },
+    {
+      "title": "ACHIEVING k-ANONYMITY PRIVACY PROTECTION USING GENERALIZATION  AND SUPPRESSION",
+      "url": "https://doi.org/10.1142/s021848850200165x",
+      "source_type": "technical_paper",
+      "authors": [
+        "LATANYA SWEENEY"
+      ],
+      "publication_date": "2002-10",
+      "citationKey": "sweeneyACHIEVINGKANONYMITYPRIVACY2002"
+    },
+    {
+      "title": "Anonymization Methods — Statistical Disclosure Control for Microdata: A Practice Guide for sdcMicro",
+      "url": "https://sdcpractice.readthedocs.io/en/latest/anon_methods.html",
+      "source_type": "tutorial",
+      "citationKey": "AnonymizationMethodsStatistical"
+    },
+    {
+      "title": "De-identification Methods for Open Health Data: The Case of the Heritage Health Prize Claims Dataset",
+      "url": "https://doi.org/10.2196/jmir.2001",
+      "source_type": "application_paper",
+      "authors": [
+        "Khaled El Emam",
+        "Luk Arbuckle",
+        "Gunes Koru",
+        "Benjamin Eze",
+        "Lisa Gaudette",
+        "Emilio Neri",
+        "Sean Rose",
+        "Jeremy Howard",
+        "Jonathan Gluck"
+      ],
+      "publication_date": "2012-2-27",
+      "citationKey": "elemamDeidentificationMethodsOpen2012"
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 2,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Every record in the emergency-attendance extract shares its age band, sex, postcode district and attendance week with at least four other records.",
+      "assuranceGoal": "privacy",
+      "domain": "healthcare"
+    },
+    {
+      "text": "The household survey's scientific-use file is 3-anonymous on age band, sex, region and household size, and the number of values suppressed to achieve this is published with the file.",
+      "assuranceGoal": "privacy",
+      "domain": "public sector"
+    },
+    {
+      "text": "The quasi-identifiers used for the release were chosen against a documented list of the public and commercial sources an attacker could link to, and the release is k-anonymous on all of them.",
+      "assuranceGoal": "privacy",
+      "domain": "general"
+    },
+    {
+      "text": "Every later release of the claims data is generalised from the same scheme as the first, as required to stop releases being joined to form groups of fewer than ten policyholders.",
+      "assuranceGoal": "privacy",
+      "domain": "finance"
+    }
+  ]
+}

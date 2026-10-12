@@ -669,7 +669,169 @@
           "assuranceGoal": "reliability"
         }
       ]
+    },
+    {
+      "slug": "signal-temporal-logic-monitoring",
+      "name": "Signal Temporal Logic Monitoring",
+      "description": "Signal temporal logic (STL) monitoring checks the signals a system produces over time, such as speeds, distances, positions or a model's outputs, against safety requirements written in signal temporal logic, a formal language for stating how real-valued signals must behave over time intervals (for example, 'whenever the gap to the vehicle ahead falls below 10 m, speed drops below 5 m/s within 2 s'). Each requirement is built from comparisons of signals with thresholds, joined by logical operators and by timed operators such as 'always within [a, b]', 'eventually within [a, b]' and 'until'. For each trace the monitor computes a robustness value, a margin to the requirement rather than robustness to adversarial inputs: its sign says whether the requirement is met (positive) or violated (negative), and its size is a tolerance: any signal whose values stay closer than that to the observed ones at every instant gets the same verdict. Monitors run offline on logged or simulated traces, or online on live signals, where a requirement that looks ahead in time can be decided only once enough of the signal has arrived. RTAMT, the named tool, is an open-source Python library with an optional C++ back-end that builds such monitors from a written specification and connects to ROS and MATLAB/Simulink; its online monitors accept only requirements whose future time windows are bounded and give each verdict after a delay equal to the requirement's time horizon, and it reports the robustness value but does not act on it, so stopping or correcting the system is left to a separate safeguard.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/monitoring",
+        "data-requirements/no-special-requirements",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/software-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A team developing an adaptive cruise controller with a learned speed policy writes its requirements in STL, for example that the time gap to the vehicle ahead never stays below one second for longer than two seconds, and attaches an RTAMT monitor to every drive in an urban driving simulator. The robustness values show which controller settings meet each requirement and by what margin, and drives with negative values become regression scenarios.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A hospital's service robot, which uses learned perception to find people, fetches supplies along corridors. The integrator monitors live ROS topics against a system requirement (always at least 0.5 m from any detected person) and against one requirement per subsystem, such as the planner reaching its next waypoint in time. When a subsystem requirement fails shortly before the system one, the logged verdicts show where the fault began.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A drone-delivery operator checks each day's flight logs from its learned landing controller against a requirement that, in the last ten seconds before touchdown, descent rate stays below 1 m/s and the drone stays within 0.5 m of the pad centre. It reports the smallest robustness value across all landings to its safety manager and investigates any landing whose value is negative.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The monitor checks the requirement as written, not as intended. Writing correct STL needs fluency in the logic and in the system: a wrong threshold, a time window that is too short or a misplaced operator yields confident positive margins for behaviour the engineers would call unsafe, and nothing in the monitor reveals the mistake. Specifications need the same review as the requirements they encode."
+        },
+        {
+          "description": "Online monitoring judges a requirement from a partial trace. RTAMT's online monitors take only requirements whose future time windows are bounded, and give each verdict after a delay equal to the requirement's horizon: a check that something happens within five seconds is decided five seconds later, which may be too late to act on in a fast system. Monitors that track a narrowing range of possible robustness values can flag some violations sooner, but stay undecided until the data settles it."
+        },
+        {
+          "description": "A robustness value is measured in the units of the signals in the requirement, so a margin of 0.4 means 0.4 metres in one requirement and 0.4 degrees in another. Values cannot be compared across requirements, and when one requirement combines signals of different scales its value is set by whichever margin is numerically smallest, which depends on the units chosen unless the signals are normalised first."
+        },
+        {
+          "description": "Monitoring reports on the traces it sees. A clean record over many hours shows that those runs met the requirement, not that every possible run will, and a violation is reported when it happens, not before, unless a separate predictor of future signals is added. To protect the system, the verdict has to drive a safeguard such as a fallback controller, which the monitor does not provide."
+        },
+        {
+          "description": "The verdict is only as good as the signals. If a learned perception component misjudges the distance to a person, the monitor computes a confident margin from the wrong distance; independent sensors or ground truth are needed to check the perception itself. Discrete-time monitors see only the samples taken, so a brief violation between samples can go unseen, and the ROS integration assumes messages arrive at a known, regular rate."
+        }
+      ],
+      "resources": [
+        {
+          "title": "RTAMT: specification-based real-time monitoring library for Signal Temporal Logic",
+          "url": "https://github.com/nickovic/rtamt",
+          "source_type": "software_package",
+          "citationKey": "RTAMTSpecificationbasedRealtime",
+          "abstract": "Specification-based real-time monitoring library. Contribute to nickovic/rtamt development by creating an account on GitHub."
+        },
+        {
+          "title": "Monitoring Temporal Properties of Continuous Signals",
+          "url": "https://doi.org/10.1007/978-3-540-30206-3_12",
+          "source_type": "technical_paper",
+          "authors": [
+            "Oded Maler",
+            "Dejan Nickovic"
+          ],
+          "publication_date": "2004",
+          "citationKey": "malerMonitoringTemporalProperties2004"
+        },
+        {
+          "title": "Robustness of temporal logic specifications for continuous-time signals",
+          "url": "https://doi.org/10.1016/j.tcs.2009.06.021",
+          "source_type": "technical_paper",
+          "authors": [
+            "Georgios E. Fainekos",
+            "George J. Pappas"
+          ],
+          "publication_date": "2009-9",
+          "citationKey": "fainekosRobustnessTemporalLogic2009"
+        },
+        {
+          "title": "RTAMT – Runtime Robustness Monitors with Application to CPS and Robotics",
+          "url": "https://doi.org/10.1007/s10009-023-00720-3",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tomoya Yamaguchi",
+            "Bardh Hoxha",
+            "Dejan Ničković"
+          ],
+          "publication_date": "2023-10-5",
+          "citationKey": "yamaguchiRTAMTRuntimeRobustness2023"
+        },
+        {
+          "title": "Specification-Based Monitoring of Cyber-Physical Systems: A Survey on Theory, Tools and Applications",
+          "url": "https://doi.org/10.1007/978-3-319-75632-5_5",
+          "source_type": "tutorial",
+          "authors": [
+            "Ezio Bartocci",
+            "Jyotirmoy Deshmukh",
+            "Alexandre Donzé",
+            "Georgios Fainekos",
+            "Oded Maler",
+            "Dejan Ničković",
+            "Sriram Sankaranarayanan"
+          ],
+          "publication_date": "2018",
+          "citationKey": "bartocciSpecificationBasedMonitoringCyberPhysical2018"
+        },
+        {
+          "title": "Runtime Verification of Autonomous Driving Systems in CARLA",
+          "url": "https://doi.org/10.1007/978-3-030-60508-7_9",
+          "source_type": "application_paper",
+          "authors": [
+            "Eleni Zapridou",
+            "Ezio Bartocci",
+            "Panagiotis Katsaros"
+          ],
+          "publication_date": "2020",
+          "citationKey": "zapridouRuntimeVerificationAutonomous2020"
+        },
+        {
+          "title": "Perception-based Runtime Monitoring and Verification for Human-Robot Construction Systems",
+          "url": "https://doi.org/10.1109/memocode63347.2024.00021",
+          "source_type": "application_paper",
+          "authors": [
+            "Apala Pramanik",
+            "Sung Woo Choi",
+            "Yuntao Li",
+            "Luan Viet Nguyen",
+            "Kyungki Kim",
+            "Hoang-Dung Tran"
+          ],
+          "publication_date": "2024-10-3",
+          "citationKey": "pramanikPerceptionbasedRuntimeMonitoring2024"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "In every simulated and test-track drive of the release campaign, the adaptive cruise controller met the minimum time-gap requirement, and the smallest robustness margin is reported for each scenario.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "Throughout the trial period the service robot's online monitor recorded no violation of the 0.5 m separation requirement, and each subsystem-level violation it logged was investigated and closed.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every landing made by the learned landing controller in the reporting period met the final-approach descent-rate and position requirements, with the smallest margin stated.",
+          "assuranceGoal": "safety",
+          "domain": "aviation"
+        }
+      ]
     }
   ],
-  "count": 4
+  "count": 5
 }

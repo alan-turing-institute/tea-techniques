@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/paradigm/supervised",
     "slug": "applicable-models-paradigm-supervised",
-    "count": 49,
+    "count": 50,
     "category": "applicable-models"
   },
   "techniques": [
@@ -7971,7 +7971,163 @@
           "domain": "transport"
         }
       ]
+    },
+    {
+      "slug": "autoattack",
+      "name": "AutoAttack",
+      "description": "AutoAttack is a fixed suite of four automated adversarial attacks, introduced by Croce and Hein (ICML 2020), that measures how much of an image classifier's test accuracy survives small, deliberately chosen changes to its input images at inference time. The evaluator states the threat model, a norm and radius that bound the change (for example, no pixel value changed by more than 8/255 under the L-infinity norm), and the standard version then attacks each correctly classified test image in turn with APGD-CE (projected gradient descent that sets its own step size, on the cross-entropy loss), a targeted APGD on the authors' Difference of Logits Ratio loss, a targeted form of the FAB minimum-norm attack, and the Square Attack, which needs only the model's outputs and so still works when gradients are uninformative. An image counts as robust only if none of the four finds a misclassified version within the bound, and because every attack setting is fixed in advance the evaluator tunes nothing, which removes a common cause of overstated robustness: an attack too weakly tuned for the model. The output is robust accuracy, the share of test images still classified correctly under attack at the stated norm and radius, reported beside clean accuracy; published models are compared on the RobustBench leaderboard, which uses AutoAttack as its standard evaluation. Because AutoAttack is not built around any one defence, it can supply the attack step for a wider judgement of a defence, such as whether adversarial training holds up against attacks it was not trained on; unlike red teaming, it involves no human attacker or open-ended search.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/white-box",
+        "applicable-models/requirements/gradient-access",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/vulnerability-testing",
+        "data-requirements/labelled-data",
+        "data-type/image",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/security",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's model-risk team validating a vendor's classifier that recognises which of 40 identity-document types a customer has photographed during remote account opening, so the right authenticity checks run, receives the model weights under the review agreement. It reruns the vendor's robustness evaluation with standard AutoAttack at the same L-infinity radius, compares the two robust accuracies and records any automatic warnings before accepting the vendor's figure.",
+          "goal": "Security"
+        },
+        {
+          "description": "A photo-sharing platform's trust-and-safety team expects uploaders to perturb images to slip past the classifier that sorts uploads into a dozen prohibited-content categories and an allowed class. Choosing between two candidate models, it runs standard AutoAttack on both at a perturbation budget agreed with its security team, and selects the one with higher robust accuracy whose clean-accuracy cost is acceptable, recording both figures in the release review.",
+          "goal": "Security"
+        },
+        {
+          "description": "A research group proposing a new defence for a traffic-sign classifier runs standard AutoAttack before publication and finds that the Square Attack lowers robust accuracy further than the gradient-based attacks, one of AutoAttack's warning signs that gradients are masked. It treats its figure as an upper bound and has an attack designed for its defence built before claiming any robustness.",
+          "goal": "Security"
+        },
+        {
+          "description": "A computational-pathology group comparing a convolutional network and a vision transformer for three-way tumour subtyping on routine slide images attacks both with AutoAttack, its settings reduced for three classes, at several perturbation sizes below what a blinded clinical reader could detect, and compares attack success rates on an external patient cohort to decide which architecture goes forward.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Robust accuracy from AutoAttack is an upper bound: an image counts as robust because these four attacks failed, not because no adversarial example exists. The authors present it as the minimum test for a new defence rather than the strongest possible attack, so a claim that no change within the bound can alter a decision needs a certified-robustness method instead."
+        },
+        {
+          "description": "The standard version can overstate robustness for defences that are randomised, not differentiable or run an optimisation loop at inference. The reference code warns about some of these cases, offers a version averaging gradients over the model's randomness, and recommends attacks built for the specific defence; RobustBench excludes such defences. A defence tuned to beat AutoAttack itself can pass it without being robust."
+        },
+        {
+          "description": "The result holds only for the norm and radius tested. It gives no direct evidence about patches, rotations, physical changes to objects or natural corruptions: in RobustBench's quick-start guide, L-infinity-robust models do much worse than an undefended model on fog-corrupted images, though better on average across corruption types. Benchmark radii such as 8/255 are conventions, so the radius should be justified from the deployment's threat, and a new norm or radius needs a new run."
+        },
+        {
+          "description": "It needs white-box access: three of the four attacks use the model's gradients, and the code expects raw scores (logits) and inputs scaled to [0, 1]; with access only to output scores, the Square Attack can run alone, a weaker test. The standard settings also assume ten or more classes, since the targeted attacks each try nine other classes; on a binary or few-class model the reference code stops with an error, so the settings must be reduced and the result is no longer the standard one."
+        },
+        {
+          "description": "The full evaluation is computationally heavy for large models and test sets: each white-box run uses 100 iterations, the targeted attacks each try nine target classes, and the Square Attack makes up to 5,000 queries per image. RobustBench's quick start runs a cheaper two-attack version on 50 images and notes the full version is slower but more accurate; a figure from a subset should be reported with its sampling error."
+        }
+      ],
+      "resources": [
+        {
+          "title": "On the usage of AutoAttack (AutoAttack flags documentation)",
+          "url": "https://github.com/fra31/auto-attack/blob/master/flags_doc.md",
+          "source_type": "documentation",
+          "citationKey": "UsageAutoAttackAutoAttack",
+          "abstract": "Code relative to \"Reliable  evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks\" - fra31/auto-attack"
+        },
+        {
+          "title": "AutoAttack (fra31/auto-attack)",
+          "url": "https://github.com/fra31/auto-attack",
+          "source_type": "software_package",
+          "publication_date": "2026-10-07T10:22:57Z",
+          "citationKey": "fra31AutoAttackFra31Autoattack2026",
+          "abstract": "Code relative to \"Reliable  evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks\""
+        },
+        {
+          "title": "Reliable evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks",
+          "url": "https://proceedings.mlr.press/v119/croce20b.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Francesco Croce",
+            "Matthias Hein"
+          ],
+          "publication_date": "2020",
+          "citationKey": "croceReliableEvaluationAdversarial2020",
+          "abstract": "The field of defense strategies against adversarial attacks has significantly grown over the last years, but progress is hampered as the evaluation of adversarial defenses is often insufficient and thus gives a wrong impression of robustness. Many promising defenses could be broken later on, making it difficult to identify the state-of-the-art. Frequent pitfalls in the evaluation are improper tuning of hyperparameters of the attacks, gradient obfuscation or masking. In this paper we first propose two extensions of the PGD-attack overcoming failures due to suboptimal step size and problems of the objective function. We then combine our novel attacks with two complementary existing ones to form a parameter-free, computationally affordable and user-independent ensemble of attacks to test adversarial robustness. We apply our ensemble to over 50 models from papers published at recent top machine learning and computer vision venues. In all except one of the cases we achieve lower robust test accuracy than reported in these papers, often by more than $10\\%$, identifying several broken defenses."
+        },
+        {
+          "title": "RobustBench: a standardized adversarial robustness benchmark",
+          "url": "https://datasets-benchmarks-proceedings.neurips.cc/paper_files/paper/2021/hash/a3c65c2974270fd093ee8a9bf8ae7d0b-Abstract-round2.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Francesco Croce",
+            "Maksym Andriushchenko",
+            "Vikash Sehwag",
+            "Edoardo Debenedetti",
+            "Nicolas Flammarion",
+            "Mung Chiang",
+            "Prateek Mittal",
+            "Matthias Hein"
+          ],
+          "citationKey": "croceRobustBenchStandardizedAdversarial"
+        },
+        {
+          "title": "RobustBench: Model Zoo quick tour",
+          "url": "https://github.com/RobustBench/robustbench#model-zoo-quick-tour",
+          "source_type": "tutorial",
+          "citationKey": "RobustBenchModelZoo",
+          "abstract": "RobustBench: a standardized adversarial robustness benchmark [NeurIPS 2021 Benchmarks and Datasets Track] - RobustBench/robustbench"
+        },
+        {
+          "title": "Adversarial attacks and adversarial robustness in computational pathology",
+          "url": "https://doi.org/10.1038/s41467-022-33266-0",
+          "source_type": "application_paper",
+          "authors": [
+            "Narmin Ghaffari Laleh",
+            "Daniel Truhn",
+            "Gregory Patrick Veldhuizen",
+            "Tianyu Han",
+            "Marko van Treeck",
+            "Roman D. Buelow",
+            "Rupert Langer",
+            "Bastian Dislich",
+            "Peter Boor",
+            "Volkmar Schulz",
+            "Jakob Nikolas Kather"
+          ],
+          "publication_date": "2022-9-29",
+          "citationKey": "ghaffarilalehAdversarialAttacksAdversarial2022"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under the standard AutoAttack evaluation with L-infinity perturbations of at most 8/255, the image classifier keeps an accuracy on the held-out test set above the threshold agreed in the security requirements.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "The robustness figure for the identity-document classifier was measured with the standard AutoAttack suite at the agreed perturbation budget, and the run raised none of AutoAttack's warnings for randomised behaviour or masked gradients.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "The robust accuracy the supplier reports for the content-screening model is within two percentage points of the figure from an independent standard AutoAttack run on the same test images.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "At perturbation sizes below the level a blinded pathologist could detect, the selected tumour-subtyping model's attack success rate under AutoAttack on an external patient cohort is lower than that of the alternative architecture.",
+          "assuranceGoal": "security",
+          "domain": "healthcare"
+        }
+      ]
     }
   ],
-  "count": 49
+  "count": 50
 }

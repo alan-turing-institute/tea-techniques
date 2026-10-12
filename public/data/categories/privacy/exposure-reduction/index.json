@@ -1162,7 +1162,375 @@
           "assuranceGoal": "transparency"
         }
       ]
+    },
+    {
+      "slug": "k-anonymity",
+      "name": "k-Anonymity",
+      "description": "k-Anonymity is a property that a table of real records about people can be made to satisfy before it is released or shared, in which every record shares its values on the quasi-identifiers with at least k-1 other records, so anyone linking the table to another source on those columns always matches a group of at least k records, which is k people only when each person has one record. Quasi-identifiers are columns that are not names or ID numbers but could be found elsewhere and combined to single a person out, such as date of birth, sex and postcode, and because the data holder chooses them, the protection covers only those columns. To reach a chosen k, each quasi-identifier is coarsened along a hierarchy set in advance (exact age to five-year band, full postcode to district), and the values or records that would still sit in a group smaller than k are suppressed, with a search choosing the coarsening that loses least information. The output is the transformed table of real records made less specific, not artificial ones, together with the k it achieves and a measure of the detail lost. Unlike differential privacy, it gives no bound on what an observer can learn, because it blocks linking on the listed columns but does not stop someone learning a sensitive value that everyone in a group shares.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "data-requirements/access-to-training-data",
+        "data-type/tabular",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A hospital trust preparing an extract of emergency attendances for a university research team treats age, sex, postcode district and attendance date as quasi-identifiers, since local news reports and social media posts about incidents often carry them. Using ARX it generalises age to five-year bands and dates to weeks, suppresses the records still in groups smaller than five, and sends the extract with a note of the k achieved, the columns covered and the share of records suppressed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A national statistics office preparing a scientific-use file of a household survey for registered researchers recodes region and occupation into broader groups in sdcMicro, then applies local suppression until every combination of age band, sex, region and household size occurs at least three times, and publishes the number of suppressed values with the file so that users can judge the effect on their analyses.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A motor insurer sharing a claims table with an analytics firm that will build a fraud-detection model applies 10-anonymity to policyholder age, vehicle model and postcode district. Before release it agrees with the firm that the coarser bands still carry enough signal for the model, and it keeps the generalisation scheme so that later releases are generalised from the same scheme rather than a new one.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "k-Anonymity hides which record is a person's, not what their group has in common. If all k records in a group share the same diagnosis, anyone who can place a person in that group learns the diagnosis, and an attacker with extra background knowledge can rule out other members of the group. Extensions such as l-diversity and t-closeness add conditions on the sensitive column for this reason; k-anonymity alone does not prevent sensitive values being disclosed."
+        },
+        {
+          "description": "The protection covers only the columns the data holder lists as quasi-identifiers, and rests on the holder judging correctly which columns an attacker could find elsewhere. A column left off the list, such as a rare diagnosis that a local newspaper has reported, can still single a record out, and the property says nothing about it. Choosing the list needs a realistic picture of the public, commercial and leaked data an attacker could hold."
+        },
+        {
+          "description": "Each release is protected only on its own. Two k-anonymous versions of the same data, generalised differently or produced at different times as records are added, can be joined to narrow groups below k, and two releases that keep the rows in the same order can be lined up row by row. Later releases must be built from the first, or treat all its released columns as quasi-identifiers, and row order must be randomised before each release."
+        },
+        {
+          "description": "With many quasi-identifiers or detailed values such as exact dates and measurements, most records are unique, and reaching k needs coarsening or suppression heavy enough to remove the detail an analysis or model depends on; the method suits continuous variables poorly. Because the suppressed records are those with rare combinations of values, the released table can under-represent exactly the unusual cases a model most needs to handle."
+        },
+        {
+          "description": "Requiring k within the released table treats the attacker as knowing their target is in it. When the table is a small sample of a larger population, a record unique in the table may match many people outside it, so the requirement over-protects; El Emam and Dankar found this over-anonymisation, and the loss of information it causes, greatest at small sampling fractions. A re-identification risk assessment against the population can justify a lighter transformation."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Privacy models – ARX – Data Anonymization Tool",
+          "url": "https://arx.deidentifier.org/overview/privacy-criteria/",
+          "source_type": "documentation",
+          "citationKey": "PrivacyModelsARX"
+        },
+        {
+          "title": "ARX Data Anonymization Tool (arx-deidentifier/arx)",
+          "url": "https://github.com/arx-deidentifier/arx",
+          "source_type": "software_package",
+          "citationKey": "ARXDataAnonymization",
+          "abstract": "ARX is a comprehensive open source data anonymization tool aiming to provide scalability and usability. It supports various anonymization techniques, methods for analyzing data quality and re-ident..."
+        },
+        {
+          "title": "sdcMicro: Statistical Disclosure Control Methods for Anonymization of Data and Risk Estimation",
+          "url": "https://cran.r-project.org/package=sdcMicro",
+          "source_type": "software_package",
+          "publication_date": "2026-06-12",
+          "citationKey": "templSdcMicroStatisticalDisclosure2026",
+          "abstract": "Data from statistical agencies and other institutions are mostly confidential. This package, introduced in Templ, Kowarik and Meindl (2017) <doi:10.18637/jss.v067.i04>, can be used for the generation of anonymized (micro)data, i.e. for the creation of public- and scientific-use files. The theoretical basis for the methods implemented can be found in Templ (2017) <doi:10.1007/978-3-319-50272-4>. Various risk estimation and anonymization methods are included. Note that the package includes a graphical user interface published in Meindl and Templ (2019) <doi:10.3390/a12090191> that allows to use various methods of this package."
+        },
+        {
+          "title": "k-ANONYMITY: A MODEL FOR PROTECTING PRIVACY",
+          "url": "https://doi.org/10.1142/s0218488502001648",
+          "source_type": "technical_paper",
+          "authors": [
+            "LATANYA SWEENEY"
+          ],
+          "publication_date": "2002-10",
+          "citationKey": "sweeneyKANONYMITYMODELPROTECTING2002"
+        },
+        {
+          "title": "ACHIEVING k-ANONYMITY PRIVACY PROTECTION USING GENERALIZATION  AND SUPPRESSION",
+          "url": "https://doi.org/10.1142/s021848850200165x",
+          "source_type": "technical_paper",
+          "authors": [
+            "LATANYA SWEENEY"
+          ],
+          "publication_date": "2002-10",
+          "citationKey": "sweeneyACHIEVINGKANONYMITYPRIVACY2002"
+        },
+        {
+          "title": "Anonymization Methods — Statistical Disclosure Control for Microdata: A Practice Guide for sdcMicro",
+          "url": "https://sdcpractice.readthedocs.io/en/latest/anon_methods.html",
+          "source_type": "tutorial",
+          "citationKey": "AnonymizationMethodsStatistical"
+        },
+        {
+          "title": "De-identification Methods for Open Health Data: The Case of the Heritage Health Prize Claims Dataset",
+          "url": "https://doi.org/10.2196/jmir.2001",
+          "source_type": "application_paper",
+          "authors": [
+            "Khaled El Emam",
+            "Luk Arbuckle",
+            "Gunes Koru",
+            "Benjamin Eze",
+            "Lisa Gaudette",
+            "Emilio Neri",
+            "Sean Rose",
+            "Jeremy Howard",
+            "Jonathan Gluck"
+          ],
+          "publication_date": "2012-2-27",
+          "citationKey": "elemamDeidentificationMethodsOpen2012"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every record in the emergency-attendance extract shares its age band, sex, postcode district and attendance week with at least four other records.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The household survey's scientific-use file is 3-anonymous on age band, sex, region and household size, and the number of values suppressed to achieve this is published with the file.",
+          "assuranceGoal": "privacy",
+          "domain": "public sector"
+        },
+        {
+          "text": "The quasi-identifiers used for the release were chosen against a documented list of the public and commercial sources an attacker could link to, and the release is k-anonymous on all of them.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Every later release of the claims data is generalised from the same scheme as the first, as required to stop releases being joined to form groups of fewer than ten policyholders.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "pii-detection-and-redaction-in-training-text",
+      "name": "PII Detection and Redaction in Training Text",
+      "description": "PII detection and redaction finds personally identifiable information (PII), such as names, email addresses, phone numbers and account or ID numbers, in a body of text and removes or replaces it before the text is used to train or fine-tune a model, so that the model has fewer personal details to memorise and later reproduce. Presidio, a widely used open-source tool first released by Microsoft and now run as an independent community project, is the reference implementation: each document passes through a set of recognisers, in which a named-entity recognition model (by default an English spaCy model) tags names, places and dates, patterns with checksum or format checks catch structured identifiers such as card and NHS numbers, and nearby words such as 'account' raise a candidate's confidence score. Every detection above a chosen score is then replaced with a placeholder for its type (for example <PERSON>), masked, hashed, encrypted or deleted, and the cleaned corpus goes to training. Because detection is never complete, the procedure ends by measuring recall, the share of identifiers actually caught, for each type on a hand-labelled sample of the same corpus. The evidence it produces is that measured miss rate and the cleaned corpus; unlike differential privacy or synthetic data, it removes real personal details from real text and gives no bound on what remains.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/text",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/data-engineering",
+        "expertise-needed/evaluation-design",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank preparing two years of customer-service chat transcripts to fine-tune an assistant runs Presidio with added pattern recognisers for sort codes and its own account-number format, replaces each detection with a type placeholder, and has staff label 500 transcripts by hand to measure recall per entity type. It fine-tunes only once recall for names and account numbers meets the target in its data protection impact assessment, where it records the miss rate.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "An NHS trust preparing discharge letters to fine-tune a summarisation model finds on a labelled sample that the default English model misses many names written in clinical shorthand and does not detect ward and bed codes at all. It adds lists of staff names and patterns for local codes, re-measures recall on a fresh labelled sample, and reports the remaining miss rate to its information governance group, which decides whether further controls are needed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A company building a code-completion model from its internal repositories detects email addresses, IP addresses, keys and passwords with patterns and a trained detector, discards detections that are too short or are private network addresses to cut false alarms, replaces the rest with tokens such as <EMAIL> and <KEY>, and reports precision and recall per type on an annotated set of files kept apart from tuning.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Detection always misses some identifiers, and a model can memorise and reproduce what is missed, especially details repeated across many documents. A study that fine-tuned GPT-2 on court judgments and emails scrubbed with Presidio's default tagger and a second recogniser concluded that scrubbing reduces but cannot fully prevent leakage of personal information; Presidio's README gives no guarantee of finding it all. The evidence is a measured miss rate, not proof that none remains."
+        },
+        {
+          "description": "It finds only the categories it has recognisers for. On a 2022 benchmark of European Court of Human Rights judgments, Presidio's default setup caught about 70 per cent of identifying mentions but only about 45 per cent of direct identifiers, because it did not recognise case numbers, which identify the applicant on their own. Details that identify someone only in combination, such as a job title, employer and town, are not entity types at all, so redacted text can still point to a person."
+        },
+        {
+          "description": "The default recognisers are built for general English text. Clinical shorthand, other languages, source code and in-house identifier formats need extra recognisers or a different model, and recall measured on one corpus does not carry over to another, so the labelled sample used for the measurement must come from the corpus being cleaned and be kept apart from any tuning of the recognisers."
+        },
+        {
+          "description": "Raising recall by lowering the score threshold or switching on broad entity types also removes text that is not personal, such as names of public bodies, laws and places the task depends on, which lowers the value of the data for training. On the court-judgment benchmark, switching on organisation names raised Presidio's recall slightly but cut its precision from about 0.76 to 0.54."
+        },
+        {
+          "description": "Redaction removes identifiers from the text but does not hide whether a document was used for training, and it gives no formal bound. In the GPT-2 study, membership inference on the scrubbed model still reached an AUC of 0.82, where 0.5 is chance, and adding differentially private training brought it down to 0.5. Claims about membership, or a formal guarantee, need DP-SGD or another method alongside redaction."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Presidio: Data Protection and De-identification SDK — documentation",
+          "url": "https://presidio.dataprivacystack.org/",
+          "source_type": "documentation",
+          "citationKey": "PresidioDataProtection",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "Presidio (data-privacy-stack/presidio)",
+          "url": "https://github.com/data-privacy-stack/presidio",
+          "source_type": "software_package",
+          "citationKey": "PresidioDataprivacystackPresidio",
+          "abstract": "An open-source framework for detecting, redacting, masking, and anonymizing sensitive data (PII) across text, images, and structured data. Supports NLP, pattern matching, and customizable pipelines..."
+        },
+        {
+          "title": "Replacing personally-identifying information in medical records, the Scrub system",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8947683/",
+          "source_type": "technical_paper",
+          "citationKey": "ReplacingPersonallyidentifyingInformation"
+        },
+        {
+          "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+          "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Ahmed Salem",
+            "Robert Sim",
+            "Shruti Tople",
+            "Lukas Wutschitz",
+            "Santiago Zanella-Béguelin"
+          ],
+          "publication_date": "2023-5",
+          "citationKey": "lukasAnalyzingLeakagePersonally2023"
+        },
+        {
+          "title": "The Text Anonymization Benchmark (TAB): A Dedicated Corpus and Evaluation Framework for Text Anonymization",
+          "url": "https://doi.org/10.1162/coli_a_00458",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ildikó Pilán",
+            "Pierre Lison",
+            "Lilja Øvrelid",
+            "Anthi Papadopoulou",
+            "David Sánchez",
+            "Montserrat Batet"
+          ],
+          "publication_date": "2022",
+          "citationKey": "pilanTextAnonymizationBenchmark2022"
+        },
+        {
+          "title": "Tutorial: Customization in Presidio",
+          "url": "https://presidio.dataprivacystack.org/tutorial/",
+          "source_type": "tutorial",
+          "citationKey": "TutorialCustomizationPresidio",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "StarCoder: may the source be with you!",
+          "url": "https://openreview.net/forum?id=KoFOg41haE",
+          "source_type": "application_paper",
+          "authors": [
+            "Raymond Li",
+            "Loubna Ben Allal",
+            "Yangtian Zi",
+            "Niklas Muennighoff",
+            "Denis Kocetkov",
+            "Chenghao Mou",
+            "Marc Marone",
+            "Christopher Akiki",
+            "Jia Li",
+            "Jenny Chim",
+            "Qian Liu",
+            "Evgenii Zheltonozhskii",
+            "Terry Yue Zhuo",
+            "Thomas Wang",
+            "Olivier Dehaene",
+            "Mishig Davaadorj",
+            "Joel Lamy-Poirier",
+            "João Monteiro",
+            "Oleh Shliazhko",
+            "Nicolas Gontier",
+            "Nicholas Meade",
+            "Armel Zebaze",
+            "Ming-Ho Yee",
+            "Logesh Kumar Umapathi",
+            "Jian Zhu",
+            "Benjamin Lipkin",
+            "Muhtasham Oblokulov",
+            "Zhiruo Wang",
+            "Rudra Murthy",
+            "Jason Stillerman",
+            "Siva Sankalp Patel",
+            "Dmitry Abulkhanov",
+            "Marco Zocca",
+            "Manan Dey",
+            "Zhihan Zhang",
+            "Nour Fahmy",
+            "Urvashi Bhattacharyya",
+            "Wenhao Yu",
+            "Swayam Singh",
+            "Sasha Luccioni",
+            "Paulo Villegas",
+            "Maxim Kunakov",
+            "Fedor Zhdanov",
+            "Manuel Romero",
+            "Tony Lee",
+            "Nadav Timor",
+            "Jennifer Ding",
+            "Claire Schlesinger",
+            "Hailey Schoelkopf",
+            "Jan Ebert",
+            "Tri Dao",
+            "Mayank Mishra",
+            "Alex Gu",
+            "Jennifer Robinson",
+            "Carolyn Jane Anderson",
+            "Brendan Dolan-Gavitt",
+            "Danish Contractor",
+            "Siva Reddy",
+            "Daniel Fried",
+            "Dzmitry Bahdanau",
+            "Yacine Jernite",
+            "Carlos Muñoz Ferrandis",
+            "Sean Hughes",
+            "Thomas Wolf",
+            "Arjun Guha",
+            "Leandro von Werra",
+            "Harm de Vries"
+          ],
+          "citationKey": "StarCoderMaySource"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Before fine-tuning, names, email addresses, phone numbers and account numbers in all customer-service transcripts were replaced with type placeholders, and recall measured on 500 hand-labelled transcripts was at least 95 per cent for each of these types.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "The rate of undetected patient and clinician names left in the discharge-letter training corpus, measured on a labelled sample drawn from that corpus, is recorded in the data protection impact assessment and is below the limit set by the information governance group.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Email addresses, IP addresses, keys and passwords found in the code corpus were replaced with placeholder tokens before training, with precision and recall for each type reported on an annotated test set of files.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Recall of the redaction step is reported separately for direct identifiers and for details that identify a person only in combination, so that a high overall figure cannot hide missed direct identifiers.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 5
+  "count": 7
 }

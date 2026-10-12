@@ -2,7 +2,7 @@
   "tag": {
     "name": "expertise-needed/data-engineering",
     "slug": "expertise-needed-data-engineering",
-    "count": 4,
+    "count": 6,
     "category": "expertise-needed"
   },
   "techniques": [
@@ -678,7 +678,382 @@
           "assuranceGoal": "safety"
         }
       ]
+    },
+    {
+      "slug": "training-data-extraction-testing",
+      "name": "Training Data Extraction Testing",
+      "description": "Training data extraction testing measures how much of its training text a generative language model reproduces word for word when it is sampled, without the tester supplying any training record to look for. It differs from membership inference testing, which starts from a candidate record and asks only whether that record was used in training, and from canary exposure testing, which needs secrets planted before training. The tester prompts the model with empty prompts or a few words taken from public text, generates a large volume of output (from tens of millions to billions of tokens) with the sampling settings the deployed system uses, and checks it against the training corpus: any span of at least a fixed length, such as 50 tokens, found verbatim in an index of the corpus, and not low-entropy filler such as repeated characters or lists of numbers, counts as extracted, and personal data is checked by tagging names and identifiers in the output and looking them up in the corpus. Where the corpus cannot be searched, the outputs are ranked by how much more probable the model finds them than a smaller reference model or a text-compression algorithm does, and the top-ranked candidates are checked by hand, for example by web search. The result is the share of generated text copied from training data (under the hand-checked route, the number confirmed among the candidates checked), the number of distinct passages extracted, and the passages themselves, each with a count of the training documents that contain it: a passage found in one or two documents is a privacy finding in a way that a licence or news story repeated thousands of times is not.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/data-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's privacy engineering team fine-tunes an open-weight language model on ten years of customer-service chat transcripts to draft replies for agents. Before deployment it generates 50 million tokens from public-text prompts with the production sampling settings, searches an index of the transcripts for 50-token matches, and looks up every account number, name and phone number tagged in the output. It runs the same test on the base model as a control.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A hospital research group that trained a clinical note-completion model on de-identified discharge summaries runs the test before sharing the weights with partner hospitals. Besides searching for verbatim passages of the summaries, it tags patient names, dates of birth and NHS numbers in the generated text and looks each up in the training set, to find identifiers the de-identification step missed and decide whether the summaries must be re-scrubbed and the model retrained.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "An AI developer preparing an open-weight release compares two checkpoints, one trained on a deduplicated copy of the pre-training corpus. It generates text from each at budgets of 100 million and 1 billion tokens, counts distinct 50-token passages found verbatim in the corpus, and compares how the counts grow with the budget, not a single rate, before choosing which checkpoint to release and what to say about memorisation in the model card.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A government department running a citizen-facing chat assistant on a model it fine-tuned on casework correspondence repeats the test after every fine-tuning update. Because chat-tuned models can leak little under ordinary prompts yet emit training text once pushed off their chat behaviour, the test also uses prompts asking the assistant to repeat a single word many times, a pattern that made one production assistant reproduce its training data.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The result is a lower bound set by the effort spent. The number of distinct passages extracted keeps growing as more text is generated, and one study found that a model which leaked more than another at a small budget leaked less in total. A clean result, or a comparison of models at one fixed budget, can therefore mislead; report the generation budget and compare models at several budgets."
+        },
+        {
+          "description": "Much memorised text comes out only after the right prompt. In one study, sampling from short public prompts recovered about a third of the passages a model was known to reproduce when given their true opening words, and a chat-tuned model leaked far less under ordinary prompts than when pushed into repeating a word. A low rate under ordinary prompts is weak evidence that the data cannot be extracted."
+        },
+        {
+          "description": "The verdict depends on what the output is checked against and on the match rule. A public proxy for an unavailable corpus undercounts (in one study a 9 TB proxy found under half the matches a manual web search found), and a minimum match length long enough to rule out coincidence misses short secrets such as phone or account numbers unless they are tagged and looked up separately. Paraphrased leaks and facts stitched together from several documents are not counted."
+        },
+        {
+          "description": "It is costly at a useful scale. One study generated a billion tokens per model, and its whole evaluation, including a 45 TB index built over a 9 TB corpus, took three weeks on a large cloud machine. The test also produces copies of any personal data the model leaks, which must be stored, reviewed and deleted under the same controls as the training data."
+        },
+        {
+          "description": "It shows what the model emits, not what an attacker could infer. It does not say whether a known person's record was used in training, and it gives no bound for data the test did not happen to elicit, so a clean result cannot stand in for a formal guarantee such as differential privacy."
+        }
+      ],
+      "resources": [
+        {
+          "title": "LM_Memorization (ftramer/LM_Memorization): training data extraction on GPT-2",
+          "url": "https://github.com/ftramer/LM_Memorization",
+          "source_type": "software_package",
+          "citationKey": "LM_MemorizationFtramerLM_Memorization",
+          "abstract": "Training data extraction on GPT-2. Contribute to ftramer/LM_Memorization development by creating an account on GitHub."
+        },
+        {
+          "title": "Extracting Training Data from Large Language Models",
+          "url": "https://www.usenix.org/conference/usenixsecurity21/presentation/carlini-extracting",
+          "source_type": "technical_paper",
+          "authors": [
+            "Nicholas Carlini",
+            "Florian Tramèr",
+            "Eric Wallace",
+            "Matthew Jagielski",
+            "Ariel Herbert-Voss",
+            "Katherine Lee",
+            "Adam Roberts",
+            "Tom Brown",
+            "Dawn Song",
+            "Úlfar Erlingsson",
+            "Alina Oprea",
+            "Colin Raffel"
+          ],
+          "publication_date": "2021",
+          "citationKey": "carliniExtractingTrainingData2021"
+        },
+        {
+          "title": "Analysing PII leakage (microsoft/analysing_pii_leakage)",
+          "url": "https://github.com/microsoft/analysing_pii_leakage",
+          "source_type": "tutorial",
+          "citationKey": "AnalysingPIILeakage",
+          "abstract": "The repository contains the code for analysing the leakage of personally identifiable (PII) information from the output of next word prediction language models. - microsoft/analysing_pii_leakage"
+        },
+        {
+          "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+          "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Ahmed Salem",
+            "Robert Sim",
+            "Shruti Tople",
+            "Lukas Wutschitz",
+            "Santiago Zanella-Béguelin"
+          ],
+          "publication_date": "2023-5",
+          "citationKey": "lukasAnalyzingLeakagePersonally2023"
+        },
+        {
+          "title": "Scalable Extraction of Training Data from Aligned, Production Language Models",
+          "url": "https://proceedings.iclr.cc/paper_files/paper/2025/hash/cce0e917b050208170151f77b497fc71-Abstract-Conference.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Milad Nasr",
+            "Javier Rando",
+            "Nicholas Carlini",
+            "Jonathan Hayase",
+            "Matthew Jagielski",
+            "A. Feder Cooper",
+            "Daphne Ippolito",
+            "Christopher Choquette-Choo",
+            "Florian Tramer",
+            "Katherine Lee"
+          ],
+          "citationKey": "nasrScalableExtractionTraining"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Across 50 million tokens generated from the fine-tuned support model with production sampling settings, no span of 50 or more tokens matched the training transcripts verbatim, and none of the account numbers or customer names tagged in the output occurs in the transcripts.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "In an extraction test of 10 million generated tokens, the clinical note model reproduced no NHS number, and no patient name together with a date of birth, that appears in its training summaries.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "At every generation budget tested, up to one billion tokens, the deduplicated checkpoint emitted fewer distinct verbatim passages of its pre-training corpus than the original checkpoint.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "After each fine-tuning update, extraction tests of 20 million generated tokens, from both ordinary prompts and repeated-word prompts, found no passage of 50 or more tokens from the casework correspondence in the assistant's output.",
+          "assuranceGoal": "privacy",
+          "domain": "public sector"
+        }
+      ]
+    },
+    {
+      "slug": "pii-detection-and-redaction-in-training-text",
+      "name": "PII Detection and Redaction in Training Text",
+      "description": "PII detection and redaction finds personally identifiable information (PII), such as names, email addresses, phone numbers and account or ID numbers, in a body of text and removes or replaces it before the text is used to train or fine-tune a model, so that the model has fewer personal details to memorise and later reproduce. Presidio, a widely used open-source tool first released by Microsoft and now run as an independent community project, is the reference implementation: each document passes through a set of recognisers, in which a named-entity recognition model (by default an English spaCy model) tags names, places and dates, patterns with checksum or format checks catch structured identifiers such as card and NHS numbers, and nearby words such as 'account' raise a candidate's confidence score. Every detection above a chosen score is then replaced with a placeholder for its type (for example <PERSON>), masked, hashed, encrypted or deleted, and the cleaned corpus goes to training. Because detection is never complete, the procedure ends by measuring recall, the share of identifiers actually caught, for each type on a hand-labelled sample of the same corpus. The evidence it produces is that measured miss rate and the cleaned corpus; unlike differential privacy or synthetic data, it removes real personal details from real text and gives no bound on what remains.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/text",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/data-engineering",
+        "expertise-needed/evaluation-design",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank preparing two years of customer-service chat transcripts to fine-tune an assistant runs Presidio with added pattern recognisers for sort codes and its own account-number format, replaces each detection with a type placeholder, and has staff label 500 transcripts by hand to measure recall per entity type. It fine-tunes only once recall for names and account numbers meets the target in its data protection impact assessment, where it records the miss rate.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "An NHS trust preparing discharge letters to fine-tune a summarisation model finds on a labelled sample that the default English model misses many names written in clinical shorthand and does not detect ward and bed codes at all. It adds lists of staff names and patterns for local codes, re-measures recall on a fresh labelled sample, and reports the remaining miss rate to its information governance group, which decides whether further controls are needed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A company building a code-completion model from its internal repositories detects email addresses, IP addresses, keys and passwords with patterns and a trained detector, discards detections that are too short or are private network addresses to cut false alarms, replaces the rest with tokens such as <EMAIL> and <KEY>, and reports precision and recall per type on an annotated set of files kept apart from tuning.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Detection always misses some identifiers, and a model can memorise and reproduce what is missed, especially details repeated across many documents. A study that fine-tuned GPT-2 on court judgments and emails scrubbed with Presidio's default tagger and a second recogniser concluded that scrubbing reduces but cannot fully prevent leakage of personal information; Presidio's README gives no guarantee of finding it all. The evidence is a measured miss rate, not proof that none remains."
+        },
+        {
+          "description": "It finds only the categories it has recognisers for. On a 2022 benchmark of European Court of Human Rights judgments, Presidio's default setup caught about 70 per cent of identifying mentions but only about 45 per cent of direct identifiers, because it did not recognise case numbers, which identify the applicant on their own. Details that identify someone only in combination, such as a job title, employer and town, are not entity types at all, so redacted text can still point to a person."
+        },
+        {
+          "description": "The default recognisers are built for general English text. Clinical shorthand, other languages, source code and in-house identifier formats need extra recognisers or a different model, and recall measured on one corpus does not carry over to another, so the labelled sample used for the measurement must come from the corpus being cleaned and be kept apart from any tuning of the recognisers."
+        },
+        {
+          "description": "Raising recall by lowering the score threshold or switching on broad entity types also removes text that is not personal, such as names of public bodies, laws and places the task depends on, which lowers the value of the data for training. On the court-judgment benchmark, switching on organisation names raised Presidio's recall slightly but cut its precision from about 0.76 to 0.54."
+        },
+        {
+          "description": "Redaction removes identifiers from the text but does not hide whether a document was used for training, and it gives no formal bound. In the GPT-2 study, membership inference on the scrubbed model still reached an AUC of 0.82, where 0.5 is chance, and adding differentially private training brought it down to 0.5. Claims about membership, or a formal guarantee, need DP-SGD or another method alongside redaction."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Presidio: Data Protection and De-identification SDK — documentation",
+          "url": "https://presidio.dataprivacystack.org/",
+          "source_type": "documentation",
+          "citationKey": "PresidioDataProtection",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "Presidio (data-privacy-stack/presidio)",
+          "url": "https://github.com/data-privacy-stack/presidio",
+          "source_type": "software_package",
+          "citationKey": "PresidioDataprivacystackPresidio",
+          "abstract": "An open-source framework for detecting, redacting, masking, and anonymizing sensitive data (PII) across text, images, and structured data. Supports NLP, pattern matching, and customizable pipelines..."
+        },
+        {
+          "title": "Replacing personally-identifying information in medical records, the Scrub system",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8947683/",
+          "source_type": "technical_paper",
+          "citationKey": "ReplacingPersonallyidentifyingInformation"
+        },
+        {
+          "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+          "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Ahmed Salem",
+            "Robert Sim",
+            "Shruti Tople",
+            "Lukas Wutschitz",
+            "Santiago Zanella-Béguelin"
+          ],
+          "publication_date": "2023-5",
+          "citationKey": "lukasAnalyzingLeakagePersonally2023"
+        },
+        {
+          "title": "The Text Anonymization Benchmark (TAB): A Dedicated Corpus and Evaluation Framework for Text Anonymization",
+          "url": "https://doi.org/10.1162/coli_a_00458",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ildikó Pilán",
+            "Pierre Lison",
+            "Lilja Øvrelid",
+            "Anthi Papadopoulou",
+            "David Sánchez",
+            "Montserrat Batet"
+          ],
+          "publication_date": "2022",
+          "citationKey": "pilanTextAnonymizationBenchmark2022"
+        },
+        {
+          "title": "Tutorial: Customization in Presidio",
+          "url": "https://presidio.dataprivacystack.org/tutorial/",
+          "source_type": "tutorial",
+          "citationKey": "TutorialCustomizationPresidio",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "StarCoder: may the source be with you!",
+          "url": "https://openreview.net/forum?id=KoFOg41haE",
+          "source_type": "application_paper",
+          "authors": [
+            "Raymond Li",
+            "Loubna Ben Allal",
+            "Yangtian Zi",
+            "Niklas Muennighoff",
+            "Denis Kocetkov",
+            "Chenghao Mou",
+            "Marc Marone",
+            "Christopher Akiki",
+            "Jia Li",
+            "Jenny Chim",
+            "Qian Liu",
+            "Evgenii Zheltonozhskii",
+            "Terry Yue Zhuo",
+            "Thomas Wang",
+            "Olivier Dehaene",
+            "Mishig Davaadorj",
+            "Joel Lamy-Poirier",
+            "João Monteiro",
+            "Oleh Shliazhko",
+            "Nicolas Gontier",
+            "Nicholas Meade",
+            "Armel Zebaze",
+            "Ming-Ho Yee",
+            "Logesh Kumar Umapathi",
+            "Jian Zhu",
+            "Benjamin Lipkin",
+            "Muhtasham Oblokulov",
+            "Zhiruo Wang",
+            "Rudra Murthy",
+            "Jason Stillerman",
+            "Siva Sankalp Patel",
+            "Dmitry Abulkhanov",
+            "Marco Zocca",
+            "Manan Dey",
+            "Zhihan Zhang",
+            "Nour Fahmy",
+            "Urvashi Bhattacharyya",
+            "Wenhao Yu",
+            "Swayam Singh",
+            "Sasha Luccioni",
+            "Paulo Villegas",
+            "Maxim Kunakov",
+            "Fedor Zhdanov",
+            "Manuel Romero",
+            "Tony Lee",
+            "Nadav Timor",
+            "Jennifer Ding",
+            "Claire Schlesinger",
+            "Hailey Schoelkopf",
+            "Jan Ebert",
+            "Tri Dao",
+            "Mayank Mishra",
+            "Alex Gu",
+            "Jennifer Robinson",
+            "Carolyn Jane Anderson",
+            "Brendan Dolan-Gavitt",
+            "Danish Contractor",
+            "Siva Reddy",
+            "Daniel Fried",
+            "Dzmitry Bahdanau",
+            "Yacine Jernite",
+            "Carlos Muñoz Ferrandis",
+            "Sean Hughes",
+            "Thomas Wolf",
+            "Arjun Guha",
+            "Leandro von Werra",
+            "Harm de Vries"
+          ],
+          "citationKey": "StarCoderMaySource"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Before fine-tuning, names, email addresses, phone numbers and account numbers in all customer-service transcripts were replaced with type placeholders, and recall measured on 500 hand-labelled transcripts was at least 95 per cent for each of these types.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "The rate of undetected patient and clinician names left in the discharge-letter training corpus, measured on a labelled sample drawn from that corpus, is recorded in the data protection impact assessment and is below the limit set by the information governance group.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Email addresses, IP addresses, keys and passwords found in the code corpus were replaced with placeholder tokens before training, with precision and recall for each type reported on an annotated test set of files.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Recall of the redaction step is reported separately for direct identifiers and for details that identify a person only in combination, so that a high overall figure cannot hide missed direct identifiers.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 4
+  "count": 6
 }

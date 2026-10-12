@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
     "slug": "assurance-goal-category-privacy-exposure-reduction-data-minimisation",
-    "count": 3,
+    "count": 4,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -2481,7 +2481,558 @@
           "assuranceGoal": "transparency"
         }
       ]
+    },
+    {
+      "slug": "pii-detection-and-redaction-in-training-text",
+      "name": "PII Detection and Redaction in Training Text",
+      "description": "PII detection and redaction finds personally identifiable information (PII), such as names, email addresses, phone numbers and account or ID numbers, in a body of text and removes or replaces it before the text is used to train or fine-tune a model, so that the model has fewer personal details to memorise and later reproduce. Presidio, a widely used open-source tool first released by Microsoft and now run as an independent community project, is the reference implementation: each document passes through a set of recognisers, in which a named-entity recognition model (by default an English spaCy model) tags names, places and dates, patterns with checksum or format checks catch structured identifiers such as card and NHS numbers, and nearby words such as 'account' raise a candidate's confidence score. Every detection above a chosen score is then replaced with a placeholder for its type (for example <PERSON>), masked, hashed, encrypted or deleted, and the cleaned corpus goes to training. Because detection is never complete, the procedure ends by measuring recall, the share of identifiers actually caught, for each type on a hand-labelled sample of the same corpus. The evidence it produces is that measured miss rate and the cleaned corpus; unlike differential privacy or synthetic data, it removes real personal details from real text and gives no bound on what remains.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/text",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/data-engineering",
+        "expertise-needed/evaluation-design",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank preparing two years of customer-service chat transcripts to fine-tune an assistant runs Presidio with added pattern recognisers for sort codes and its own account-number format, replaces each detection with a type placeholder, and has staff label 500 transcripts by hand to measure recall per entity type. It fine-tunes only once recall for names and account numbers meets the target in its data protection impact assessment, where it records the miss rate.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "An NHS trust preparing discharge letters to fine-tune a summarisation model finds on a labelled sample that the default English model misses many names written in clinical shorthand and does not detect ward and bed codes at all. It adds lists of staff names and patterns for local codes, re-measures recall on a fresh labelled sample, and reports the remaining miss rate to its information governance group, which decides whether further controls are needed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A company building a code-completion model from its internal repositories detects email addresses, IP addresses, keys and passwords with patterns and a trained detector, discards detections that are too short or are private network addresses to cut false alarms, replaces the rest with tokens such as <EMAIL> and <KEY>, and reports precision and recall per type on an annotated set of files kept apart from tuning.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Detection always misses some identifiers, and a model can memorise and reproduce what is missed, especially details repeated across many documents. A study that fine-tuned GPT-2 on court judgments and emails scrubbed with Presidio's default tagger and a second recogniser concluded that scrubbing reduces but cannot fully prevent leakage of personal information; Presidio's README gives no guarantee of finding it all. The evidence is a measured miss rate, not proof that none remains."
+        },
+        {
+          "description": "It finds only the categories it has recognisers for. On a 2022 benchmark of European Court of Human Rights judgments, Presidio's default setup caught about 70 per cent of identifying mentions but only about 45 per cent of direct identifiers, because it did not recognise case numbers, which identify the applicant on their own. Details that identify someone only in combination, such as a job title, employer and town, are not entity types at all, so redacted text can still point to a person."
+        },
+        {
+          "description": "The default recognisers are built for general English text. Clinical shorthand, other languages, source code and in-house identifier formats need extra recognisers or a different model, and recall measured on one corpus does not carry over to another, so the labelled sample used for the measurement must come from the corpus being cleaned and be kept apart from any tuning of the recognisers."
+        },
+        {
+          "description": "Raising recall by lowering the score threshold or switching on broad entity types also removes text that is not personal, such as names of public bodies, laws and places the task depends on, which lowers the value of the data for training. On the court-judgment benchmark, switching on organisation names raised Presidio's recall slightly but cut its precision from about 0.76 to 0.54."
+        },
+        {
+          "description": "Redaction removes identifiers from the text but does not hide whether a document was used for training, and it gives no formal bound. In the GPT-2 study, membership inference on the scrubbed model still reached an AUC of 0.82, where 0.5 is chance, and adding differentially private training brought it down to 0.5. Claims about membership, or a formal guarantee, need DP-SGD or another method alongside redaction."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Presidio: Data Protection and De-identification SDK — documentation",
+          "url": "https://presidio.dataprivacystack.org/",
+          "source_type": "documentation",
+          "citationKey": "PresidioDataProtection",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "Presidio (data-privacy-stack/presidio)",
+          "url": "https://github.com/data-privacy-stack/presidio",
+          "source_type": "software_package",
+          "citationKey": "PresidioDataprivacystackPresidio",
+          "abstract": "An open-source framework for detecting, redacting, masking, and anonymizing sensitive data (PII) across text, images, and structured data. Supports NLP, pattern matching, and customizable pipelines..."
+        },
+        {
+          "title": "Replacing personally-identifying information in medical records, the Scrub system",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8947683/",
+          "source_type": "technical_paper",
+          "citationKey": "ReplacingPersonallyidentifyingInformation"
+        },
+        {
+          "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+          "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Ahmed Salem",
+            "Robert Sim",
+            "Shruti Tople",
+            "Lukas Wutschitz",
+            "Santiago Zanella-Béguelin"
+          ],
+          "publication_date": "2023-5",
+          "citationKey": "lukasAnalyzingLeakagePersonally2023"
+        },
+        {
+          "title": "The Text Anonymization Benchmark (TAB): A Dedicated Corpus and Evaluation Framework for Text Anonymization",
+          "url": "https://doi.org/10.1162/coli_a_00458",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ildikó Pilán",
+            "Pierre Lison",
+            "Lilja Øvrelid",
+            "Anthi Papadopoulou",
+            "David Sánchez",
+            "Montserrat Batet"
+          ],
+          "publication_date": "2022",
+          "citationKey": "pilanTextAnonymizationBenchmark2022"
+        },
+        {
+          "title": "Tutorial: Customization in Presidio",
+          "url": "https://presidio.dataprivacystack.org/tutorial/",
+          "source_type": "tutorial",
+          "citationKey": "TutorialCustomizationPresidio",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "StarCoder: may the source be with you!",
+          "url": "https://openreview.net/forum?id=KoFOg41haE",
+          "source_type": "application_paper",
+          "authors": [
+            "Raymond Li",
+            "Loubna Ben Allal",
+            "Yangtian Zi",
+            "Niklas Muennighoff",
+            "Denis Kocetkov",
+            "Chenghao Mou",
+            "Marc Marone",
+            "Christopher Akiki",
+            "Jia Li",
+            "Jenny Chim",
+            "Qian Liu",
+            "Evgenii Zheltonozhskii",
+            "Terry Yue Zhuo",
+            "Thomas Wang",
+            "Olivier Dehaene",
+            "Mishig Davaadorj",
+            "Joel Lamy-Poirier",
+            "João Monteiro",
+            "Oleh Shliazhko",
+            "Nicolas Gontier",
+            "Nicholas Meade",
+            "Armel Zebaze",
+            "Ming-Ho Yee",
+            "Logesh Kumar Umapathi",
+            "Jian Zhu",
+            "Benjamin Lipkin",
+            "Muhtasham Oblokulov",
+            "Zhiruo Wang",
+            "Rudra Murthy",
+            "Jason Stillerman",
+            "Siva Sankalp Patel",
+            "Dmitry Abulkhanov",
+            "Marco Zocca",
+            "Manan Dey",
+            "Zhihan Zhang",
+            "Nour Fahmy",
+            "Urvashi Bhattacharyya",
+            "Wenhao Yu",
+            "Swayam Singh",
+            "Sasha Luccioni",
+            "Paulo Villegas",
+            "Maxim Kunakov",
+            "Fedor Zhdanov",
+            "Manuel Romero",
+            "Tony Lee",
+            "Nadav Timor",
+            "Jennifer Ding",
+            "Claire Schlesinger",
+            "Hailey Schoelkopf",
+            "Jan Ebert",
+            "Tri Dao",
+            "Mayank Mishra",
+            "Alex Gu",
+            "Jennifer Robinson",
+            "Carolyn Jane Anderson",
+            "Brendan Dolan-Gavitt",
+            "Danish Contractor",
+            "Siva Reddy",
+            "Daniel Fried",
+            "Dzmitry Bahdanau",
+            "Yacine Jernite",
+            "Carlos Muñoz Ferrandis",
+            "Sean Hughes",
+            "Thomas Wolf",
+            "Arjun Guha",
+            "Leandro von Werra",
+            "Harm de Vries"
+          ],
+          "citationKey": "StarCoderMaySource"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Before fine-tuning, names, email addresses, phone numbers and account numbers in all customer-service transcripts were replaced with type placeholders, and recall measured on 500 hand-labelled transcripts was at least 95 per cent for each of these types.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "The rate of undetected patient and clinician names left in the discharge-letter training corpus, measured on a labelled sample drawn from that corpus, is recorded in the data protection impact assessment and is below the limit set by the information governance group.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Email addresses, IP addresses, keys and passwords found in the code corpus were replaced with placeholder tokens before training, with precision and recall for each type reported on an annotated test set of files.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Recall of the redaction step is reported separately for direct identifiers and for details that identify a person only in combination, so that a high overall figure cannot hide missed direct identifiers.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "huderia",
+      "name": "Human Rights, Democracy and the Rule of Law Risk and Impact Assessment",
+      "description": "HUDERIA is the Council of Europe's methodology for identifying and assessing the risks an AI system poses to human rights, democracy and the rule of law, and for planning how to prevent or reduce them, from design through deployment to retirement. It is non-binding guidance that public and private organisations may use or adapt in whole or in part; it was drawn up to support risk assessment in line with the Council of Europe's Framework Convention on Artificial Intelligence, and the human rights treaties its resources cite are illustrative, binding only the states that are parties to them. A multidisciplinary team first runs a context-based risk analysis (COBRA): it scopes the system's purpose, data and affected groups, works through risk factors in the system's application, design and deployment contexts, maps potential impacts on specific rights and on democratic and legal processes, gives each impact an initial rating, and triages the system, deciding whether further assessment is needed and whether the system should be built or deployed at all. Impacts are rated for severity, judged by scale (how serious the harm is), scope (how many people, which groups and for how long) and reversibility (whether those affected can be restored to their earlier position), and for probability; for systems that may pose significant risks, the team may engage affected stakeholders and then re-examines and re-rates each impact in a fuller risk and impact assessment. The output is a mitigation plan that prefers avoiding a harm to reducing, repairing or compensating for it, names who is responsible for each measure, outlines where appropriate the remedies open to affected people, and schedules repeat reviews as the system and its context change.",
+      "assurance_goals": [
+        "General"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/general",
+        "assurance-goal-category/general/governance-and-review",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/qualitative-report",
+        "evidence-type/decision-record",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/regulatory-compliance",
+        "expertise-needed/stakeholder-engagement",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/project-planning",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "lifecycle-stage/other/cross-cutting"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A city council's children's services department is offered a model that ranks safeguarding referrals for follow-up. A team of caseworkers, a data scientist and a human rights lawyer runs the context-based risk analysis, maps impacts on family life, non-discrimination and fair procedure, and at triage asks whether existing caseworker screening would serve the problem better and whether the referral data represent the families concerned, before deciding whether to procure the model at all.",
+          "goal": "General"
+        },
+        {
+          "description": "A recruitment software company assessing a CV-screening model engages disabled and older job seekers, the groups its analysis found most exposed, then rates each mapped impact for scale, scope, reversibility and probability under a scoring rule it writes down. Its mitigation plan drops a feature that scored video interviews, an 'avoid' measure, rather than relying on correcting decisions afterwards, and names the owner of each remaining measure.",
+          "goal": "General"
+        },
+        {
+          "description": "A national tax authority that assessed its fraud-risk model before launch repeats the risk and impact assessment when it adds bank-transaction data, and again when a change in benefit rules alters who is flagged. Each review updates the mitigation plan and the information and appeal routes offered to people wrongly flagged, so the assessment on file describes the system as it now runs.",
+          "goal": "General"
+        },
+        {
+          "description": "A health ministry outside Europe adapts HUDERIA for a symptom-checker chatbot, keeping the treaty references in the risk-factor and impact lists only for the instruments its state is party to and adding its own constitution, health law and data protection law, while keeping the four elements and the severity variables so that its assessments follow a published structure others can recognise and check.",
+          "goal": "General"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "HUDERIA leaves the rule for combining scale, scope, reversibility and probability into a risk level, and the thresholds used at triage, to the authorities or project teams applying it. Two teams can rate the same system differently and both be following the methodology, so an assessment can be compared or checked only if the team records the scoring rule it chose and why."
+        },
+        {
+          "description": "Stakeholder engagement and the detailed risk and impact assessment are optional, and are expected mainly for systems that the team's own triage finds may pose significant risks. A team that under-rates a system at triage can skip the stages most likely to expose the problem, so the evidence is stronger when someone outside the team has reviewed the triage reasoning."
+        },
+        {
+          "description": "The assessment rests on documents, expert judgement and what stakeholders report; it does not test the system. Probability ratings made before a system is built can be little more than informed estimates, so claims about how the system actually behaves, for example whether it treats groups differently, need test results from other techniques alongside the assessment."
+        },
+        {
+          "description": "HUDERIA assesses one system at a time. It asks teams to consider cumulative effects when a system runs alongside others serving similar purposes, which is where many harms to democratic and legal processes arise, but gives no method for estimating them. An assessment can therefore find each system acceptable while their combined contribution to a wider harm goes unmeasured, so claims about societal impact need evidence beyond a single assessment."
+        },
+        {
+          "description": "A full assessment needs people who can judge impacts on rights in law as well as people who understand the system's data and design, and it is meant to be repeated over the system's life. Organisations without access to human rights legal expertise may be unable to carry out the impact mapping and mitigation planning to the depth the methodology intends."
+        }
+      ],
+      "resources": [
+        {
+          "title": "HUDERIA Methodology and Model: Methodology for assessing the risks and impacts of artificial intelligence systems from the perspective of human rights, democracy and the rule of law",
+          "url": "https://rm.coe.int/prems-002726-gbr-2006-huderia-texte-web-a4/48802ba7b1",
+          "source_type": "documentation",
+          "authors": [
+            "Council of Europe"
+          ],
+          "publication_date": "2026-04",
+          "citationKey": "HuderiaMethodologyModel2026"
+        },
+        {
+          "title": "Human rights, democracy, and the rule of law assurance framework for AI systems: A proposal",
+          "url": "https://zenodo.org/records/5981676",
+          "source_type": "technical_paper",
+          "authors": [
+            "David Leslie",
+            "Christopher Burr",
+            "Mhairi Aitken",
+            "Michael Katell",
+            "Morgan Briggs",
+            "Cami Rincon"
+          ],
+          "publication_date": "2022",
+          "citationKey": "HumanRightsDemocracy"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 1,
+      "acronym": "HUDERIA",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Before procurement, the safeguarding referral model went through a documented HUDERIA context-based risk analysis, and the triage decision, including whether to adopt the system at all, is recorded with its reasons.",
+          "assuranceGoal": "general",
+          "domain": "public sector"
+        },
+        {
+          "text": "Every impact identified for the CV-screening model was rated for scale, scope, reversibility and probability under a written scoring rule, and each impact rated high has a mitigation measure with a named owner.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        },
+        {
+          "text": "Groups identified as most exposed to the system's potential harms were consulted before the risk and impact assessment, and the assessment records which impacts their input added or changed.",
+          "assuranceGoal": "general",
+          "domain": "employment"
+        },
+        {
+          "text": "The risk and impact assessment of the fraud-risk model has been repeated after each change to its data sources or to the rules it applies, and the mitigation plan and the remedies for people wrongly flagged were updated each time.",
+          "assuranceGoal": "general",
+          "domain": "public sector"
+        }
+      ]
+    },
+    {
+      "slug": "oecd-ai-incident-reporting",
+      "name": "AI Incident Reporting with the OECD Common Reporting Framework",
+      "description": "AI incident reporting with the OECD common reporting framework records each event in which an AI system caused harm, or could plausibly have caused it, in the common set of 29 fields the OECD published in February 2025, so that reports from different organisations, sectors and countries can be compared and pooled. The framework is meant for both mandatory and voluntary reporting and defines what a report contains, not the reporting interface or what should happen afterwards. The reporter first classifies the event using the OECD's definitions: an AI incident is an event in which the development, use or malfunction of an AI system directly or indirectly leads to harm to people's health, disruption of critical infrastructure, a violation of human rights or of laws protecting fundamental, labour or intellectual property rights, or harm to property, communities or the environment, and an AI hazard is one that could plausibly lead to such harm. Seven fields are mandatory: a title, a description, how the AI system was involved (as a direct cause, a contributing factor, a failure to act, through over-reliance or misuse, through human error, or through a failure to comply with the law), who is reporting, supporting material, the severity (hazard, serious hazard, incident, serious incident or disaster) and the type of harm. The other 22 record, where known and among other things, when and where it happened, the system and the organisations behind it, the people affected, the sector, how widely the system was deployed, whether training data, the model or several interacting systems were involved, the system's task and level of autonomy, and any action taken, giving an inspectable register of what went wrong in operation.",
+      "assurance_goals": [
+        "General"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/general",
+        "assurance-goal-category/general/documentation-and-records",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/documentation",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/regulatory-compliance",
+        "technique-type/documentation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A retail bank's model risk team logs every complaint from customers or staff about its credit, fraud and customer-chatbot models that meets the OECD definition of an AI incident or hazard. A wrongly refused loan, an account frozen by a fraud alert and a chatbot quoting the wrong fees are recorded on the same severity scale and harm types, with the model and version and how the model was involved, so the quarterly risk committee can see which systems recur and which harms dominate.",
+          "goal": "General"
+        },
+        {
+          "description": "A hospital records near misses as well as harms. When a radiologist notices that the imaging triage model has put an urgent scan at the back of the queue, the event is logged as an AI hazard, with the model's erroneous ranking as a direct cause, its autonomy recorded as human-in-the-loop, and the action taken, so that patterns of near misses are visible before one becomes an incident.",
+          "goal": "General"
+        },
+        {
+          "description": "A national regulator that receives AI incident reports from deployers in several sectors asks for them in the OECD format, with a published note on how it judges seriousness, so that it can count serious incidents by sector and harm type and compare its figures with those of other authorities using the same fields.",
+          "goal": "General"
+        },
+        {
+          "description": "A city transport authority running an AI traffic-signal optimiser records a period of emergency-vehicle delays as an incident affecting critical infrastructure, with the system as a contributing factor and an operator's configuration change as human error, so the record shows both causes and the follow-up actions assigned to the supplier and to its own staff.",
+          "goal": "General"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A register is only as complete as the reports that reach it. Harms nobody notices, such as people quietly refused a service, and events staff have reasons not to report go unrecorded, so a short register is weak evidence that a system has caused little harm unless the organisation can also show how incidents are detected and how reporting is encouraged."
+        },
+        {
+          "description": "The OECD's own definitions say that seriousness is highly context-dependent, that each jurisdiction may define it differently, and that several small incidents can add up to a serious one. Two reporters can classify the same event differently, so counts of serious incidents can be compared only between reporters that share a written severity rule."
+        },
+        {
+          "description": "The framework standardises what is recorded, not how an incident is investigated or fixed, and the OECD paper explicitly gives no guidance on corrective or preventive action. Its field for how the AI system was involved is a short category list, and the fields on training data and the model are optional free text, so an organisation needs its own root-cause and follow-up process if records are to lead to changes."
+        },
+        {
+          "description": "None of the seven mandatory fields identifies the system or its version, the organisation that deployed it or the date of the event. Records kept to the mandatory minimum cannot trace incidents to a model release or show repeated failures of one system; the framework lets a reporting scheme make more fields mandatory, and an organisation that needs this traceability has to do so."
+        },
+        {
+          "description": "The framework is a recent proposal that the OECD planned to test through open submissions to its AI Incidents Monitor. Regulators that impose a legal duty to report incidents set their own format, categories and deadlines, so an organisation under such a duty reports in the regulator's format, may need to keep the OECD fields alongside, and cannot assume that an event serious on the OECD scale meets the legal definition of a serious incident, or the reverse."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Towards a common reporting framework for AI incidents",
+          "url": "https://doi.org/10.1787/f326d4ac-en",
+          "source_type": "technical_paper",
+          "authors": [
+            "OECD"
+          ],
+          "publication_date": "2025-2-28",
+          "citationKey": "CommonReportingFramework2025"
+        },
+        {
+          "title": "Defining AI incidents and related terms",
+          "url": "https://doi.org/10.1787/d1a8d965-en",
+          "source_type": "documentation",
+          "authors": [
+            "OECD"
+          ],
+          "publication_date": "2024-5-6",
+          "citationKey": "DefiningAIIncidents2024"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every incident and near miss reported for the imaging triage model since deployment is recorded with all seven mandatory OECD fields completed and its severity assigned under the hospital's written severity rule.",
+          "assuranceGoal": "general",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Each incident recorded for the bank's credit and fraud models identifies the model and version involved and how the AI system contributed, so repeated failures of one release can be traced.",
+          "assuranceGoal": "general",
+          "domain": "finance"
+        },
+        {
+          "text": "Every incident recorded as serious in the register has at least one action taken recorded against it (prevention, mitigation, ceasing or remediation), with a description of what was done.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        },
+        {
+          "text": "Each incident recorded for the traffic-signal optimiser lists every way the system was involved, including human error where an operator's action contributed, so that the causes attributable to the supplier and to the operator can be traced.",
+          "assuranceGoal": "general",
+          "domain": "transport"
+        }
+      ]
+    },
+    {
+      "slug": "smactr-internal-algorithmic-audit",
+      "name": "SMACTR Internal Algorithmic Audit",
+      "description": "SMACTR is an internal audit procedure for AI systems, proposed by Raji and colleagues in 2020, in which an audit team inside the developing organisation but separate from the product team examines a system during development and before launch against the ethical objectives and requirements the organisation has declared for it. The audit runs in five stages, each producing set documents. In Scoping, auditors review the product requirements and the declared objectives and write an ethical review of the use case, drawing in independent domain experts and marginalised groups, and a social impact assessment; in Mapping, they map the people involved, review existing design records, interview the engineers and begin a failure modes and effects analysis (FMEA), a systematic review of the foreseeable ways the system could fail and their effects, used to rank risks for testing. In Artefact Collection, a checklist confirms that the expected development documents, such as model cards and datasheets, exist; in Testing, auditors run tests chosen from the FMEA's priorities, such as adversarial probing with tailored inputs, and rate each risk high, mid or low from its likelihood and severity in an ethical risk analysis chart; in Reflection, they set the results against the declared objectives, finalise the risk analysis and agree a remediation plan with the engineering team. The documents are kept in an algorithmic design history file, from which the auditors write a summary report that leadership can use to decide whether the system launches, changes or is abandoned.",
+      "assurance_goals": [
+        "General"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/general",
+        "assurance-goal-category/general/governance-and-review",
+        "data-requirements/access-to-training-data",
+        "data-type/any",
+        "evidence-type/qualitative-report",
+        "evidence-type/audit-record",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/ethics",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/model-development/model-documentation",
+        "lifecycle-stage/other/cross-cutting"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An insurer's internal audit team audits a claims-triage model before launch. Interviews in Mapping reveal that a field used as a proxy for chronic illness was dropped late without the requirements being updated; the FMEA ranks under-prioritising complex claims as the top risk, so Testing concentrates on claims from people with several conditions, and the summary report goes to the risk committee with a remediation plan and a recommendation to delay launch.",
+          "goal": "General"
+        },
+        {
+          "description": "A software company's responsible-AI audit team audits a customer-support chatbot. Artefact Collection finds no datasheet for the fine-tuning conversations, so the auditors require the product team to write one before testing; prompts drawn from the FMEA then test whether the bot discloses other customers' account details or gives poorer answers to customers writing in non-standard English, and the ethical risk chart and remediation plan record what must change before release.",
+          "goal": "General"
+        },
+        {
+          "description": "A government digital service's audit team, which reports to the agency's chief risk officer rather than to the delivery programme, audits an in-house model that prioritises housing repair requests before it replaces manual triage. The chief risk officer uses the summary report to decide whether the model goes live, and the design history file and report are filed where the agency's external auditors and ombudsman can later inspect them.",
+          "goal": "General"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The auditors are employees of the organisation they audit and share its interests; the authors acknowledge that independence is hard to keep and that audits risk becoming reputation management. Findings carry more weight when the audit team reports outside the product's management line and the design history file can be examined by an outside party."
+        },
+        {
+          "description": "The system is judged against the ethical objectives the organisation declares for it, which the authors note have been criticised as vague, and the paper leaves open what level of performance, for example how close to parity across groups, counts as acceptable. A clean audit shows consistency with the standards and thresholds the organisation chose to declare, and says nothing about any external standard it did not adopt."
+        },
+        {
+          "description": "The Testing stage prescribes no particular tests; the authors expect tests to vary widely by system and to follow the FMEA's priorities. What the audit can show about the system's behaviour therefore depends on the tests the team chooses, and a failure mode the FMEA did not foresee is likely to go untested."
+        },
+        {
+          "description": "The audit is deliberately slow and document-heavy, and the authors note that fast, iterative development is hard to audit. Its results describe the system at the time of the audit, so a model retrained or reconfigured afterwards is not covered unless the relevant stages are repeated."
+        },
+        {
+          "description": "The paper does not say which systems should be audited or in how much depth, leaving that to the organisation, and it illustrates the procedure only on two hypothetical client projects. Published evidence of how well it finds problems in real systems is limited."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Closing the AI accountability gap",
+          "url": "https://doi.org/10.1145/3351095.3372873",
+          "source_type": "technical_paper",
+          "authors": [
+            "Inioluwa Deborah Raji",
+            "Andrew Smart",
+            "Rebecca N. White",
+            "Margaret Mitchell",
+            "Timnit Gebru",
+            "Ben Hutchinson",
+            "Jamila Smith-Loud",
+            "Daniel Theron",
+            "Parker Barnes"
+          ],
+          "publication_date": "2020-1-27",
+          "citationKey": "rajiClosingAIAccountability2020"
+        },
+        {
+          "title": "FAT* Worked Examples: SMACTR internal audit templates (Smile Detection)",
+          "url": "https://drive.google.com/drive/folders/1NUSTvWObrDSkjmWTrDCxKoPkXmypguiv",
+          "source_type": "tutorial",
+          "citationKey": "FATWorkedExamples"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 2,
+      "acronym": "SMACTR",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The claims-triage model was audited before launch by a team outside its product line, through all five SMACTR stages, and the audit report and design history file are held where the risk committee can inspect them.",
+          "assuranceGoal": "general",
+          "domain": "finance"
+        },
+        {
+          "text": "Every risk rated high in the audit's ethical risk analysis chart has a remediation action agreed with the engineering team and recorded as completed, or formally accepted, before release.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        },
+        {
+          "text": "The tests run in the audit's Testing stage were selected from the failure modes ranked highest in the FMEA, and each result is traced to the failure mode it tests.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        },
+        {
+          "text": "The documentation the audit required, including a datasheet for the chatbot's fine-tuning data and a model card, was complete before testing began, as recorded in the audit checklist.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 12
+  "count": 16
 }

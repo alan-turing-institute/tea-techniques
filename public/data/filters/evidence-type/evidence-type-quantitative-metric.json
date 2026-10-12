@@ -2,7 +2,7 @@
   "tag": {
     "name": "evidence-type/quantitative-metric",
     "slug": "evidence-type-quantitative-metric",
-    "count": 56,
+    "count": 67,
     "category": "evidence-type"
   },
   "techniques": [
@@ -5679,13 +5679,13 @@
         },
         {
           "title": "Reliable evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks",
-          "url": "https://doi.org/10.48550/arXiv.2003.01690",
+          "url": "https://proceedings.mlr.press/v119/croce20b.html",
           "source_type": "technical_paper",
           "authors": [
             "Francesco Croce",
             "Matthias Hein"
           ],
-          "publication_date": "2020-08-04",
+          "publication_date": "2020",
           "citationKey": "croceReliableEvaluationAdversarial2020",
           "abstract": "The field of defense strategies against adversarial attacks has significantly grown over the last years, but progress is hampered as the evaluation of adversarial defenses is often insufficient and thus gives a wrong impression of robustness. Many promising defenses could be broken later on, making it difficult to identify the state-of-the-art. Frequent pitfalls in the evaluation are improper tuning of hyperparameters of the attacks, gradient obfuscation or masking. In this paper we first propose two extensions of the PGD-attack overcoming failures due to suboptimal step size and problems of the objective function. We then combine our novel attacks with two complementary existing ones to form a parameter-free, computationally affordable and user-independent ensemble of attacks to test adversarial robustness. We apply our ensemble to over 50 models from papers published at recent top machine learning and computer vision venues. In all except one of the cases we achieve lower robust test accuracy than reported in these papers, often by more than $10\\%$, identifying several broken defenses."
         },
@@ -9386,7 +9386,1754 @@
           "domain": "transport"
         }
       ]
+    },
+    {
+      "slug": "autoattack",
+      "name": "AutoAttack",
+      "description": "AutoAttack is a fixed suite of four automated adversarial attacks, introduced by Croce and Hein (ICML 2020), that measures how much of an image classifier's test accuracy survives small, deliberately chosen changes to its input images at inference time. The evaluator states the threat model, a norm and radius that bound the change (for example, no pixel value changed by more than 8/255 under the L-infinity norm), and the standard version then attacks each correctly classified test image in turn with APGD-CE (projected gradient descent that sets its own step size, on the cross-entropy loss), a targeted APGD on the authors' Difference of Logits Ratio loss, a targeted form of the FAB minimum-norm attack, and the Square Attack, which needs only the model's outputs and so still works when gradients are uninformative. An image counts as robust only if none of the four finds a misclassified version within the bound, and because every attack setting is fixed in advance the evaluator tunes nothing, which removes a common cause of overstated robustness: an attack too weakly tuned for the model. The output is robust accuracy, the share of test images still classified correctly under attack at the stated norm and radius, reported beside clean accuracy; published models are compared on the RobustBench leaderboard, which uses AutoAttack as its standard evaluation. Because AutoAttack is not built around any one defence, it can supply the attack step for a wider judgement of a defence, such as whether adversarial training holds up against attacks it was not trained on; unlike red teaming, it involves no human attacker or open-ended search.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/white-box",
+        "applicable-models/requirements/gradient-access",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/vulnerability-testing",
+        "data-requirements/labelled-data",
+        "data-type/image",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/security",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's model-risk team validating a vendor's classifier that recognises which of 40 identity-document types a customer has photographed during remote account opening, so the right authenticity checks run, receives the model weights under the review agreement. It reruns the vendor's robustness evaluation with standard AutoAttack at the same L-infinity radius, compares the two robust accuracies and records any automatic warnings before accepting the vendor's figure.",
+          "goal": "Security"
+        },
+        {
+          "description": "A photo-sharing platform's trust-and-safety team expects uploaders to perturb images to slip past the classifier that sorts uploads into a dozen prohibited-content categories and an allowed class. Choosing between two candidate models, it runs standard AutoAttack on both at a perturbation budget agreed with its security team, and selects the one with higher robust accuracy whose clean-accuracy cost is acceptable, recording both figures in the release review.",
+          "goal": "Security"
+        },
+        {
+          "description": "A research group proposing a new defence for a traffic-sign classifier runs standard AutoAttack before publication and finds that the Square Attack lowers robust accuracy further than the gradient-based attacks, one of AutoAttack's warning signs that gradients are masked. It treats its figure as an upper bound and has an attack designed for its defence built before claiming any robustness.",
+          "goal": "Security"
+        },
+        {
+          "description": "A computational-pathology group comparing a convolutional network and a vision transformer for three-way tumour subtyping on routine slide images attacks both with AutoAttack, its settings reduced for three classes, at several perturbation sizes below what a blinded clinical reader could detect, and compares attack success rates on an external patient cohort to decide which architecture goes forward.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Robust accuracy from AutoAttack is an upper bound: an image counts as robust because these four attacks failed, not because no adversarial example exists. The authors present it as the minimum test for a new defence rather than the strongest possible attack, so a claim that no change within the bound can alter a decision needs a certified-robustness method instead."
+        },
+        {
+          "description": "The standard version can overstate robustness for defences that are randomised, not differentiable or run an optimisation loop at inference. The reference code warns about some of these cases, offers a version averaging gradients over the model's randomness, and recommends attacks built for the specific defence; RobustBench excludes such defences. A defence tuned to beat AutoAttack itself can pass it without being robust."
+        },
+        {
+          "description": "The result holds only for the norm and radius tested. It gives no direct evidence about patches, rotations, physical changes to objects or natural corruptions: in RobustBench's quick-start guide, L-infinity-robust models do much worse than an undefended model on fog-corrupted images, though better on average across corruption types. Benchmark radii such as 8/255 are conventions, so the radius should be justified from the deployment's threat, and a new norm or radius needs a new run."
+        },
+        {
+          "description": "It needs white-box access: three of the four attacks use the model's gradients, and the code expects raw scores (logits) and inputs scaled to [0, 1]; with access only to output scores, the Square Attack can run alone, a weaker test. The standard settings also assume ten or more classes, since the targeted attacks each try nine other classes; on a binary or few-class model the reference code stops with an error, so the settings must be reduced and the result is no longer the standard one."
+        },
+        {
+          "description": "The full evaluation is computationally heavy for large models and test sets: each white-box run uses 100 iterations, the targeted attacks each try nine target classes, and the Square Attack makes up to 5,000 queries per image. RobustBench's quick start runs a cheaper two-attack version on 50 images and notes the full version is slower but more accurate; a figure from a subset should be reported with its sampling error."
+        }
+      ],
+      "resources": [
+        {
+          "title": "On the usage of AutoAttack (AutoAttack flags documentation)",
+          "url": "https://github.com/fra31/auto-attack/blob/master/flags_doc.md",
+          "source_type": "documentation",
+          "citationKey": "UsageAutoAttackAutoAttack",
+          "abstract": "Code relative to \"Reliable  evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks\" - fra31/auto-attack"
+        },
+        {
+          "title": "AutoAttack (fra31/auto-attack)",
+          "url": "https://github.com/fra31/auto-attack",
+          "source_type": "software_package",
+          "publication_date": "2026-10-07T10:22:57Z",
+          "citationKey": "fra31AutoAttackFra31Autoattack2026",
+          "abstract": "Code relative to \"Reliable  evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks\""
+        },
+        {
+          "title": "Reliable evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks",
+          "url": "https://proceedings.mlr.press/v119/croce20b.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Francesco Croce",
+            "Matthias Hein"
+          ],
+          "publication_date": "2020",
+          "citationKey": "croceReliableEvaluationAdversarial2020",
+          "abstract": "The field of defense strategies against adversarial attacks has significantly grown over the last years, but progress is hampered as the evaluation of adversarial defenses is often insufficient and thus gives a wrong impression of robustness. Many promising defenses could be broken later on, making it difficult to identify the state-of-the-art. Frequent pitfalls in the evaluation are improper tuning of hyperparameters of the attacks, gradient obfuscation or masking. In this paper we first propose two extensions of the PGD-attack overcoming failures due to suboptimal step size and problems of the objective function. We then combine our novel attacks with two complementary existing ones to form a parameter-free, computationally affordable and user-independent ensemble of attacks to test adversarial robustness. We apply our ensemble to over 50 models from papers published at recent top machine learning and computer vision venues. In all except one of the cases we achieve lower robust test accuracy than reported in these papers, often by more than $10\\%$, identifying several broken defenses."
+        },
+        {
+          "title": "RobustBench: a standardized adversarial robustness benchmark",
+          "url": "https://datasets-benchmarks-proceedings.neurips.cc/paper_files/paper/2021/hash/a3c65c2974270fd093ee8a9bf8ae7d0b-Abstract-round2.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Francesco Croce",
+            "Maksym Andriushchenko",
+            "Vikash Sehwag",
+            "Edoardo Debenedetti",
+            "Nicolas Flammarion",
+            "Mung Chiang",
+            "Prateek Mittal",
+            "Matthias Hein"
+          ],
+          "citationKey": "croceRobustBenchStandardizedAdversarial"
+        },
+        {
+          "title": "RobustBench: Model Zoo quick tour",
+          "url": "https://github.com/RobustBench/robustbench#model-zoo-quick-tour",
+          "source_type": "tutorial",
+          "citationKey": "RobustBenchModelZoo",
+          "abstract": "RobustBench: a standardized adversarial robustness benchmark [NeurIPS 2021 Benchmarks and Datasets Track] - RobustBench/robustbench"
+        },
+        {
+          "title": "Adversarial attacks and adversarial robustness in computational pathology",
+          "url": "https://doi.org/10.1038/s41467-022-33266-0",
+          "source_type": "application_paper",
+          "authors": [
+            "Narmin Ghaffari Laleh",
+            "Daniel Truhn",
+            "Gregory Patrick Veldhuizen",
+            "Tianyu Han",
+            "Marko van Treeck",
+            "Roman D. Buelow",
+            "Rupert Langer",
+            "Bastian Dislich",
+            "Peter Boor",
+            "Volkmar Schulz",
+            "Jakob Nikolas Kather"
+          ],
+          "publication_date": "2022-9-29",
+          "citationKey": "ghaffarilalehAdversarialAttacksAdversarial2022"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under the standard AutoAttack evaluation with L-infinity perturbations of at most 8/255, the image classifier keeps an accuracy on the held-out test set above the threshold agreed in the security requirements.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "The robustness figure for the identity-document classifier was measured with the standard AutoAttack suite at the agreed perturbation budget, and the run raised none of AutoAttack's warnings for randomised behaviour or masked gradients.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "The robust accuracy the supplier reports for the content-screening model is within two percentage points of the figure from an independent standard AutoAttack run on the same test images.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "At perturbation sizes below the level a blinded pathologist could detect, the selected tumour-subtyping model's attack success rate under AutoAttack on an external patient cohort is lower than that of the alternative architecture.",
+          "assuranceGoal": "security",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "canary-exposure-testing",
+      "name": "Canary Exposure Testing",
+      "description": "Canary exposure testing measures how strongly a training procedure makes a generative sequence model, such as a language model, memorise rare sequences, by planting random secrets (canaries) in the training data and scoring how much the trained model favours them over values it never saw. Because the secrets are random and their values known, the result is calibrated in a way that tests on real records are not and can be compared across model versions, training settings and numbers of repetitions; unlike extraction or membership inference testing of a finished model, it requires control of the training run, and unlike differential privacy auditing, which also plants records, it gives a memorisation score rather than a statistical bound on epsilon. The tester chooses a format such as 'my account number is' followed by a blank, fills the blank with random values to make several canaries, inserts each into the training data a chosen number of times (for example once, ten times and a hundred times), and trains with the settings used in production. Each canary is then ranked by how probable the trained model finds it compared with every other possible filling of the blank, and its exposure is the base-2 logarithm of the number of possible fillings minus the base-2 logarithm of that rank: about 1 for a canary the model treats like any other value, rising to its maximum when the canary is the model's top choice, the level at which a search over the possible fillings can extract it outright. For large spaces of values the rank is estimated by fitting a distribution to the probabilities of a sample of alternatives, and results are usually plotted as exposure against number of insertions.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/privacy-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An email provider training a reply-suggestion model on users' messages inserts seven-word canaries with random middle words between 1 and 10,000 times each into a training run with the production settings, plots exposure against the number of insertions, and uses the curve to limit how often any rare phrase from a single user may appear in the training data before the model is offered to all users.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A bank's machine learning team choosing among learning-rate schedules and model sizes for an autocomplete model trained on transaction descriptions trains each candidate with the same random account-number canaries at the same insertion counts, and picks the configuration with the lowest exposure among those within a set margin of the best validation accuracy.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A health-records software vendor uses the test as a regression check: each time its clinical-text model is retrained on new notes, the same canaries are inserted at fixed frequencies, and the build fails if the exposure of a canary inserted only once rises above a threshold agreed with the vendor's information governance team.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It needs control of the training run. Canaries must be in the data before training, so the test cannot be applied to a model someone else trained or has already released, and it must use the production settings (optimiser, epochs, model size, hyperparameters), because each of these changes how much is memorised; a test model trained differently says little about the deployed one."
+        },
+        {
+          "description": "It measures memorisation of the planted secrets, not of the real data. Canaries are random and unlike the rest of the data by design, while real personal data that is repeated, structured or similar to other text can be memorised differently, and the choice of format and of random values changes the result. Low exposure for the canaries does not show that no real record can be extracted."
+        },
+        {
+          "description": "Exposure is not a privacy guarantee. Its scale depends on the number of possible fillings, so values compare only across canaries with the same number of fillings, and it is not an epsilon: in the original study, models trained with differential privacy at budgets too weak to mean anything (epsilon up to 10^9) still showed negligible exposure, so low exposure cannot stand in for a formal bound."
+        },
+        {
+          "description": "It needs the model's probability for arbitrary sequences, so a system that returns only its single best output needs a different measure. When the space of possible fillings is too large to score in full, exposure is estimated by fitting a distribution to a sample of alternatives; the estimate depends on that fit holding in the far tail and can exceed the true maximum."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Secret Sharer Attack (TensorFlow Privacy, privacy_tests/secret_sharer)",
+          "url": "https://github.com/tensorflow/privacy/tree/master/tensorflow_privacy/privacy/privacy_tests/secret_sharer",
+          "source_type": "documentation",
+          "citationKey": "SecretSharerAttack",
+          "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+        },
+        {
+          "title": "TensorFlow Privacy (tensorflow/privacy)",
+          "url": "https://github.com/tensorflow/privacy",
+          "source_type": "software_package",
+          "citationKey": "TensorFlowPrivacyTensorflow",
+          "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+        },
+        {
+          "title": "The Secret Sharer: Evaluating and Testing Unintended Memorization in Neural Networks",
+          "url": "https://www.usenix.org/conference/usenixsecurity19/presentation/carlini",
+          "source_type": "technical_paper",
+          "authors": [
+            "Nicholas Carlini",
+            "Chang Liu",
+            "Úlfar Erlingsson",
+            "Jernej Kos",
+            "Dawn Song"
+          ],
+          "publication_date": "2019",
+          "citationKey": "carliniSecretSharerEvaluating2019"
+        },
+        {
+          "title": "Assess privacy risks with TensorFlow Privacy Secret Sharer Attack (example notebook)",
+          "url": "https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/privacy_tests/secret_sharer/secret_sharer_example.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AssessPrivacyRisksa",
+          "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+        },
+        {
+          "title": "Understanding Unintended Memorization in Language Models Under Federated Learning",
+          "url": "https://doi.org/10.18653/v1/2021.privatenlp-1.1",
+          "source_type": "application_paper",
+          "authors": [
+            "Om Dipakbhai Thakkar",
+            "Swaroop Ramaswamy",
+            "Rajiv Mathews",
+            "Francoise Beaufays"
+          ],
+          "publication_date": "2021",
+          "citationKey": "thakkarUnderstandingUnintendedMemorization2021"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "With canaries inserted up to 10,000 times into a training run that used the production settings, no canary in the reply-suggestion model reached the exposure at which it could be extracted, and canaries inserted fewer than 100 times showed exposure close to that of random alternatives.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "In the autocomplete configuration chosen for release, nine-digit account-number canaries inserted ten times had exposure below 10, against about 30 for a canary the model ranks first, and no configuration within one percentage point of the best validation accuracy had lower exposure.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "On every retraining of the clinical-text model, the exposure of canaries inserted once stayed below the threshold agreed with information governance.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "differential-privacy-auditing",
+      "name": "Differential Privacy Auditing",
+      "description": "Differential privacy auditing tests whether a training procedure that claims a differential privacy guarantee at a stated budget (epsilon, where smaller means stronger privacy) loses more privacy in practice than the claim allows, by measuring a statistical lower bound on its true epsilon. The guarantee itself comes from a mathematical proof, and membership inference testing reports attack success on real records for any model; the audit instead controls which records are present and asks whether the code that was run honours the proof, so it can expose an implementation bug or accounting error but can never confirm the guarantee. The auditor builds two training sets that differ only by one or a few planted records, called canaries and often crafted to be easy to detect, trains the model many times on each, and applies a fixed test to every trained model to guess whether the canary was present. Confidence intervals for the test's true-positive and false-positive rates, such as Clopper-Pearson intervals for a proportion, are converted into a value of epsilon that the procedure must exceed at a stated confidence level, such as 99 per cent; a bound above the claimed epsilon shows that the claim is false for that implementation. Because hundreds of training runs are costly, a later design needs only one: many canaries are each included or left out at random, the test guesses which were included, and the share of correct guesses gives the bound, which is looser than the many-run design's.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/statistical-test",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before an NHS trust releases a readmission-risk model trained with an open-source differential privacy library at a claimed epsilon of 3, its data science team audits the exact code and settings: it trains several hundred models with and without a planted mislabelled record and signs off only if the 99 per cent lower bound stays below 3, recording that the audit could have caught a violation but cannot prove the guarantee.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "The maintainers of a differentially private training library run a white-box audit on every release: the auditor sees each intermediate model update and inserts a gradient crafted to be easy to detect, so a change to the clipping or noise-sampling code that silently weakens the guarantee pushes the lower bound above the budget the library reports and fails the build.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A mobile keyboard team training a next-word model with federated learning under a claimed user-level guarantee adds simulated canary users to its single production training run, each included or left out at random and enough of them that a bound above the claim is reachable, and checks the one-run lower bound against the claim, because retraining the federated model hundreds of times is not feasible.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A result below the claim proves nothing. The bound is only as strong as the audit behind it: weak canaries, a test that sees only the final model, or too few runs or canaries can give bounds far below the claimed epsilon (one library's documented single-run audit with 1,000 canaries reported 0.42 for a model trained at epsilon 68.5, and 5.5 for one trained without differential privacy). Only a bound above the claim is conclusive, and a pass must not be reported as confirming the guarantee."
+        },
+        {
+          "description": "The number of training runs caps what can be detected. With 500 runs per training set and 99 per cent confidence, the largest bound the original method can report is about 4.5 even if the test never errs, so it cannot show a claimed epsilon of 8 to be false; larger budgets need many more runs or a different design. In the single-run design the number of canaries sets the cap in the same way."
+        },
+        {
+          "description": "Bounds come close to the claim only under the strongest access. For DP-SGD on natural data, audits match the claimed epsilon when the auditor sees every intermediate update and inserts crafted gradients, the setting the standard proof assumes. With crafted input records, seeing every update helps only slightly over the final model, and with the final model most of the original audit's bounds were roughly 7 to 12 times below the claim. A result holds only for the access and canaries it assumed."
+        },
+        {
+          "description": "It is expensive. The original method trained 500 models per training set to choose the test's threshold and another 500 per set to estimate its error rates, which is impractical for large models. The single-run design avoids this but gives looser bounds, which weaken further when only the final model is seen and the model cannot memorise all the canaries or other training data is added."
+        },
+        {
+          "description": "It checks one implementation, configuration and pair of datasets. A change of clipping norm, batch size, random initialisation or library version needs a new audit, and canaries that are typical rather than worst-case can miss a violation that affects only unusual records, giving false confidence about the risk to outliers."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Auditing Differential Privacy Lower Bound (Privacy Meter documentation)",
+          "url": "https://github.com/privacytrustlab/ml_privacy_meter/blob/master/documentation/dpaudit.md",
+          "source_type": "documentation",
+          "citationKey": "AuditingDifferentialPrivacy",
+          "abstract": "Privacy Meter: An open-source library to audit data privacy in statistical and machine learning algorithms. - privacytrustlab/ml_privacy_meter"
+        },
+        {
+          "title": "Privacy Meter (privacytrustlab/ml_privacy_meter)",
+          "url": "https://github.com/privacytrustlab/ml_privacy_meter",
+          "source_type": "software_package",
+          "publication_date": "2026-10-06T18:26:21Z",
+          "citationKey": "PrivacyMeterPrivacytrustlab2026",
+          "abstract": "Privacy Meter: An open-source library to audit data privacy in statistical and machine learning algorithms."
+        },
+        {
+          "title": "Auditing Differentially Private Machine Learning: How Private is Private SGD?",
+          "url": "https://proceedings.neurips.cc/paper/2020/hash/fc4ddc15f9f4b4b06ef7844d6bb53abf-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Matthew Jagielski",
+            "Jonathan Ullman",
+            "Alina Oprea"
+          ],
+          "publication_date": "2020",
+          "citationKey": "jagielskiAuditingDifferentiallyPrivate2020",
+          "abstract": "We investigate whether Differentially Private SGD offers better privacy in practice than what is guaranteed by its state-of-the-art analysis. We do so via novel data poisoning attacks, which we show correspond to realistic privacy attacks. While previous work (Ma et al., arXiv 2019) proposed this connection between differential privacy and data poisoning as a defense against data poisoning, our use as a tool for understanding the privacy of a specific mechanism is new. More generally, our work takes a quantitative, empirical approach to understanding the privacy afforded by specific implementations of differentially private algorithms that we believe has the potential to complement and influence analytical work on differential privacy."
+        },
+        {
+          "title": "Privacy Meter Demo: Auditing Differential Privacy Lower Bound (notebook)",
+          "url": "https://github.com/privacytrustlab/ml_privacy_meter/blob/master/demo_audit_dp.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "PrivacyMeterDemo",
+          "abstract": "Privacy Meter: An open-source library to audit data privacy in statistical and machine learning algorithms. - privacytrustlab/ml_privacy_meter"
+        },
+        {
+          "title": "Privacy Auditing of Large Language Models",
+          "url": "https://openreview.net/forum?id=60Vd7QOXlM",
+          "source_type": "application_paper",
+          "authors": [
+            "Ashwinee Panda",
+            "Xinyu Tang",
+            "Milad Nasr",
+            "Christopher A. Choquette-Choo",
+            "Prateek Mittal"
+          ],
+          "citationKey": "PrivacyAuditingLarge"
+        },
+        {
+          "title": "Tight Auditing of Differentially Private Machine Learning",
+          "url": "https://www.usenix.org/conference/usenixsecurity23/presentation/nasr",
+          "source_type": "application_paper",
+          "authors": [
+            "Milad Nasr",
+            "Jamie Hayes",
+            "Thomas Steinke",
+            "Borja Balle",
+            "Florian Tramèr",
+            "Matthew Jagielski",
+            "Nicholas Carlini",
+            "Andreas Terzis"
+          ],
+          "publication_date": "2023",
+          "citationKey": "nasrTightAuditingDifferentially2023"
+        },
+        {
+          "title": "Privacy Auditing with One (1) Training Run",
+          "url": "https://papers.nips.cc/paper_files/paper/2023/hash/9a6f6e0d6781d1cb8689192408946d73-Abstract-Conference.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Thomas Steinke",
+            "Milad Nasr",
+            "Matthew Jagielski"
+          ],
+          "publication_date": "2023",
+          "citationKey": "steinkePrivacyAuditingOne2023"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "A 99 per cent confidence audit of the exact training code and settings used for the readmission model, with planted records designed to be easy to detect, found no evidence that its privacy loss exceeds the claimed epsilon of 3.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every release of the training library passes a white-box audit in which the measured lower bound on epsilon stays below the budget the library reports for the audited configuration.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "An audit of the previous version of the training code gave a 99 per cent lower bound on epsilon of 3.9 against a claimed budget of 1, showing an implementation error, and a re-audit of the corrected code found no bound above 1.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "In a single-run audit of the federated keyboard model's training, with enough randomly included canary users that a bound above the claimed user-level epsilon could have been reported, the 95 per cent lower bound stayed below the claim.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "training-data-extraction-testing",
+      "name": "Training Data Extraction Testing",
+      "description": "Training data extraction testing measures how much of its training text a generative language model reproduces word for word when it is sampled, without the tester supplying any training record to look for. It differs from membership inference testing, which starts from a candidate record and asks only whether that record was used in training, and from canary exposure testing, which needs secrets planted before training. The tester prompts the model with empty prompts or a few words taken from public text, generates a large volume of output (from tens of millions to billions of tokens) with the sampling settings the deployed system uses, and checks it against the training corpus: any span of at least a fixed length, such as 50 tokens, found verbatim in an index of the corpus, and not low-entropy filler such as repeated characters or lists of numbers, counts as extracted, and personal data is checked by tagging names and identifiers in the output and looking them up in the corpus. Where the corpus cannot be searched, the outputs are ranked by how much more probable the model finds them than a smaller reference model or a text-compression algorithm does, and the top-ranked candidates are checked by hand, for example by web search. The result is the share of generated text copied from training data (under the hand-checked route, the number confirmed among the candidates checked), the number of distinct passages extracted, and the passages themselves, each with a count of the training documents that contain it: a passage found in one or two documents is a privacy finding in a way that a licence or news story repeated thousands of times is not.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/data-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's privacy engineering team fine-tunes an open-weight language model on ten years of customer-service chat transcripts to draft replies for agents. Before deployment it generates 50 million tokens from public-text prompts with the production sampling settings, searches an index of the transcripts for 50-token matches, and looks up every account number, name and phone number tagged in the output. It runs the same test on the base model as a control.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A hospital research group that trained a clinical note-completion model on de-identified discharge summaries runs the test before sharing the weights with partner hospitals. Besides searching for verbatim passages of the summaries, it tags patient names, dates of birth and NHS numbers in the generated text and looks each up in the training set, to find identifiers the de-identification step missed and decide whether the summaries must be re-scrubbed and the model retrained.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "An AI developer preparing an open-weight release compares two checkpoints, one trained on a deduplicated copy of the pre-training corpus. It generates text from each at budgets of 100 million and 1 billion tokens, counts distinct 50-token passages found verbatim in the corpus, and compares how the counts grow with the budget, not a single rate, before choosing which checkpoint to release and what to say about memorisation in the model card.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A government department running a citizen-facing chat assistant on a model it fine-tuned on casework correspondence repeats the test after every fine-tuning update. Because chat-tuned models can leak little under ordinary prompts yet emit training text once pushed off their chat behaviour, the test also uses prompts asking the assistant to repeat a single word many times, a pattern that made one production assistant reproduce its training data.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The result is a lower bound set by the effort spent. The number of distinct passages extracted keeps growing as more text is generated, and one study found that a model which leaked more than another at a small budget leaked less in total. A clean result, or a comparison of models at one fixed budget, can therefore mislead; report the generation budget and compare models at several budgets."
+        },
+        {
+          "description": "Much memorised text comes out only after the right prompt. In one study, sampling from short public prompts recovered about a third of the passages a model was known to reproduce when given their true opening words, and a chat-tuned model leaked far less under ordinary prompts than when pushed into repeating a word. A low rate under ordinary prompts is weak evidence that the data cannot be extracted."
+        },
+        {
+          "description": "The verdict depends on what the output is checked against and on the match rule. A public proxy for an unavailable corpus undercounts (in one study a 9 TB proxy found under half the matches a manual web search found), and a minimum match length long enough to rule out coincidence misses short secrets such as phone or account numbers unless they are tagged and looked up separately. Paraphrased leaks and facts stitched together from several documents are not counted."
+        },
+        {
+          "description": "It is costly at a useful scale. One study generated a billion tokens per model, and its whole evaluation, including a 45 TB index built over a 9 TB corpus, took three weeks on a large cloud machine. The test also produces copies of any personal data the model leaks, which must be stored, reviewed and deleted under the same controls as the training data."
+        },
+        {
+          "description": "It shows what the model emits, not what an attacker could infer. It does not say whether a known person's record was used in training, and it gives no bound for data the test did not happen to elicit, so a clean result cannot stand in for a formal guarantee such as differential privacy."
+        }
+      ],
+      "resources": [
+        {
+          "title": "LM_Memorization (ftramer/LM_Memorization): training data extraction on GPT-2",
+          "url": "https://github.com/ftramer/LM_Memorization",
+          "source_type": "software_package",
+          "citationKey": "LM_MemorizationFtramerLM_Memorization",
+          "abstract": "Training data extraction on GPT-2. Contribute to ftramer/LM_Memorization development by creating an account on GitHub."
+        },
+        {
+          "title": "Extracting Training Data from Large Language Models",
+          "url": "https://www.usenix.org/conference/usenixsecurity21/presentation/carlini-extracting",
+          "source_type": "technical_paper",
+          "authors": [
+            "Nicholas Carlini",
+            "Florian Tramèr",
+            "Eric Wallace",
+            "Matthew Jagielski",
+            "Ariel Herbert-Voss",
+            "Katherine Lee",
+            "Adam Roberts",
+            "Tom Brown",
+            "Dawn Song",
+            "Úlfar Erlingsson",
+            "Alina Oprea",
+            "Colin Raffel"
+          ],
+          "publication_date": "2021",
+          "citationKey": "carliniExtractingTrainingData2021"
+        },
+        {
+          "title": "Analysing PII leakage (microsoft/analysing_pii_leakage)",
+          "url": "https://github.com/microsoft/analysing_pii_leakage",
+          "source_type": "tutorial",
+          "citationKey": "AnalysingPIILeakage",
+          "abstract": "The repository contains the code for analysing the leakage of personally identifiable (PII) information from the output of next word prediction language models. - microsoft/analysing_pii_leakage"
+        },
+        {
+          "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+          "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Ahmed Salem",
+            "Robert Sim",
+            "Shruti Tople",
+            "Lukas Wutschitz",
+            "Santiago Zanella-Béguelin"
+          ],
+          "publication_date": "2023-5",
+          "citationKey": "lukasAnalyzingLeakagePersonally2023"
+        },
+        {
+          "title": "Scalable Extraction of Training Data from Aligned, Production Language Models",
+          "url": "https://proceedings.iclr.cc/paper_files/paper/2025/hash/cce0e917b050208170151f77b497fc71-Abstract-Conference.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Milad Nasr",
+            "Javier Rando",
+            "Nicholas Carlini",
+            "Jonathan Hayase",
+            "Matthew Jagielski",
+            "A. Feder Cooper",
+            "Daphne Ippolito",
+            "Christopher Choquette-Choo",
+            "Florian Tramer",
+            "Katherine Lee"
+          ],
+          "citationKey": "nasrScalableExtractionTraining"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Across 50 million tokens generated from the fine-tuned support model with production sampling settings, no span of 50 or more tokens matched the training transcripts verbatim, and none of the account numbers or customer names tagged in the output occurs in the transcripts.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "In an extraction test of 10 million generated tokens, the clinical note model reproduced no NHS number, and no patient name together with a date of birth, that appears in its training summaries.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "At every generation budget tested, up to one billion tokens, the deduplicated checkpoint emitted fewer distinct verbatim passages of its pre-training corpus than the original checkpoint.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "After each fine-tuning update, extraction tests of 20 million generated tokens, from both ordinary prompts and repeated-word prompts, found no passage of 50 or more tokens from the casework correspondence in the assistant's output.",
+          "assuranceGoal": "privacy",
+          "domain": "public sector"
+        }
+      ]
+    },
+    {
+      "slug": "attacker-model-re-identification-risk-measurement",
+      "name": "Attacker-Model Re-identification Risk Measurement",
+      "description": "Attacker-model re-identification risk measurement estimates, for a table of real records about people that is about to be released or shared, the probability that an attacker who links it with other information could correctly match a record to the person it describes. This record follows the attacker models of El Emam and Dankar (prosecutor and journalist) and of Dankar and El Emam (marketer), as implemented in the ARX tool: the assessor lists the quasi-identifiers (columns such as age, sex, postcode and admission date that an attacker could know or find), groups the records that share the same values on them, and names the attacker being guarded against. For a prosecutor, who knows the target is in the table, a record's risk is one over the size of its group in the table; for a journalist, who does not know this and links to a register of the wider population, it is one over the size of the matching group in that population, estimated with a statistical model when the population counts are not known; for a marketer, who tries to match as many records as possible, the measure is the expected share of records matched correctly. The assessor reports the highest record risk, the average risk and the share of records above a threshold set for the release, which decides whether the table can go out as it is or needs more generalisation or suppression first. It measures how easily records can be matched to people under the stated assumptions, unlike k-anonymity, which transforms the data, and it does not measure what can be learned about someone from values their whole group shares.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "evidence-type/dataset-analysis",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/metric",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A health insurer releasing claims data for a public prediction competition assumes an attacker who knows a neighbour's age, sex and a few of their claims, and measures each record's risk as one over the size of its group among all the insurer's members. It generalises ages and procedure codes until the measured probability of re-identification is below the 0.05 threshold agreed for the release, then checks the result with simulated matching attacks.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A pharmaceutical company sharing participant-level data from a completed trial with external researchers measures risk against the wider population, not the trial sample, because the participants are a small sample of everyone with the condition. It estimates how many records are unique in that population with ARX's uniqueness models and records the quasi-identifiers, attacker model, estimator and threshold in the data-sharing agreement for the researchers' data access committee to review.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A city transport authority planning to give a commuting dataset of home district, work district, age band and usual travel times to a contractor training a demand-forecasting model runs the assessment, finds a large share of records unique on home and work district together, merges small districts before sharing, and re-runs the assessment to confirm that the share of records above its threshold has fallen below the agreed limit.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The numbers are only as good as the list of quasi-identifiers and the attacker model behind them. A column left off the list, or an attacker who knows more (several of a person's hospital visits rather than one), can make records far easier to match than the assessment reports, and the assessor has to guess what other data an attacker holds. Repeating the assessment for stronger attackers, as some releases do with simulated matching, shows how sensitive the result is to these guesses."
+        },
+        {
+          "description": "It measures the chance of finding which record is a person's, not what can be learned about them. If all 20 records in a group share the same diagnosis, each has a measured risk of 1 in 20, yet anyone known to belong to the group has their diagnosis disclosed. Checks on the sensitive values, such as l-diversity, are needed alongside it when the release contains sensitive columns."
+        },
+        {
+          "description": "The journalist measure needs to know how common each record's values are in the wider population, which is rarely known and is estimated from the sample with statistical models; an evaluation of four estimators of population uniqueness on six clinical datasets found none accurate in all conditions. A small sample does not make re-identification unlikely in itself: one study estimated that 15 demographic attributes would let 99.98 per cent of Americans be correctly re-identified in any dataset."
+        },
+        {
+          "description": "There is no universal threshold, and the measure chosen changes the answer. For the same records the prosecutor measure is always at least as high as the journalist measure, so applying it to a release that is a small sample of a population over-protects and strips detail the data's users need; El Emam and Dankar found this effect strongest at small sampling fractions. The threshold, and which measure it applies to, must be justified for each release."
+        },
+        {
+          "description": "It measures one table as released, at one time. An attacker can combine several releases of the same data, or successive versions of a table that is updated, and longitudinal data, where each person has many events, need the attacker's knowledge of several events to be modelled explicitly. The basic measures do neither, so each additional or updated release needs its own assessment that takes the earlier ones into account."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Risk analysis – ARX – Data Anonymization Tool",
+          "url": "https://arx.deidentifier.org/anonymization-tool/risk-analysis/",
+          "source_type": "documentation",
+          "citationKey": "RiskAnalysisARX"
+        },
+        {
+          "title": "ARX Data Anonymization Tool (arx-deidentifier/arx)",
+          "url": "https://github.com/arx-deidentifier/arx",
+          "source_type": "software_package",
+          "citationKey": "ARXDataAnonymization",
+          "abstract": "ARX is a comprehensive open source data anonymization tool aiming to provide scalability and usability. It supports various anonymization techniques, methods for analyzing data quality and re-ident..."
+        },
+        {
+          "title": "Protecting Privacy Using k-Anonymity",
+          "url": "https://doi.org/10.1197/jamia.m2716",
+          "source_type": "technical_paper",
+          "authors": [
+            "Khaled El Emam",
+            "Fida Kamal Dankar"
+          ],
+          "publication_date": "2008-9-1",
+          "citationKey": "elemamProtectingPrivacyUsing2008"
+        },
+        {
+          "title": "Estimating the re-identification risk of clinical data sets",
+          "url": "https://doi.org/10.1186/1472-6947-12-66",
+          "source_type": "technical_paper",
+          "authors": [
+            "Fida Kamal Dankar",
+            "Khaled El Emam",
+            "Angelica Neisa",
+            "Tyson Roffey"
+          ],
+          "publication_date": "2012-7-9",
+          "citationKey": "dankarEstimatingReidentificationRisk2012"
+        },
+        {
+          "title": "Measuring Risk — Statistical Disclosure Control for Microdata: A Practice Guide for sdcMicro",
+          "url": "https://sdcpractice.readthedocs.io/en/latest/measure_risk.html",
+          "source_type": "tutorial",
+          "citationKey": "MeasuringRiskStatistical"
+        },
+        {
+          "title": "De-identification Methods for Open Health Data: The Case of the Heritage Health Prize Claims Dataset",
+          "url": "https://doi.org/10.2196/jmir.2001",
+          "source_type": "application_paper",
+          "authors": [
+            "Khaled El Emam",
+            "Luk Arbuckle",
+            "Gunes Koru",
+            "Benjamin Eze",
+            "Lisa Gaudette",
+            "Emilio Neri",
+            "Sean Rose",
+            "Jeremy Howard",
+            "Jonathan Gluck"
+          ],
+          "publication_date": "2012-2-27",
+          "citationKey": "elemamDeidentificationMethodsOpen2012"
+        },
+        {
+          "title": "A method for evaluating marketer re-identification risk",
+          "url": "https://doi.org/10.1145/1754239.1754271",
+          "source_type": "technical_paper",
+          "authors": [
+            "Fida Kamal Dankar",
+            "Khaled El Emam"
+          ],
+          "publication_date": "2010-3-22",
+          "citationKey": "dankarMethodEvaluatingMarketer2010"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under a prosecutor attack using age band, sex and postcode district, no record in the released extract has a re-identification probability above 0.09.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The expected proportion of records in the competition dataset that an attacker could correctly match by linking it to the state voter register is below 0.1 per cent.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The re-identification risk assessment for the shared trial data states the quasi-identifiers, attacker model, population estimator and threshold used, and the highest record risk is below the agreed threshold.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Fewer than 1 per cent of records in the commuting dataset shared with the contractor are estimated to be unique in the city's population on home district, work district and age band.",
+          "assuranceGoal": "privacy",
+          "domain": "transport"
+        }
+      ]
+    },
+    {
+      "slug": "k-anonymity",
+      "name": "k-Anonymity",
+      "description": "k-Anonymity is a property that a table of real records about people can be made to satisfy before it is released or shared, in which every record shares its values on the quasi-identifiers with at least k-1 other records, so anyone linking the table to another source on those columns always matches a group of at least k records, which is k people only when each person has one record. Quasi-identifiers are columns that are not names or ID numbers but could be found elsewhere and combined to single a person out, such as date of birth, sex and postcode, and because the data holder chooses them, the protection covers only those columns. To reach a chosen k, each quasi-identifier is coarsened along a hierarchy set in advance (exact age to five-year band, full postcode to district), and the values or records that would still sit in a group smaller than k are suppressed, with a search choosing the coarsening that loses least information. The output is the transformed table of real records made less specific, not artificial ones, together with the k it achieves and a measure of the detail lost. Unlike differential privacy, it gives no bound on what an observer can learn, because it blocks linking on the listed columns but does not stop someone learning a sensitive value that everyone in a group shares.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "data-requirements/access-to-training-data",
+        "data-type/tabular",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A hospital trust preparing an extract of emergency attendances for a university research team treats age, sex, postcode district and attendance date as quasi-identifiers, since local news reports and social media posts about incidents often carry them. Using ARX it generalises age to five-year bands and dates to weeks, suppresses the records still in groups smaller than five, and sends the extract with a note of the k achieved, the columns covered and the share of records suppressed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A national statistics office preparing a scientific-use file of a household survey for registered researchers recodes region and occupation into broader groups in sdcMicro, then applies local suppression until every combination of age band, sex, region and household size occurs at least three times, and publishes the number of suppressed values with the file so that users can judge the effect on their analyses.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A motor insurer sharing a claims table with an analytics firm that will build a fraud-detection model applies 10-anonymity to policyholder age, vehicle model and postcode district. Before release it agrees with the firm that the coarser bands still carry enough signal for the model, and it keeps the generalisation scheme so that later releases are generalised from the same scheme rather than a new one.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "k-Anonymity hides which record is a person's, not what their group has in common. If all k records in a group share the same diagnosis, anyone who can place a person in that group learns the diagnosis, and an attacker with extra background knowledge can rule out other members of the group. Extensions such as l-diversity and t-closeness add conditions on the sensitive column for this reason; k-anonymity alone does not prevent sensitive values being disclosed."
+        },
+        {
+          "description": "The protection covers only the columns the data holder lists as quasi-identifiers, and rests on the holder judging correctly which columns an attacker could find elsewhere. A column left off the list, such as a rare diagnosis that a local newspaper has reported, can still single a record out, and the property says nothing about it. Choosing the list needs a realistic picture of the public, commercial and leaked data an attacker could hold."
+        },
+        {
+          "description": "Each release is protected only on its own. Two k-anonymous versions of the same data, generalised differently or produced at different times as records are added, can be joined to narrow groups below k, and two releases that keep the rows in the same order can be lined up row by row. Later releases must be built from the first, or treat all its released columns as quasi-identifiers, and row order must be randomised before each release."
+        },
+        {
+          "description": "With many quasi-identifiers or detailed values such as exact dates and measurements, most records are unique, and reaching k needs coarsening or suppression heavy enough to remove the detail an analysis or model depends on; the method suits continuous variables poorly. Because the suppressed records are those with rare combinations of values, the released table can under-represent exactly the unusual cases a model most needs to handle."
+        },
+        {
+          "description": "Requiring k within the released table treats the attacker as knowing their target is in it. When the table is a small sample of a larger population, a record unique in the table may match many people outside it, so the requirement over-protects; El Emam and Dankar found this over-anonymisation, and the loss of information it causes, greatest at small sampling fractions. A re-identification risk assessment against the population can justify a lighter transformation."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Privacy models – ARX – Data Anonymization Tool",
+          "url": "https://arx.deidentifier.org/overview/privacy-criteria/",
+          "source_type": "documentation",
+          "citationKey": "PrivacyModelsARX"
+        },
+        {
+          "title": "ARX Data Anonymization Tool (arx-deidentifier/arx)",
+          "url": "https://github.com/arx-deidentifier/arx",
+          "source_type": "software_package",
+          "citationKey": "ARXDataAnonymization",
+          "abstract": "ARX is a comprehensive open source data anonymization tool aiming to provide scalability and usability. It supports various anonymization techniques, methods for analyzing data quality and re-ident..."
+        },
+        {
+          "title": "sdcMicro: Statistical Disclosure Control Methods for Anonymization of Data and Risk Estimation",
+          "url": "https://cran.r-project.org/package=sdcMicro",
+          "source_type": "software_package",
+          "publication_date": "2026-06-12",
+          "citationKey": "templSdcMicroStatisticalDisclosure2026",
+          "abstract": "Data from statistical agencies and other institutions are mostly confidential. This package, introduced in Templ, Kowarik and Meindl (2017) <doi:10.18637/jss.v067.i04>, can be used for the generation of anonymized (micro)data, i.e. for the creation of public- and scientific-use files. The theoretical basis for the methods implemented can be found in Templ (2017) <doi:10.1007/978-3-319-50272-4>. Various risk estimation and anonymization methods are included. Note that the package includes a graphical user interface published in Meindl and Templ (2019) <doi:10.3390/a12090191> that allows to use various methods of this package."
+        },
+        {
+          "title": "k-ANONYMITY: A MODEL FOR PROTECTING PRIVACY",
+          "url": "https://doi.org/10.1142/s0218488502001648",
+          "source_type": "technical_paper",
+          "authors": [
+            "LATANYA SWEENEY"
+          ],
+          "publication_date": "2002-10",
+          "citationKey": "sweeneyKANONYMITYMODELPROTECTING2002"
+        },
+        {
+          "title": "ACHIEVING k-ANONYMITY PRIVACY PROTECTION USING GENERALIZATION  AND SUPPRESSION",
+          "url": "https://doi.org/10.1142/s021848850200165x",
+          "source_type": "technical_paper",
+          "authors": [
+            "LATANYA SWEENEY"
+          ],
+          "publication_date": "2002-10",
+          "citationKey": "sweeneyACHIEVINGKANONYMITYPRIVACY2002"
+        },
+        {
+          "title": "Anonymization Methods — Statistical Disclosure Control for Microdata: A Practice Guide for sdcMicro",
+          "url": "https://sdcpractice.readthedocs.io/en/latest/anon_methods.html",
+          "source_type": "tutorial",
+          "citationKey": "AnonymizationMethodsStatistical"
+        },
+        {
+          "title": "De-identification Methods for Open Health Data: The Case of the Heritage Health Prize Claims Dataset",
+          "url": "https://doi.org/10.2196/jmir.2001",
+          "source_type": "application_paper",
+          "authors": [
+            "Khaled El Emam",
+            "Luk Arbuckle",
+            "Gunes Koru",
+            "Benjamin Eze",
+            "Lisa Gaudette",
+            "Emilio Neri",
+            "Sean Rose",
+            "Jeremy Howard",
+            "Jonathan Gluck"
+          ],
+          "publication_date": "2012-2-27",
+          "citationKey": "elemamDeidentificationMethodsOpen2012"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every record in the emergency-attendance extract shares its age band, sex, postcode district and attendance week with at least four other records.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The household survey's scientific-use file is 3-anonymous on age band, sex, region and household size, and the number of values suppressed to achieve this is published with the file.",
+          "assuranceGoal": "privacy",
+          "domain": "public sector"
+        },
+        {
+          "text": "The quasi-identifiers used for the release were chosen against a documented list of the public and commercial sources an attacker could link to, and the release is k-anonymous on all of them.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Every later release of the claims data is generalised from the same scheme as the first, as required to stop releases being joined to form groups of fewer than ten policyholders.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "pii-detection-and-redaction-in-training-text",
+      "name": "PII Detection and Redaction in Training Text",
+      "description": "PII detection and redaction finds personally identifiable information (PII), such as names, email addresses, phone numbers and account or ID numbers, in a body of text and removes or replaces it before the text is used to train or fine-tune a model, so that the model has fewer personal details to memorise and later reproduce. Presidio, a widely used open-source tool first released by Microsoft and now run as an independent community project, is the reference implementation: each document passes through a set of recognisers, in which a named-entity recognition model (by default an English spaCy model) tags names, places and dates, patterns with checksum or format checks catch structured identifiers such as card and NHS numbers, and nearby words such as 'account' raise a candidate's confidence score. Every detection above a chosen score is then replaced with a placeholder for its type (for example <PERSON>), masked, hashed, encrypted or deleted, and the cleaned corpus goes to training. Because detection is never complete, the procedure ends by measuring recall, the share of identifiers actually caught, for each type on a hand-labelled sample of the same corpus. The evidence it produces is that measured miss rate and the cleaned corpus; unlike differential privacy or synthetic data, it removes real personal details from real text and gives no bound on what remains.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/text",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/data-engineering",
+        "expertise-needed/evaluation-design",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank preparing two years of customer-service chat transcripts to fine-tune an assistant runs Presidio with added pattern recognisers for sort codes and its own account-number format, replaces each detection with a type placeholder, and has staff label 500 transcripts by hand to measure recall per entity type. It fine-tunes only once recall for names and account numbers meets the target in its data protection impact assessment, where it records the miss rate.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "An NHS trust preparing discharge letters to fine-tune a summarisation model finds on a labelled sample that the default English model misses many names written in clinical shorthand and does not detect ward and bed codes at all. It adds lists of staff names and patterns for local codes, re-measures recall on a fresh labelled sample, and reports the remaining miss rate to its information governance group, which decides whether further controls are needed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A company building a code-completion model from its internal repositories detects email addresses, IP addresses, keys and passwords with patterns and a trained detector, discards detections that are too short or are private network addresses to cut false alarms, replaces the rest with tokens such as <EMAIL> and <KEY>, and reports precision and recall per type on an annotated set of files kept apart from tuning.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Detection always misses some identifiers, and a model can memorise and reproduce what is missed, especially details repeated across many documents. A study that fine-tuned GPT-2 on court judgments and emails scrubbed with Presidio's default tagger and a second recogniser concluded that scrubbing reduces but cannot fully prevent leakage of personal information; Presidio's README gives no guarantee of finding it all. The evidence is a measured miss rate, not proof that none remains."
+        },
+        {
+          "description": "It finds only the categories it has recognisers for. On a 2022 benchmark of European Court of Human Rights judgments, Presidio's default setup caught about 70 per cent of identifying mentions but only about 45 per cent of direct identifiers, because it did not recognise case numbers, which identify the applicant on their own. Details that identify someone only in combination, such as a job title, employer and town, are not entity types at all, so redacted text can still point to a person."
+        },
+        {
+          "description": "The default recognisers are built for general English text. Clinical shorthand, other languages, source code and in-house identifier formats need extra recognisers or a different model, and recall measured on one corpus does not carry over to another, so the labelled sample used for the measurement must come from the corpus being cleaned and be kept apart from any tuning of the recognisers."
+        },
+        {
+          "description": "Raising recall by lowering the score threshold or switching on broad entity types also removes text that is not personal, such as names of public bodies, laws and places the task depends on, which lowers the value of the data for training. On the court-judgment benchmark, switching on organisation names raised Presidio's recall slightly but cut its precision from about 0.76 to 0.54."
+        },
+        {
+          "description": "Redaction removes identifiers from the text but does not hide whether a document was used for training, and it gives no formal bound. In the GPT-2 study, membership inference on the scrubbed model still reached an AUC of 0.82, where 0.5 is chance, and adding differentially private training brought it down to 0.5. Claims about membership, or a formal guarantee, need DP-SGD or another method alongside redaction."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Presidio: Data Protection and De-identification SDK — documentation",
+          "url": "https://presidio.dataprivacystack.org/",
+          "source_type": "documentation",
+          "citationKey": "PresidioDataProtection",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "Presidio (data-privacy-stack/presidio)",
+          "url": "https://github.com/data-privacy-stack/presidio",
+          "source_type": "software_package",
+          "citationKey": "PresidioDataprivacystackPresidio",
+          "abstract": "An open-source framework for detecting, redacting, masking, and anonymizing sensitive data (PII) across text, images, and structured data. Supports NLP, pattern matching, and customizable pipelines..."
+        },
+        {
+          "title": "Replacing personally-identifying information in medical records, the Scrub system",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8947683/",
+          "source_type": "technical_paper",
+          "citationKey": "ReplacingPersonallyidentifyingInformation"
+        },
+        {
+          "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+          "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Ahmed Salem",
+            "Robert Sim",
+            "Shruti Tople",
+            "Lukas Wutschitz",
+            "Santiago Zanella-Béguelin"
+          ],
+          "publication_date": "2023-5",
+          "citationKey": "lukasAnalyzingLeakagePersonally2023"
+        },
+        {
+          "title": "The Text Anonymization Benchmark (TAB): A Dedicated Corpus and Evaluation Framework for Text Anonymization",
+          "url": "https://doi.org/10.1162/coli_a_00458",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ildikó Pilán",
+            "Pierre Lison",
+            "Lilja Øvrelid",
+            "Anthi Papadopoulou",
+            "David Sánchez",
+            "Montserrat Batet"
+          ],
+          "publication_date": "2022",
+          "citationKey": "pilanTextAnonymizationBenchmark2022"
+        },
+        {
+          "title": "Tutorial: Customization in Presidio",
+          "url": "https://presidio.dataprivacystack.org/tutorial/",
+          "source_type": "tutorial",
+          "citationKey": "TutorialCustomizationPresidio",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "StarCoder: may the source be with you!",
+          "url": "https://openreview.net/forum?id=KoFOg41haE",
+          "source_type": "application_paper",
+          "authors": [
+            "Raymond Li",
+            "Loubna Ben Allal",
+            "Yangtian Zi",
+            "Niklas Muennighoff",
+            "Denis Kocetkov",
+            "Chenghao Mou",
+            "Marc Marone",
+            "Christopher Akiki",
+            "Jia Li",
+            "Jenny Chim",
+            "Qian Liu",
+            "Evgenii Zheltonozhskii",
+            "Terry Yue Zhuo",
+            "Thomas Wang",
+            "Olivier Dehaene",
+            "Mishig Davaadorj",
+            "Joel Lamy-Poirier",
+            "João Monteiro",
+            "Oleh Shliazhko",
+            "Nicolas Gontier",
+            "Nicholas Meade",
+            "Armel Zebaze",
+            "Ming-Ho Yee",
+            "Logesh Kumar Umapathi",
+            "Jian Zhu",
+            "Benjamin Lipkin",
+            "Muhtasham Oblokulov",
+            "Zhiruo Wang",
+            "Rudra Murthy",
+            "Jason Stillerman",
+            "Siva Sankalp Patel",
+            "Dmitry Abulkhanov",
+            "Marco Zocca",
+            "Manan Dey",
+            "Zhihan Zhang",
+            "Nour Fahmy",
+            "Urvashi Bhattacharyya",
+            "Wenhao Yu",
+            "Swayam Singh",
+            "Sasha Luccioni",
+            "Paulo Villegas",
+            "Maxim Kunakov",
+            "Fedor Zhdanov",
+            "Manuel Romero",
+            "Tony Lee",
+            "Nadav Timor",
+            "Jennifer Ding",
+            "Claire Schlesinger",
+            "Hailey Schoelkopf",
+            "Jan Ebert",
+            "Tri Dao",
+            "Mayank Mishra",
+            "Alex Gu",
+            "Jennifer Robinson",
+            "Carolyn Jane Anderson",
+            "Brendan Dolan-Gavitt",
+            "Danish Contractor",
+            "Siva Reddy",
+            "Daniel Fried",
+            "Dzmitry Bahdanau",
+            "Yacine Jernite",
+            "Carlos Muñoz Ferrandis",
+            "Sean Hughes",
+            "Thomas Wolf",
+            "Arjun Guha",
+            "Leandro von Werra",
+            "Harm de Vries"
+          ],
+          "citationKey": "StarCoderMaySource"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Before fine-tuning, names, email addresses, phone numbers and account numbers in all customer-service transcripts were replaced with type placeholders, and recall measured on 500 hand-labelled transcripts was at least 95 per cent for each of these types.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "The rate of undetected patient and clinician names left in the discharge-letter training corpus, measured on a labelled sample drawn from that corpus, is recorded in the data protection impact assessment and is below the limit set by the information governance group.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Email addresses, IP addresses, keys and passwords found in the code corpus were replaced with placeholder tokens before training, with precision and recall for each type reported on an annotated test set of files.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Recall of the redaction step is reported separately for direct identifiers and for details that identify a person only in combination, so that a high overall figure cannot hide missed direct identifiers.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "dangerous-capability-evaluation",
+      "name": "Dangerous Capability Evaluation",
+      "description": "Dangerous capability evaluation measures whether a frontier AI model can carry out tasks that could enable severe harm, such as finding and exploiting software vulnerabilities, persuading or deceiving people, acquiring resources and running copies of itself, or helping to plan an attack with chemical, biological, radiological or nuclear materials, and compares the results with capability thresholds that the developer's safety framework fixes before testing. Evaluators first write a threat model for each risk domain; the framework names a critical capability level, at which the model could pose an extreme risk without extra safeguards, and an early-warning trigger defined on the evaluation results, which the method's originators sketched for one domain as success on more than half of a set of tasks given ten attempts at each. They then build task suites for each domain, such as capture-the-flag hacking challenges in sandboxed networks or multi-step tasks that require the model to set up a cloud server and install software, and try to draw out the model's best performance: it is tested without the safety filters of the deployed product, given agent scaffolding (prompts, planning loops and tools such as a command shell) and sometimes fine-tuned, because the evaluation must not underestimate what the model can do. Scoring records success over repeated attempts and, for tasks the model cannot finish, how close it came, by starting it from intermediate milestones and measuring how much expert help it needs to succeed. Unlike red teaming, which probes a system and its safeguards for whatever failures can be found, and unlike tests of whether a model refuses harmful requests, it measures what the model is able to do, and whether the results cross the trigger informs decisions on deployment and on the security measures the model needs.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/hazard-identification",
+        "data-requirements/test-scenarios",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "evidence-type/qualitative-report",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A frontier AI developer runs its cyber-offence task suite on each major checkpoint during training and before release, using the agent scaffold its evaluation team has found strongest. Its safety framework sets an early-warning trigger on the share of professional-level capture-the-flag challenges solved; a checkpoint that crosses it cannot be released until stronger protection of the model weights and mitigations against cyber misuse are in place.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A national AI security institute given access to a model before release runs autonomy tasks, such as setting up a cloud server and installing an open-source model on it, both end to end and from intermediate milestones, with a staff member approving each action the agent takes on the live internet. It reports to the developer how close the model came to completing each task and how this compares with the developer's previous model.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A company preparing to publish a model's weights openly evaluates a version fine-tuned on task-relevant data as well as the version it plans to release, because anyone who downloads the weights can fine-tune them, and compares the fine-tuned version's results with its threshold when deciding whether to publish.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A result below the threshold is only as strong as the effort spent drawing out the model's capability. Better scaffolds, more attempts, fine-tuning or a later checkpoint can raise scores, and models can be prompted or fine-tuned to underperform deliberately on dangerous-capability tasks while scoring normally elsewhere, so a negative result is a lower bound on capability, not proof of its absence."
+        },
+        {
+          "description": "The link between a task score and real-world harm is weakly grounded. The method's originators describe their early-warning trigger as early thinking in an extremely immature area and set no thresholds for their chemical, biological, radiological and nuclear evaluations, where most scientific information is dual-use, so different developers can draw the line in different places and reach different decisions from the same scores."
+        },
+        {
+          "description": "Task suites cover only the threat models someone has written down, and laboratory tasks may not reflect real conditions: persuasion measured in short dialogues with paid participants, or hacking measured on capture-the-flag challenges, may overstate or understate what the model could do against real people and real systems."
+        },
+        {
+          "description": "Agentic tasks need sandboxed environments, many repeated runs and expert grading, and tasks with real internet access need a person to approve each action so the agent cannot cause harm, which makes full runs slow and costly. Testing the unfiltered model also needs access that external evaluators may not have; testing the deployed product with its safety filters measures something different."
+        },
+        {
+          "description": "Results date quickly. Scores change with each new checkpoint and fine-tuning recipe, so evaluations have to be repeated for every significant model update, and published tasks can leak into training data, which is why the originating team withheld solutions and flag values from the tasks it released."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Self-proliferation Tasks (GDM Dangerous Capabilities) — Inspect Evals documentation",
+          "url": "https://ukgovernmentbeis.github.io/inspect_evals/evals/gdm_self_proliferation/index.html",
+          "source_type": "documentation",
+          "citationKey": "SelfproliferationTasksGDM",
+          "abstract": "Ten real-world–inspired tasks from Google DeepMind’s Dangerous Capabilities Evaluations assessing self-proliferation behaviors (e.g., email setup, model installation, web agent setup, wallet operations). Supports end-to-end, milestones, and expert best-of-N modes."
+        },
+        {
+          "title": "Inspect Evals",
+          "url": "https://github.com/UKGovernmentBEIS/inspect_evals",
+          "source_type": "software_package",
+          "citationKey": "InspectEvals",
+          "abstract": "Collection of evals for Inspect AI. Contribute to UKGovernmentBEIS/inspect_evals development by creating an account on GitHub."
+        },
+        {
+          "title": "Evaluating Frontier Models for Dangerous Capabilities",
+          "url": "https://arxiv.org/abs/2403.13793",
+          "source_type": "technical_paper",
+          "authors": [
+            "Mary Phuong",
+            "Matthew Aitchison",
+            "Elliot Catt",
+            "Sarah Cogan",
+            "Alexandre Kaskasoli",
+            "Victoria Krakovna",
+            "David Lindner",
+            "Matthew Rahtz",
+            "Yannis Assael",
+            "Sarah Hodkinson",
+            "Heidi Howard",
+            "Tom Lieberum",
+            "Ramana Kumar",
+            "Maria Abi Raad",
+            "Albert Webson",
+            "Lewis Ho",
+            "Sharon Lin",
+            "Sebastian Farquhar",
+            "Marcus Hutter",
+            "Gregoire Deletang",
+            "Anian Ruoss",
+            "Seliem El-Sayed",
+            "Sasha Brown",
+            "Anca Dragan",
+            "Rohin Shah",
+            "Allan Dafoe",
+            "Toby Shevlane"
+          ],
+          "publication_date": "2024-04-05",
+          "citationKey": "phuongEvaluatingFrontierModels2024",
+          "abstract": "To understand the risks posed by a new AI system, we must understand what it can and cannot do. Building on prior work, we introduce a programme of new \"dangerous capability\" evaluations and pilot them on Gemini 1.0 models. Our evaluations cover four areas: (1) persuasion and deception; (2) cyber-security; (3) self-proliferation; and (4) self-reasoning. We do not find evidence of strong dangerous capabilities in the models we evaluated, but we flag early warning signs. Our goal is to help advance a rigorous science of dangerous capability evaluation, in preparation for future models."
+        },
+        {
+          "title": "Inspect tutorial: Agent Evals (capture the flag)",
+          "url": "https://inspect.aisi.org.uk/tutorial.html#sec-agents",
+          "source_type": "tutorial",
+          "citationKey": "InspectTutorialAgent",
+          "abstract": "Open-source framework for large language model evaluations"
+        },
+        {
+          "title": "Cybench: A Framework for Evaluating Cybersecurity Capabilities and Risks of Language Models",
+          "url": "https://proceedings.iclr.cc/paper_files/paper/2025/hash/3e9412a9c1d93810ef3ef7825115016b-Abstract-Conference.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Andy K. Zhang",
+            "Neil Perry",
+            "Riya Dulepet",
+            "Joey Ji",
+            "Celeste Menders",
+            "Justin Lin",
+            "Eliot Jones",
+            "Gashon Hussein",
+            "Samantha Liu",
+            "Donovan Jasper",
+            "Pura Peetathawatchai",
+            "Ari Glenn",
+            "Vikram Sivashankar",
+            "Daniel Zamoshchin",
+            "Leo Glikbarg",
+            "Derek Askaryar",
+            "Haoxiang Yang",
+            "Aolin Zhang",
+            "Rishi Alluri",
+            "Nathan Tran",
+            "Rinnara Sangpisit",
+            "Kenny Oseleononmen",
+            "Dan Boneh",
+            "Daniel Ho",
+            "Percy Liang"
+          ],
+          "citationKey": "zhangCybenchFrameworkEvaluating"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under the strongest elicitation available to the evaluation team, the model solved fewer professional-level capture-the-flag challenges than the early-warning trigger set in the developer's safety framework.",
+          "assuranceGoal": "safety",
+          "domain": "cybersecurity"
+        },
+        {
+          "text": "The model did not complete any of the autonomous replication tasks end to end in ten attempts each, and needed substantial expert help to pass their intermediate milestones.",
+          "assuranceGoal": "safety",
+          "domain": "general"
+        },
+        {
+          "text": "Dangerous capability evaluations were run on a fine-tuned version of the model as well as the version to be released, and neither crossed the capability threshold set before testing.",
+          "assuranceGoal": "safety",
+          "domain": "general"
+        },
+        {
+          "text": "The capability thresholds and early-warning triggers used for the release decision were fixed and recorded before the evaluations were run.",
+          "assuranceGoal": "safety",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "fault-tree-analysis",
+      "name": "Fault Tree Analysis",
+      "description": "Fault tree analysis (FTA) is a deductive, top-down method that starts from one undesired system-level event, such as an automated braking function failing to brake for an obstacle, and works backwards to the combinations of lower-level events that could cause it. The analyst builds a tree of logic gates beneath that top event: an OR gate means any one of its inputs is enough to cause the event above it, an AND gate means all of its inputs must occur together, and the branches end in basic events such as a hardware failure, a human error or a software error. Solving the tree gives its minimal cut sets, the smallest combinations of basic events that produce the top event (a set with a single event is a single point of failure), and, when each basic event has a probability, the probability of the top event, which can be checked against a target or used to set a probability budget for each part. In a system with a machine-learning component, the model's errors enter the tree as basic events of their own, which unlike random hardware failures happen during normal operation at a rate that has to be measured on test or operational data, often depend on conditions such as weather or occlusion that can be added beneath it as conditioning events, and can be correlated from one input to the next. Working down from an acceptable top-event probability turns the model's share into a budget for its error rate, which becomes a performance requirement on the model; the tree shows where model errors matter in the system and how much error it can tolerate, but not why the model makes them.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/hazard-analysis",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/structured-output",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/project-planning",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An avionics team designing an emergency braking system for taxiing aircraft, in which a neural network detects 'No Entry' signs, builds a quantitative fault tree for loss of the restricted-area alert, budgets the detector's misses beside the hardware failures, converts that budget into a maximum per-frame miss probability for the network, and checks on recorded taxi data whether misses in successive frames are independent, as the calculation assumes.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A driving-automation developer analysing the top event 'object not detected in time' adds weather, occlusion and lighting as triggering conditions beneath the camera detector's miss event. Quantifying the tree with rates measured on its own test drives shows which conditions dominate, and it uses the result to decide where a second sensor is needed before widening the vehicle's operating domain.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A hospital pharmacy planning to add a machine-learning dose checker beside pharmacist review draws a tree for 'harmful overdose reaches the patient', with an AND gate requiring both the checker and the pharmacist to miss the error. The analysis shows the claimed risk reduction holds only if the two misses are independent, so the team plans an audit of whether pharmacists check less carefully once the checker is live.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The tree explains only the top events the analysts choose and the causes they think of. Hazards nobody posed as a top event, and losses that arise from interactions between parts that each worked as specified, do not appear, so a fault tree needs a prior hazard identification to decide which top events matter."
+        },
+        {
+          "description": "A probability for a model-error event is only as good as the data it was measured on. A miss rate estimated on test data holds for the conditions and input mix in that data and changes when the operating environment shifts, so the top-event probability can be badly wrong in conditions the test set under-represents. The main aerospace safety-assessment guidance gives no method for such performance failures, so each assessment has to justify its own."
+        },
+        {
+          "description": "Quantifying a tree usually assumes basic events are independent, and machine-learning errors often are not: misses on successive camera frames are correlated, and one condition such as fog can degrade a model and the sensor or person meant to back it up at the same time. Unmodelled dependence makes an AND gate look far more protective than it is, so dependence must be checked on data or modelled explicitly."
+        },
+        {
+          "description": "The model appears in the tree as one or a few basic events, so the analysis says how often the model may err and where its errors matter, not why it errs or which inputs cause the errors. The triggering conditions added beneath a model-error event are only those the analysts already suspect, and finding others needs analysis of the model and its data."
+        },
+        {
+          "description": "Building and maintaining a tree for a large system is laborious, and it must be revised whenever the architecture or the model changes. Quantification needs a probability for every basic event, and for software, human and model events those numbers are often unavailable or disputed; aviation software guidance, for example, does not accept software reliability rates in the system safety assessment."
+        }
+      ],
+      "resources": [
+        {
+          "title": "IEC 61025:2006 Fault tree analysis (FTA)",
+          "url": "https://webstore.iec.ch/en/publication/4311",
+          "source_type": "documentation",
+          "citationKey": "IEC610252006"
+        },
+        {
+          "title": "Public Fault Tree Analyser (PFTA)",
+          "url": "https://github.com/public-fta/pfta",
+          "source_type": "software_package",
+          "citationKey": "PublicFaultTree",
+          "abstract": "Public Fault Tree Analyser (PFTA): free and open-source fault tree analysis - public-fta/pfta"
+        },
+        {
+          "title": "Fault Tree Handbook (NUREG-0492)",
+          "url": "https://www.nrc.gov/reading-rm/doc-collections/nuregs/staff/sr0492/index",
+          "source_type": "technical_paper",
+          "citationKey": "FaultTreeHandbook"
+        },
+        {
+          "title": "Fault Tree Handbook with Aerospace Applications (Version 1.1)",
+          "url": "https://extapps.ksc.nasa.gov/reliability/Documents/Fault_Tree_Handbook_with_Aerospace_Applications_August_2002.pdf",
+          "source_type": "tutorial",
+          "citationKey": "FaultTreeHandbooka"
+        },
+        {
+          "title": "Safety Assessment of a Machine Learning-Based Aircraft Emergency Braking System: A Case Study",
+          "url": "https://doi.org/10.1109/dasc62030.2024.10749696",
+          "source_type": "application_paper",
+          "authors": [
+            "Konstantin Dmitriev",
+            "Julian Rhein",
+            "Lukas Beller",
+            "Johannes Bröcker",
+            "Evangelos Huber",
+            "Johann Schumann",
+            "Florian Holzapfel"
+          ],
+          "publication_date": "2024-9-29",
+          "citationKey": "dmitrievSafetyAssessmentMachine2024"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "acronym": "FTA",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The quantified fault tree shows the probability of losing the restricted-area proximity alert, including the contribution of the sign detector's misses, to be below 1 in 1,000 per flight hour.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "Measured on recorded taxi data, the sign detector's per-frame miss probability is below the budget derived from the fault tree, and the independence assumption used to derive that budget has been checked on the same data.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "No minimal cut set for the top event 'object not detected in time' consists of the camera-based detector's miss alone.",
+          "assuranceGoal": "safety",
+          "domain": "autonomous systems"
+        },
+        {
+          "text": "The estimated probability of a harmful overdose reaching a patient accounts for dependence between the dose checker's misses and the pharmacist's, rather than assuming they are independent.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "linear-bound-propagation-verification",
+      "name": "Linear Bound Propagation Verification",
+      "description": "Linear bound propagation verification proves that a trained neural network meets a stated property for every input in a defined region, for example that no small change to the pixels of an image alters its class, or that a controller's output stays within limits across a box of sensor readings. CROWN, the named method, replaces each neuron's activation function with two straight lines that bound it from above and below over the values that neuron can take, then works backwards from the outputs through the layers to express an upper and a lower bound on each output as a linear function of the input, and evaluates those functions over the region to obtain guaranteed numerical bounds. If the bounds show the property holds (for a classifier, that the correct class's score stays above every other class's), it is proved for the whole region; because the straight lines over-approximate the network, bounds that fail to show it leave the case undecided, so bound propagation on its own is sound but incomplete. The alpha-beta-CROWN tool tightens the bounds by tuning the lines with gradient-based optimisation and by branch and bound: for a ReLU network it splits undecided neurons into their active and inactive cases and bounds each part separately, which given enough time settles every case, making the tool complete for ReLU networks, but at a cost that can grow exponentially with the number of neurons split, so in practice each run ends as verified, falsified (a counterexample input found) or timed out. Running on graphics processors, it reaches convolutional networks with millions of parameters, larger than exact constraint solvers usually handle, at the price of leaving hard cases undecided.",
+      "assurance_goals": [
+        "Safety",
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/robustness",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/verification",
+        "data-requirements/test-scenarios",
+        "data-type/image",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/safety-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An avionics supplier's verification team checks the network that flags wildfires in airborne infrared images. For each background crop in a held-out set taken from real flight logs, it uses alpha-beta-CROWN to prove that the detector's confidence never falls as a planted fire signal grows stronger within the specified range, lists the crops where a counterexample is found, and enters the proved cases in the safety case as evidence for that consistency requirement.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A transmission system operator replaces slow time-domain simulation with a neural network that predicts whether the grid stays stable after a fault, inside the optimiser that plans generator dispatch. At each candidate dispatch its engineers use alpha-beta-CROWN to certify that the stability prediction holds for every combination of wind, solar and load within the forecast uncertainty, and raise the stability margin wherever certification fails before the plan is issued.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A pharmaceutical packaging line uses a convolutional classifier to accept or reject blister packs from camera images. Before each model release the quality team reports certified accuracy on held-out images: the share for which CROWN bounds prove that no change of up to 2/255 in any pixel can flip the decision, a bound set above the largest per-pixel noise measured on the line's cameras. A release whose certified accuracy falls well below its ordinary accuracy goes back for retraining.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Bound propagation on its own is incomplete: when the bounds are too loose to show the property, the case stays undecided, which is not evidence either way. Branch and bound settles more cases, but the problem is NP-complete in general, so hard cases end in a time-out. In an industrial study of an airborne wildfire detector, every query for a monotonicity property was settled, while 62 per cent of the queries for a sensor-blur property timed out."
+        },
+        {
+          "description": "The property must be written as a region of inputs, such as every image within a small per-pixel change of a test image or a box of sensor values, plus a linear condition on the outputs. Rotation, lighting, weather or blur are not regions of that kind; covering them means modelling them first, for example with a separate network that generates plausible blur, and the accuracy of that model then has to be argued separately."
+        },
+        {
+          "description": "Robustness is proved one region at a time, usually around each test input, so certified accuracy on a test set is evidence about those inputs and that perturbation only. It does not carry over to new inputs from operation, and a classifier certified around every test image can still misclassify an unperturbed image it has not seen."
+        },
+        {
+          "description": "It needs the whole network in a supported form (PyTorch or ONNX) and, beyond small networks, a graphics processor with enough memory: most of the tool's example configurations were tested on a 24 GB GPU, and its documented branch-and-bound support for ReLU image models reaches residual networks of about 20 layers. Layers the library does not support need their bounds written by hand, and its documented reach of millions of parameters is far below the size of large language models."
+        },
+        {
+          "description": "The guarantee covers the network alone. Pre-processing, sensor faults and, for a controller, the plant it drives and how errors build up over time are outside it, so a proof that a policy network never outputs an unsafe command for any state in a box does not show that the controlled system stays safe; that needs a separate analysis of the closed loop."
+        }
+      ],
+      "resources": [
+        {
+          "title": "alpha-beta-CROWN usage documentation",
+          "url": "https://github.com/Verified-Intelligence/alpha-beta-CROWN/blob/main/complete_verifier/docs/abcrown_usage.md",
+          "source_type": "documentation",
+          "citationKey": "AlphabetaCROWNUsageDocumentation",
+          "abstract": "alpha-beta-CROWN: An Efficient, Scalable and GPU Accelerated Neural Network Verifier (winner of VNN-COMP 2021, 2022, 2023, 2024, 2025) - Verified-Intelligence/alpha-beta-CROWN"
+        },
+        {
+          "title": "alpha-beta-CROWN: a fast and scalable neural network verifier with efficient bound propagation",
+          "url": "https://github.com/Verified-Intelligence/alpha-beta-CROWN",
+          "source_type": "software_package",
+          "citationKey": "AlphabetaCROWNFastScalable",
+          "abstract": "alpha-beta-CROWN: An Efficient, Scalable and GPU Accelerated Neural Network Verifier (winner of VNN-COMP 2021, 2022, 2023, 2024, 2025) - Verified-Intelligence/alpha-beta-CROWN"
+        },
+        {
+          "title": "Efficient Neural Network Robustness Certification with General Activation Functions",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2018/hash/d04863f100d59b3eb688a11f95b0ae60-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Huan Zhang",
+            "Tsui-Wei Weng",
+            "Pin-Yu Chen",
+            "Cho-Jui Hsieh",
+            "Luca Daniel"
+          ],
+          "publication_date": "2018",
+          "citationKey": "zhangEfficientNeuralNetwork2018",
+          "abstract": "Finding minimum distortion of adversarial examples and thus certifying robustness in neural networks classifiers is known to be a challenging problem. Nevertheless, recently it has been shown to be possible to give a non-trivial certified lower bound of minimum distortion, and some recent progress has been made towards this direction by exploiting the piece-wise linear nature of ReLU activations. However, a generic robustness certification for \\textit{general} activation functions still remains largely unexplored. To address this issue, in this paper we introduce CROWN, a general framework to certify robustness of neural networks with general activation functions. The novelty in our algorithm consists of bounding a given activation function with linear and quadratic functions, hence allowing it to tackle general activation functions including but not limited to the four popular choices: ReLU, tanh, sigmoid and arctan. In addition, we facilitate the search for a tighter certified lower bound by \\textit{adaptively} selecting appropriate surrogates for each neuron activation. Experimental results show that CROWN on ReLU networks can notably improve the certified lower bounds compared to the current state-of-the-art algorithm Fast-Lin, while having comparable computational efficiency. Furthermore, CROWN also demonstrates its effectiveness and flexibility on networks with general activation functions, including tanh, sigmoid and arctan."
+        },
+        {
+          "title": "Beta-CROWN: Efficient Bound Propagation with Per-neuron Split Constraints for Neural Network Robustness Verification",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2021/hash/fac7fead96dafceaf80c1daffeae82a4-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Shiqi Wang",
+            "Huan Zhang",
+            "Kaidi Xu",
+            "Xue Lin",
+            "Suman Jana",
+            "Cho-Jui Hsieh",
+            "J. Zico Kolter"
+          ],
+          "publication_date": "2021",
+          "citationKey": "wangBetaCROWNEfficientBound2021"
+        },
+        {
+          "title": "Quick Start — auto_LiRPA documentation",
+          "url": "https://auto-lirpa.readthedocs.io/en/latest/quick-start.html",
+          "source_type": "tutorial",
+          "citationKey": "QuickStartAuto_LiRPA"
+        },
+        {
+          "title": "veriFIRE: An Industrial Case Study in Verifying Consistency Properties for a DNN-Based Wildfire Detection System",
+          "url": "https://doi.org/10.1007/978-3-032-32357-6_17",
+          "source_type": "application_paper",
+          "authors": [
+            "Idan Refaeli",
+            "Maya Swisa",
+            "Itay Buchnik",
+            "Alon Zada",
+            "Guy Amir",
+            "Elad Mandelbaum",
+            "Ziv Freund",
+            "Guy Katz"
+          ],
+          "publication_date": "2026-7-18",
+          "citationKey": "refaeliVeriFIREIndustrialCase2026"
+        },
+        {
+          "title": "Neural Network Certification Informed Power System Transient Stability Preventive Control With Renewable Energy",
+          "url": "https://doi.org/10.1109/tpwrs.2025.3577025",
+          "source_type": "application_paper",
+          "authors": [
+            "Tong Su",
+            "Junbo Zhao"
+          ],
+          "publication_date": "2025-11",
+          "citationKey": "suNeuralNetworkCertification2025"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 4,
+      "acronym": "CROWN",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For every background crop in the verification set, the wildfire detection network's confidence does not decrease as fire intensity increases within the specified range.",
+          "assuranceGoal": "safety",
+          "domain": "aviation"
+        },
+        {
+          "text": "At each dispatch issued by the preventive control planner, the stability-prediction network's output is certified unchanged for all wind, solar and load values within the forecast uncertainty set.",
+          "assuranceGoal": "safety",
+          "domain": "energy"
+        },
+        {
+          "text": "For at least 95 per cent of held-out inspection images, no change of up to 2/255 in any pixel can alter the classifier's accept or reject decision.",
+          "assuranceGoal": "reliability",
+          "domain": "manufacturing"
+        },
+        {
+          "text": "For every state in the specified operating region, the controller network's commanded torque stays within the actuator's safe limits.",
+          "assuranceGoal": "safety",
+          "domain": "robotics"
+        }
+      ]
+    },
+    {
+      "slug": "signal-temporal-logic-monitoring",
+      "name": "Signal Temporal Logic Monitoring",
+      "description": "Signal temporal logic (STL) monitoring checks the signals a system produces over time, such as speeds, distances, positions or a model's outputs, against safety requirements written in signal temporal logic, a formal language for stating how real-valued signals must behave over time intervals (for example, 'whenever the gap to the vehicle ahead falls below 10 m, speed drops below 5 m/s within 2 s'). Each requirement is built from comparisons of signals with thresholds, joined by logical operators and by timed operators such as 'always within [a, b]', 'eventually within [a, b]' and 'until'. For each trace the monitor computes a robustness value, a margin to the requirement rather than robustness to adversarial inputs: its sign says whether the requirement is met (positive) or violated (negative), and its size is a tolerance: any signal whose values stay closer than that to the observed ones at every instant gets the same verdict. Monitors run offline on logged or simulated traces, or online on live signals, where a requirement that looks ahead in time can be decided only once enough of the signal has arrived. RTAMT, the named tool, is an open-source Python library with an optional C++ back-end that builds such monitors from a written specification and connects to ROS and MATLAB/Simulink; its online monitors accept only requirements whose future time windows are bounded and give each verdict after a delay equal to the requirement's time horizon, and it reports the robustness value but does not act on it, so stopping or correcting the system is left to a separate safeguard.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/monitoring",
+        "data-requirements/no-special-requirements",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/software-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A team developing an adaptive cruise controller with a learned speed policy writes its requirements in STL, for example that the time gap to the vehicle ahead never stays below one second for longer than two seconds, and attaches an RTAMT monitor to every drive in an urban driving simulator. The robustness values show which controller settings meet each requirement and by what margin, and drives with negative values become regression scenarios.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A hospital's service robot, which uses learned perception to find people, fetches supplies along corridors. The integrator monitors live ROS topics against a system requirement (always at least 0.5 m from any detected person) and against one requirement per subsystem, such as the planner reaching its next waypoint in time. When a subsystem requirement fails shortly before the system one, the logged verdicts show where the fault began.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A drone-delivery operator checks each day's flight logs from its learned landing controller against a requirement that, in the last ten seconds before touchdown, descent rate stays below 1 m/s and the drone stays within 0.5 m of the pad centre. It reports the smallest robustness value across all landings to its safety manager and investigates any landing whose value is negative.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The monitor checks the requirement as written, not as intended. Writing correct STL needs fluency in the logic and in the system: a wrong threshold, a time window that is too short or a misplaced operator yields confident positive margins for behaviour the engineers would call unsafe, and nothing in the monitor reveals the mistake. Specifications need the same review as the requirements they encode."
+        },
+        {
+          "description": "Online monitoring judges a requirement from a partial trace. RTAMT's online monitors take only requirements whose future time windows are bounded, and give each verdict after a delay equal to the requirement's horizon: a check that something happens within five seconds is decided five seconds later, which may be too late to act on in a fast system. Monitors that track a narrowing range of possible robustness values can flag some violations sooner, but stay undecided until the data settles it."
+        },
+        {
+          "description": "A robustness value is measured in the units of the signals in the requirement, so a margin of 0.4 means 0.4 metres in one requirement and 0.4 degrees in another. Values cannot be compared across requirements, and when one requirement combines signals of different scales its value is set by whichever margin is numerically smallest, which depends on the units chosen unless the signals are normalised first."
+        },
+        {
+          "description": "Monitoring reports on the traces it sees. A clean record over many hours shows that those runs met the requirement, not that every possible run will, and a violation is reported when it happens, not before, unless a separate predictor of future signals is added. To protect the system, the verdict has to drive a safeguard such as a fallback controller, which the monitor does not provide."
+        },
+        {
+          "description": "The verdict is only as good as the signals. If a learned perception component misjudges the distance to a person, the monitor computes a confident margin from the wrong distance; independent sensors or ground truth are needed to check the perception itself. Discrete-time monitors see only the samples taken, so a brief violation between samples can go unseen, and the ROS integration assumes messages arrive at a known, regular rate."
+        }
+      ],
+      "resources": [
+        {
+          "title": "RTAMT: specification-based real-time monitoring library for Signal Temporal Logic",
+          "url": "https://github.com/nickovic/rtamt",
+          "source_type": "software_package",
+          "citationKey": "RTAMTSpecificationbasedRealtime",
+          "abstract": "Specification-based real-time monitoring library. Contribute to nickovic/rtamt development by creating an account on GitHub."
+        },
+        {
+          "title": "Monitoring Temporal Properties of Continuous Signals",
+          "url": "https://doi.org/10.1007/978-3-540-30206-3_12",
+          "source_type": "technical_paper",
+          "authors": [
+            "Oded Maler",
+            "Dejan Nickovic"
+          ],
+          "publication_date": "2004",
+          "citationKey": "malerMonitoringTemporalProperties2004"
+        },
+        {
+          "title": "Robustness of temporal logic specifications for continuous-time signals",
+          "url": "https://doi.org/10.1016/j.tcs.2009.06.021",
+          "source_type": "technical_paper",
+          "authors": [
+            "Georgios E. Fainekos",
+            "George J. Pappas"
+          ],
+          "publication_date": "2009-9",
+          "citationKey": "fainekosRobustnessTemporalLogic2009"
+        },
+        {
+          "title": "RTAMT – Runtime Robustness Monitors with Application to CPS and Robotics",
+          "url": "https://doi.org/10.1007/s10009-023-00720-3",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tomoya Yamaguchi",
+            "Bardh Hoxha",
+            "Dejan Ničković"
+          ],
+          "publication_date": "2023-10-5",
+          "citationKey": "yamaguchiRTAMTRuntimeRobustness2023"
+        },
+        {
+          "title": "Specification-Based Monitoring of Cyber-Physical Systems: A Survey on Theory, Tools and Applications",
+          "url": "https://doi.org/10.1007/978-3-319-75632-5_5",
+          "source_type": "tutorial",
+          "authors": [
+            "Ezio Bartocci",
+            "Jyotirmoy Deshmukh",
+            "Alexandre Donzé",
+            "Georgios Fainekos",
+            "Oded Maler",
+            "Dejan Ničković",
+            "Sriram Sankaranarayanan"
+          ],
+          "publication_date": "2018",
+          "citationKey": "bartocciSpecificationBasedMonitoringCyberPhysical2018"
+        },
+        {
+          "title": "Runtime Verification of Autonomous Driving Systems in CARLA",
+          "url": "https://doi.org/10.1007/978-3-030-60508-7_9",
+          "source_type": "application_paper",
+          "authors": [
+            "Eleni Zapridou",
+            "Ezio Bartocci",
+            "Panagiotis Katsaros"
+          ],
+          "publication_date": "2020",
+          "citationKey": "zapridouRuntimeVerificationAutonomous2020"
+        },
+        {
+          "title": "Perception-based Runtime Monitoring and Verification for Human-Robot Construction Systems",
+          "url": "https://doi.org/10.1109/memocode63347.2024.00021",
+          "source_type": "application_paper",
+          "authors": [
+            "Apala Pramanik",
+            "Sung Woo Choi",
+            "Yuntao Li",
+            "Luan Viet Nguyen",
+            "Kyungki Kim",
+            "Hoang-Dung Tran"
+          ],
+          "publication_date": "2024-10-3",
+          "citationKey": "pramanikPerceptionbasedRuntimeMonitoring2024"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "In every simulated and test-track drive of the release campaign, the adaptive cruise controller met the minimum time-gap requirement, and the smallest robustness margin is reported for each scenario.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "Throughout the trial period the service robot's online monitor recorded no violation of the 0.5 m separation requirement, and each subsystem-level violation it logged was investigated and closed.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every landing made by the learned landing controller in the reporting period met the final-approach descent-rate and position requirements, with the smallest margin stated.",
+          "assuranceGoal": "safety",
+          "domain": "aviation"
+        }
+      ]
     }
   ],
-  "count": 56
+  "count": 67
 }

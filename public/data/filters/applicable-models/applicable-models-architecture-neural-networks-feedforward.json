@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/architecture/neural-networks/feedforward",
     "slug": "applicable-models-architecture-neural-networks-feedforward",
-    "count": 1,
+    "count": 2,
     "category": "applicable-models"
   },
   "techniques": [
@@ -174,7 +174,188 @@
           "assuranceGoal": "transparency"
         }
       ]
+    },
+    {
+      "slug": "smt-based-neural-network-verification",
+      "name": "SMT-Based Neural Network Verification",
+      "description": "SMT-based neural network verification decides exactly whether any input in a defined region can make a trained neural network violate a stated property, and if one can, returns that input as a counterexample. SMT (satisfiability modulo theories) solvers decide whether a set of logical and arithmetic constraints can all hold at once: here the network's weighted sums become linear equations, each piecewise-linear activation such as ReLU becomes a constraint with two cases (inactive at zero, or active and passing its input through), and the input region and the negation of the property become further linear constraints. The solver searches for values that satisfy every constraint with a simplex-based linear-programming engine: it first tries to repair an activation whose current values break it, and splits it into its two cases only when repairs keep failing, while bounds on each neuron (in Marabou, by default, the linear bounds that bound propagation computes) rule cases out early. Reluplex (Katz et al., 2017) introduced this lazy treatment of ReLU inside the simplex method and used it on a prototype airborne collision avoidance network; Marabou, its maintained successor, keeps the same search structure with a newer search procedure, adds parallel solving, and can emit a proof certificate for an 'unsatisfiable' answer. The answer is 'unsat', meaning no input in the region violates the property, or 'sat' with a concrete counterexample, and for networks whose activations are all piecewise-linear the procedure is complete; the price is that the number of cases can grow exponentially with the number of neurons, so it is practical for small networks such as controllers, policies and surrogate models with few inputs rather than large image models.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/architecture/neural-networks/feedforward",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/verification",
+        "data-requirements/test-scenarios",
+        "data-type/tabular",
+        "evidence-type/boundary-analysis",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/safety-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A warehouse robotics team trains hundreds of candidate deep reinforcement learning policies for driving between shelves from range-sensor readings. Before field trials it encodes 'no move into an obstacle in the next step' and 'no repeating left-right loop over several steps' as queries over each small policy network, runs Marabou on every candidate, discards each policy for which a counterexample reading is returned, and takes only the survivors to the physical robot.",
+          "goal": "Safety"
+        },
+        {
+          "description": "An aircraft systems developer replaces a large collision-avoidance lookup table with a set of small neural networks. For each network it writes regions of encounter geometry, such as an intruder close ahead and closing, together with the advisory that must never be issued there, and runs the solver on each. Regions returned as unsatisfiable go into the certification evidence; any counterexample encounter is replayed in simulation and drives retraining.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A medical-device manufacturer uses a small network to recommend infusion rates from a handful of patient measurements. Its safety engineers prove that, for every combination of measurements within the clinically plausible ranges, the recommended rate never exceeds the maximum set by the device's hazard analysis, and use any counterexample returned to retrain the network or add an output limit.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Deciding these queries for ReLU networks is NP-complete, and the search may split on every neuron whose case is undecided, so time can grow exponentially with network size and with the number of steps a property spans. In a study of robot navigation policies kept to 16 neurons per hidden layer, single-step collision queries took seconds, but 12-step cycle queries usually ran for hours and nearly three in ten of them hit the 12-hour limit."
+        },
+        {
+          "description": "The solver runs on ordinary processors, and its own tool paper reports a non-trivial performance gap to GPU-based bound-propagation verifiers, especially on larger networks; in the 2023 verification competition it solved 594 benchmark instances to alpha-beta-CROWN's 721. It is therefore best suited to small networks with few inputs, such as controllers, policies and surrogate models."
+        },
+        {
+          "description": "Exact answers hold only for piecewise-linear activations such as ReLU, max, absolute value and leaky ReLU. Sigmoid and tanh are handled by an over-approximation that is refined step by step, and softmax and bilinear layers only through a convex relaxation, so for networks that use them the procedure is no longer complete and can end without a decisive answer."
+        },
+        {
+          "description": "The query covers the network and a region of its inputs written as linear constraints, nothing more. A counterexample may lie in a part of the region no real sensor could produce, and a proof says nothing about the environment the network acts in, so choosing a region that is realistic yet small enough to solve takes domain knowledge, and a closed-loop safety claim needs further analysis."
+        },
+        {
+          "description": "An 'unsat' answer is only as trustworthy as the solver's implementation. Marabou can emit a proof certificate that an independent checker validates, but proof production works with only some of its features and not in parallel mode, and in the tool paper's collision-avoidance experiments certificates were produced for 113 of 180 benchmarks."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Maraboupy documentation (Marabou Python interface)",
+          "url": "https://neuralnetworkverification.github.io/Marabou/",
+          "source_type": "documentation",
+          "citationKey": "MaraboupyDocumentationMarabou"
+        },
+        {
+          "title": "Marabou: a framework for verification and analysis of deep neural networks",
+          "url": "https://github.com/NeuralNetworkVerification/Marabou",
+          "source_type": "software_package",
+          "citationKey": "MarabouFrameworkVerification",
+          "abstract": "Contribute to NeuralNetworkVerification/Marabou development by creating an account on GitHub."
+        },
+        {
+          "title": "Reluplex: An Efficient SMT Solver for Verifying Deep Neural Networks",
+          "url": "https://doi.org/10.1007/978-3-319-63387-9_5",
+          "source_type": "technical_paper",
+          "authors": [
+            "Guy Katz",
+            "Clark Barrett",
+            "David L. Dill",
+            "Kyle Julian",
+            "Mykel J. Kochenderfer"
+          ],
+          "publication_date": "2017",
+          "citationKey": "katzReluplexEfficientSMT2017"
+        },
+        {
+          "title": "The Marabou Framework for Verification and Analysis of Deep Neural Networks",
+          "url": "https://doi.org/10.1007/978-3-030-25540-4_26",
+          "source_type": "technical_paper",
+          "authors": [
+            "Guy Katz",
+            "Derek A. Huang",
+            "Duligur Ibeling",
+            "Kyle Julian",
+            "Christopher Lazarus",
+            "Rachel Lim",
+            "Parth Shah",
+            "Shantanu Thakoor",
+            "Haoze Wu",
+            "Aleksandar Zeljić",
+            "David L. Dill",
+            "Mykel J. Kochenderfer",
+            "Clark Barrett"
+          ],
+          "publication_date": "2019",
+          "citationKey": "katzMarabouFrameworkVerification2019"
+        },
+        {
+          "title": "Marabou 2.0: A Versatile Formal Analyzer of Neural Networks",
+          "url": "https://doi.org/10.1007/978-3-031-65630-9_13",
+          "source_type": "technical_paper",
+          "authors": [
+            "Haoze Wu",
+            "Omri Isac",
+            "Aleksandar Zeljić",
+            "Teruhiro Tagomori",
+            "Matthew Daggitt",
+            "Wen Kokke",
+            "Idan Refaeli",
+            "Guy Amir",
+            "Kyle Julian",
+            "Shahaf Bassan",
+            "Pei Huang",
+            "Ori Lahav",
+            "Min Wu",
+            "Min Zhang",
+            "Ekaterina Komendantskaya",
+            "Guy Katz",
+            "Clark Barrett"
+          ],
+          "publication_date": "2024",
+          "citationKey": "wuMarabou20Versatile2024"
+        },
+        {
+          "title": "MarabouTutorial: hands-on Marabou exercises (LogicNN 2026 tutorial)",
+          "url": "https://github.com/OmriIsacHUJI/MarabouTutorial",
+          "source_type": "tutorial",
+          "citationKey": "MarabouTutorialHandsonMarabou",
+          "abstract": "Contribute to OmriIsacHUJI/MarabouTutorial development by creating an account on GitHub."
+        },
+        {
+          "title": "Verifying Learning-Based Robotic Navigation Systems",
+          "url": "https://doi.org/10.1007/978-3-031-30823-9_31",
+          "source_type": "application_paper",
+          "authors": [
+            "Guy Amir",
+            "Davide Corsi",
+            "Raz Yerushalmi",
+            "Luca Marzari",
+            "David Harel",
+            "Alessandro Farinelli",
+            "Guy Katz"
+          ],
+          "publication_date": "2023",
+          "citationKey": "amirVerifyingLearningBasedRobotic2023"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 5,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "None of the navigation policies released for field trials can command a move into an obstacle within one step from any range-sensor reading in the specified input region.",
+          "assuranceGoal": "safety",
+          "domain": "robotics"
+        },
+        {
+          "text": "For every encounter geometry in each specified region, the collision-avoidance network never issues a 'clear of conflict' advisory while the intruder is inside the protected volume.",
+          "assuranceGoal": "safety",
+          "domain": "aviation"
+        },
+        {
+          "text": "For all patient measurements within the clinically plausible ranges, the infusion network never recommends a rate above the maximum set by the hazard analysis.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every counterexample returned while verifying the candidate controllers was replayed in simulation, and every released controller was re-verified and found to have none.",
+          "assuranceGoal": "safety",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 1
+  "count": 2
 }

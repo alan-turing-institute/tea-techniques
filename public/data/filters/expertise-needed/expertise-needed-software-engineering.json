@@ -2,7 +2,7 @@
   "tag": {
     "name": "expertise-needed/software-engineering",
     "slug": "expertise-needed-software-engineering",
-    "count": 7,
+    "count": 9,
     "category": "expertise-needed"
   },
   "techniques": [
@@ -1522,7 +1522,292 @@
           "assuranceGoal": "reliability"
         }
       ]
+    },
+    {
+      "slug": "model-signing",
+      "name": "Model Signing",
+      "description": "Model signing lets the publisher of a machine-learning model attach a cryptographic signature to the model's files, so that anyone who later loads them can check who released them and that no file has changed since. Under the Open Source Security Foundation's Model Signing (OMS) specification and its reference tool, model-signing, the publisher computes a hash (a short fingerprint that changes if a single byte of the file changes) of every file in the model directory, such as weights, configuration, tokeniser and any dataset files kept with them, lists the hashes in a sorted manifest and signs the manifest, producing a detached signature file kept beside the model. The signature can be made with the publisher's own key, with a certificate from an organisation's certificate authority, or through Sigstore, which issues a short-lived certificate tied to a verified online identity, such as a person's account or a build pipeline's, and records each signing event in a transparency log, an append-only record that can be inspected afterwards. Before loading, the consumer verifies the signature against the signer it expects, recomputes every hash and rejects the model if any listed file differs or is missing or, unless that check is switched off, an unlisted file has appeared, so the evidence is a pass or fail tied to a named signer and an exact set of files. Unlike the unsigned file hashes kept by data-versioning tools, it shows who stands behind the files, and unlike a watermark, which is trained into the weights so that it survives in an altered copy, it is broken by any change; it says nothing about how the model behaves or what it was trained on.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/protection",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/audit-record",
+        "expertise-needed/security",
+        "expertise-needed/software-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's machine-learning platform team signs each model at the end of its training pipeline, using the pipeline's own workload identity through Sigstore, and configures its model-serving cluster to load only models whose signature verifies against that identity. Its security team watches the transparency log for signing events under that identity that match no approved release, to decide whether a model reached production outside the release process.",
+          "goal": "Security"
+        },
+        {
+          "description": "A vehicle maker's perception team downloads a pretrained object detector from a supplier catalogue that signs every model it publishes. Before fine-tuning, it verifies the download against the supplier's published certificate and files the verification output in its supplier-acceptance record, so later reviews can show exactly which files the work started from.",
+          "goal": "Security"
+        },
+        {
+          "description": "A hospital's imaging department receives quarterly updates to a vendor's chest X-ray triage model. Its clinical engineering team verifies each update against the vendor's certificate and rejects any update whose signature fails, or that contains a file the signature does not cover, before it enters the clinical validation environment.",
+          "goal": "Security"
+        },
+        {
+          "description": "A public research institute releases an open model together with the test set behind its published benchmark, signing both in one bundle, so that a laboratory re-running the benchmark can confirm that the weights and the test data are byte for byte the ones the institute released before comparing its results with the published ones.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It shows who released the files and that they have not changed, nothing more. A model carrying a malicious pickle payload, a backdoor or the effects of poisoned training data verifies perfectly if its publisher signed it, whether through carelessness or because the publisher's own pipeline was compromised before signing. The originating paper states that signing tells the user nothing about what a model does or how it was produced, so content checks are still needed."
+        },
+        {
+          "description": "A valid signature is only as good as the consumer's check of who made it. A model signed with an attacker's own identity, or by an account named to look like a well-known organisation (a documented attack on model hubs), verifies cleanly unless the verifier insists on the specific identity, certificate or public key it expects. Consumers need a maintained list of trusted signers for each model source."
+        },
+        {
+          "description": "A stolen signing key, or a compromised account at the identity provider used for Sigstore signing, produces valid signatures. With Sigstore every signature is recorded in a transparency log, so a publisher that monitors the log for its own identity can spot signatures it did not make; with the key and certificate methods the specification does not require a log entry, so misuse of a key may go unnoticed."
+        },
+        {
+          "description": "Any change to the files breaks verification, including legitimate ones such as quantisation, conversion to another file format or adding a file. Each derived model needs a new signature from whoever produced it, and that signature says nothing about how the derivative relates to the signed original; recording that relationship needs a separate provenance record, such as the pedigree section of an ML-BOM."
+        },
+        {
+          "description": "It protects only where verification is enforced. Most models on public hubs are unsigned (fewer than 2% of Hugging Face models used the hub's GPG commit-signing option, per studies the originating paper cites), and an unchecked signature protects nobody. Verification re-hashes every file, and hashing dominates the cost: a 1 TB file took about 13 minutes on a 128-vCPU server in the originating paper's benchmark, which matters if very large models are verified at every load."
+        }
+      ],
+      "resources": [
+        {
+          "title": "OpenSSF Model Signing (OMS) Specification, Version 1.0",
+          "url": "https://github.com/ossf/model-signing-spec/blob/main/spec/v1.0.md",
+          "source_type": "documentation",
+          "citationKey": "OpenSSFModelSigning"
+        },
+        {
+          "title": "model-transparency (model-signing package)",
+          "url": "https://github.com/sigstore/model-transparency",
+          "source_type": "software_package",
+          "citationKey": "ModeltransparencyModelsigningPackage",
+          "abstract": "Supply chain security for ML. Contribute to sigstore/model-transparency development by creating an account on GitHub."
+        },
+        {
+          "title": "Position: Machine Learning Models Have a Supply Chain Problem",
+          "url": "https://proceedings.mlr.press/v267/meiklejohn25a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Sarah Meiklejohn",
+            "Hayden Blauzvern",
+            "Mihai Maruseac",
+            "Spencer Schrock",
+            "Laurent Simon",
+            "Ilia Shumailov"
+          ],
+          "publication_date": "2025-10-06",
+          "citationKey": "meiklejohnPositionMachineLearning2025",
+          "abstract": "Powerful machine learning (ML) models are now readily available online, which creates exciting possibilities for users who lack the deep technical expertise or substantial computing resources needed to develop them. On the other hand, this type of open ecosystem comes with many risks. In this paper, we argue that the current ecosystem for open ML models contains significant supply-chain risks, some of which have been exploited already in real attacks. These include an attacker replacing a model with something malicious (e.g., malware), or a model being trained using a vulnerable version of a framework or on restricted or poisoned data. We then explore how Sigstore, a solution designed to bring transparency to open-source software supply chains, can be used to bring transparency to open ML models, in terms of enabling model publishers to sign their models and prove properties about the datasets they use."
+        },
+        {
+          "title": "Model signing with model_signing (demo notebook)",
+          "url": "https://github.com/sigstore/model-transparency/blob/main/docs/demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ModelSigningModel_signing",
+          "abstract": "Supply chain security for ML. Contribute to sigstore/model-transparency development by creating an account on GitHub."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Only model files whose signature verifies against the approved release identity are loaded by the production inference service.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "The model deployed in the clinical system is identical to the files signed by the vendor's release identity, with no file added, removed or changed.",
+          "assuranceGoal": "security",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every signing event recorded in the transparency log under the organisation's signing identity corresponds to an approved model release.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "The pretrained detector used as the starting point for fine-tuning was verified against the supplier's published certificate before any training began.",
+          "assuranceGoal": "security",
+          "domain": "autonomous systems"
+        }
+      ]
+    },
+    {
+      "slug": "signal-temporal-logic-monitoring",
+      "name": "Signal Temporal Logic Monitoring",
+      "description": "Signal temporal logic (STL) monitoring checks the signals a system produces over time, such as speeds, distances, positions or a model's outputs, against safety requirements written in signal temporal logic, a formal language for stating how real-valued signals must behave over time intervals (for example, 'whenever the gap to the vehicle ahead falls below 10 m, speed drops below 5 m/s within 2 s'). Each requirement is built from comparisons of signals with thresholds, joined by logical operators and by timed operators such as 'always within [a, b]', 'eventually within [a, b]' and 'until'. For each trace the monitor computes a robustness value, a margin to the requirement rather than robustness to adversarial inputs: its sign says whether the requirement is met (positive) or violated (negative), and its size is a tolerance: any signal whose values stay closer than that to the observed ones at every instant gets the same verdict. Monitors run offline on logged or simulated traces, or online on live signals, where a requirement that looks ahead in time can be decided only once enough of the signal has arrived. RTAMT, the named tool, is an open-source Python library with an optional C++ back-end that builds such monitors from a written specification and connects to ROS and MATLAB/Simulink; its online monitors accept only requirements whose future time windows are bounded and give each verdict after a delay equal to the requirement's time horizon, and it reports the robustness value but does not act on it, so stopping or correcting the system is left to a separate safeguard.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/monitoring",
+        "data-requirements/no-special-requirements",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/software-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A team developing an adaptive cruise controller with a learned speed policy writes its requirements in STL, for example that the time gap to the vehicle ahead never stays below one second for longer than two seconds, and attaches an RTAMT monitor to every drive in an urban driving simulator. The robustness values show which controller settings meet each requirement and by what margin, and drives with negative values become regression scenarios.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A hospital's service robot, which uses learned perception to find people, fetches supplies along corridors. The integrator monitors live ROS topics against a system requirement (always at least 0.5 m from any detected person) and against one requirement per subsystem, such as the planner reaching its next waypoint in time. When a subsystem requirement fails shortly before the system one, the logged verdicts show where the fault began.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A drone-delivery operator checks each day's flight logs from its learned landing controller against a requirement that, in the last ten seconds before touchdown, descent rate stays below 1 m/s and the drone stays within 0.5 m of the pad centre. It reports the smallest robustness value across all landings to its safety manager and investigates any landing whose value is negative.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The monitor checks the requirement as written, not as intended. Writing correct STL needs fluency in the logic and in the system: a wrong threshold, a time window that is too short or a misplaced operator yields confident positive margins for behaviour the engineers would call unsafe, and nothing in the monitor reveals the mistake. Specifications need the same review as the requirements they encode."
+        },
+        {
+          "description": "Online monitoring judges a requirement from a partial trace. RTAMT's online monitors take only requirements whose future time windows are bounded, and give each verdict after a delay equal to the requirement's horizon: a check that something happens within five seconds is decided five seconds later, which may be too late to act on in a fast system. Monitors that track a narrowing range of possible robustness values can flag some violations sooner, but stay undecided until the data settles it."
+        },
+        {
+          "description": "A robustness value is measured in the units of the signals in the requirement, so a margin of 0.4 means 0.4 metres in one requirement and 0.4 degrees in another. Values cannot be compared across requirements, and when one requirement combines signals of different scales its value is set by whichever margin is numerically smallest, which depends on the units chosen unless the signals are normalised first."
+        },
+        {
+          "description": "Monitoring reports on the traces it sees. A clean record over many hours shows that those runs met the requirement, not that every possible run will, and a violation is reported when it happens, not before, unless a separate predictor of future signals is added. To protect the system, the verdict has to drive a safeguard such as a fallback controller, which the monitor does not provide."
+        },
+        {
+          "description": "The verdict is only as good as the signals. If a learned perception component misjudges the distance to a person, the monitor computes a confident margin from the wrong distance; independent sensors or ground truth are needed to check the perception itself. Discrete-time monitors see only the samples taken, so a brief violation between samples can go unseen, and the ROS integration assumes messages arrive at a known, regular rate."
+        }
+      ],
+      "resources": [
+        {
+          "title": "RTAMT: specification-based real-time monitoring library for Signal Temporal Logic",
+          "url": "https://github.com/nickovic/rtamt",
+          "source_type": "software_package",
+          "citationKey": "RTAMTSpecificationbasedRealtime",
+          "abstract": "Specification-based real-time monitoring library. Contribute to nickovic/rtamt development by creating an account on GitHub."
+        },
+        {
+          "title": "Monitoring Temporal Properties of Continuous Signals",
+          "url": "https://doi.org/10.1007/978-3-540-30206-3_12",
+          "source_type": "technical_paper",
+          "authors": [
+            "Oded Maler",
+            "Dejan Nickovic"
+          ],
+          "publication_date": "2004",
+          "citationKey": "malerMonitoringTemporalProperties2004"
+        },
+        {
+          "title": "Robustness of temporal logic specifications for continuous-time signals",
+          "url": "https://doi.org/10.1016/j.tcs.2009.06.021",
+          "source_type": "technical_paper",
+          "authors": [
+            "Georgios E. Fainekos",
+            "George J. Pappas"
+          ],
+          "publication_date": "2009-9",
+          "citationKey": "fainekosRobustnessTemporalLogic2009"
+        },
+        {
+          "title": "RTAMT – Runtime Robustness Monitors with Application to CPS and Robotics",
+          "url": "https://doi.org/10.1007/s10009-023-00720-3",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tomoya Yamaguchi",
+            "Bardh Hoxha",
+            "Dejan Ničković"
+          ],
+          "publication_date": "2023-10-5",
+          "citationKey": "yamaguchiRTAMTRuntimeRobustness2023"
+        },
+        {
+          "title": "Specification-Based Monitoring of Cyber-Physical Systems: A Survey on Theory, Tools and Applications",
+          "url": "https://doi.org/10.1007/978-3-319-75632-5_5",
+          "source_type": "tutorial",
+          "authors": [
+            "Ezio Bartocci",
+            "Jyotirmoy Deshmukh",
+            "Alexandre Donzé",
+            "Georgios Fainekos",
+            "Oded Maler",
+            "Dejan Ničković",
+            "Sriram Sankaranarayanan"
+          ],
+          "publication_date": "2018",
+          "citationKey": "bartocciSpecificationBasedMonitoringCyberPhysical2018"
+        },
+        {
+          "title": "Runtime Verification of Autonomous Driving Systems in CARLA",
+          "url": "https://doi.org/10.1007/978-3-030-60508-7_9",
+          "source_type": "application_paper",
+          "authors": [
+            "Eleni Zapridou",
+            "Ezio Bartocci",
+            "Panagiotis Katsaros"
+          ],
+          "publication_date": "2020",
+          "citationKey": "zapridouRuntimeVerificationAutonomous2020"
+        },
+        {
+          "title": "Perception-based Runtime Monitoring and Verification for Human-Robot Construction Systems",
+          "url": "https://doi.org/10.1109/memocode63347.2024.00021",
+          "source_type": "application_paper",
+          "authors": [
+            "Apala Pramanik",
+            "Sung Woo Choi",
+            "Yuntao Li",
+            "Luan Viet Nguyen",
+            "Kyungki Kim",
+            "Hoang-Dung Tran"
+          ],
+          "publication_date": "2024-10-3",
+          "citationKey": "pramanikPerceptionbasedRuntimeMonitoring2024"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "In every simulated and test-track drive of the release campaign, the adaptive cruise controller met the minimum time-gap requirement, and the smallest robustness margin is reported for each scenario.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "Throughout the trial period the service robot's online monitor recorded no violation of the 0.5 m separation requirement, and each subsystem-level violation it logged was investigated and closed.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every landing made by the learned landing controller in the reporting period met the final-approach descent-rate and position requirements, with the smallest margin stated.",
+          "assuranceGoal": "safety",
+          "domain": "aviation"
+        }
+      ]
     }
   ],
-  "count": 7
+  "count": 9
 }

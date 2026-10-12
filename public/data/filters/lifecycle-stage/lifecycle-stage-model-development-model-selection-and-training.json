@@ -2,7 +2,7 @@
   "tag": {
     "name": "lifecycle-stage/model-development/model-selection-and-training",
     "slug": "lifecycle-stage-model-development-model-selection-and-training",
-    "count": 17,
+    "count": 23,
     "category": "lifecycle-stage"
   },
   "techniques": [
@@ -2979,7 +2979,861 @@
           "assuranceGoal": "safety"
         }
       ]
+    },
+    {
+      "slug": "malicious-model-file-scanning",
+      "name": "Malicious Model-File Scanning",
+      "description": "Malicious model-file scanning checks a downloaded or received model file for code that would run when the file is loaded, without loading it. Several common ways of saving (serialising) models can carry such code, above all Python's pickle format, the default for PyTorch checkpoints and the usual format for scikit-learn models, whose files can instruct the loader to import and call any Python function, so that loading an untrusted file can hand an attacker control of the machine; since version 2.6 PyTorch's own loader by default allows only a small set of known-safe functions, but some libraries switch that off to load their models. The named method is ModelScan, an open-source scanner from Protect AI, which chooses a check by file extension and reads the file as data: for pickle-based files it lists the functions the file would import and compares them with a graded list of unsafe ones, such as the os, subprocess and socket modules and Python's built-in eval and exec, and for Keras and TensorFlow files it flags Lambda layers, which hold arbitrary Python, and operations that read or write files. It reports each finding with a severity from critical to low and exits with a non-zero code when it finds any, so a pipeline can stop the file before anything loads it. The evidence is a record that no listed unsafe call was found in the files scanned; unlike data-poisoning detection it examines the saved file rather than the training data, and it shows neither that the file is safe, nor how the model behaves, nor who produced the file.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/detection",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/qualitative-report",
+        "expertise-needed/security",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An insurer's machine-learning platform team adds a ModelScan step to the job that imports models from public hubs into its internal registry. A critical or high-severity finding stops the import and opens a ticket for the security team, which decides whether the third-party checkpoint may enter the registry at all.",
+          "goal": "Security"
+        },
+        {
+          "description": "A university's research-computing service scans every checkpoint users upload to shared GPU storage, including PyTorch .pt files and scikit-learn models saved with joblib, before jobs on nodes shared between research groups can load them, and quarantines any file with a critical finding until its owner explains the flagged imports.",
+          "goal": "Security"
+        },
+        {
+          "description": "A manufacturer's operational-technology security team scans each Keras visual-inspection model delivered by an outside contractor before it is copied to factory edge devices. A flagged Lambda layer is accepted only after the contractor supplies the layer's source code and an engineer confirms that it does nothing beyond resizing and normalising images.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It finds only what is on its list. In a peer-reviewed comparison ModelScan missed 9 of 84 known malicious models: five called functions not on its list (the authors' own example wrote files through Python's pathlib module instead of open), three loaded a further payload at run time, for example through numpy.load, and one hid its payload after an early stop instruction, where the scanner stopped reading. A clean scan shows that no known pattern was found, not that the file is safe."
+        },
+        {
+          "description": "Attackers adapt faster than the list. A peer-reviewed study (2026) found 22 routes by which five frameworks load pickled data, 19 of which evaded all four scanners it tested, ModelScan included, and in a 2026 preprint ModelScan detected none of 3,000 new attack files. A scan is only as current as the scanner release and unsafe list it ran with."
+        },
+        {
+          "description": "It checks only the files and formats it recognises, chosen by file extension, and skips the rest, so a pass can cover only some of what the loader will open. Showing that a model was checked needs the list of skipped files (ModelScan can print it) and a check that every file the loading code reads was among those scanned."
+        },
+        {
+          "description": "Findings need judgement. Every Keras Lambda layer is flagged, though Lambda layers are meant for ordinary pre- and post-processing, and benign models from some libraries import functions that pickle scanners treat as suspicious (one peer-reviewed study describes a widely downloaded model flagged this way). Someone able to read the flagged imports or layer code, or to question the model's author, has to decide each case."
+        },
+        {
+          "description": "It looks for code that runs on load, not for harmful behaviour in the weights. A model whose weights were altered to carry a backdoor, or that was trained on poisoned data, contains no unsafe call and scans clean, as does any file in a format that cannot hold code, such as safetensors; ModelScan's own documentation notes that weights can be manipulated in such formats. Backdoor and poisoning checks are separate techniques."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Model Serialization Attacks (ModelScan documentation)",
+          "url": "https://github.com/protectai/modelscan/blob/main/docs/model_serialization_attacks.md",
+          "source_type": "documentation",
+          "citationKey": "ModelSerializationAttacks"
+        },
+        {
+          "title": "ModelScan: Protection against Model Serialization Attacks",
+          "url": "https://github.com/protectai/modelscan",
+          "source_type": "software_package",
+          "citationKey": "ModelScanProtectionModel",
+          "abstract": "Protection against Model Serialization Attacks. Contribute to protectai/modelscan development by creating an account on GitHub."
+        },
+        {
+          "title": "Models Are Codes: Towards Measuring Malicious Code Poisoning Attacks on Pre-trained Model Hubs",
+          "url": "https://doi.org/10.1145/3691620.3695271",
+          "source_type": "application_paper",
+          "authors": [
+            "Jian Zhao",
+            "Shenao Wang",
+            "Yanjie Zhao",
+            "Xinyi Hou",
+            "Kailong Wang",
+            "Peiming Gao",
+            "Yuanchao Zhang",
+            "Chen Wei",
+            "Haoyu Wang"
+          ],
+          "publication_date": "2024-10-27",
+          "citationKey": "zhaoModelsAreCodes2024"
+        },
+        {
+          "title": "ModelScan notebook examples",
+          "url": "https://github.com/protectai/modelscan/tree/main/notebooks",
+          "source_type": "tutorial",
+          "citationKey": "ModelScanNotebookExamples",
+          "abstract": "Protection against Model Serialization Attacks. Contribute to protectai/modelscan development by creating an account on GitHub."
+        },
+        {
+          "title": "PickleBall: Secure Deserialization of Pickle-based Machine Learning Models",
+          "url": "https://doi.org/10.1145/3719027.3765037",
+          "source_type": "application_paper",
+          "authors": [
+            "Andreas D. Kellas",
+            "Neophytos Christou",
+            "Wenxin Jiang",
+            "Penghui Li",
+            "Laurent Simon",
+            "Yaniv David",
+            "Vasileios P. Kemerlis",
+            "James C. Davis",
+            "Junfeng Yang"
+          ],
+          "publication_date": "2025-11-19",
+          "citationKey": "kellasIckleAllSecure2025"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every third-party model file admitted to the internal model registry was scanned before first load, and none had an unresolved critical or high-severity finding.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "No serialised model in the deployment package imports operating-system, network or code-execution functions on the scanner's unsafe list.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "Every Lambda layer in the contractor's delivered models was reviewed against its source code and approved before deployment to factory devices.",
+          "assuranceGoal": "security",
+          "domain": "manufacturing"
+        },
+        {
+          "text": "User-uploaded checkpoints are scanned with the current scanner release before any shared job loads them, and every file the loader opens is covered by the scan.",
+          "assuranceGoal": "security",
+          "domain": "education"
+        }
+      ]
+    },
+    {
+      "slug": "model-signing",
+      "name": "Model Signing",
+      "description": "Model signing lets the publisher of a machine-learning model attach a cryptographic signature to the model's files, so that anyone who later loads them can check who released them and that no file has changed since. Under the Open Source Security Foundation's Model Signing (OMS) specification and its reference tool, model-signing, the publisher computes a hash (a short fingerprint that changes if a single byte of the file changes) of every file in the model directory, such as weights, configuration, tokeniser and any dataset files kept with them, lists the hashes in a sorted manifest and signs the manifest, producing a detached signature file kept beside the model. The signature can be made with the publisher's own key, with a certificate from an organisation's certificate authority, or through Sigstore, which issues a short-lived certificate tied to a verified online identity, such as a person's account or a build pipeline's, and records each signing event in a transparency log, an append-only record that can be inspected afterwards. Before loading, the consumer verifies the signature against the signer it expects, recomputes every hash and rejects the model if any listed file differs or is missing or, unless that check is switched off, an unlisted file has appeared, so the evidence is a pass or fail tied to a named signer and an exact set of files. Unlike the unsigned file hashes kept by data-versioning tools, it shows who stands behind the files, and unlike a watermark, which is trained into the weights so that it survives in an altered copy, it is broken by any change; it says nothing about how the model behaves or what it was trained on.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/protection",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/audit-record",
+        "expertise-needed/security",
+        "expertise-needed/software-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's machine-learning platform team signs each model at the end of its training pipeline, using the pipeline's own workload identity through Sigstore, and configures its model-serving cluster to load only models whose signature verifies against that identity. Its security team watches the transparency log for signing events under that identity that match no approved release, to decide whether a model reached production outside the release process.",
+          "goal": "Security"
+        },
+        {
+          "description": "A vehicle maker's perception team downloads a pretrained object detector from a supplier catalogue that signs every model it publishes. Before fine-tuning, it verifies the download against the supplier's published certificate and files the verification output in its supplier-acceptance record, so later reviews can show exactly which files the work started from.",
+          "goal": "Security"
+        },
+        {
+          "description": "A hospital's imaging department receives quarterly updates to a vendor's chest X-ray triage model. Its clinical engineering team verifies each update against the vendor's certificate and rejects any update whose signature fails, or that contains a file the signature does not cover, before it enters the clinical validation environment.",
+          "goal": "Security"
+        },
+        {
+          "description": "A public research institute releases an open model together with the test set behind its published benchmark, signing both in one bundle, so that a laboratory re-running the benchmark can confirm that the weights and the test data are byte for byte the ones the institute released before comparing its results with the published ones.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It shows who released the files and that they have not changed, nothing more. A model carrying a malicious pickle payload, a backdoor or the effects of poisoned training data verifies perfectly if its publisher signed it, whether through carelessness or because the publisher's own pipeline was compromised before signing. The originating paper states that signing tells the user nothing about what a model does or how it was produced, so content checks are still needed."
+        },
+        {
+          "description": "A valid signature is only as good as the consumer's check of who made it. A model signed with an attacker's own identity, or by an account named to look like a well-known organisation (a documented attack on model hubs), verifies cleanly unless the verifier insists on the specific identity, certificate or public key it expects. Consumers need a maintained list of trusted signers for each model source."
+        },
+        {
+          "description": "A stolen signing key, or a compromised account at the identity provider used for Sigstore signing, produces valid signatures. With Sigstore every signature is recorded in a transparency log, so a publisher that monitors the log for its own identity can spot signatures it did not make; with the key and certificate methods the specification does not require a log entry, so misuse of a key may go unnoticed."
+        },
+        {
+          "description": "Any change to the files breaks verification, including legitimate ones such as quantisation, conversion to another file format or adding a file. Each derived model needs a new signature from whoever produced it, and that signature says nothing about how the derivative relates to the signed original; recording that relationship needs a separate provenance record, such as the pedigree section of an ML-BOM."
+        },
+        {
+          "description": "It protects only where verification is enforced. Most models on public hubs are unsigned (fewer than 2% of Hugging Face models used the hub's GPG commit-signing option, per studies the originating paper cites), and an unchecked signature protects nobody. Verification re-hashes every file, and hashing dominates the cost: a 1 TB file took about 13 minutes on a 128-vCPU server in the originating paper's benchmark, which matters if very large models are verified at every load."
+        }
+      ],
+      "resources": [
+        {
+          "title": "OpenSSF Model Signing (OMS) Specification, Version 1.0",
+          "url": "https://github.com/ossf/model-signing-spec/blob/main/spec/v1.0.md",
+          "source_type": "documentation",
+          "citationKey": "OpenSSFModelSigning"
+        },
+        {
+          "title": "model-transparency (model-signing package)",
+          "url": "https://github.com/sigstore/model-transparency",
+          "source_type": "software_package",
+          "citationKey": "ModeltransparencyModelsigningPackage",
+          "abstract": "Supply chain security for ML. Contribute to sigstore/model-transparency development by creating an account on GitHub."
+        },
+        {
+          "title": "Position: Machine Learning Models Have a Supply Chain Problem",
+          "url": "https://proceedings.mlr.press/v267/meiklejohn25a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Sarah Meiklejohn",
+            "Hayden Blauzvern",
+            "Mihai Maruseac",
+            "Spencer Schrock",
+            "Laurent Simon",
+            "Ilia Shumailov"
+          ],
+          "publication_date": "2025-10-06",
+          "citationKey": "meiklejohnPositionMachineLearning2025",
+          "abstract": "Powerful machine learning (ML) models are now readily available online, which creates exciting possibilities for users who lack the deep technical expertise or substantial computing resources needed to develop them. On the other hand, this type of open ecosystem comes with many risks. In this paper, we argue that the current ecosystem for open ML models contains significant supply-chain risks, some of which have been exploited already in real attacks. These include an attacker replacing a model with something malicious (e.g., malware), or a model being trained using a vulnerable version of a framework or on restricted or poisoned data. We then explore how Sigstore, a solution designed to bring transparency to open-source software supply chains, can be used to bring transparency to open ML models, in terms of enabling model publishers to sign their models and prove properties about the datasets they use."
+        },
+        {
+          "title": "Model signing with model_signing (demo notebook)",
+          "url": "https://github.com/sigstore/model-transparency/blob/main/docs/demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ModelSigningModel_signing",
+          "abstract": "Supply chain security for ML. Contribute to sigstore/model-transparency development by creating an account on GitHub."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Only model files whose signature verifies against the approved release identity are loaded by the production inference service.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "The model deployed in the clinical system is identical to the files signed by the vendor's release identity, with no file added, removed or changed.",
+          "assuranceGoal": "security",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every signing event recorded in the transparency log under the organisation's signing identity corresponds to an approved model release.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "The pretrained detector used as the starting point for fine-tuning was verified against the supplier's published certificate before any training began.",
+          "assuranceGoal": "security",
+          "domain": "autonomous systems"
+        }
+      ]
+    },
+    {
+      "slug": "canary-exposure-testing",
+      "name": "Canary Exposure Testing",
+      "description": "Canary exposure testing measures how strongly a training procedure makes a generative sequence model, such as a language model, memorise rare sequences, by planting random secrets (canaries) in the training data and scoring how much the trained model favours them over values it never saw. Because the secrets are random and their values known, the result is calibrated in a way that tests on real records are not and can be compared across model versions, training settings and numbers of repetitions; unlike extraction or membership inference testing of a finished model, it requires control of the training run, and unlike differential privacy auditing, which also plants records, it gives a memorisation score rather than a statistical bound on epsilon. The tester chooses a format such as 'my account number is' followed by a blank, fills the blank with random values to make several canaries, inserts each into the training data a chosen number of times (for example once, ten times and a hundred times), and trains with the settings used in production. Each canary is then ranked by how probable the trained model finds it compared with every other possible filling of the blank, and its exposure is the base-2 logarithm of the number of possible fillings minus the base-2 logarithm of that rank: about 1 for a canary the model treats like any other value, rising to its maximum when the canary is the model's top choice, the level at which a search over the possible fillings can extract it outright. For large spaces of values the rank is estimated by fitting a distribution to the probabilities of a sample of alternatives, and results are usually plotted as exposure against number of insertions.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/privacy-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An email provider training a reply-suggestion model on users' messages inserts seven-word canaries with random middle words between 1 and 10,000 times each into a training run with the production settings, plots exposure against the number of insertions, and uses the curve to limit how often any rare phrase from a single user may appear in the training data before the model is offered to all users.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A bank's machine learning team choosing among learning-rate schedules and model sizes for an autocomplete model trained on transaction descriptions trains each candidate with the same random account-number canaries at the same insertion counts, and picks the configuration with the lowest exposure among those within a set margin of the best validation accuracy.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A health-records software vendor uses the test as a regression check: each time its clinical-text model is retrained on new notes, the same canaries are inserted at fixed frequencies, and the build fails if the exposure of a canary inserted only once rises above a threshold agreed with the vendor's information governance team.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It needs control of the training run. Canaries must be in the data before training, so the test cannot be applied to a model someone else trained or has already released, and it must use the production settings (optimiser, epochs, model size, hyperparameters), because each of these changes how much is memorised; a test model trained differently says little about the deployed one."
+        },
+        {
+          "description": "It measures memorisation of the planted secrets, not of the real data. Canaries are random and unlike the rest of the data by design, while real personal data that is repeated, structured or similar to other text can be memorised differently, and the choice of format and of random values changes the result. Low exposure for the canaries does not show that no real record can be extracted."
+        },
+        {
+          "description": "Exposure is not a privacy guarantee. Its scale depends on the number of possible fillings, so values compare only across canaries with the same number of fillings, and it is not an epsilon: in the original study, models trained with differential privacy at budgets too weak to mean anything (epsilon up to 10^9) still showed negligible exposure, so low exposure cannot stand in for a formal bound."
+        },
+        {
+          "description": "It needs the model's probability for arbitrary sequences, so a system that returns only its single best output needs a different measure. When the space of possible fillings is too large to score in full, exposure is estimated by fitting a distribution to a sample of alternatives; the estimate depends on that fit holding in the far tail and can exceed the true maximum."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Secret Sharer Attack (TensorFlow Privacy, privacy_tests/secret_sharer)",
+          "url": "https://github.com/tensorflow/privacy/tree/master/tensorflow_privacy/privacy/privacy_tests/secret_sharer",
+          "source_type": "documentation",
+          "citationKey": "SecretSharerAttack",
+          "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+        },
+        {
+          "title": "TensorFlow Privacy (tensorflow/privacy)",
+          "url": "https://github.com/tensorflow/privacy",
+          "source_type": "software_package",
+          "citationKey": "TensorFlowPrivacyTensorflow",
+          "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+        },
+        {
+          "title": "The Secret Sharer: Evaluating and Testing Unintended Memorization in Neural Networks",
+          "url": "https://www.usenix.org/conference/usenixsecurity19/presentation/carlini",
+          "source_type": "technical_paper",
+          "authors": [
+            "Nicholas Carlini",
+            "Chang Liu",
+            "Úlfar Erlingsson",
+            "Jernej Kos",
+            "Dawn Song"
+          ],
+          "publication_date": "2019",
+          "citationKey": "carliniSecretSharerEvaluating2019"
+        },
+        {
+          "title": "Assess privacy risks with TensorFlow Privacy Secret Sharer Attack (example notebook)",
+          "url": "https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/privacy_tests/secret_sharer/secret_sharer_example.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AssessPrivacyRisksa",
+          "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+        },
+        {
+          "title": "Understanding Unintended Memorization in Language Models Under Federated Learning",
+          "url": "https://doi.org/10.18653/v1/2021.privatenlp-1.1",
+          "source_type": "application_paper",
+          "authors": [
+            "Om Dipakbhai Thakkar",
+            "Swaroop Ramaswamy",
+            "Rajiv Mathews",
+            "Francoise Beaufays"
+          ],
+          "publication_date": "2021",
+          "citationKey": "thakkarUnderstandingUnintendedMemorization2021"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "With canaries inserted up to 10,000 times into a training run that used the production settings, no canary in the reply-suggestion model reached the exposure at which it could be extracted, and canaries inserted fewer than 100 times showed exposure close to that of random alternatives.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "In the autocomplete configuration chosen for release, nine-digit account-number canaries inserted ten times had exposure below 10, against about 30 for a canary the model ranks first, and no configuration within one percentage point of the best validation accuracy had lower exposure.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "On every retraining of the clinical-text model, the exposure of canaries inserted once stayed below the threshold agreed with information governance.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "differentially-private-stochastic-gradient-descent",
+      "name": "Differentially Private Stochastic Gradient Descent",
+      "description": "Differentially private stochastic gradient descent (DP-SGD) trains a neural network, or another model fitted by gradient descent, so that the finished model carries a formal differential privacy guarantee about the individual examples it was trained on. Differential privacy is more often applied by adding calibrated noise to the answer of a query or to a published statistic; DP-SGD instead changes the training algorithm itself. At each step it draws a random batch, computes the gradient (the direction in which an example pushes the model's parameters) separately for every example, scales down any gradient longer than a fixed clipping bound, adds Gaussian noise proportional to that bound to the sum, and updates the model with the noisy average, so that no single example can move the model by much and what influence remains is masked. A privacy accountant adds up the privacy cost of every step from the noise level, the sampling rate and the number of steps, and reports the total as epsilon and delta: epsilon limits how much more likely any trained model is with a given example in the training data than without it, and delta is a small probability that this limit fails. The output is a trained model with a stated (epsilon, delta) guarantee, which also covers anything later computed from the model, including its predictions.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/requirements/gradient-access",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/formal-guarantee",
+        "data-requirements/access-to-training-data",
+        "data-type/any",
+        "evidence-type/privacy-guarantee",
+        "evidence-type/model-artefact",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/deep-learning",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A retail bank wants to give a credit-default model to a partner lender, which will hold the model weights. Its data science team trains the model with DP-SGD in Opacus, with each customer contributing one training example so that the guarantee protects a customer, targets epsilon 2 at a delta below one over the number of customers, and records the noise multiplier, clipping bound, sampling rate and accountant output in the model's release file.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A consortium of hospitals publishes the weights of a chest X-ray classifier so that other hospitals can fine-tune it locally. It trains with DP-SGD using one image per patient, replaces the network's batch normalisation layers with group normalisation as Opacus requires, and publishes the (epsilon, delta) guarantee and its unit, one patient, with the weights so that receiving hospitals can cite it in their own assessments.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A recruitment platform fine-tunes a language model, pretrained on public text, on job applicants' CVs (one per applicant) to suggest skills tags. It fine-tunes with DP-SGD, adds the cost of the hyperparameter search it ran on the CVs to the privacy budget, and compares tagging accuracy with a non-private fine-tune to decide whether the accuracy cost at its chosen epsilon is acceptable.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Clipping and noise reduce accuracy, and the reduction is not shared evenly: classes and groups that are rare in the training data lose the most, so a private model can widen an existing accuracy gap between groups. In the original experiments the drop at epsilon 8 was about 1 percentage point on handwritten digits but about 7 on a harder ten-class image task. Accuracy should be reported per group, and pretraining on public data or more training data is often needed to keep the cost acceptable."
+        },
+        {
+          "description": "The stated epsilon holds only if the code matches the accountant's assumptions. The usual accountants assume each batch is drawn by including every example independently at random, but many pipelines shuffle the data and cut it into fixed batches; an audit of models trained that way measured privacy loss up to four times the epsilon they reported. A claim should name the sampling method and accountant, and differential privacy auditing can test the figure empirically."
+        },
+        {
+          "description": "The guarantee protects one training example, not one person. If a patient has ten admissions or a customer hundreds of messages in the training set, their protection is much weaker than epsilon suggests, because the bound loosens with the number of examples they contribute. Capping each person's contribution, or making each person a single example, gives a guarantee at the level of the person, at some cost in data and accuracy."
+        },
+        {
+          "description": "No agreed value of epsilon makes a model private, and large values are common: the method's original headline results used epsilon 8, at which a training outcome may be about 3,000 times more likely with a given example than without it, and the Opacus image tutorial targets 50. Hyperparameter searches run on the private data also leak information unless their cost is added to the budget. A claim should state epsilon, delta, the unit of privacy and what the budget covers."
+        },
+        {
+          "description": "Computing a separate gradient for every example costs memory and time; in the original experiments one training epoch went from about 40 to about 180 seconds. Layers that combine examples within a batch, such as batch normalisation, break the per-example bound and must be replaced, for example with group normalisation, so an existing architecture may need changing and re-tuning before it can be trained privately."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Guidelines for evaluating differential privacy guarantees",
+          "url": "https://doi.org/10.6028/nist.sp.800-226",
+          "source_type": "documentation",
+          "authors": [
+            "Joseph P Near",
+            "David Darais",
+            "Naomi Lefkovitz",
+            "Gary S Howarth"
+          ],
+          "publication_date": "2025-3-6",
+          "citationKey": "nearGuidelinesEvaluatingDifferential2025"
+        },
+        {
+          "title": "Privacy Engine — Opacus API reference",
+          "url": "https://opacus.ai/api/privacy_engine.html",
+          "source_type": "documentation",
+          "citationKey": "PrivacyEngineOpacus",
+          "abstract": "Train PyTorch models with Differential Privacy"
+        },
+        {
+          "title": "opacus",
+          "url": "https://github.com/meta-pytorch/opacus",
+          "source_type": "software_package",
+          "publication_date": "2019-12-07",
+          "citationKey": "meta-pytorchOpacus2019",
+          "abstract": "Training PyTorch models with differential privacy"
+        },
+        {
+          "title": "Deep Learning with Differential Privacy",
+          "url": "https://doi.org/10.1145/2976749.2978318",
+          "source_type": "technical_paper",
+          "authors": [
+            "Martin Abadi",
+            "Andy Chu",
+            "Ian Goodfellow",
+            "H. Brendan McMahan",
+            "Ilya Mironov",
+            "Kunal Talwar",
+            "Li Zhang"
+          ],
+          "publication_date": "2016-10-24",
+          "citationKey": "abadiDeepLearningDifferential2016"
+        },
+        {
+          "title": "Building an Image Classifier with Differential Privacy — Opacus tutorial",
+          "url": "https://opacus.ai/tutorials/building_image_classifier",
+          "source_type": "tutorial",
+          "citationKey": "BuildingImageClassifier",
+          "abstract": "Train PyTorch models with Differential Privacy"
+        },
+        {
+          "title": "Private Ad Modeling with DP-SGD",
+          "url": "https://arxiv.org/abs/2211.11896",
+          "source_type": "application_paper",
+          "authors": [
+            "Carson Denison",
+            "Badih Ghazi",
+            "Pritish Kamath",
+            "Ravi Kumar",
+            "Pasin Manurangsi",
+            "Krishna Giri Narra",
+            "Amer Sinha",
+            "Avinash V. Varadarajan",
+            "Chiyuan Zhang"
+          ],
+          "publication_date": "2023-10-04",
+          "citationKey": "denisonPrivateAdModeling2023",
+          "abstract": "A well-known algorithm in privacy-preserving ML is differentially private stochastic gradient descent (DP-SGD). While this algorithm has been evaluated on text and image data, it has not been previously applied to ads data, which are notorious for their high class imbalance and sparse gradient updates. In this work we apply DP-SGD to several ad modeling tasks including predicting click-through rates, conversion rates, and number of conversion events, and evaluate their privacy-utility trade-off on real-world datasets. Our work is the first to empirically demonstrate that DP-SGD can provide both privacy and utility for ad modeling tasks."
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 4,
+      "acronym": "DP-SGD",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The credit-default model shared with the partner lender was trained with DP-SGD to epsilon 2 and delta 10^-7, with each customer contributing one training example and the budget computed over every training step by the accountant in Opacus.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "The published chest X-ray model weights satisfy differential privacy with epsilon 8 and delta 10^-5 with respect to any one patient, and the hyperparameter search run on patient images is included in that budget.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Training batches were drawn by Poisson sampling, matching the assumption of the privacy accountant that produced the reported epsilon.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "The skills-tagging model's privacy budget of epsilon 4 per applicant covers the full fine-tuning run and every hyperparameter trial run on applicants' CVs.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "machine-learning-fmea",
+      "name": "Machine Learning Failure Mode and Effects Analysis",
+      "description": "Machine Learning Failure Mode and Effects Analysis (ML FMEA) applies the process form of failure mode and effects analysis, a long-established worksheet method in which a team lists what could go wrong at each step of a process, rates each failure and acts on the worst first, to the pipeline that produces a machine-learning model rather than to the model alone. The team works through the pipeline one step at a time (in the 2025 reference version: collect data requests, collect data, ingest data, validate data, preprocess data, train, tune, analyse, deploy and validate the model, and analyse feedback from the field) and, prompted by guide words such as missing, incorrect or too late, records for each step how the resulting model could fail, the effect on the wider system, the pipeline causes, and the current practices that would prevent or catch the failure. Each row is rated for severity, occurrence and detection, and the product of the three, the risk priority number, ranks the rows so that recommended actions and owners go to the highest risks first; severity is taken from the system-level hazard analysis, because the harm a model failure can do depends on the system it sits in. The method's authors publish a pre-populated template listing typical failure modes, causes and mitigations for each step, which a team tailors to its own model and application. The result is a worksheet of ranked pipeline failure modes, their controls and assigned actions, kept up to date as the pipeline changes; it looks at failures one at a time in how the model is built and does not by itself analyse how the deployed system behaves.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/hazard-analysis",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/structured-output",
+        "evidence-type/documentation",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/project-planning",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An autonomous-trucking company's perception team fills in the template for its lane-detection model before each major retraining. One row under 'collect data' records that data gathered in a single season could leave the model unable to see faded or snow-covered markings; its severity comes from the vehicle-level hazard analysis, and it leads to an action, with an owner and a date, to constrain data requests by season and weather before release.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A medical-imaging company preparing a chest X-ray triage model for regulatory review uses the worksheet to show its assessors where the pipeline's controls sit. High-ranked rows include training labels taken from a single radiologist's reading, which could teach the model to miss small nodules, mitigated by double reading of a labelled sample, and online learning in deployment, mitigated by switching it off.",
+          "goal": "Safety"
+        },
+        {
+          "description": "After a warehouse robot's object detector starts misclassifying a new kind of shrink-wrapped pallet, the vendor's safety engineer returns to the worksheet, finds that the 'analyse model feedback' step had no control for new packaging reaching customer sites, adds drift monitoring and a trigger for new data requests, and re-rates the affected rows.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It considers one failure mode at a time, step by step, so it does not show how failures in different steps combine, or how a model that meets its specification can still contribute to an accident through its interaction with people and other parts of the system. Teams that need those combinations and interactions have to pair it with a system-level analysis."
+        },
+        {
+          "description": "Severity, occurrence and detection are judgements on ordinal scales, and there is little data on how often an ML pipeline failure occurs or how reliably a control catches it. The method's authors introduced ML-specific rating criteria in 2026 because traditional FMEA criteria proved ambiguous for ML development; the public template, last updated in April 2025, has no rating criteria, so teams must set and record their own."
+        },
+        {
+          "description": "It analyses how the model is built, not how it behaves in use: a complete worksheet shows that known pipeline failure modes have controls, not that the deployed model performs safely. Severity has to come from a system-level hazard analysis, so the method cannot stand alone, and its authors present it as one part of a safety management system and safety case."
+        },
+        {
+          "description": "The pre-populated template makes a quick start but invites teams to tick through the listed failure modes instead of looking for ones specific to their system. Its examples come mostly from autonomous-vehicle development, so teams in other domains, or with other kinds of model such as language models, must add their own failure modes; the 2026 revision added steps for problem definition and for building ground truth or reward signals."
+        },
+        {
+          "description": "Published evidence that the method finds failures other methods miss is limited. The 2025 paper that introduced it gave no applied example, and the 2026 follow-up reporting applications to autonomous vehicles and humanoid robots is led by the method's originators: four of its twelve authors, including the first author, wrote the 2025 paper, so no independent group has yet reported using it."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Machine Learning FMEA (ML FMEA) Template",
+          "url": "https://github.com/TallPaul67/MachineLearningFMEA",
+          "source_type": "software_package",
+          "citationKey": "MachineLearningFMEA",
+          "abstract": "Repository for the Machine Learning Failure Mode and Effects Analysis (ML FMEA) Template.  The ML FMEA is detailed within the SAE World Congress 2025 publication, &quot;Introducing the ML FMEA&quot..."
+        },
+        {
+          "title": "Introducing the ML FMEA",
+          "url": "https://doi.org/10.4271/2025-01-8078",
+          "source_type": "technical_paper",
+          "authors": [
+            "Paul Schmitt",
+            "Heinz Bodo Seifert",
+            "Mario Bijelic",
+            "Krzysztof Pennar",
+            "Jerry Lopez",
+            "Felix Heide"
+          ],
+          "publication_date": "2025-4-1",
+          "citationKey": "schmittIntroducingMLFMEA2025"
+        },
+        {
+          "title": "The ML FMEA in Action: Lessons from Applications of Machine Learning Safety",
+          "url": "https://doi.org/10.4271/2026-01-0079",
+          "source_type": "application_paper",
+          "authors": [
+            "Paul Schmitt",
+            "Chaitanya Shinde",
+            "Simon Diemert",
+            "Krzysztof Pennar",
+            "Bodo Seifert",
+            "Justin Poh",
+            "Jerry Lopez",
+            "Fahim Mannan",
+            "Majed Mohammed",
+            "Akshay Chalana",
+            "Neil Wadhvana",
+            "Michael Wagner"
+          ],
+          "publication_date": "2026-4-7",
+          "citationKey": "schmittMLFMEAAction2026"
+        },
+        {
+          "title": "The ML FMEA: An Introduction (Torc Robotics publication page)",
+          "url": "https://torc.ai/knowledge-center/publications/the-ml-fmea-an-introduction/",
+          "source_type": "documentation",
+          "citationKey": "MLFMEAIntroduction"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "acronym": "ML-FMEA",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every step of the lane-detection model's development pipeline has been analysed for failure modes, and each failure mode ranked above the agreed action limit has an implemented mitigation with a named owner.",
+          "assuranceGoal": "safety",
+          "domain": "autonomous systems"
+        },
+        {
+          "text": "Severity ratings in the triage model's ML FMEA are taken from the system-level hazard analysis, so each pipeline risk is rated by its possible effect on patients before it is ranked.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Collection and labelling of the perception model's training data are covered by a documented control for each failure mode identified in the ML FMEA, including seasonal and weather coverage.",
+          "assuranceGoal": "safety",
+          "domain": "transport"
+        },
+        {
+          "text": "Following the field incident, the ML FMEA was revised to add the missing control for unseen packaging types, and the affected failure modes were re-rated.",
+          "assuranceGoal": "safety",
+          "domain": "manufacturing"
+        }
+      ]
+    },
+    {
+      "slug": "smt-based-neural-network-verification",
+      "name": "SMT-Based Neural Network Verification",
+      "description": "SMT-based neural network verification decides exactly whether any input in a defined region can make a trained neural network violate a stated property, and if one can, returns that input as a counterexample. SMT (satisfiability modulo theories) solvers decide whether a set of logical and arithmetic constraints can all hold at once: here the network's weighted sums become linear equations, each piecewise-linear activation such as ReLU becomes a constraint with two cases (inactive at zero, or active and passing its input through), and the input region and the negation of the property become further linear constraints. The solver searches for values that satisfy every constraint with a simplex-based linear-programming engine: it first tries to repair an activation whose current values break it, and splits it into its two cases only when repairs keep failing, while bounds on each neuron (in Marabou, by default, the linear bounds that bound propagation computes) rule cases out early. Reluplex (Katz et al., 2017) introduced this lazy treatment of ReLU inside the simplex method and used it on a prototype airborne collision avoidance network; Marabou, its maintained successor, keeps the same search structure with a newer search procedure, adds parallel solving, and can emit a proof certificate for an 'unsatisfiable' answer. The answer is 'unsat', meaning no input in the region violates the property, or 'sat' with a concrete counterexample, and for networks whose activations are all piecewise-linear the procedure is complete; the price is that the number of cases can grow exponentially with the number of neurons, so it is practical for small networks such as controllers, policies and surrogate models with few inputs rather than large image models.",
+      "assurance_goals": [
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/architecture/neural-networks/feedforward",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/verification",
+        "data-requirements/test-scenarios",
+        "data-type/tabular",
+        "evidence-type/boundary-analysis",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/safety-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A warehouse robotics team trains hundreds of candidate deep reinforcement learning policies for driving between shelves from range-sensor readings. Before field trials it encodes 'no move into an obstacle in the next step' and 'no repeating left-right loop over several steps' as queries over each small policy network, runs Marabou on every candidate, discards each policy for which a counterexample reading is returned, and takes only the survivors to the physical robot.",
+          "goal": "Safety"
+        },
+        {
+          "description": "An aircraft systems developer replaces a large collision-avoidance lookup table with a set of small neural networks. For each network it writes regions of encounter geometry, such as an intruder close ahead and closing, together with the advisory that must never be issued there, and runs the solver on each. Regions returned as unsatisfiable go into the certification evidence; any counterexample encounter is replayed in simulation and drives retraining.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A medical-device manufacturer uses a small network to recommend infusion rates from a handful of patient measurements. Its safety engineers prove that, for every combination of measurements within the clinically plausible ranges, the recommended rate never exceeds the maximum set by the device's hazard analysis, and use any counterexample returned to retrain the network or add an output limit.",
+          "goal": "Safety"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Deciding these queries for ReLU networks is NP-complete, and the search may split on every neuron whose case is undecided, so time can grow exponentially with network size and with the number of steps a property spans. In a study of robot navigation policies kept to 16 neurons per hidden layer, single-step collision queries took seconds, but 12-step cycle queries usually ran for hours and nearly three in ten of them hit the 12-hour limit."
+        },
+        {
+          "description": "The solver runs on ordinary processors, and its own tool paper reports a non-trivial performance gap to GPU-based bound-propagation verifiers, especially on larger networks; in the 2023 verification competition it solved 594 benchmark instances to alpha-beta-CROWN's 721. It is therefore best suited to small networks with few inputs, such as controllers, policies and surrogate models."
+        },
+        {
+          "description": "Exact answers hold only for piecewise-linear activations such as ReLU, max, absolute value and leaky ReLU. Sigmoid and tanh are handled by an over-approximation that is refined step by step, and softmax and bilinear layers only through a convex relaxation, so for networks that use them the procedure is no longer complete and can end without a decisive answer."
+        },
+        {
+          "description": "The query covers the network and a region of its inputs written as linear constraints, nothing more. A counterexample may lie in a part of the region no real sensor could produce, and a proof says nothing about the environment the network acts in, so choosing a region that is realistic yet small enough to solve takes domain knowledge, and a closed-loop safety claim needs further analysis."
+        },
+        {
+          "description": "An 'unsat' answer is only as trustworthy as the solver's implementation. Marabou can emit a proof certificate that an independent checker validates, but proof production works with only some of its features and not in parallel mode, and in the tool paper's collision-avoidance experiments certificates were produced for 113 of 180 benchmarks."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Maraboupy documentation (Marabou Python interface)",
+          "url": "https://neuralnetworkverification.github.io/Marabou/",
+          "source_type": "documentation",
+          "citationKey": "MaraboupyDocumentationMarabou"
+        },
+        {
+          "title": "Marabou: a framework for verification and analysis of deep neural networks",
+          "url": "https://github.com/NeuralNetworkVerification/Marabou",
+          "source_type": "software_package",
+          "citationKey": "MarabouFrameworkVerification",
+          "abstract": "Contribute to NeuralNetworkVerification/Marabou development by creating an account on GitHub."
+        },
+        {
+          "title": "Reluplex: An Efficient SMT Solver for Verifying Deep Neural Networks",
+          "url": "https://doi.org/10.1007/978-3-319-63387-9_5",
+          "source_type": "technical_paper",
+          "authors": [
+            "Guy Katz",
+            "Clark Barrett",
+            "David L. Dill",
+            "Kyle Julian",
+            "Mykel J. Kochenderfer"
+          ],
+          "publication_date": "2017",
+          "citationKey": "katzReluplexEfficientSMT2017"
+        },
+        {
+          "title": "The Marabou Framework for Verification and Analysis of Deep Neural Networks",
+          "url": "https://doi.org/10.1007/978-3-030-25540-4_26",
+          "source_type": "technical_paper",
+          "authors": [
+            "Guy Katz",
+            "Derek A. Huang",
+            "Duligur Ibeling",
+            "Kyle Julian",
+            "Christopher Lazarus",
+            "Rachel Lim",
+            "Parth Shah",
+            "Shantanu Thakoor",
+            "Haoze Wu",
+            "Aleksandar Zeljić",
+            "David L. Dill",
+            "Mykel J. Kochenderfer",
+            "Clark Barrett"
+          ],
+          "publication_date": "2019",
+          "citationKey": "katzMarabouFrameworkVerification2019"
+        },
+        {
+          "title": "Marabou 2.0: A Versatile Formal Analyzer of Neural Networks",
+          "url": "https://doi.org/10.1007/978-3-031-65630-9_13",
+          "source_type": "technical_paper",
+          "authors": [
+            "Haoze Wu",
+            "Omri Isac",
+            "Aleksandar Zeljić",
+            "Teruhiro Tagomori",
+            "Matthew Daggitt",
+            "Wen Kokke",
+            "Idan Refaeli",
+            "Guy Amir",
+            "Kyle Julian",
+            "Shahaf Bassan",
+            "Pei Huang",
+            "Ori Lahav",
+            "Min Wu",
+            "Min Zhang",
+            "Ekaterina Komendantskaya",
+            "Guy Katz",
+            "Clark Barrett"
+          ],
+          "publication_date": "2024",
+          "citationKey": "wuMarabou20Versatile2024"
+        },
+        {
+          "title": "MarabouTutorial: hands-on Marabou exercises (LogicNN 2026 tutorial)",
+          "url": "https://github.com/OmriIsacHUJI/MarabouTutorial",
+          "source_type": "tutorial",
+          "citationKey": "MarabouTutorialHandsonMarabou",
+          "abstract": "Contribute to OmriIsacHUJI/MarabouTutorial development by creating an account on GitHub."
+        },
+        {
+          "title": "Verifying Learning-Based Robotic Navigation Systems",
+          "url": "https://doi.org/10.1007/978-3-031-30823-9_31",
+          "source_type": "application_paper",
+          "authors": [
+            "Guy Amir",
+            "Davide Corsi",
+            "Raz Yerushalmi",
+            "Luca Marzari",
+            "David Harel",
+            "Alessandro Farinelli",
+            "Guy Katz"
+          ],
+          "publication_date": "2023",
+          "citationKey": "amirVerifyingLearningBasedRobotic2023"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 5,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "None of the navigation policies released for field trials can command a move into an obstacle within one step from any range-sensor reading in the specified input region.",
+          "assuranceGoal": "safety",
+          "domain": "robotics"
+        },
+        {
+          "text": "For every encounter geometry in each specified region, the collision-avoidance network never issues a 'clear of conflict' advisory while the intruder is inside the protected volume.",
+          "assuranceGoal": "safety",
+          "domain": "aviation"
+        },
+        {
+          "text": "For all patient measurements within the clinically plausible ranges, the infusion network never recommends a rate above the maximum set by the hazard analysis.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every counterexample returned while verifying the candidate controllers was replayed in simulation, and every released controller was re-verified and found to have none.",
+          "assuranceGoal": "safety",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 17
+  "count": 23
 }

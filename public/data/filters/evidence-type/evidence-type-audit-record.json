@@ -2,7 +2,7 @@
   "tag": {
     "name": "evidence-type/audit-record",
     "slug": "evidence-type-audit-record",
-    "count": 3,
+    "count": 5,
     "category": "evidence-type"
   },
   "techniques": [
@@ -496,7 +496,241 @@
           "assuranceGoal": "security"
         }
       ]
+    },
+    {
+      "slug": "model-signing",
+      "name": "Model Signing",
+      "description": "Model signing lets the publisher of a machine-learning model attach a cryptographic signature to the model's files, so that anyone who later loads them can check who released them and that no file has changed since. Under the Open Source Security Foundation's Model Signing (OMS) specification and its reference tool, model-signing, the publisher computes a hash (a short fingerprint that changes if a single byte of the file changes) of every file in the model directory, such as weights, configuration, tokeniser and any dataset files kept with them, lists the hashes in a sorted manifest and signs the manifest, producing a detached signature file kept beside the model. The signature can be made with the publisher's own key, with a certificate from an organisation's certificate authority, or through Sigstore, which issues a short-lived certificate tied to a verified online identity, such as a person's account or a build pipeline's, and records each signing event in a transparency log, an append-only record that can be inspected afterwards. Before loading, the consumer verifies the signature against the signer it expects, recomputes every hash and rejects the model if any listed file differs or is missing or, unless that check is switched off, an unlisted file has appeared, so the evidence is a pass or fail tied to a named signer and an exact set of files. Unlike the unsigned file hashes kept by data-versioning tools, it shows who stands behind the files, and unlike a watermark, which is trained into the weights so that it survives in an altered copy, it is broken by any change; it says nothing about how the model behaves or what it was trained on.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/protection",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/audit-record",
+        "expertise-needed/security",
+        "expertise-needed/software-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's machine-learning platform team signs each model at the end of its training pipeline, using the pipeline's own workload identity through Sigstore, and configures its model-serving cluster to load only models whose signature verifies against that identity. Its security team watches the transparency log for signing events under that identity that match no approved release, to decide whether a model reached production outside the release process.",
+          "goal": "Security"
+        },
+        {
+          "description": "A vehicle maker's perception team downloads a pretrained object detector from a supplier catalogue that signs every model it publishes. Before fine-tuning, it verifies the download against the supplier's published certificate and files the verification output in its supplier-acceptance record, so later reviews can show exactly which files the work started from.",
+          "goal": "Security"
+        },
+        {
+          "description": "A hospital's imaging department receives quarterly updates to a vendor's chest X-ray triage model. Its clinical engineering team verifies each update against the vendor's certificate and rejects any update whose signature fails, or that contains a file the signature does not cover, before it enters the clinical validation environment.",
+          "goal": "Security"
+        },
+        {
+          "description": "A public research institute releases an open model together with the test set behind its published benchmark, signing both in one bundle, so that a laboratory re-running the benchmark can confirm that the weights and the test data are byte for byte the ones the institute released before comparing its results with the published ones.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It shows who released the files and that they have not changed, nothing more. A model carrying a malicious pickle payload, a backdoor or the effects of poisoned training data verifies perfectly if its publisher signed it, whether through carelessness or because the publisher's own pipeline was compromised before signing. The originating paper states that signing tells the user nothing about what a model does or how it was produced, so content checks are still needed."
+        },
+        {
+          "description": "A valid signature is only as good as the consumer's check of who made it. A model signed with an attacker's own identity, or by an account named to look like a well-known organisation (a documented attack on model hubs), verifies cleanly unless the verifier insists on the specific identity, certificate or public key it expects. Consumers need a maintained list of trusted signers for each model source."
+        },
+        {
+          "description": "A stolen signing key, or a compromised account at the identity provider used for Sigstore signing, produces valid signatures. With Sigstore every signature is recorded in a transparency log, so a publisher that monitors the log for its own identity can spot signatures it did not make; with the key and certificate methods the specification does not require a log entry, so misuse of a key may go unnoticed."
+        },
+        {
+          "description": "Any change to the files breaks verification, including legitimate ones such as quantisation, conversion to another file format or adding a file. Each derived model needs a new signature from whoever produced it, and that signature says nothing about how the derivative relates to the signed original; recording that relationship needs a separate provenance record, such as the pedigree section of an ML-BOM."
+        },
+        {
+          "description": "It protects only where verification is enforced. Most models on public hubs are unsigned (fewer than 2% of Hugging Face models used the hub's GPG commit-signing option, per studies the originating paper cites), and an unchecked signature protects nobody. Verification re-hashes every file, and hashing dominates the cost: a 1 TB file took about 13 minutes on a 128-vCPU server in the originating paper's benchmark, which matters if very large models are verified at every load."
+        }
+      ],
+      "resources": [
+        {
+          "title": "OpenSSF Model Signing (OMS) Specification, Version 1.0",
+          "url": "https://github.com/ossf/model-signing-spec/blob/main/spec/v1.0.md",
+          "source_type": "documentation",
+          "citationKey": "OpenSSFModelSigning"
+        },
+        {
+          "title": "model-transparency (model-signing package)",
+          "url": "https://github.com/sigstore/model-transparency",
+          "source_type": "software_package",
+          "citationKey": "ModeltransparencyModelsigningPackage",
+          "abstract": "Supply chain security for ML. Contribute to sigstore/model-transparency development by creating an account on GitHub."
+        },
+        {
+          "title": "Position: Machine Learning Models Have a Supply Chain Problem",
+          "url": "https://proceedings.mlr.press/v267/meiklejohn25a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Sarah Meiklejohn",
+            "Hayden Blauzvern",
+            "Mihai Maruseac",
+            "Spencer Schrock",
+            "Laurent Simon",
+            "Ilia Shumailov"
+          ],
+          "publication_date": "2025-10-06",
+          "citationKey": "meiklejohnPositionMachineLearning2025",
+          "abstract": "Powerful machine learning (ML) models are now readily available online, which creates exciting possibilities for users who lack the deep technical expertise or substantial computing resources needed to develop them. On the other hand, this type of open ecosystem comes with many risks. In this paper, we argue that the current ecosystem for open ML models contains significant supply-chain risks, some of which have been exploited already in real attacks. These include an attacker replacing a model with something malicious (e.g., malware), or a model being trained using a vulnerable version of a framework or on restricted or poisoned data. We then explore how Sigstore, a solution designed to bring transparency to open-source software supply chains, can be used to bring transparency to open ML models, in terms of enabling model publishers to sign their models and prove properties about the datasets they use."
+        },
+        {
+          "title": "Model signing with model_signing (demo notebook)",
+          "url": "https://github.com/sigstore/model-transparency/blob/main/docs/demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ModelSigningModel_signing",
+          "abstract": "Supply chain security for ML. Contribute to sigstore/model-transparency development by creating an account on GitHub."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Only model files whose signature verifies against the approved release identity are loaded by the production inference service.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "The model deployed in the clinical system is identical to the files signed by the vendor's release identity, with no file added, removed or changed.",
+          "assuranceGoal": "security",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every signing event recorded in the transparency log under the organisation's signing identity corresponds to an approved model release.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "The pretrained detector used as the starting point for fine-tuning was verified against the supplier's published certificate before any training began.",
+          "assuranceGoal": "security",
+          "domain": "autonomous systems"
+        }
+      ]
+    },
+    {
+      "slug": "smactr-internal-algorithmic-audit",
+      "name": "SMACTR Internal Algorithmic Audit",
+      "description": "SMACTR is an internal audit procedure for AI systems, proposed by Raji and colleagues in 2020, in which an audit team inside the developing organisation but separate from the product team examines a system during development and before launch against the ethical objectives and requirements the organisation has declared for it. The audit runs in five stages, each producing set documents. In Scoping, auditors review the product requirements and the declared objectives and write an ethical review of the use case, drawing in independent domain experts and marginalised groups, and a social impact assessment; in Mapping, they map the people involved, review existing design records, interview the engineers and begin a failure modes and effects analysis (FMEA), a systematic review of the foreseeable ways the system could fail and their effects, used to rank risks for testing. In Artefact Collection, a checklist confirms that the expected development documents, such as model cards and datasheets, exist; in Testing, auditors run tests chosen from the FMEA's priorities, such as adversarial probing with tailored inputs, and rate each risk high, mid or low from its likelihood and severity in an ethical risk analysis chart; in Reflection, they set the results against the declared objectives, finalise the risk analysis and agree a remediation plan with the engineering team. The documents are kept in an algorithmic design history file, from which the auditors write a summary report that leadership can use to decide whether the system launches, changes or is abandoned.",
+      "assurance_goals": [
+        "General"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/general",
+        "assurance-goal-category/general/governance-and-review",
+        "data-requirements/access-to-training-data",
+        "data-type/any",
+        "evidence-type/qualitative-report",
+        "evidence-type/audit-record",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/ethics",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/model-development/model-documentation",
+        "lifecycle-stage/other/cross-cutting"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An insurer's internal audit team audits a claims-triage model before launch. Interviews in Mapping reveal that a field used as a proxy for chronic illness was dropped late without the requirements being updated; the FMEA ranks under-prioritising complex claims as the top risk, so Testing concentrates on claims from people with several conditions, and the summary report goes to the risk committee with a remediation plan and a recommendation to delay launch.",
+          "goal": "General"
+        },
+        {
+          "description": "A software company's responsible-AI audit team audits a customer-support chatbot. Artefact Collection finds no datasheet for the fine-tuning conversations, so the auditors require the product team to write one before testing; prompts drawn from the FMEA then test whether the bot discloses other customers' account details or gives poorer answers to customers writing in non-standard English, and the ethical risk chart and remediation plan record what must change before release.",
+          "goal": "General"
+        },
+        {
+          "description": "A government digital service's audit team, which reports to the agency's chief risk officer rather than to the delivery programme, audits an in-house model that prioritises housing repair requests before it replaces manual triage. The chief risk officer uses the summary report to decide whether the model goes live, and the design history file and report are filed where the agency's external auditors and ombudsman can later inspect them.",
+          "goal": "General"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The auditors are employees of the organisation they audit and share its interests; the authors acknowledge that independence is hard to keep and that audits risk becoming reputation management. Findings carry more weight when the audit team reports outside the product's management line and the design history file can be examined by an outside party."
+        },
+        {
+          "description": "The system is judged against the ethical objectives the organisation declares for it, which the authors note have been criticised as vague, and the paper leaves open what level of performance, for example how close to parity across groups, counts as acceptable. A clean audit shows consistency with the standards and thresholds the organisation chose to declare, and says nothing about any external standard it did not adopt."
+        },
+        {
+          "description": "The Testing stage prescribes no particular tests; the authors expect tests to vary widely by system and to follow the FMEA's priorities. What the audit can show about the system's behaviour therefore depends on the tests the team chooses, and a failure mode the FMEA did not foresee is likely to go untested."
+        },
+        {
+          "description": "The audit is deliberately slow and document-heavy, and the authors note that fast, iterative development is hard to audit. Its results describe the system at the time of the audit, so a model retrained or reconfigured afterwards is not covered unless the relevant stages are repeated."
+        },
+        {
+          "description": "The paper does not say which systems should be audited or in how much depth, leaving that to the organisation, and it illustrates the procedure only on two hypothetical client projects. Published evidence of how well it finds problems in real systems is limited."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Closing the AI accountability gap",
+          "url": "https://doi.org/10.1145/3351095.3372873",
+          "source_type": "technical_paper",
+          "authors": [
+            "Inioluwa Deborah Raji",
+            "Andrew Smart",
+            "Rebecca N. White",
+            "Margaret Mitchell",
+            "Timnit Gebru",
+            "Ben Hutchinson",
+            "Jamila Smith-Loud",
+            "Daniel Theron",
+            "Parker Barnes"
+          ],
+          "publication_date": "2020-1-27",
+          "citationKey": "rajiClosingAIAccountability2020"
+        },
+        {
+          "title": "FAT* Worked Examples: SMACTR internal audit templates (Smile Detection)",
+          "url": "https://drive.google.com/drive/folders/1NUSTvWObrDSkjmWTrDCxKoPkXmypguiv",
+          "source_type": "tutorial",
+          "citationKey": "FATWorkedExamples"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 2,
+      "acronym": "SMACTR",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The claims-triage model was audited before launch by a team outside its product line, through all five SMACTR stages, and the audit report and design history file are held where the risk committee can inspect them.",
+          "assuranceGoal": "general",
+          "domain": "finance"
+        },
+        {
+          "text": "Every risk rated high in the audit's ethical risk analysis chart has a remediation action agreed with the engineering team and recorded as completed, or formally accepted, before release.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        },
+        {
+          "text": "The tests run in the audit's Testing stage were selected from the failure modes ranked highest in the FMEA, and each result is traced to the failure mode it tests.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        },
+        {
+          "text": "The documentation the audit required, including a datasheet for the chatbot's fine-tuning data and a model card, was complete before testing began, as recorded in the audit checklist.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 3
+  "count": 5
 }

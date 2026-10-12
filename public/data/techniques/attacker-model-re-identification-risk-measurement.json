@@ -1,0 +1,156 @@
+{
+  "slug": "attacker-model-re-identification-risk-measurement",
+  "name": "Attacker-Model Re-identification Risk Measurement",
+  "description": "Attacker-model re-identification risk measurement estimates, for a table of real records about people that is about to be released or shared, the probability that an attacker who links it with other information could correctly match a record to the person it describes. This record follows the attacker models of El Emam and Dankar (prosecutor and journalist) and of Dankar and El Emam (marketer), as implemented in the ARX tool: the assessor lists the quasi-identifiers (columns such as age, sex, postcode and admission date that an attacker could know or find), groups the records that share the same values on them, and names the attacker being guarded against. For a prosecutor, who knows the target is in the table, a record's risk is one over the size of its group in the table; for a journalist, who does not know this and links to a register of the wider population, it is one over the size of the matching group in that population, estimated with a statistical model when the population counts are not known; for a marketer, who tries to match as many records as possible, the measure is the expected share of records matched correctly. The assessor reports the highest record risk, the average risk and the share of records above a threshold set for the release, which decides whether the table can go out as it is or needs more generalisation or suppression first. It measures how easily records can be matched to people under the stated assumptions, unlike k-anonymity, which transforms the data, and it does not measure what can be learned about someone from values their whole group shares.",
+  "assurance_goals": [
+    "Privacy"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/privacy",
+    "assurance-goal-category/privacy/leakage-testing",
+    "data-requirements/access-to-training-data",
+    "data-type/tabular",
+    "evidence-type/quantitative-metric",
+    "evidence-type/dataset-analysis",
+    "expertise-needed/privacy-engineering",
+    "expertise-needed/statistics",
+    "expertise-needed/domain-expertise",
+    "technique-type/metric",
+    "lifecycle-stage/project-design",
+    "lifecycle-stage/project-design/data-extraction-or-procurement",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A health insurer releasing claims data for a public prediction competition assumes an attacker who knows a neighbour's age, sex and a few of their claims, and measures each record's risk as one over the size of its group among all the insurer's members. It generalises ages and procedure codes until the measured probability of re-identification is below the 0.05 threshold agreed for the release, then checks the result with simulated matching attacks.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "A pharmaceutical company sharing participant-level data from a completed trial with external researchers measures risk against the wider population, not the trial sample, because the participants are a small sample of everyone with the condition. It estimates how many records are unique in that population with ARX's uniqueness models and records the quasi-identifiers, attacker model, estimator and threshold in the data-sharing agreement for the researchers' data access committee to review.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "A city transport authority planning to give a commuting dataset of home district, work district, age band and usual travel times to a contractor training a demand-forecasting model runs the assessment, finds a large share of records unique on home and work district together, merges small districts before sharing, and re-runs the assessment to confirm that the share of records above its threshold has fallen below the agreed limit.",
+      "goal": "Privacy"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "The numbers are only as good as the list of quasi-identifiers and the attacker model behind them. A column left off the list, or an attacker who knows more (several of a person's hospital visits rather than one), can make records far easier to match than the assessment reports, and the assessor has to guess what other data an attacker holds. Repeating the assessment for stronger attackers, as some releases do with simulated matching, shows how sensitive the result is to these guesses."
+    },
+    {
+      "description": "It measures the chance of finding which record is a person's, not what can be learned about them. If all 20 records in a group share the same diagnosis, each has a measured risk of 1 in 20, yet anyone known to belong to the group has their diagnosis disclosed. Checks on the sensitive values, such as l-diversity, are needed alongside it when the release contains sensitive columns."
+    },
+    {
+      "description": "The journalist measure needs to know how common each record's values are in the wider population, which is rarely known and is estimated from the sample with statistical models; an evaluation of four estimators of population uniqueness on six clinical datasets found none accurate in all conditions. A small sample does not make re-identification unlikely in itself: one study estimated that 15 demographic attributes would let 99.98 per cent of Americans be correctly re-identified in any dataset."
+    },
+    {
+      "description": "There is no universal threshold, and the measure chosen changes the answer. For the same records the prosecutor measure is always at least as high as the journalist measure, so applying it to a release that is a small sample of a population over-protects and strips detail the data's users need; El Emam and Dankar found this effect strongest at small sampling fractions. The threshold, and which measure it applies to, must be justified for each release."
+    },
+    {
+      "description": "It measures one table as released, at one time. An attacker can combine several releases of the same data, or successive versions of a table that is updated, and longitudinal data, where each person has many events, need the attacker's knowledge of several events to be modelled explicitly. The basic measures do neither, so each additional or updated release needs its own assessment that takes the earlier ones into account."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Risk analysis – ARX – Data Anonymization Tool",
+      "url": "https://arx.deidentifier.org/anonymization-tool/risk-analysis/",
+      "source_type": "documentation",
+      "citationKey": "RiskAnalysisARX"
+    },
+    {
+      "title": "ARX Data Anonymization Tool (arx-deidentifier/arx)",
+      "url": "https://github.com/arx-deidentifier/arx",
+      "source_type": "software_package",
+      "citationKey": "ARXDataAnonymization",
+      "abstract": "ARX is a comprehensive open source data anonymization tool aiming to provide scalability and usability. It supports various anonymization techniques, methods for analyzing data quality and re-ident..."
+    },
+    {
+      "title": "Protecting Privacy Using k-Anonymity",
+      "url": "https://doi.org/10.1197/jamia.m2716",
+      "source_type": "technical_paper",
+      "authors": [
+        "Khaled El Emam",
+        "Fida Kamal Dankar"
+      ],
+      "publication_date": "2008-9-1",
+      "citationKey": "elemamProtectingPrivacyUsing2008"
+    },
+    {
+      "title": "Estimating the re-identification risk of clinical data sets",
+      "url": "https://doi.org/10.1186/1472-6947-12-66",
+      "source_type": "technical_paper",
+      "authors": [
+        "Fida Kamal Dankar",
+        "Khaled El Emam",
+        "Angelica Neisa",
+        "Tyson Roffey"
+      ],
+      "publication_date": "2012-7-9",
+      "citationKey": "dankarEstimatingReidentificationRisk2012"
+    },
+    {
+      "title": "Measuring Risk — Statistical Disclosure Control for Microdata: A Practice Guide for sdcMicro",
+      "url": "https://sdcpractice.readthedocs.io/en/latest/measure_risk.html",
+      "source_type": "tutorial",
+      "citationKey": "MeasuringRiskStatistical"
+    },
+    {
+      "title": "De-identification Methods for Open Health Data: The Case of the Heritage Health Prize Claims Dataset",
+      "url": "https://doi.org/10.2196/jmir.2001",
+      "source_type": "application_paper",
+      "authors": [
+        "Khaled El Emam",
+        "Luk Arbuckle",
+        "Gunes Koru",
+        "Benjamin Eze",
+        "Lisa Gaudette",
+        "Emilio Neri",
+        "Sean Rose",
+        "Jeremy Howard",
+        "Jonathan Gluck"
+      ],
+      "publication_date": "2012-2-27",
+      "citationKey": "elemamDeidentificationMethodsOpen2012"
+    },
+    {
+      "title": "A method for evaluating marketer re-identification risk",
+      "url": "https://doi.org/10.1145/1754239.1754271",
+      "source_type": "technical_paper",
+      "authors": [
+        "Fida Kamal Dankar",
+        "Khaled El Emam"
+      ],
+      "publication_date": "2010-3-22",
+      "citationKey": "dankarMethodEvaluatingMarketer2010"
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 1,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Under a prosecutor attack using age band, sex and postcode district, no record in the released extract has a re-identification probability above 0.09.",
+      "assuranceGoal": "privacy",
+      "domain": "healthcare"
+    },
+    {
+      "text": "The expected proportion of records in the competition dataset that an attacker could correctly match by linking it to the state voter register is below 0.1 per cent.",
+      "assuranceGoal": "privacy",
+      "domain": "healthcare"
+    },
+    {
+      "text": "The re-identification risk assessment for the shared trial data states the quasi-identifiers, attacker model, population estimator and threshold used, and the highest record risk is below the agreed threshold.",
+      "assuranceGoal": "privacy",
+      "domain": "healthcare"
+    },
+    {
+      "text": "Fewer than 1 per cent of records in the commuting dataset shared with the contractor are estimated to be unique in the city's population on home district, work district and age band.",
+      "assuranceGoal": "privacy",
+      "domain": "transport"
+    }
+  ]
+}

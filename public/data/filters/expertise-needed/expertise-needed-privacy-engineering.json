@@ -2,7 +2,7 @@
   "tag": {
     "name": "expertise-needed/privacy-engineering",
     "slug": "expertise-needed-privacy-engineering",
-    "count": 7,
+    "count": 14,
     "category": "expertise-needed"
   },
   "techniques": [
@@ -1548,7 +1548,1124 @@
           "assuranceGoal": "privacy"
         }
       ]
+    },
+    {
+      "slug": "canary-exposure-testing",
+      "name": "Canary Exposure Testing",
+      "description": "Canary exposure testing measures how strongly a training procedure makes a generative sequence model, such as a language model, memorise rare sequences, by planting random secrets (canaries) in the training data and scoring how much the trained model favours them over values it never saw. Because the secrets are random and their values known, the result is calibrated in a way that tests on real records are not and can be compared across model versions, training settings and numbers of repetitions; unlike extraction or membership inference testing of a finished model, it requires control of the training run, and unlike differential privacy auditing, which also plants records, it gives a memorisation score rather than a statistical bound on epsilon. The tester chooses a format such as 'my account number is' followed by a blank, fills the blank with random values to make several canaries, inserts each into the training data a chosen number of times (for example once, ten times and a hundred times), and trains with the settings used in production. Each canary is then ranked by how probable the trained model finds it compared with every other possible filling of the blank, and its exposure is the base-2 logarithm of the number of possible fillings minus the base-2 logarithm of that rank: about 1 for a canary the model treats like any other value, rising to its maximum when the canary is the model's top choice, the level at which a search over the possible fillings can extract it outright. For large spaces of values the rank is estimated by fitting a distribution to the probabilities of a sample of alternatives, and results are usually plotted as exposure against number of insertions.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/privacy-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An email provider training a reply-suggestion model on users' messages inserts seven-word canaries with random middle words between 1 and 10,000 times each into a training run with the production settings, plots exposure against the number of insertions, and uses the curve to limit how often any rare phrase from a single user may appear in the training data before the model is offered to all users.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A bank's machine learning team choosing among learning-rate schedules and model sizes for an autocomplete model trained on transaction descriptions trains each candidate with the same random account-number canaries at the same insertion counts, and picks the configuration with the lowest exposure among those within a set margin of the best validation accuracy.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A health-records software vendor uses the test as a regression check: each time its clinical-text model is retrained on new notes, the same canaries are inserted at fixed frequencies, and the build fails if the exposure of a canary inserted only once rises above a threshold agreed with the vendor's information governance team.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It needs control of the training run. Canaries must be in the data before training, so the test cannot be applied to a model someone else trained or has already released, and it must use the production settings (optimiser, epochs, model size, hyperparameters), because each of these changes how much is memorised; a test model trained differently says little about the deployed one."
+        },
+        {
+          "description": "It measures memorisation of the planted secrets, not of the real data. Canaries are random and unlike the rest of the data by design, while real personal data that is repeated, structured or similar to other text can be memorised differently, and the choice of format and of random values changes the result. Low exposure for the canaries does not show that no real record can be extracted."
+        },
+        {
+          "description": "Exposure is not a privacy guarantee. Its scale depends on the number of possible fillings, so values compare only across canaries with the same number of fillings, and it is not an epsilon: in the original study, models trained with differential privacy at budgets too weak to mean anything (epsilon up to 10^9) still showed negligible exposure, so low exposure cannot stand in for a formal bound."
+        },
+        {
+          "description": "It needs the model's probability for arbitrary sequences, so a system that returns only its single best output needs a different measure. When the space of possible fillings is too large to score in full, exposure is estimated by fitting a distribution to a sample of alternatives; the estimate depends on that fit holding in the far tail and can exceed the true maximum."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Secret Sharer Attack (TensorFlow Privacy, privacy_tests/secret_sharer)",
+          "url": "https://github.com/tensorflow/privacy/tree/master/tensorflow_privacy/privacy/privacy_tests/secret_sharer",
+          "source_type": "documentation",
+          "citationKey": "SecretSharerAttack",
+          "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+        },
+        {
+          "title": "TensorFlow Privacy (tensorflow/privacy)",
+          "url": "https://github.com/tensorflow/privacy",
+          "source_type": "software_package",
+          "citationKey": "TensorFlowPrivacyTensorflow",
+          "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+        },
+        {
+          "title": "The Secret Sharer: Evaluating and Testing Unintended Memorization in Neural Networks",
+          "url": "https://www.usenix.org/conference/usenixsecurity19/presentation/carlini",
+          "source_type": "technical_paper",
+          "authors": [
+            "Nicholas Carlini",
+            "Chang Liu",
+            "Úlfar Erlingsson",
+            "Jernej Kos",
+            "Dawn Song"
+          ],
+          "publication_date": "2019",
+          "citationKey": "carliniSecretSharerEvaluating2019"
+        },
+        {
+          "title": "Assess privacy risks with TensorFlow Privacy Secret Sharer Attack (example notebook)",
+          "url": "https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/privacy_tests/secret_sharer/secret_sharer_example.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AssessPrivacyRisksa",
+          "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+        },
+        {
+          "title": "Understanding Unintended Memorization in Language Models Under Federated Learning",
+          "url": "https://doi.org/10.18653/v1/2021.privatenlp-1.1",
+          "source_type": "application_paper",
+          "authors": [
+            "Om Dipakbhai Thakkar",
+            "Swaroop Ramaswamy",
+            "Rajiv Mathews",
+            "Francoise Beaufays"
+          ],
+          "publication_date": "2021",
+          "citationKey": "thakkarUnderstandingUnintendedMemorization2021"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "With canaries inserted up to 10,000 times into a training run that used the production settings, no canary in the reply-suggestion model reached the exposure at which it could be extracted, and canaries inserted fewer than 100 times showed exposure close to that of random alternatives.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "In the autocomplete configuration chosen for release, nine-digit account-number canaries inserted ten times had exposure below 10, against about 30 for a canary the model ranks first, and no configuration within one percentage point of the best validation accuracy had lower exposure.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "On every retraining of the clinical-text model, the exposure of canaries inserted once stayed below the threshold agreed with information governance.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "differential-privacy-auditing",
+      "name": "Differential Privacy Auditing",
+      "description": "Differential privacy auditing tests whether a training procedure that claims a differential privacy guarantee at a stated budget (epsilon, where smaller means stronger privacy) loses more privacy in practice than the claim allows, by measuring a statistical lower bound on its true epsilon. The guarantee itself comes from a mathematical proof, and membership inference testing reports attack success on real records for any model; the audit instead controls which records are present and asks whether the code that was run honours the proof, so it can expose an implementation bug or accounting error but can never confirm the guarantee. The auditor builds two training sets that differ only by one or a few planted records, called canaries and often crafted to be easy to detect, trains the model many times on each, and applies a fixed test to every trained model to guess whether the canary was present. Confidence intervals for the test's true-positive and false-positive rates, such as Clopper-Pearson intervals for a proportion, are converted into a value of epsilon that the procedure must exceed at a stated confidence level, such as 99 per cent; a bound above the claimed epsilon shows that the claim is false for that implementation. Because hundreds of training runs are costly, a later design needs only one: many canaries are each included or left out at random, the test guesses which were included, and the share of correct guesses gives the bound, which is looser than the many-run design's.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/statistical-test",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before an NHS trust releases a readmission-risk model trained with an open-source differential privacy library at a claimed epsilon of 3, its data science team audits the exact code and settings: it trains several hundred models with and without a planted mislabelled record and signs off only if the 99 per cent lower bound stays below 3, recording that the audit could have caught a violation but cannot prove the guarantee.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "The maintainers of a differentially private training library run a white-box audit on every release: the auditor sees each intermediate model update and inserts a gradient crafted to be easy to detect, so a change to the clipping or noise-sampling code that silently weakens the guarantee pushes the lower bound above the budget the library reports and fails the build.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A mobile keyboard team training a next-word model with federated learning under a claimed user-level guarantee adds simulated canary users to its single production training run, each included or left out at random and enough of them that a bound above the claim is reachable, and checks the one-run lower bound against the claim, because retraining the federated model hundreds of times is not feasible.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A result below the claim proves nothing. The bound is only as strong as the audit behind it: weak canaries, a test that sees only the final model, or too few runs or canaries can give bounds far below the claimed epsilon (one library's documented single-run audit with 1,000 canaries reported 0.42 for a model trained at epsilon 68.5, and 5.5 for one trained without differential privacy). Only a bound above the claim is conclusive, and a pass must not be reported as confirming the guarantee."
+        },
+        {
+          "description": "The number of training runs caps what can be detected. With 500 runs per training set and 99 per cent confidence, the largest bound the original method can report is about 4.5 even if the test never errs, so it cannot show a claimed epsilon of 8 to be false; larger budgets need many more runs or a different design. In the single-run design the number of canaries sets the cap in the same way."
+        },
+        {
+          "description": "Bounds come close to the claim only under the strongest access. For DP-SGD on natural data, audits match the claimed epsilon when the auditor sees every intermediate update and inserts crafted gradients, the setting the standard proof assumes. With crafted input records, seeing every update helps only slightly over the final model, and with the final model most of the original audit's bounds were roughly 7 to 12 times below the claim. A result holds only for the access and canaries it assumed."
+        },
+        {
+          "description": "It is expensive. The original method trained 500 models per training set to choose the test's threshold and another 500 per set to estimate its error rates, which is impractical for large models. The single-run design avoids this but gives looser bounds, which weaken further when only the final model is seen and the model cannot memorise all the canaries or other training data is added."
+        },
+        {
+          "description": "It checks one implementation, configuration and pair of datasets. A change of clipping norm, batch size, random initialisation or library version needs a new audit, and canaries that are typical rather than worst-case can miss a violation that affects only unusual records, giving false confidence about the risk to outliers."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Auditing Differential Privacy Lower Bound (Privacy Meter documentation)",
+          "url": "https://github.com/privacytrustlab/ml_privacy_meter/blob/master/documentation/dpaudit.md",
+          "source_type": "documentation",
+          "citationKey": "AuditingDifferentialPrivacy",
+          "abstract": "Privacy Meter: An open-source library to audit data privacy in statistical and machine learning algorithms. - privacytrustlab/ml_privacy_meter"
+        },
+        {
+          "title": "Privacy Meter (privacytrustlab/ml_privacy_meter)",
+          "url": "https://github.com/privacytrustlab/ml_privacy_meter",
+          "source_type": "software_package",
+          "publication_date": "2026-10-06T18:26:21Z",
+          "citationKey": "PrivacyMeterPrivacytrustlab2026",
+          "abstract": "Privacy Meter: An open-source library to audit data privacy in statistical and machine learning algorithms."
+        },
+        {
+          "title": "Auditing Differentially Private Machine Learning: How Private is Private SGD?",
+          "url": "https://proceedings.neurips.cc/paper/2020/hash/fc4ddc15f9f4b4b06ef7844d6bb53abf-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Matthew Jagielski",
+            "Jonathan Ullman",
+            "Alina Oprea"
+          ],
+          "publication_date": "2020",
+          "citationKey": "jagielskiAuditingDifferentiallyPrivate2020",
+          "abstract": "We investigate whether Differentially Private SGD offers better privacy in practice than what is guaranteed by its state-of-the-art analysis. We do so via novel data poisoning attacks, which we show correspond to realistic privacy attacks. While previous work (Ma et al., arXiv 2019) proposed this connection between differential privacy and data poisoning as a defense against data poisoning, our use as a tool for understanding the privacy of a specific mechanism is new. More generally, our work takes a quantitative, empirical approach to understanding the privacy afforded by specific implementations of differentially private algorithms that we believe has the potential to complement and influence analytical work on differential privacy."
+        },
+        {
+          "title": "Privacy Meter Demo: Auditing Differential Privacy Lower Bound (notebook)",
+          "url": "https://github.com/privacytrustlab/ml_privacy_meter/blob/master/demo_audit_dp.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "PrivacyMeterDemo",
+          "abstract": "Privacy Meter: An open-source library to audit data privacy in statistical and machine learning algorithms. - privacytrustlab/ml_privacy_meter"
+        },
+        {
+          "title": "Privacy Auditing of Large Language Models",
+          "url": "https://openreview.net/forum?id=60Vd7QOXlM",
+          "source_type": "application_paper",
+          "authors": [
+            "Ashwinee Panda",
+            "Xinyu Tang",
+            "Milad Nasr",
+            "Christopher A. Choquette-Choo",
+            "Prateek Mittal"
+          ],
+          "citationKey": "PrivacyAuditingLarge"
+        },
+        {
+          "title": "Tight Auditing of Differentially Private Machine Learning",
+          "url": "https://www.usenix.org/conference/usenixsecurity23/presentation/nasr",
+          "source_type": "application_paper",
+          "authors": [
+            "Milad Nasr",
+            "Jamie Hayes",
+            "Thomas Steinke",
+            "Borja Balle",
+            "Florian Tramèr",
+            "Matthew Jagielski",
+            "Nicholas Carlini",
+            "Andreas Terzis"
+          ],
+          "publication_date": "2023",
+          "citationKey": "nasrTightAuditingDifferentially2023"
+        },
+        {
+          "title": "Privacy Auditing with One (1) Training Run",
+          "url": "https://papers.nips.cc/paper_files/paper/2023/hash/9a6f6e0d6781d1cb8689192408946d73-Abstract-Conference.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Thomas Steinke",
+            "Milad Nasr",
+            "Matthew Jagielski"
+          ],
+          "publication_date": "2023",
+          "citationKey": "steinkePrivacyAuditingOne2023"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "A 99 per cent confidence audit of the exact training code and settings used for the readmission model, with planted records designed to be easy to detect, found no evidence that its privacy loss exceeds the claimed epsilon of 3.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every release of the training library passes a white-box audit in which the measured lower bound on epsilon stays below the budget the library reports for the audited configuration.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "An audit of the previous version of the training code gave a 99 per cent lower bound on epsilon of 3.9 against a claimed budget of 1, showing an implementation error, and a re-audit of the corrected code found no bound above 1.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "In a single-run audit of the federated keyboard model's training, with enough randomly included canary users that a bound above the claimed user-level epsilon could have been reported, the 95 per cent lower bound stayed below the claim.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "training-data-extraction-testing",
+      "name": "Training Data Extraction Testing",
+      "description": "Training data extraction testing measures how much of its training text a generative language model reproduces word for word when it is sampled, without the tester supplying any training record to look for. It differs from membership inference testing, which starts from a candidate record and asks only whether that record was used in training, and from canary exposure testing, which needs secrets planted before training. The tester prompts the model with empty prompts or a few words taken from public text, generates a large volume of output (from tens of millions to billions of tokens) with the sampling settings the deployed system uses, and checks it against the training corpus: any span of at least a fixed length, such as 50 tokens, found verbatim in an index of the corpus, and not low-entropy filler such as repeated characters or lists of numbers, counts as extracted, and personal data is checked by tagging names and identifiers in the output and looking them up in the corpus. Where the corpus cannot be searched, the outputs are ranked by how much more probable the model finds them than a smaller reference model or a text-compression algorithm does, and the top-ranked candidates are checked by hand, for example by web search. The result is the share of generated text copied from training data (under the hand-checked route, the number confirmed among the candidates checked), the number of distinct passages extracted, and the passages themselves, each with a count of the training documents that contain it: a passage found in one or two documents is a privacy finding in a way that a licence or news story repeated thousands of times is not.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/data-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's privacy engineering team fine-tunes an open-weight language model on ten years of customer-service chat transcripts to draft replies for agents. Before deployment it generates 50 million tokens from public-text prompts with the production sampling settings, searches an index of the transcripts for 50-token matches, and looks up every account number, name and phone number tagged in the output. It runs the same test on the base model as a control.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A hospital research group that trained a clinical note-completion model on de-identified discharge summaries runs the test before sharing the weights with partner hospitals. Besides searching for verbatim passages of the summaries, it tags patient names, dates of birth and NHS numbers in the generated text and looks each up in the training set, to find identifiers the de-identification step missed and decide whether the summaries must be re-scrubbed and the model retrained.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "An AI developer preparing an open-weight release compares two checkpoints, one trained on a deduplicated copy of the pre-training corpus. It generates text from each at budgets of 100 million and 1 billion tokens, counts distinct 50-token passages found verbatim in the corpus, and compares how the counts grow with the budget, not a single rate, before choosing which checkpoint to release and what to say about memorisation in the model card.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A government department running a citizen-facing chat assistant on a model it fine-tuned on casework correspondence repeats the test after every fine-tuning update. Because chat-tuned models can leak little under ordinary prompts yet emit training text once pushed off their chat behaviour, the test also uses prompts asking the assistant to repeat a single word many times, a pattern that made one production assistant reproduce its training data.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The result is a lower bound set by the effort spent. The number of distinct passages extracted keeps growing as more text is generated, and one study found that a model which leaked more than another at a small budget leaked less in total. A clean result, or a comparison of models at one fixed budget, can therefore mislead; report the generation budget and compare models at several budgets."
+        },
+        {
+          "description": "Much memorised text comes out only after the right prompt. In one study, sampling from short public prompts recovered about a third of the passages a model was known to reproduce when given their true opening words, and a chat-tuned model leaked far less under ordinary prompts than when pushed into repeating a word. A low rate under ordinary prompts is weak evidence that the data cannot be extracted."
+        },
+        {
+          "description": "The verdict depends on what the output is checked against and on the match rule. A public proxy for an unavailable corpus undercounts (in one study a 9 TB proxy found under half the matches a manual web search found), and a minimum match length long enough to rule out coincidence misses short secrets such as phone or account numbers unless they are tagged and looked up separately. Paraphrased leaks and facts stitched together from several documents are not counted."
+        },
+        {
+          "description": "It is costly at a useful scale. One study generated a billion tokens per model, and its whole evaluation, including a 45 TB index built over a 9 TB corpus, took three weeks on a large cloud machine. The test also produces copies of any personal data the model leaks, which must be stored, reviewed and deleted under the same controls as the training data."
+        },
+        {
+          "description": "It shows what the model emits, not what an attacker could infer. It does not say whether a known person's record was used in training, and it gives no bound for data the test did not happen to elicit, so a clean result cannot stand in for a formal guarantee such as differential privacy."
+        }
+      ],
+      "resources": [
+        {
+          "title": "LM_Memorization (ftramer/LM_Memorization): training data extraction on GPT-2",
+          "url": "https://github.com/ftramer/LM_Memorization",
+          "source_type": "software_package",
+          "citationKey": "LM_MemorizationFtramerLM_Memorization",
+          "abstract": "Training data extraction on GPT-2. Contribute to ftramer/LM_Memorization development by creating an account on GitHub."
+        },
+        {
+          "title": "Extracting Training Data from Large Language Models",
+          "url": "https://www.usenix.org/conference/usenixsecurity21/presentation/carlini-extracting",
+          "source_type": "technical_paper",
+          "authors": [
+            "Nicholas Carlini",
+            "Florian Tramèr",
+            "Eric Wallace",
+            "Matthew Jagielski",
+            "Ariel Herbert-Voss",
+            "Katherine Lee",
+            "Adam Roberts",
+            "Tom Brown",
+            "Dawn Song",
+            "Úlfar Erlingsson",
+            "Alina Oprea",
+            "Colin Raffel"
+          ],
+          "publication_date": "2021",
+          "citationKey": "carliniExtractingTrainingData2021"
+        },
+        {
+          "title": "Analysing PII leakage (microsoft/analysing_pii_leakage)",
+          "url": "https://github.com/microsoft/analysing_pii_leakage",
+          "source_type": "tutorial",
+          "citationKey": "AnalysingPIILeakage",
+          "abstract": "The repository contains the code for analysing the leakage of personally identifiable (PII) information from the output of next word prediction language models. - microsoft/analysing_pii_leakage"
+        },
+        {
+          "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+          "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Ahmed Salem",
+            "Robert Sim",
+            "Shruti Tople",
+            "Lukas Wutschitz",
+            "Santiago Zanella-Béguelin"
+          ],
+          "publication_date": "2023-5",
+          "citationKey": "lukasAnalyzingLeakagePersonally2023"
+        },
+        {
+          "title": "Scalable Extraction of Training Data from Aligned, Production Language Models",
+          "url": "https://proceedings.iclr.cc/paper_files/paper/2025/hash/cce0e917b050208170151f77b497fc71-Abstract-Conference.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Milad Nasr",
+            "Javier Rando",
+            "Nicholas Carlini",
+            "Jonathan Hayase",
+            "Matthew Jagielski",
+            "A. Feder Cooper",
+            "Daphne Ippolito",
+            "Christopher Choquette-Choo",
+            "Florian Tramer",
+            "Katherine Lee"
+          ],
+          "citationKey": "nasrScalableExtractionTraining"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Across 50 million tokens generated from the fine-tuned support model with production sampling settings, no span of 50 or more tokens matched the training transcripts verbatim, and none of the account numbers or customer names tagged in the output occurs in the transcripts.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "In an extraction test of 10 million generated tokens, the clinical note model reproduced no NHS number, and no patient name together with a date of birth, that appears in its training summaries.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "At every generation budget tested, up to one billion tokens, the deduplicated checkpoint emitted fewer distinct verbatim passages of its pre-training corpus than the original checkpoint.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "After each fine-tuning update, extraction tests of 20 million generated tokens, from both ordinary prompts and repeated-word prompts, found no passage of 50 or more tokens from the casework correspondence in the assistant's output.",
+          "assuranceGoal": "privacy",
+          "domain": "public sector"
+        }
+      ]
+    },
+    {
+      "slug": "attacker-model-re-identification-risk-measurement",
+      "name": "Attacker-Model Re-identification Risk Measurement",
+      "description": "Attacker-model re-identification risk measurement estimates, for a table of real records about people that is about to be released or shared, the probability that an attacker who links it with other information could correctly match a record to the person it describes. This record follows the attacker models of El Emam and Dankar (prosecutor and journalist) and of Dankar and El Emam (marketer), as implemented in the ARX tool: the assessor lists the quasi-identifiers (columns such as age, sex, postcode and admission date that an attacker could know or find), groups the records that share the same values on them, and names the attacker being guarded against. For a prosecutor, who knows the target is in the table, a record's risk is one over the size of its group in the table; for a journalist, who does not know this and links to a register of the wider population, it is one over the size of the matching group in that population, estimated with a statistical model when the population counts are not known; for a marketer, who tries to match as many records as possible, the measure is the expected share of records matched correctly. The assessor reports the highest record risk, the average risk and the share of records above a threshold set for the release, which decides whether the table can go out as it is or needs more generalisation or suppression first. It measures how easily records can be matched to people under the stated assumptions, unlike k-anonymity, which transforms the data, and it does not measure what can be learned about someone from values their whole group shares.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/leakage-testing",
+        "data-requirements/access-to-training-data",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "evidence-type/dataset-analysis",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/metric",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A health insurer releasing claims data for a public prediction competition assumes an attacker who knows a neighbour's age, sex and a few of their claims, and measures each record's risk as one over the size of its group among all the insurer's members. It generalises ages and procedure codes until the measured probability of re-identification is below the 0.05 threshold agreed for the release, then checks the result with simulated matching attacks.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A pharmaceutical company sharing participant-level data from a completed trial with external researchers measures risk against the wider population, not the trial sample, because the participants are a small sample of everyone with the condition. It estimates how many records are unique in that population with ARX's uniqueness models and records the quasi-identifiers, attacker model, estimator and threshold in the data-sharing agreement for the researchers' data access committee to review.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A city transport authority planning to give a commuting dataset of home district, work district, age band and usual travel times to a contractor training a demand-forecasting model runs the assessment, finds a large share of records unique on home and work district together, merges small districts before sharing, and re-runs the assessment to confirm that the share of records above its threshold has fallen below the agreed limit.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The numbers are only as good as the list of quasi-identifiers and the attacker model behind them. A column left off the list, or an attacker who knows more (several of a person's hospital visits rather than one), can make records far easier to match than the assessment reports, and the assessor has to guess what other data an attacker holds. Repeating the assessment for stronger attackers, as some releases do with simulated matching, shows how sensitive the result is to these guesses."
+        },
+        {
+          "description": "It measures the chance of finding which record is a person's, not what can be learned about them. If all 20 records in a group share the same diagnosis, each has a measured risk of 1 in 20, yet anyone known to belong to the group has their diagnosis disclosed. Checks on the sensitive values, such as l-diversity, are needed alongside it when the release contains sensitive columns."
+        },
+        {
+          "description": "The journalist measure needs to know how common each record's values are in the wider population, which is rarely known and is estimated from the sample with statistical models; an evaluation of four estimators of population uniqueness on six clinical datasets found none accurate in all conditions. A small sample does not make re-identification unlikely in itself: one study estimated that 15 demographic attributes would let 99.98 per cent of Americans be correctly re-identified in any dataset."
+        },
+        {
+          "description": "There is no universal threshold, and the measure chosen changes the answer. For the same records the prosecutor measure is always at least as high as the journalist measure, so applying it to a release that is a small sample of a population over-protects and strips detail the data's users need; El Emam and Dankar found this effect strongest at small sampling fractions. The threshold, and which measure it applies to, must be justified for each release."
+        },
+        {
+          "description": "It measures one table as released, at one time. An attacker can combine several releases of the same data, or successive versions of a table that is updated, and longitudinal data, where each person has many events, need the attacker's knowledge of several events to be modelled explicitly. The basic measures do neither, so each additional or updated release needs its own assessment that takes the earlier ones into account."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Risk analysis – ARX – Data Anonymization Tool",
+          "url": "https://arx.deidentifier.org/anonymization-tool/risk-analysis/",
+          "source_type": "documentation",
+          "citationKey": "RiskAnalysisARX"
+        },
+        {
+          "title": "ARX Data Anonymization Tool (arx-deidentifier/arx)",
+          "url": "https://github.com/arx-deidentifier/arx",
+          "source_type": "software_package",
+          "citationKey": "ARXDataAnonymization",
+          "abstract": "ARX is a comprehensive open source data anonymization tool aiming to provide scalability and usability. It supports various anonymization techniques, methods for analyzing data quality and re-ident..."
+        },
+        {
+          "title": "Protecting Privacy Using k-Anonymity",
+          "url": "https://doi.org/10.1197/jamia.m2716",
+          "source_type": "technical_paper",
+          "authors": [
+            "Khaled El Emam",
+            "Fida Kamal Dankar"
+          ],
+          "publication_date": "2008-9-1",
+          "citationKey": "elemamProtectingPrivacyUsing2008"
+        },
+        {
+          "title": "Estimating the re-identification risk of clinical data sets",
+          "url": "https://doi.org/10.1186/1472-6947-12-66",
+          "source_type": "technical_paper",
+          "authors": [
+            "Fida Kamal Dankar",
+            "Khaled El Emam",
+            "Angelica Neisa",
+            "Tyson Roffey"
+          ],
+          "publication_date": "2012-7-9",
+          "citationKey": "dankarEstimatingReidentificationRisk2012"
+        },
+        {
+          "title": "Measuring Risk — Statistical Disclosure Control for Microdata: A Practice Guide for sdcMicro",
+          "url": "https://sdcpractice.readthedocs.io/en/latest/measure_risk.html",
+          "source_type": "tutorial",
+          "citationKey": "MeasuringRiskStatistical"
+        },
+        {
+          "title": "De-identification Methods for Open Health Data: The Case of the Heritage Health Prize Claims Dataset",
+          "url": "https://doi.org/10.2196/jmir.2001",
+          "source_type": "application_paper",
+          "authors": [
+            "Khaled El Emam",
+            "Luk Arbuckle",
+            "Gunes Koru",
+            "Benjamin Eze",
+            "Lisa Gaudette",
+            "Emilio Neri",
+            "Sean Rose",
+            "Jeremy Howard",
+            "Jonathan Gluck"
+          ],
+          "publication_date": "2012-2-27",
+          "citationKey": "elemamDeidentificationMethodsOpen2012"
+        },
+        {
+          "title": "A method for evaluating marketer re-identification risk",
+          "url": "https://doi.org/10.1145/1754239.1754271",
+          "source_type": "technical_paper",
+          "authors": [
+            "Fida Kamal Dankar",
+            "Khaled El Emam"
+          ],
+          "publication_date": "2010-3-22",
+          "citationKey": "dankarMethodEvaluatingMarketer2010"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under a prosecutor attack using age band, sex and postcode district, no record in the released extract has a re-identification probability above 0.09.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The expected proportion of records in the competition dataset that an attacker could correctly match by linking it to the state voter register is below 0.1 per cent.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The re-identification risk assessment for the shared trial data states the quasi-identifiers, attacker model, population estimator and threshold used, and the highest record risk is below the agreed threshold.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Fewer than 1 per cent of records in the commuting dataset shared with the contractor are estimated to be unique in the city's population on home district, work district and age band.",
+          "assuranceGoal": "privacy",
+          "domain": "transport"
+        }
+      ]
+    },
+    {
+      "slug": "differentially-private-stochastic-gradient-descent",
+      "name": "Differentially Private Stochastic Gradient Descent",
+      "description": "Differentially private stochastic gradient descent (DP-SGD) trains a neural network, or another model fitted by gradient descent, so that the finished model carries a formal differential privacy guarantee about the individual examples it was trained on. Differential privacy is more often applied by adding calibrated noise to the answer of a query or to a published statistic; DP-SGD instead changes the training algorithm itself. At each step it draws a random batch, computes the gradient (the direction in which an example pushes the model's parameters) separately for every example, scales down any gradient longer than a fixed clipping bound, adds Gaussian noise proportional to that bound to the sum, and updates the model with the noisy average, so that no single example can move the model by much and what influence remains is masked. A privacy accountant adds up the privacy cost of every step from the noise level, the sampling rate and the number of steps, and reports the total as epsilon and delta: epsilon limits how much more likely any trained model is with a given example in the training data than without it, and delta is a small probability that this limit fails. The output is a trained model with a stated (epsilon, delta) guarantee, which also covers anything later computed from the model, including its predictions.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/requirements/gradient-access",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/formal-guarantee",
+        "data-requirements/access-to-training-data",
+        "data-type/any",
+        "evidence-type/privacy-guarantee",
+        "evidence-type/model-artefact",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/deep-learning",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A retail bank wants to give a credit-default model to a partner lender, which will hold the model weights. Its data science team trains the model with DP-SGD in Opacus, with each customer contributing one training example so that the guarantee protects a customer, targets epsilon 2 at a delta below one over the number of customers, and records the noise multiplier, clipping bound, sampling rate and accountant output in the model's release file.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A consortium of hospitals publishes the weights of a chest X-ray classifier so that other hospitals can fine-tune it locally. It trains with DP-SGD using one image per patient, replaces the network's batch normalisation layers with group normalisation as Opacus requires, and publishes the (epsilon, delta) guarantee and its unit, one patient, with the weights so that receiving hospitals can cite it in their own assessments.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A recruitment platform fine-tunes a language model, pretrained on public text, on job applicants' CVs (one per applicant) to suggest skills tags. It fine-tunes with DP-SGD, adds the cost of the hyperparameter search it ran on the CVs to the privacy budget, and compares tagging accuracy with a non-private fine-tune to decide whether the accuracy cost at its chosen epsilon is acceptable.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Clipping and noise reduce accuracy, and the reduction is not shared evenly: classes and groups that are rare in the training data lose the most, so a private model can widen an existing accuracy gap between groups. In the original experiments the drop at epsilon 8 was about 1 percentage point on handwritten digits but about 7 on a harder ten-class image task. Accuracy should be reported per group, and pretraining on public data or more training data is often needed to keep the cost acceptable."
+        },
+        {
+          "description": "The stated epsilon holds only if the code matches the accountant's assumptions. The usual accountants assume each batch is drawn by including every example independently at random, but many pipelines shuffle the data and cut it into fixed batches; an audit of models trained that way measured privacy loss up to four times the epsilon they reported. A claim should name the sampling method and accountant, and differential privacy auditing can test the figure empirically."
+        },
+        {
+          "description": "The guarantee protects one training example, not one person. If a patient has ten admissions or a customer hundreds of messages in the training set, their protection is much weaker than epsilon suggests, because the bound loosens with the number of examples they contribute. Capping each person's contribution, or making each person a single example, gives a guarantee at the level of the person, at some cost in data and accuracy."
+        },
+        {
+          "description": "No agreed value of epsilon makes a model private, and large values are common: the method's original headline results used epsilon 8, at which a training outcome may be about 3,000 times more likely with a given example than without it, and the Opacus image tutorial targets 50. Hyperparameter searches run on the private data also leak information unless their cost is added to the budget. A claim should state epsilon, delta, the unit of privacy and what the budget covers."
+        },
+        {
+          "description": "Computing a separate gradient for every example costs memory and time; in the original experiments one training epoch went from about 40 to about 180 seconds. Layers that combine examples within a batch, such as batch normalisation, break the per-example bound and must be replaced, for example with group normalisation, so an existing architecture may need changing and re-tuning before it can be trained privately."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Guidelines for evaluating differential privacy guarantees",
+          "url": "https://doi.org/10.6028/nist.sp.800-226",
+          "source_type": "documentation",
+          "authors": [
+            "Joseph P Near",
+            "David Darais",
+            "Naomi Lefkovitz",
+            "Gary S Howarth"
+          ],
+          "publication_date": "2025-3-6",
+          "citationKey": "nearGuidelinesEvaluatingDifferential2025"
+        },
+        {
+          "title": "Privacy Engine — Opacus API reference",
+          "url": "https://opacus.ai/api/privacy_engine.html",
+          "source_type": "documentation",
+          "citationKey": "PrivacyEngineOpacus",
+          "abstract": "Train PyTorch models with Differential Privacy"
+        },
+        {
+          "title": "opacus",
+          "url": "https://github.com/meta-pytorch/opacus",
+          "source_type": "software_package",
+          "publication_date": "2019-12-07",
+          "citationKey": "meta-pytorchOpacus2019",
+          "abstract": "Training PyTorch models with differential privacy"
+        },
+        {
+          "title": "Deep Learning with Differential Privacy",
+          "url": "https://doi.org/10.1145/2976749.2978318",
+          "source_type": "technical_paper",
+          "authors": [
+            "Martin Abadi",
+            "Andy Chu",
+            "Ian Goodfellow",
+            "H. Brendan McMahan",
+            "Ilya Mironov",
+            "Kunal Talwar",
+            "Li Zhang"
+          ],
+          "publication_date": "2016-10-24",
+          "citationKey": "abadiDeepLearningDifferential2016"
+        },
+        {
+          "title": "Building an Image Classifier with Differential Privacy — Opacus tutorial",
+          "url": "https://opacus.ai/tutorials/building_image_classifier",
+          "source_type": "tutorial",
+          "citationKey": "BuildingImageClassifier",
+          "abstract": "Train PyTorch models with Differential Privacy"
+        },
+        {
+          "title": "Private Ad Modeling with DP-SGD",
+          "url": "https://arxiv.org/abs/2211.11896",
+          "source_type": "application_paper",
+          "authors": [
+            "Carson Denison",
+            "Badih Ghazi",
+            "Pritish Kamath",
+            "Ravi Kumar",
+            "Pasin Manurangsi",
+            "Krishna Giri Narra",
+            "Amer Sinha",
+            "Avinash V. Varadarajan",
+            "Chiyuan Zhang"
+          ],
+          "publication_date": "2023-10-04",
+          "citationKey": "denisonPrivateAdModeling2023",
+          "abstract": "A well-known algorithm in privacy-preserving ML is differentially private stochastic gradient descent (DP-SGD). While this algorithm has been evaluated on text and image data, it has not been previously applied to ads data, which are notorious for their high class imbalance and sparse gradient updates. In this work we apply DP-SGD to several ad modeling tasks including predicting click-through rates, conversion rates, and number of conversion events, and evaluate their privacy-utility trade-off on real-world datasets. Our work is the first to empirically demonstrate that DP-SGD can provide both privacy and utility for ad modeling tasks."
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 4,
+      "acronym": "DP-SGD",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The credit-default model shared with the partner lender was trained with DP-SGD to epsilon 2 and delta 10^-7, with each customer contributing one training example and the budget computed over every training step by the accountant in Opacus.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "The published chest X-ray model weights satisfy differential privacy with epsilon 8 and delta 10^-5 with respect to any one patient, and the hyperparameter search run on patient images is included in that budget.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Training batches were drawn by Poisson sampling, matching the assumption of the privacy accountant that produced the reported epsilon.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "The skills-tagging model's privacy budget of epsilon 4 per applicant covers the full fine-tuning run and every hyperparameter trial run on applicants' CVs.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "k-anonymity",
+      "name": "k-Anonymity",
+      "description": "k-Anonymity is a property that a table of real records about people can be made to satisfy before it is released or shared, in which every record shares its values on the quasi-identifiers with at least k-1 other records, so anyone linking the table to another source on those columns always matches a group of at least k records, which is k people only when each person has one record. Quasi-identifiers are columns that are not names or ID numbers but could be found elsewhere and combined to single a person out, such as date of birth, sex and postcode, and because the data holder chooses them, the protection covers only those columns. To reach a chosen k, each quasi-identifier is coarsened along a hierarchy set in advance (exact age to five-year band, full postcode to district), and the values or records that would still sit in a group smaller than k are suppressed, with a search choosing the coarsening that loses least information. The output is the transformed table of real records made less specific, not artificial ones, together with the k it achieves and a measure of the detail lost. Unlike differential privacy, it gives no bound on what an observer can learn, because it blocks linking on the listed columns but does not stop someone learning a sensitive value that everyone in a group shares.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "data-requirements/access-to-training-data",
+        "data-type/tabular",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A hospital trust preparing an extract of emergency attendances for a university research team treats age, sex, postcode district and attendance date as quasi-identifiers, since local news reports and social media posts about incidents often carry them. Using ARX it generalises age to five-year bands and dates to weeks, suppresses the records still in groups smaller than five, and sends the extract with a note of the k achieved, the columns covered and the share of records suppressed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A national statistics office preparing a scientific-use file of a household survey for registered researchers recodes region and occupation into broader groups in sdcMicro, then applies local suppression until every combination of age band, sex, region and household size occurs at least three times, and publishes the number of suppressed values with the file so that users can judge the effect on their analyses.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A motor insurer sharing a claims table with an analytics firm that will build a fraud-detection model applies 10-anonymity to policyholder age, vehicle model and postcode district. Before release it agrees with the firm that the coarser bands still carry enough signal for the model, and it keeps the generalisation scheme so that later releases are generalised from the same scheme rather than a new one.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "k-Anonymity hides which record is a person's, not what their group has in common. If all k records in a group share the same diagnosis, anyone who can place a person in that group learns the diagnosis, and an attacker with extra background knowledge can rule out other members of the group. Extensions such as l-diversity and t-closeness add conditions on the sensitive column for this reason; k-anonymity alone does not prevent sensitive values being disclosed."
+        },
+        {
+          "description": "The protection covers only the columns the data holder lists as quasi-identifiers, and rests on the holder judging correctly which columns an attacker could find elsewhere. A column left off the list, such as a rare diagnosis that a local newspaper has reported, can still single a record out, and the property says nothing about it. Choosing the list needs a realistic picture of the public, commercial and leaked data an attacker could hold."
+        },
+        {
+          "description": "Each release is protected only on its own. Two k-anonymous versions of the same data, generalised differently or produced at different times as records are added, can be joined to narrow groups below k, and two releases that keep the rows in the same order can be lined up row by row. Later releases must be built from the first, or treat all its released columns as quasi-identifiers, and row order must be randomised before each release."
+        },
+        {
+          "description": "With many quasi-identifiers or detailed values such as exact dates and measurements, most records are unique, and reaching k needs coarsening or suppression heavy enough to remove the detail an analysis or model depends on; the method suits continuous variables poorly. Because the suppressed records are those with rare combinations of values, the released table can under-represent exactly the unusual cases a model most needs to handle."
+        },
+        {
+          "description": "Requiring k within the released table treats the attacker as knowing their target is in it. When the table is a small sample of a larger population, a record unique in the table may match many people outside it, so the requirement over-protects; El Emam and Dankar found this over-anonymisation, and the loss of information it causes, greatest at small sampling fractions. A re-identification risk assessment against the population can justify a lighter transformation."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Privacy models – ARX – Data Anonymization Tool",
+          "url": "https://arx.deidentifier.org/overview/privacy-criteria/",
+          "source_type": "documentation",
+          "citationKey": "PrivacyModelsARX"
+        },
+        {
+          "title": "ARX Data Anonymization Tool (arx-deidentifier/arx)",
+          "url": "https://github.com/arx-deidentifier/arx",
+          "source_type": "software_package",
+          "citationKey": "ARXDataAnonymization",
+          "abstract": "ARX is a comprehensive open source data anonymization tool aiming to provide scalability and usability. It supports various anonymization techniques, methods for analyzing data quality and re-ident..."
+        },
+        {
+          "title": "sdcMicro: Statistical Disclosure Control Methods for Anonymization of Data and Risk Estimation",
+          "url": "https://cran.r-project.org/package=sdcMicro",
+          "source_type": "software_package",
+          "publication_date": "2026-06-12",
+          "citationKey": "templSdcMicroStatisticalDisclosure2026",
+          "abstract": "Data from statistical agencies and other institutions are mostly confidential. This package, introduced in Templ, Kowarik and Meindl (2017) <doi:10.18637/jss.v067.i04>, can be used for the generation of anonymized (micro)data, i.e. for the creation of public- and scientific-use files. The theoretical basis for the methods implemented can be found in Templ (2017) <doi:10.1007/978-3-319-50272-4>. Various risk estimation and anonymization methods are included. Note that the package includes a graphical user interface published in Meindl and Templ (2019) <doi:10.3390/a12090191> that allows to use various methods of this package."
+        },
+        {
+          "title": "k-ANONYMITY: A MODEL FOR PROTECTING PRIVACY",
+          "url": "https://doi.org/10.1142/s0218488502001648",
+          "source_type": "technical_paper",
+          "authors": [
+            "LATANYA SWEENEY"
+          ],
+          "publication_date": "2002-10",
+          "citationKey": "sweeneyKANONYMITYMODELPROTECTING2002"
+        },
+        {
+          "title": "ACHIEVING k-ANONYMITY PRIVACY PROTECTION USING GENERALIZATION  AND SUPPRESSION",
+          "url": "https://doi.org/10.1142/s021848850200165x",
+          "source_type": "technical_paper",
+          "authors": [
+            "LATANYA SWEENEY"
+          ],
+          "publication_date": "2002-10",
+          "citationKey": "sweeneyACHIEVINGKANONYMITYPRIVACY2002"
+        },
+        {
+          "title": "Anonymization Methods — Statistical Disclosure Control for Microdata: A Practice Guide for sdcMicro",
+          "url": "https://sdcpractice.readthedocs.io/en/latest/anon_methods.html",
+          "source_type": "tutorial",
+          "citationKey": "AnonymizationMethodsStatistical"
+        },
+        {
+          "title": "De-identification Methods for Open Health Data: The Case of the Heritage Health Prize Claims Dataset",
+          "url": "https://doi.org/10.2196/jmir.2001",
+          "source_type": "application_paper",
+          "authors": [
+            "Khaled El Emam",
+            "Luk Arbuckle",
+            "Gunes Koru",
+            "Benjamin Eze",
+            "Lisa Gaudette",
+            "Emilio Neri",
+            "Sean Rose",
+            "Jeremy Howard",
+            "Jonathan Gluck"
+          ],
+          "publication_date": "2012-2-27",
+          "citationKey": "elemamDeidentificationMethodsOpen2012"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every record in the emergency-attendance extract shares its age band, sex, postcode district and attendance week with at least four other records.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The household survey's scientific-use file is 3-anonymous on age band, sex, region and household size, and the number of values suppressed to achieve this is published with the file.",
+          "assuranceGoal": "privacy",
+          "domain": "public sector"
+        },
+        {
+          "text": "The quasi-identifiers used for the release were chosen against a documented list of the public and commercial sources an attacker could link to, and the release is k-anonymous on all of them.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Every later release of the claims data is generalised from the same scheme as the first, as required to stop releases being joined to form groups of fewer than ten policyholders.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "pii-detection-and-redaction-in-training-text",
+      "name": "PII Detection and Redaction in Training Text",
+      "description": "PII detection and redaction finds personally identifiable information (PII), such as names, email addresses, phone numbers and account or ID numbers, in a body of text and removes or replaces it before the text is used to train or fine-tune a model, so that the model has fewer personal details to memorise and later reproduce. Presidio, a widely used open-source tool first released by Microsoft and now run as an independent community project, is the reference implementation: each document passes through a set of recognisers, in which a named-entity recognition model (by default an English spaCy model) tags names, places and dates, patterns with checksum or format checks catch structured identifiers such as card and NHS numbers, and nearby words such as 'account' raise a candidate's confidence score. Every detection above a chosen score is then replaced with a placeholder for its type (for example <PERSON>), masked, hashed, encrypted or deleted, and the cleaned corpus goes to training. Because detection is never complete, the procedure ends by measuring recall, the share of identifiers actually caught, for each type on a hand-labelled sample of the same corpus. The evidence it produces is that measured miss rate and the cleaned corpus; unlike differential privacy or synthetic data, it removes real personal details from real text and gives no bound on what remains.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/text",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/data-engineering",
+        "expertise-needed/evaluation-design",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank preparing two years of customer-service chat transcripts to fine-tune an assistant runs Presidio with added pattern recognisers for sort codes and its own account-number format, replaces each detection with a type placeholder, and has staff label 500 transcripts by hand to measure recall per entity type. It fine-tunes only once recall for names and account numbers meets the target in its data protection impact assessment, where it records the miss rate.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "An NHS trust preparing discharge letters to fine-tune a summarisation model finds on a labelled sample that the default English model misses many names written in clinical shorthand and does not detect ward and bed codes at all. It adds lists of staff names and patterns for local codes, re-measures recall on a fresh labelled sample, and reports the remaining miss rate to its information governance group, which decides whether further controls are needed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A company building a code-completion model from its internal repositories detects email addresses, IP addresses, keys and passwords with patterns and a trained detector, discards detections that are too short or are private network addresses to cut false alarms, replaces the rest with tokens such as <EMAIL> and <KEY>, and reports precision and recall per type on an annotated set of files kept apart from tuning.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Detection always misses some identifiers, and a model can memorise and reproduce what is missed, especially details repeated across many documents. A study that fine-tuned GPT-2 on court judgments and emails scrubbed with Presidio's default tagger and a second recogniser concluded that scrubbing reduces but cannot fully prevent leakage of personal information; Presidio's README gives no guarantee of finding it all. The evidence is a measured miss rate, not proof that none remains."
+        },
+        {
+          "description": "It finds only the categories it has recognisers for. On a 2022 benchmark of European Court of Human Rights judgments, Presidio's default setup caught about 70 per cent of identifying mentions but only about 45 per cent of direct identifiers, because it did not recognise case numbers, which identify the applicant on their own. Details that identify someone only in combination, such as a job title, employer and town, are not entity types at all, so redacted text can still point to a person."
+        },
+        {
+          "description": "The default recognisers are built for general English text. Clinical shorthand, other languages, source code and in-house identifier formats need extra recognisers or a different model, and recall measured on one corpus does not carry over to another, so the labelled sample used for the measurement must come from the corpus being cleaned and be kept apart from any tuning of the recognisers."
+        },
+        {
+          "description": "Raising recall by lowering the score threshold or switching on broad entity types also removes text that is not personal, such as names of public bodies, laws and places the task depends on, which lowers the value of the data for training. On the court-judgment benchmark, switching on organisation names raised Presidio's recall slightly but cut its precision from about 0.76 to 0.54."
+        },
+        {
+          "description": "Redaction removes identifiers from the text but does not hide whether a document was used for training, and it gives no formal bound. In the GPT-2 study, membership inference on the scrubbed model still reached an AUC of 0.82, where 0.5 is chance, and adding differentially private training brought it down to 0.5. Claims about membership, or a formal guarantee, need DP-SGD or another method alongside redaction."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Presidio: Data Protection and De-identification SDK — documentation",
+          "url": "https://presidio.dataprivacystack.org/",
+          "source_type": "documentation",
+          "citationKey": "PresidioDataProtection",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "Presidio (data-privacy-stack/presidio)",
+          "url": "https://github.com/data-privacy-stack/presidio",
+          "source_type": "software_package",
+          "citationKey": "PresidioDataprivacystackPresidio",
+          "abstract": "An open-source framework for detecting, redacting, masking, and anonymizing sensitive data (PII) across text, images, and structured data. Supports NLP, pattern matching, and customizable pipelines..."
+        },
+        {
+          "title": "Replacing personally-identifying information in medical records, the Scrub system",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8947683/",
+          "source_type": "technical_paper",
+          "citationKey": "ReplacingPersonallyidentifyingInformation"
+        },
+        {
+          "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+          "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Ahmed Salem",
+            "Robert Sim",
+            "Shruti Tople",
+            "Lukas Wutschitz",
+            "Santiago Zanella-Béguelin"
+          ],
+          "publication_date": "2023-5",
+          "citationKey": "lukasAnalyzingLeakagePersonally2023"
+        },
+        {
+          "title": "The Text Anonymization Benchmark (TAB): A Dedicated Corpus and Evaluation Framework for Text Anonymization",
+          "url": "https://doi.org/10.1162/coli_a_00458",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ildikó Pilán",
+            "Pierre Lison",
+            "Lilja Øvrelid",
+            "Anthi Papadopoulou",
+            "David Sánchez",
+            "Montserrat Batet"
+          ],
+          "publication_date": "2022",
+          "citationKey": "pilanTextAnonymizationBenchmark2022"
+        },
+        {
+          "title": "Tutorial: Customization in Presidio",
+          "url": "https://presidio.dataprivacystack.org/tutorial/",
+          "source_type": "tutorial",
+          "citationKey": "TutorialCustomizationPresidio",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "StarCoder: may the source be with you!",
+          "url": "https://openreview.net/forum?id=KoFOg41haE",
+          "source_type": "application_paper",
+          "authors": [
+            "Raymond Li",
+            "Loubna Ben Allal",
+            "Yangtian Zi",
+            "Niklas Muennighoff",
+            "Denis Kocetkov",
+            "Chenghao Mou",
+            "Marc Marone",
+            "Christopher Akiki",
+            "Jia Li",
+            "Jenny Chim",
+            "Qian Liu",
+            "Evgenii Zheltonozhskii",
+            "Terry Yue Zhuo",
+            "Thomas Wang",
+            "Olivier Dehaene",
+            "Mishig Davaadorj",
+            "Joel Lamy-Poirier",
+            "João Monteiro",
+            "Oleh Shliazhko",
+            "Nicolas Gontier",
+            "Nicholas Meade",
+            "Armel Zebaze",
+            "Ming-Ho Yee",
+            "Logesh Kumar Umapathi",
+            "Jian Zhu",
+            "Benjamin Lipkin",
+            "Muhtasham Oblokulov",
+            "Zhiruo Wang",
+            "Rudra Murthy",
+            "Jason Stillerman",
+            "Siva Sankalp Patel",
+            "Dmitry Abulkhanov",
+            "Marco Zocca",
+            "Manan Dey",
+            "Zhihan Zhang",
+            "Nour Fahmy",
+            "Urvashi Bhattacharyya",
+            "Wenhao Yu",
+            "Swayam Singh",
+            "Sasha Luccioni",
+            "Paulo Villegas",
+            "Maxim Kunakov",
+            "Fedor Zhdanov",
+            "Manuel Romero",
+            "Tony Lee",
+            "Nadav Timor",
+            "Jennifer Ding",
+            "Claire Schlesinger",
+            "Hailey Schoelkopf",
+            "Jan Ebert",
+            "Tri Dao",
+            "Mayank Mishra",
+            "Alex Gu",
+            "Jennifer Robinson",
+            "Carolyn Jane Anderson",
+            "Brendan Dolan-Gavitt",
+            "Danish Contractor",
+            "Siva Reddy",
+            "Daniel Fried",
+            "Dzmitry Bahdanau",
+            "Yacine Jernite",
+            "Carlos Muñoz Ferrandis",
+            "Sean Hughes",
+            "Thomas Wolf",
+            "Arjun Guha",
+            "Leandro von Werra",
+            "Harm de Vries"
+          ],
+          "citationKey": "StarCoderMaySource"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Before fine-tuning, names, email addresses, phone numbers and account numbers in all customer-service transcripts were replaced with type placeholders, and recall measured on 500 hand-labelled transcripts was at least 95 per cent for each of these types.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "The rate of undetected patient and clinician names left in the discharge-letter training corpus, measured on a labelled sample drawn from that corpus, is recorded in the data protection impact assessment and is below the limit set by the information governance group.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Email addresses, IP addresses, keys and passwords found in the code corpus were replaced with placeholder tokens before training, with precision and recall for each type reported on an annotated test set of files.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Recall of the redaction step is reported separately for direct identifiers and for details that identify a person only in combination, so that a high overall figure cannot hide missed direct identifiers.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 7
+  "count": 14
 }

@@ -2,7 +2,7 @@
   "tag": {
     "name": "expertise-needed/security",
     "slug": "expertise-needed-security",
-    "count": 9,
+    "count": 14,
     "category": "expertise-needed"
   },
   "techniques": [
@@ -414,13 +414,13 @@
         },
         {
           "title": "Reliable evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks",
-          "url": "https://doi.org/10.48550/arXiv.2003.01690",
+          "url": "https://proceedings.mlr.press/v119/croce20b.html",
           "source_type": "technical_paper",
           "authors": [
             "Francesco Croce",
             "Matthias Hein"
           ],
-          "publication_date": "2020-08-04",
+          "publication_date": "2020",
           "citationKey": "croceReliableEvaluationAdversarial2020",
           "abstract": "The field of defense strategies against adversarial attacks has significantly grown over the last years, but progress is hampered as the evaluation of adversarial defenses is often insufficient and thus gives a wrong impression of robustness. Many promising defenses could be broken later on, making it difficult to identify the state-of-the-art. Frequent pitfalls in the evaluation are improper tuning of hyperparameters of the attacks, gradient obfuscation or masking. In this paper we first propose two extensions of the PGD-attack overcoming failures due to suboptimal step size and problems of the objective function. We then combine our novel attacks with two complementary existing ones to form a parameter-free, computationally affordable and user-independent ensemble of attacks to test adversarial robustness. We apply our ensemble to over 50 models from papers published at recent top machine learning and computer vision venues. In all except one of the cases we achieve lower robust test accuracy than reported in these papers, often by more than $10\\%$, identifying several broken defenses."
         },
@@ -1671,7 +1671,659 @@
           "assuranceGoal": "security"
         }
       ]
+    },
+    {
+      "slug": "cyclonedx-ml-bom",
+      "name": "CycloneDX Machine Learning Bill of Materials",
+      "description": "A CycloneDX ML-BOM (machine-learning bill of materials) is a machine-readable inventory of what a model is made of, written in the CycloneDX standard (ECMA-424) so that tools as well as people can check it. It applies the software bill of materials, a structured list of the components in a piece of software, to models: the model is declared as a component of type machine-learning-model with its identifiers, version, supplier, licence and file hashes, together with the base models it was derived from (its pedigree), the datasets used to train and evaluate it with their source, classification and owners, the libraries it depends on, and an optional structured model card giving its task, architecture, performance metrics, intended uses and known limitations. The BOM is written at release, by hand or with a generator that reads the model's repository and metadata, checked against the CycloneDX schema, and can be signed. Consumers then query it, for example to find every deployed model that uses a dataset or library found to be compromised, or to check a supplier's declared datasets and licences before purchase. Unlike a model card or datasheet, written for people to read, or an experiment log or data version history, which stay with the team that built the model, it is a parts list in a fixed schema that travels with the model and can be matched against vulnerability records and file hashes, but it records what its author declares and verifies none of it.",
+      "assurance_goals": [
+        "Security",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/detection",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/documentation",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/documentation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/security",
+        "expertise-needed/governance-and-audit",
+        "technique-type/documentation",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-documentation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank keeps an ML-BOM for every deployed model, recording each base model by its Hugging Face package URL and revision, the fine-tuning datasets, the framework libraries and the file hashes. When a compromised base-model release or a vulnerability in a model-loading library is announced, its security team queries the BOMs to list the affected deployments within hours and decides which to withdraw or patch.",
+          "goal": "Security"
+        },
+        {
+          "description": "A hospital trust buying a diagnostic imaging model requires the supplier to deliver a signed ML-BOM with each version. Before the model enters clinical evaluation, the acceptance team checks the BOM's signature, compares its file hashes with the delivered files and checks the listed libraries against known-vulnerability records.",
+          "goal": "Security"
+        },
+        {
+          "description": "A government department procuring a document-classification model asks bidders for an ML-BOM whose model-card and dataset fields declare each training and evaluation dataset with its source, licence and owner, and the model's known technical limitations. Its assessors and later its auditors read and query these declarations to compare bids and to check what the chosen supplier said it used.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A software company generates an ML-BOM for each release of its customer-support assistant with an open-source generator, recording the base and embedding models, the quantised model file and the framework libraries with hashes. Its security team compares each new BOM with the previous release's to catch an unreviewed change of base model or library before the release ships.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It records what its author declares. Nothing in the format checks that the listed datasets were the ones used, that the model-card fields are true or that the list is complete, so a BOM is evidence that a disclosure was made, not that it is accurate. Hashes and a signature show that the document and the files it lists have not changed since it was written, which is a different thing."
+        },
+        {
+          "description": "Almost every field is optional: ECMA-424 requires a component's type and name and little else, so a BOM can pass schema validation while saying almost nothing. In a 2026 preprint that generated ML-BOMs with one open-source tool for about 98,000 Hugging Face models, every BOM had the required fields, but only 39% named a dataset, 17% listed technical limitations and 0.2% had a meaningful description. A claim needs the fields it relies on to be checked, not only schema validity."
+        },
+        {
+          "description": "Generators can fill only what they can read: hub metadata, model-card text and configuration files. Training data, fine-tuning history and settings that the publisher never wrote down stay empty, and for a model bought from a supplier the BOM is only as complete as the supplier chooses to make it."
+        },
+        {
+          "description": "Each BOM describes one version of one model. Fine-tuning, quantisation, a new framework release or a changed dataset needs a new BOM, and the ability to answer 'which of our models use this component?' when a compromise is disclosed depends on BOMs being regenerated and kept for every deployed version, which is a standing process cost rather than a one-off task."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ECMA-424: CycloneDX Bill of Materials Specification (2nd edition, December 2025)",
+          "url": "https://ecma-international.org/publications-and-standards/standards/ecma-424/",
+          "source_type": "documentation",
+          "citationKey": "ECMA424CycloneDXBill",
+          "abstract": "CycloneDX is a modern standard designed to address the complexities of the software and system supply chain."
+        },
+        {
+          "title": "cdxgen",
+          "url": "https://github.com/cdxgen/cdxgen",
+          "source_type": "software_package",
+          "citationKey": "Cdxgen",
+          "abstract": "Creates CycloneDX Bill of Materials (BOM) for your projects from source and container images. Supports many languages and package managers. Integrate in your CI/CD pipeline with automatic submissio..."
+        },
+        {
+          "title": "CycloneDX v1.5 JSON Reference",
+          "url": "https://cyclonedx.org/docs/1.5/json/",
+          "source_type": "technical_paper",
+          "citationKey": "CycloneDXV15JSON",
+          "abstract": "CycloneDX v1.5 JSON Reference"
+        },
+        {
+          "title": "Authoritative Guide to AI/ML-BOM: Drive Transparency, Compliance, and Security Across the AI Supply Chain",
+          "url": "https://cyclonedx.org/guides/OWASP_CycloneDX-Authoritative-Guide-to-AI-ML-BOM-en.pdf",
+          "source_type": "tutorial",
+          "citationKey": "AuthoritativeGuideAI"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "acronym": "ML-BOM",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every model in production has a current ML-BOM listing its base model, training and evaluation datasets, framework libraries and file hashes.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "When a compromise of a base model, dataset or library is disclosed, every deployed model whose ML-BOM lists that component is identified from the organisation's ML-BOMs within one working day.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "The file hashes in the supplier's signed ML-BOM match every model file delivered, and no listed library had a known unpatched vulnerability at acceptance.",
+          "assuranceGoal": "security",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The supplier's ML-BOM declares a source, licence and owner for each training and evaluation dataset it lists, and states the model's known technical limitations.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        }
+      ]
+    },
+    {
+      "slug": "malicious-model-file-scanning",
+      "name": "Malicious Model-File Scanning",
+      "description": "Malicious model-file scanning checks a downloaded or received model file for code that would run when the file is loaded, without loading it. Several common ways of saving (serialising) models can carry such code, above all Python's pickle format, the default for PyTorch checkpoints and the usual format for scikit-learn models, whose files can instruct the loader to import and call any Python function, so that loading an untrusted file can hand an attacker control of the machine; since version 2.6 PyTorch's own loader by default allows only a small set of known-safe functions, but some libraries switch that off to load their models. The named method is ModelScan, an open-source scanner from Protect AI, which chooses a check by file extension and reads the file as data: for pickle-based files it lists the functions the file would import and compares them with a graded list of unsafe ones, such as the os, subprocess and socket modules and Python's built-in eval and exec, and for Keras and TensorFlow files it flags Lambda layers, which hold arbitrary Python, and operations that read or write files. It reports each finding with a severity from critical to low and exits with a non-zero code when it finds any, so a pipeline can stop the file before anything loads it. The evidence is a record that no listed unsafe call was found in the files scanned; unlike data-poisoning detection it examines the saved file rather than the training data, and it shows neither that the file is safe, nor how the model behaves, nor who produced the file.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/detection",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/qualitative-report",
+        "expertise-needed/security",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An insurer's machine-learning platform team adds a ModelScan step to the job that imports models from public hubs into its internal registry. A critical or high-severity finding stops the import and opens a ticket for the security team, which decides whether the third-party checkpoint may enter the registry at all.",
+          "goal": "Security"
+        },
+        {
+          "description": "A university's research-computing service scans every checkpoint users upload to shared GPU storage, including PyTorch .pt files and scikit-learn models saved with joblib, before jobs on nodes shared between research groups can load them, and quarantines any file with a critical finding until its owner explains the flagged imports.",
+          "goal": "Security"
+        },
+        {
+          "description": "A manufacturer's operational-technology security team scans each Keras visual-inspection model delivered by an outside contractor before it is copied to factory edge devices. A flagged Lambda layer is accepted only after the contractor supplies the layer's source code and an engineer confirms that it does nothing beyond resizing and normalising images.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It finds only what is on its list. In a peer-reviewed comparison ModelScan missed 9 of 84 known malicious models: five called functions not on its list (the authors' own example wrote files through Python's pathlib module instead of open), three loaded a further payload at run time, for example through numpy.load, and one hid its payload after an early stop instruction, where the scanner stopped reading. A clean scan shows that no known pattern was found, not that the file is safe."
+        },
+        {
+          "description": "Attackers adapt faster than the list. A peer-reviewed study (2026) found 22 routes by which five frameworks load pickled data, 19 of which evaded all four scanners it tested, ModelScan included, and in a 2026 preprint ModelScan detected none of 3,000 new attack files. A scan is only as current as the scanner release and unsafe list it ran with."
+        },
+        {
+          "description": "It checks only the files and formats it recognises, chosen by file extension, and skips the rest, so a pass can cover only some of what the loader will open. Showing that a model was checked needs the list of skipped files (ModelScan can print it) and a check that every file the loading code reads was among those scanned."
+        },
+        {
+          "description": "Findings need judgement. Every Keras Lambda layer is flagged, though Lambda layers are meant for ordinary pre- and post-processing, and benign models from some libraries import functions that pickle scanners treat as suspicious (one peer-reviewed study describes a widely downloaded model flagged this way). Someone able to read the flagged imports or layer code, or to question the model's author, has to decide each case."
+        },
+        {
+          "description": "It looks for code that runs on load, not for harmful behaviour in the weights. A model whose weights were altered to carry a backdoor, or that was trained on poisoned data, contains no unsafe call and scans clean, as does any file in a format that cannot hold code, such as safetensors; ModelScan's own documentation notes that weights can be manipulated in such formats. Backdoor and poisoning checks are separate techniques."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Model Serialization Attacks (ModelScan documentation)",
+          "url": "https://github.com/protectai/modelscan/blob/main/docs/model_serialization_attacks.md",
+          "source_type": "documentation",
+          "citationKey": "ModelSerializationAttacks"
+        },
+        {
+          "title": "ModelScan: Protection against Model Serialization Attacks",
+          "url": "https://github.com/protectai/modelscan",
+          "source_type": "software_package",
+          "citationKey": "ModelScanProtectionModel",
+          "abstract": "Protection against Model Serialization Attacks. Contribute to protectai/modelscan development by creating an account on GitHub."
+        },
+        {
+          "title": "Models Are Codes: Towards Measuring Malicious Code Poisoning Attacks on Pre-trained Model Hubs",
+          "url": "https://doi.org/10.1145/3691620.3695271",
+          "source_type": "application_paper",
+          "authors": [
+            "Jian Zhao",
+            "Shenao Wang",
+            "Yanjie Zhao",
+            "Xinyi Hou",
+            "Kailong Wang",
+            "Peiming Gao",
+            "Yuanchao Zhang",
+            "Chen Wei",
+            "Haoyu Wang"
+          ],
+          "publication_date": "2024-10-27",
+          "citationKey": "zhaoModelsAreCodes2024"
+        },
+        {
+          "title": "ModelScan notebook examples",
+          "url": "https://github.com/protectai/modelscan/tree/main/notebooks",
+          "source_type": "tutorial",
+          "citationKey": "ModelScanNotebookExamples",
+          "abstract": "Protection against Model Serialization Attacks. Contribute to protectai/modelscan development by creating an account on GitHub."
+        },
+        {
+          "title": "PickleBall: Secure Deserialization of Pickle-based Machine Learning Models",
+          "url": "https://doi.org/10.1145/3719027.3765037",
+          "source_type": "application_paper",
+          "authors": [
+            "Andreas D. Kellas",
+            "Neophytos Christou",
+            "Wenxin Jiang",
+            "Penghui Li",
+            "Laurent Simon",
+            "Yaniv David",
+            "Vasileios P. Kemerlis",
+            "James C. Davis",
+            "Junfeng Yang"
+          ],
+          "publication_date": "2025-11-19",
+          "citationKey": "kellasIckleAllSecure2025"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every third-party model file admitted to the internal model registry was scanned before first load, and none had an unresolved critical or high-severity finding.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "No serialised model in the deployment package imports operating-system, network or code-execution functions on the scanner's unsafe list.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "Every Lambda layer in the contractor's delivered models was reviewed against its source code and approved before deployment to factory devices.",
+          "assuranceGoal": "security",
+          "domain": "manufacturing"
+        },
+        {
+          "text": "User-uploaded checkpoints are scanned with the current scanner release before any shared job loads them, and every file the loader opens is covered by the scan.",
+          "assuranceGoal": "security",
+          "domain": "education"
+        }
+      ]
+    },
+    {
+      "slug": "model-signing",
+      "name": "Model Signing",
+      "description": "Model signing lets the publisher of a machine-learning model attach a cryptographic signature to the model's files, so that anyone who later loads them can check who released them and that no file has changed since. Under the Open Source Security Foundation's Model Signing (OMS) specification and its reference tool, model-signing, the publisher computes a hash (a short fingerprint that changes if a single byte of the file changes) of every file in the model directory, such as weights, configuration, tokeniser and any dataset files kept with them, lists the hashes in a sorted manifest and signs the manifest, producing a detached signature file kept beside the model. The signature can be made with the publisher's own key, with a certificate from an organisation's certificate authority, or through Sigstore, which issues a short-lived certificate tied to a verified online identity, such as a person's account or a build pipeline's, and records each signing event in a transparency log, an append-only record that can be inspected afterwards. Before loading, the consumer verifies the signature against the signer it expects, recomputes every hash and rejects the model if any listed file differs or is missing or, unless that check is switched off, an unlisted file has appeared, so the evidence is a pass or fail tied to a named signer and an exact set of files. Unlike the unsigned file hashes kept by data-versioning tools, it shows who stands behind the files, and unlike a watermark, which is trained into the weights so that it survives in an altered copy, it is broken by any change; it says nothing about how the model behaves or what it was trained on.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/protection",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/audit-record",
+        "expertise-needed/security",
+        "expertise-needed/software-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's machine-learning platform team signs each model at the end of its training pipeline, using the pipeline's own workload identity through Sigstore, and configures its model-serving cluster to load only models whose signature verifies against that identity. Its security team watches the transparency log for signing events under that identity that match no approved release, to decide whether a model reached production outside the release process.",
+          "goal": "Security"
+        },
+        {
+          "description": "A vehicle maker's perception team downloads a pretrained object detector from a supplier catalogue that signs every model it publishes. Before fine-tuning, it verifies the download against the supplier's published certificate and files the verification output in its supplier-acceptance record, so later reviews can show exactly which files the work started from.",
+          "goal": "Security"
+        },
+        {
+          "description": "A hospital's imaging department receives quarterly updates to a vendor's chest X-ray triage model. Its clinical engineering team verifies each update against the vendor's certificate and rejects any update whose signature fails, or that contains a file the signature does not cover, before it enters the clinical validation environment.",
+          "goal": "Security"
+        },
+        {
+          "description": "A public research institute releases an open model together with the test set behind its published benchmark, signing both in one bundle, so that a laboratory re-running the benchmark can confirm that the weights and the test data are byte for byte the ones the institute released before comparing its results with the published ones.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It shows who released the files and that they have not changed, nothing more. A model carrying a malicious pickle payload, a backdoor or the effects of poisoned training data verifies perfectly if its publisher signed it, whether through carelessness or because the publisher's own pipeline was compromised before signing. The originating paper states that signing tells the user nothing about what a model does or how it was produced, so content checks are still needed."
+        },
+        {
+          "description": "A valid signature is only as good as the consumer's check of who made it. A model signed with an attacker's own identity, or by an account named to look like a well-known organisation (a documented attack on model hubs), verifies cleanly unless the verifier insists on the specific identity, certificate or public key it expects. Consumers need a maintained list of trusted signers for each model source."
+        },
+        {
+          "description": "A stolen signing key, or a compromised account at the identity provider used for Sigstore signing, produces valid signatures. With Sigstore every signature is recorded in a transparency log, so a publisher that monitors the log for its own identity can spot signatures it did not make; with the key and certificate methods the specification does not require a log entry, so misuse of a key may go unnoticed."
+        },
+        {
+          "description": "Any change to the files breaks verification, including legitimate ones such as quantisation, conversion to another file format or adding a file. Each derived model needs a new signature from whoever produced it, and that signature says nothing about how the derivative relates to the signed original; recording that relationship needs a separate provenance record, such as the pedigree section of an ML-BOM."
+        },
+        {
+          "description": "It protects only where verification is enforced. Most models on public hubs are unsigned (fewer than 2% of Hugging Face models used the hub's GPG commit-signing option, per studies the originating paper cites), and an unchecked signature protects nobody. Verification re-hashes every file, and hashing dominates the cost: a 1 TB file took about 13 minutes on a 128-vCPU server in the originating paper's benchmark, which matters if very large models are verified at every load."
+        }
+      ],
+      "resources": [
+        {
+          "title": "OpenSSF Model Signing (OMS) Specification, Version 1.0",
+          "url": "https://github.com/ossf/model-signing-spec/blob/main/spec/v1.0.md",
+          "source_type": "documentation",
+          "citationKey": "OpenSSFModelSigning"
+        },
+        {
+          "title": "model-transparency (model-signing package)",
+          "url": "https://github.com/sigstore/model-transparency",
+          "source_type": "software_package",
+          "citationKey": "ModeltransparencyModelsigningPackage",
+          "abstract": "Supply chain security for ML. Contribute to sigstore/model-transparency development by creating an account on GitHub."
+        },
+        {
+          "title": "Position: Machine Learning Models Have a Supply Chain Problem",
+          "url": "https://proceedings.mlr.press/v267/meiklejohn25a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Sarah Meiklejohn",
+            "Hayden Blauzvern",
+            "Mihai Maruseac",
+            "Spencer Schrock",
+            "Laurent Simon",
+            "Ilia Shumailov"
+          ],
+          "publication_date": "2025-10-06",
+          "citationKey": "meiklejohnPositionMachineLearning2025",
+          "abstract": "Powerful machine learning (ML) models are now readily available online, which creates exciting possibilities for users who lack the deep technical expertise or substantial computing resources needed to develop them. On the other hand, this type of open ecosystem comes with many risks. In this paper, we argue that the current ecosystem for open ML models contains significant supply-chain risks, some of which have been exploited already in real attacks. These include an attacker replacing a model with something malicious (e.g., malware), or a model being trained using a vulnerable version of a framework or on restricted or poisoned data. We then explore how Sigstore, a solution designed to bring transparency to open-source software supply chains, can be used to bring transparency to open ML models, in terms of enabling model publishers to sign their models and prove properties about the datasets they use."
+        },
+        {
+          "title": "Model signing with model_signing (demo notebook)",
+          "url": "https://github.com/sigstore/model-transparency/blob/main/docs/demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ModelSigningModel_signing",
+          "abstract": "Supply chain security for ML. Contribute to sigstore/model-transparency development by creating an account on GitHub."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Only model files whose signature verifies against the approved release identity are loaded by the production inference service.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "The model deployed in the clinical system is identical to the files signed by the vendor's release identity, with no file added, removed or changed.",
+          "assuranceGoal": "security",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every signing event recorded in the transparency log under the organisation's signing identity corresponds to an approved model release.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "The pretrained detector used as the starting point for fine-tuning was verified against the supplier's published certificate before any training began.",
+          "assuranceGoal": "security",
+          "domain": "autonomous systems"
+        }
+      ]
+    },
+    {
+      "slug": "autoattack",
+      "name": "AutoAttack",
+      "description": "AutoAttack is a fixed suite of four automated adversarial attacks, introduced by Croce and Hein (ICML 2020), that measures how much of an image classifier's test accuracy survives small, deliberately chosen changes to its input images at inference time. The evaluator states the threat model, a norm and radius that bound the change (for example, no pixel value changed by more than 8/255 under the L-infinity norm), and the standard version then attacks each correctly classified test image in turn with APGD-CE (projected gradient descent that sets its own step size, on the cross-entropy loss), a targeted APGD on the authors' Difference of Logits Ratio loss, a targeted form of the FAB minimum-norm attack, and the Square Attack, which needs only the model's outputs and so still works when gradients are uninformative. An image counts as robust only if none of the four finds a misclassified version within the bound, and because every attack setting is fixed in advance the evaluator tunes nothing, which removes a common cause of overstated robustness: an attack too weakly tuned for the model. The output is robust accuracy, the share of test images still classified correctly under attack at the stated norm and radius, reported beside clean accuracy; published models are compared on the RobustBench leaderboard, which uses AutoAttack as its standard evaluation. Because AutoAttack is not built around any one defence, it can supply the attack step for a wider judgement of a defence, such as whether adversarial training holds up against attacks it was not trained on; unlike red teaming, it involves no human attacker or open-ended search.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/white-box",
+        "applicable-models/requirements/gradient-access",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/vulnerability-testing",
+        "data-requirements/labelled-data",
+        "data-type/image",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/security",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's model-risk team validating a vendor's classifier that recognises which of 40 identity-document types a customer has photographed during remote account opening, so the right authenticity checks run, receives the model weights under the review agreement. It reruns the vendor's robustness evaluation with standard AutoAttack at the same L-infinity radius, compares the two robust accuracies and records any automatic warnings before accepting the vendor's figure.",
+          "goal": "Security"
+        },
+        {
+          "description": "A photo-sharing platform's trust-and-safety team expects uploaders to perturb images to slip past the classifier that sorts uploads into a dozen prohibited-content categories and an allowed class. Choosing between two candidate models, it runs standard AutoAttack on both at a perturbation budget agreed with its security team, and selects the one with higher robust accuracy whose clean-accuracy cost is acceptable, recording both figures in the release review.",
+          "goal": "Security"
+        },
+        {
+          "description": "A research group proposing a new defence for a traffic-sign classifier runs standard AutoAttack before publication and finds that the Square Attack lowers robust accuracy further than the gradient-based attacks, one of AutoAttack's warning signs that gradients are masked. It treats its figure as an upper bound and has an attack designed for its defence built before claiming any robustness.",
+          "goal": "Security"
+        },
+        {
+          "description": "A computational-pathology group comparing a convolutional network and a vision transformer for three-way tumour subtyping on routine slide images attacks both with AutoAttack, its settings reduced for three classes, at several perturbation sizes below what a blinded clinical reader could detect, and compares attack success rates on an external patient cohort to decide which architecture goes forward.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Robust accuracy from AutoAttack is an upper bound: an image counts as robust because these four attacks failed, not because no adversarial example exists. The authors present it as the minimum test for a new defence rather than the strongest possible attack, so a claim that no change within the bound can alter a decision needs a certified-robustness method instead."
+        },
+        {
+          "description": "The standard version can overstate robustness for defences that are randomised, not differentiable or run an optimisation loop at inference. The reference code warns about some of these cases, offers a version averaging gradients over the model's randomness, and recommends attacks built for the specific defence; RobustBench excludes such defences. A defence tuned to beat AutoAttack itself can pass it without being robust."
+        },
+        {
+          "description": "The result holds only for the norm and radius tested. It gives no direct evidence about patches, rotations, physical changes to objects or natural corruptions: in RobustBench's quick-start guide, L-infinity-robust models do much worse than an undefended model on fog-corrupted images, though better on average across corruption types. Benchmark radii such as 8/255 are conventions, so the radius should be justified from the deployment's threat, and a new norm or radius needs a new run."
+        },
+        {
+          "description": "It needs white-box access: three of the four attacks use the model's gradients, and the code expects raw scores (logits) and inputs scaled to [0, 1]; with access only to output scores, the Square Attack can run alone, a weaker test. The standard settings also assume ten or more classes, since the targeted attacks each try nine other classes; on a binary or few-class model the reference code stops with an error, so the settings must be reduced and the result is no longer the standard one."
+        },
+        {
+          "description": "The full evaluation is computationally heavy for large models and test sets: each white-box run uses 100 iterations, the targeted attacks each try nine target classes, and the Square Attack makes up to 5,000 queries per image. RobustBench's quick start runs a cheaper two-attack version on 50 images and notes the full version is slower but more accurate; a figure from a subset should be reported with its sampling error."
+        }
+      ],
+      "resources": [
+        {
+          "title": "On the usage of AutoAttack (AutoAttack flags documentation)",
+          "url": "https://github.com/fra31/auto-attack/blob/master/flags_doc.md",
+          "source_type": "documentation",
+          "citationKey": "UsageAutoAttackAutoAttack",
+          "abstract": "Code relative to \"Reliable  evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks\" - fra31/auto-attack"
+        },
+        {
+          "title": "AutoAttack (fra31/auto-attack)",
+          "url": "https://github.com/fra31/auto-attack",
+          "source_type": "software_package",
+          "publication_date": "2026-10-07T10:22:57Z",
+          "citationKey": "fra31AutoAttackFra31Autoattack2026",
+          "abstract": "Code relative to \"Reliable  evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks\""
+        },
+        {
+          "title": "Reliable evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks",
+          "url": "https://proceedings.mlr.press/v119/croce20b.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Francesco Croce",
+            "Matthias Hein"
+          ],
+          "publication_date": "2020",
+          "citationKey": "croceReliableEvaluationAdversarial2020",
+          "abstract": "The field of defense strategies against adversarial attacks has significantly grown over the last years, but progress is hampered as the evaluation of adversarial defenses is often insufficient and thus gives a wrong impression of robustness. Many promising defenses could be broken later on, making it difficult to identify the state-of-the-art. Frequent pitfalls in the evaluation are improper tuning of hyperparameters of the attacks, gradient obfuscation or masking. In this paper we first propose two extensions of the PGD-attack overcoming failures due to suboptimal step size and problems of the objective function. We then combine our novel attacks with two complementary existing ones to form a parameter-free, computationally affordable and user-independent ensemble of attacks to test adversarial robustness. We apply our ensemble to over 50 models from papers published at recent top machine learning and computer vision venues. In all except one of the cases we achieve lower robust test accuracy than reported in these papers, often by more than $10\\%$, identifying several broken defenses."
+        },
+        {
+          "title": "RobustBench: a standardized adversarial robustness benchmark",
+          "url": "https://datasets-benchmarks-proceedings.neurips.cc/paper_files/paper/2021/hash/a3c65c2974270fd093ee8a9bf8ae7d0b-Abstract-round2.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Francesco Croce",
+            "Maksym Andriushchenko",
+            "Vikash Sehwag",
+            "Edoardo Debenedetti",
+            "Nicolas Flammarion",
+            "Mung Chiang",
+            "Prateek Mittal",
+            "Matthias Hein"
+          ],
+          "citationKey": "croceRobustBenchStandardizedAdversarial"
+        },
+        {
+          "title": "RobustBench: Model Zoo quick tour",
+          "url": "https://github.com/RobustBench/robustbench#model-zoo-quick-tour",
+          "source_type": "tutorial",
+          "citationKey": "RobustBenchModelZoo",
+          "abstract": "RobustBench: a standardized adversarial robustness benchmark [NeurIPS 2021 Benchmarks and Datasets Track] - RobustBench/robustbench"
+        },
+        {
+          "title": "Adversarial attacks and adversarial robustness in computational pathology",
+          "url": "https://doi.org/10.1038/s41467-022-33266-0",
+          "source_type": "application_paper",
+          "authors": [
+            "Narmin Ghaffari Laleh",
+            "Daniel Truhn",
+            "Gregory Patrick Veldhuizen",
+            "Tianyu Han",
+            "Marko van Treeck",
+            "Roman D. Buelow",
+            "Rupert Langer",
+            "Bastian Dislich",
+            "Peter Boor",
+            "Volkmar Schulz",
+            "Jakob Nikolas Kather"
+          ],
+          "publication_date": "2022-9-29",
+          "citationKey": "ghaffarilalehAdversarialAttacksAdversarial2022"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under the standard AutoAttack evaluation with L-infinity perturbations of at most 8/255, the image classifier keeps an accuracy on the held-out test set above the threshold agreed in the security requirements.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "The robustness figure for the identity-document classifier was measured with the standard AutoAttack suite at the agreed perturbation budget, and the run raised none of AutoAttack's warnings for randomised behaviour or masked gradients.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "The robust accuracy the supplier reports for the content-screening model is within two percentage points of the figure from an independent standard AutoAttack run on the same test images.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "At perturbation sizes below the level a blinded pathologist could detect, the selected tumour-subtyping model's attack success rate under AutoAttack on an external patient cohort is lower than that of the alternative architecture.",
+          "assuranceGoal": "security",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "stride-ai-threat-modelling",
+      "name": "STRIDE-AI Threat Modelling",
+      "description": "STRIDE-AI is a threat-modelling method for machine-learning (ML) systems, proposed by Mauri and Damiani (2021, extended 2022), that lists, before any testing, the ways an attacker could compromise each asset of an ML pipeline and how serious each would be. It adapts Microsoft's STRIDE scheme, in which each of six threat types (spoofing, tampering, repudiation, information disclosure, denial of service and elevation of privilege) breaks one security property (authenticity, integrity, non-repudiation, confidentiality, availability and authorisation), and gives each property an ML-specific definition: confidentiality, for example, means that querying a model reveals nothing beyond its inputs and outputs. The analyst surveys the assets produced across the ML life cycle, such as raw, labelled and validation data, hyperparameters, trained and deployed models and the model architecture, and with each asset's owners runs a failure mode and effects analysis (FMEA, a structured review of how a component could fail and with what effect), answering set questions about how the asset could fail, be misused or be abused. Each failure mode is mapped to the properties it would break and so to STRIDE threats, using the method's published tables of asset types, properties and known attacks; the analyst then works with developers to draw threat trees showing the conditions under which each threat could be realised, and rates each threat's priority (the worked example uses DREAD, which scores five factors from 1 to 10). The output is a threat model, a table of assets, threatened properties, threats and priorities with their threat trees: the method attacks and measures nothing, and choosing and testing controls for the threats it finds is left to other techniques.",
+      "assurance_goals": [
+        "Security"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/security",
+        "assurance-goal-category/security/threat-analysis",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/qualitative-report",
+        "evidence-type/structured-output",
+        "expertise-needed/security",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/project-planning",
+        "lifecycle-stage/other/cross-cutting"
+      ],
+      "example_use_cases": [
+        {
+          "description": "The security architect for a solar-farm operator's fault-prediction service, which trains on sensor readings streamed from plant data loggers to an external ML platform, maps each asset to its threatened properties. The threat trees show that the loggers' signatures stop injected readings but not label flipping, because labels are added later on the operator's own platform, so that threat is ranked and passed to the platform team.",
+          "goal": "Security"
+        },
+        {
+          "description": "Before buying a third-party chest X-ray triage model, a hospital's information-security team runs STRIDE-AI over the vendor's pipeline documentation: training data, the supplied model file, the inference service and the results sent to radiologists. Threats such as tampering with the model file and disclosure of training images through model outputs set the scope of the security tests and contract terms the hospital asks the vendor to meet.",
+          "goal": "Security"
+        },
+        {
+          "description": "A bank's model-security lead repeats the analysis when a card-fraud model moves from monthly retraining to online learning on live transactions. The transaction stream becomes a training-data asset that anyone making transactions can influence, so tampering with it to drift the model is added as a threat, rated and entered in the bank's risk register.",
+          "goal": "Security"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A finished threat model is not evidence that no other threats exist. Its coverage depends on the asset survey and on what the analysts know; the authors state that ML vulnerabilities cannot be fully enumerated in one pass and that failure modes must be updated as the system and known attacks change, and a 2006 Microsoft account of STRIDE notes there is no well-established way to measure a threat model's quality. Claims should state what was in scope and when the analysis was last revised."
+        },
+        {
+          "description": "STRIDE-AI identifies and ranks threats but does not choose or test controls. Both papers' abstracts say it guides control selection, but neither gives a procedure: the 2021 paper puts control selection outside its scope and the 2022 paper leaves it to future work, noting that no security control framework designed for ML was available. A claim that the threats are mitigated needs separate evidence, such as attack tests against each control and a control catalogue taken from another source."
+        },
+        {
+          "description": "Priorities are expert judgements. The worked example uses DREAD scores, which the authors note can give inconsistent results between raters and are no longer recommended as the only basis for ranking. Two teams may rank the same threats differently, so claims that rest on the ranking are stronger when several people score independently or a published severity scale such as a bug bar is used."
+        },
+        {
+          "description": "The mapping from failure modes to properties and threats is done by hand for every asset, and needs asset owners, developers and a security analyst together. Later work describes it as lacking automation, which limits how far it scales to large pipelines; each significant change, such as moving a model to online learning, means repeating part of the analysis."
+        },
+        {
+          "description": "The published catalogue of assets, failure modes and known attacks was built in 2021-22 around the life cycle of a conventionally trained model, from requirements to maintenance. It does not list assets specific to language-model applications and agents, such as system prompts, retrieval corpora or connected tools, so analysts of those systems must add the assets and their threats themselves, without guidance from the method."
+        }
+      ],
+      "resources": [
+        {
+          "title": "STRIDE-AI (LaraMauri/STRIDE-AI)",
+          "url": "https://github.com/LaraMauri/STRIDE-AI",
+          "source_type": "documentation",
+          "citationKey": "STRIDEAILaraMauriSTRIDEAI",
+          "abstract": "Contribute to LaraMauri/STRIDE-AI development by creating an account on GitHub."
+        },
+        {
+          "title": "Failure Mode and Effects Analysis of AI-ML Systems (STRIDE-AI)",
+          "url": "https://github.com/LaraMauri/STRIDE-AI/blob/main/pages/failure-mode-and-effects-analysis-of-AI-ML-systems.md",
+          "source_type": "tutorial",
+          "citationKey": "FailureModeEffects",
+          "abstract": "Contribute to LaraMauri/STRIDE-AI development by creating an account on GitHub."
+        },
+        {
+          "title": "STRIDE-AI: An Approach to Identifying Vulnerabilities of Machine Learning Assets",
+          "url": "https://doi.org/10.1109/csr51186.2021.9527917",
+          "source_type": "technical_paper",
+          "authors": [
+            "Lara Mauri",
+            "Ernesto Damiani"
+          ],
+          "publication_date": "2021-7-26",
+          "citationKey": "mauriSTRIDEAIApproachIdentifying2021"
+        },
+        {
+          "title": "Modeling Threats to AI-ML Systems Using STRIDE",
+          "url": "https://doi.org/10.3390/s22176662",
+          "source_type": "technical_paper",
+          "authors": [
+            "Lara Mauri",
+            "Ernesto Damiani"
+          ],
+          "publication_date": "2022-9-3",
+          "citationKey": "mauriModelingThreatsAIML2022"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every data, model and artefact asset identified in the survey of the fault-prediction pipeline has been mapped to the security properties it must hold, and each resulting threat is recorded with a priority rating.",
+          "assuranceGoal": "security",
+          "domain": "energy"
+        },
+        {
+          "text": "Tampering with training labels between data collection and model training is identified as a threat, and the conditions under which it could be exploited are recorded in a threat tree.",
+          "assuranceGoal": "security",
+          "domain": "general"
+        },
+        {
+          "text": "The threat model for the fraud-detection pipeline was revised after the switch to online learning, and the threats introduced by that change are recorded and prioritised.",
+          "assuranceGoal": "security",
+          "domain": "finance"
+        },
+        {
+          "text": "Before procurement, threats to the supplied model file, the inference service and the training data were identified and used to set the scope of the supplier's security testing.",
+          "assuranceGoal": "security",
+          "domain": "healthcare"
+        }
+      ]
     }
   ],
-  "count": 9
+  "count": 14
 }

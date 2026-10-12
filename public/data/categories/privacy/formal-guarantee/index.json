@@ -356,7 +356,162 @@
           "assuranceGoal": "transparency"
         }
       ]
+    },
+    {
+      "slug": "differentially-private-stochastic-gradient-descent",
+      "name": "Differentially Private Stochastic Gradient Descent",
+      "description": "Differentially private stochastic gradient descent (DP-SGD) trains a neural network, or another model fitted by gradient descent, so that the finished model carries a formal differential privacy guarantee about the individual examples it was trained on. Differential privacy is more often applied by adding calibrated noise to the answer of a query or to a published statistic; DP-SGD instead changes the training algorithm itself. At each step it draws a random batch, computes the gradient (the direction in which an example pushes the model's parameters) separately for every example, scales down any gradient longer than a fixed clipping bound, adds Gaussian noise proportional to that bound to the sum, and updates the model with the noisy average, so that no single example can move the model by much and what influence remains is masked. A privacy accountant adds up the privacy cost of every step from the noise level, the sampling rate and the number of steps, and reports the total as epsilon and delta: epsilon limits how much more likely any trained model is with a given example in the training data than without it, and delta is a small probability that this limit fails. The output is a trained model with a stated (epsilon, delta) guarantee, which also covers anything later computed from the model, including its predictions.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/requirements/gradient-access",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/formal-guarantee",
+        "data-requirements/access-to-training-data",
+        "data-type/any",
+        "evidence-type/privacy-guarantee",
+        "evidence-type/model-artefact",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/deep-learning",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A retail bank wants to give a credit-default model to a partner lender, which will hold the model weights. Its data science team trains the model with DP-SGD in Opacus, with each customer contributing one training example so that the guarantee protects a customer, targets epsilon 2 at a delta below one over the number of customers, and records the noise multiplier, clipping bound, sampling rate and accountant output in the model's release file.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A consortium of hospitals publishes the weights of a chest X-ray classifier so that other hospitals can fine-tune it locally. It trains with DP-SGD using one image per patient, replaces the network's batch normalisation layers with group normalisation as Opacus requires, and publishes the (epsilon, delta) guarantee and its unit, one patient, with the weights so that receiving hospitals can cite it in their own assessments.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A recruitment platform fine-tunes a language model, pretrained on public text, on job applicants' CVs (one per applicant) to suggest skills tags. It fine-tunes with DP-SGD, adds the cost of the hyperparameter search it ran on the CVs to the privacy budget, and compares tagging accuracy with a non-private fine-tune to decide whether the accuracy cost at its chosen epsilon is acceptable.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Clipping and noise reduce accuracy, and the reduction is not shared evenly: classes and groups that are rare in the training data lose the most, so a private model can widen an existing accuracy gap between groups. In the original experiments the drop at epsilon 8 was about 1 percentage point on handwritten digits but about 7 on a harder ten-class image task. Accuracy should be reported per group, and pretraining on public data or more training data is often needed to keep the cost acceptable."
+        },
+        {
+          "description": "The stated epsilon holds only if the code matches the accountant's assumptions. The usual accountants assume each batch is drawn by including every example independently at random, but many pipelines shuffle the data and cut it into fixed batches; an audit of models trained that way measured privacy loss up to four times the epsilon they reported. A claim should name the sampling method and accountant, and differential privacy auditing can test the figure empirically."
+        },
+        {
+          "description": "The guarantee protects one training example, not one person. If a patient has ten admissions or a customer hundreds of messages in the training set, their protection is much weaker than epsilon suggests, because the bound loosens with the number of examples they contribute. Capping each person's contribution, or making each person a single example, gives a guarantee at the level of the person, at some cost in data and accuracy."
+        },
+        {
+          "description": "No agreed value of epsilon makes a model private, and large values are common: the method's original headline results used epsilon 8, at which a training outcome may be about 3,000 times more likely with a given example than without it, and the Opacus image tutorial targets 50. Hyperparameter searches run on the private data also leak information unless their cost is added to the budget. A claim should state epsilon, delta, the unit of privacy and what the budget covers."
+        },
+        {
+          "description": "Computing a separate gradient for every example costs memory and time; in the original experiments one training epoch went from about 40 to about 180 seconds. Layers that combine examples within a batch, such as batch normalisation, break the per-example bound and must be replaced, for example with group normalisation, so an existing architecture may need changing and re-tuning before it can be trained privately."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Guidelines for evaluating differential privacy guarantees",
+          "url": "https://doi.org/10.6028/nist.sp.800-226",
+          "source_type": "documentation",
+          "authors": [
+            "Joseph P Near",
+            "David Darais",
+            "Naomi Lefkovitz",
+            "Gary S Howarth"
+          ],
+          "publication_date": "2025-3-6",
+          "citationKey": "nearGuidelinesEvaluatingDifferential2025"
+        },
+        {
+          "title": "Privacy Engine — Opacus API reference",
+          "url": "https://opacus.ai/api/privacy_engine.html",
+          "source_type": "documentation",
+          "citationKey": "PrivacyEngineOpacus",
+          "abstract": "Train PyTorch models with Differential Privacy"
+        },
+        {
+          "title": "opacus",
+          "url": "https://github.com/meta-pytorch/opacus",
+          "source_type": "software_package",
+          "publication_date": "2019-12-07",
+          "citationKey": "meta-pytorchOpacus2019",
+          "abstract": "Training PyTorch models with differential privacy"
+        },
+        {
+          "title": "Deep Learning with Differential Privacy",
+          "url": "https://doi.org/10.1145/2976749.2978318",
+          "source_type": "technical_paper",
+          "authors": [
+            "Martin Abadi",
+            "Andy Chu",
+            "Ian Goodfellow",
+            "H. Brendan McMahan",
+            "Ilya Mironov",
+            "Kunal Talwar",
+            "Li Zhang"
+          ],
+          "publication_date": "2016-10-24",
+          "citationKey": "abadiDeepLearningDifferential2016"
+        },
+        {
+          "title": "Building an Image Classifier with Differential Privacy — Opacus tutorial",
+          "url": "https://opacus.ai/tutorials/building_image_classifier",
+          "source_type": "tutorial",
+          "citationKey": "BuildingImageClassifier",
+          "abstract": "Train PyTorch models with Differential Privacy"
+        },
+        {
+          "title": "Private Ad Modeling with DP-SGD",
+          "url": "https://arxiv.org/abs/2211.11896",
+          "source_type": "application_paper",
+          "authors": [
+            "Carson Denison",
+            "Badih Ghazi",
+            "Pritish Kamath",
+            "Ravi Kumar",
+            "Pasin Manurangsi",
+            "Krishna Giri Narra",
+            "Amer Sinha",
+            "Avinash V. Varadarajan",
+            "Chiyuan Zhang"
+          ],
+          "publication_date": "2023-10-04",
+          "citationKey": "denisonPrivateAdModeling2023",
+          "abstract": "A well-known algorithm in privacy-preserving ML is differentially private stochastic gradient descent (DP-SGD). While this algorithm has been evaluated on text and image data, it has not been previously applied to ads data, which are notorious for their high class imbalance and sparse gradient updates. In this work we apply DP-SGD to several ad modeling tasks including predicting click-through rates, conversion rates, and number of conversion events, and evaluate their privacy-utility trade-off on real-world datasets. Our work is the first to empirically demonstrate that DP-SGD can provide both privacy and utility for ad modeling tasks."
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 4,
+      "acronym": "DP-SGD",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The credit-default model shared with the partner lender was trained with DP-SGD to epsilon 2 and delta 10^-7, with each customer contributing one training example and the budget computed over every training step by the accountant in Opacus.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "The published chest X-ray model weights satisfy differential privacy with epsilon 8 and delta 10^-5 with respect to any one patient, and the hyperparameter search run on patient images is included in that budget.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Training batches were drawn by Poisson sampling, matching the assumption of the privacy accountant that produced the reported epsilon.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "The skills-tagging model's privacy budget of epsilon 4 per applicant covers the full fine-tuning run and every hyperparameter trial run on applicants' CVs.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 2
+  "count": 3
 }

@@ -6082,5 +6082,1049 @@
         "domain": "transport"
       }
     ]
+  },
+  {
+    "slug": "cyclonedx-ml-bom",
+    "name": "CycloneDX Machine Learning Bill of Materials",
+    "description": "A CycloneDX ML-BOM (machine-learning bill of materials) is a machine-readable inventory of what a model is made of, written in the CycloneDX standard (ECMA-424) so that tools as well as people can check it. It applies the software bill of materials, a structured list of the components in a piece of software, to models: the model is declared as a component of type machine-learning-model with its identifiers, version, supplier, licence and file hashes, together with the base models it was derived from (its pedigree), the datasets used to train and evaluate it with their source, classification and owners, the libraries it depends on, and an optional structured model card giving its task, architecture, performance metrics, intended uses and known limitations. The BOM is written at release, by hand or with a generator that reads the model's repository and metadata, checked against the CycloneDX schema, and can be signed. Consumers then query it, for example to find every deployed model that uses a dataset or library found to be compromised, or to check a supplier's declared datasets and licences before purchase. Unlike a model card or datasheet, written for people to read, or an experiment log or data version history, which stay with the team that built the model, it is a parts list in a fixed schema that travels with the model and can be matched against vulnerability records and file hashes, but it records what its author declares and verifies none of it.",
+    "assurance_goals": [
+      "Security",
+      "Transparency"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/security",
+      "assurance-goal-category/security/detection",
+      "assurance-goal-category/transparency",
+      "assurance-goal-category/transparency/documentation",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/documentation",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/security",
+      "expertise-needed/governance-and-audit",
+      "technique-type/documentation",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-documentation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every model in production has a current ML-BOM listing its base model, training and evaluation datasets, framework libraries and file hashes.",
+        "assuranceGoal": "security",
+        "domain": "finance"
+      },
+      {
+        "text": "When a compromise of a base model, dataset or library is disclosed, every deployed model whose ML-BOM lists that component is identified from the organisation's ML-BOMs within one working day.",
+        "assuranceGoal": "security",
+        "domain": "general"
+      },
+      {
+        "text": "The file hashes in the supplier's signed ML-BOM match every model file delivered, and no listed library had a known unpatched vulnerability at acceptance.",
+        "assuranceGoal": "security",
+        "domain": "healthcare"
+      },
+      {
+        "text": "The supplier's ML-BOM declares a source, licence and owner for each training and evaluation dataset it lists, and states the model's known technical limitations.",
+        "assuranceGoal": "transparency",
+        "domain": "public sector"
+      }
+    ]
+  },
+  {
+    "slug": "malicious-model-file-scanning",
+    "name": "Malicious Model-File Scanning",
+    "description": "Malicious model-file scanning checks a downloaded or received model file for code that would run when the file is loaded, without loading it. Several common ways of saving (serialising) models can carry such code, above all Python's pickle format, the default for PyTorch checkpoints and the usual format for scikit-learn models, whose files can instruct the loader to import and call any Python function, so that loading an untrusted file can hand an attacker control of the machine; since version 2.6 PyTorch's own loader by default allows only a small set of known-safe functions, but some libraries switch that off to load their models. The named method is ModelScan, an open-source scanner from Protect AI, which chooses a check by file extension and reads the file as data: for pickle-based files it lists the functions the file would import and compares them with a graded list of unsafe ones, such as the os, subprocess and socket modules and Python's built-in eval and exec, and for Keras and TensorFlow files it flags Lambda layers, which hold arbitrary Python, and operations that read or write files. It reports each finding with a severity from critical to low and exits with a non-zero code when it finds any, so a pipeline can stop the file before anything loads it. The evidence is a record that no listed unsafe call was found in the files scanned; unlike data-poisoning detection it examines the saved file rather than the training data, and it shows neither that the file is safe, nor how the model behaves, nor who produced the file.",
+    "assurance_goals": [
+      "Security"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/security",
+      "assurance-goal-category/security/detection",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/qualitative-report",
+      "expertise-needed/security",
+      "expertise-needed/ml-engineering",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every third-party model file admitted to the internal model registry was scanned before first load, and none had an unresolved critical or high-severity finding.",
+        "assuranceGoal": "security",
+        "domain": "finance"
+      },
+      {
+        "text": "No serialised model in the deployment package imports operating-system, network or code-execution functions on the scanner's unsafe list.",
+        "assuranceGoal": "security",
+        "domain": "general"
+      },
+      {
+        "text": "Every Lambda layer in the contractor's delivered models was reviewed against its source code and approved before deployment to factory devices.",
+        "assuranceGoal": "security",
+        "domain": "manufacturing"
+      },
+      {
+        "text": "User-uploaded checkpoints are scanned with the current scanner release before any shared job loads them, and every file the loader opens is covered by the scan.",
+        "assuranceGoal": "security",
+        "domain": "education"
+      }
+    ]
+  },
+  {
+    "slug": "model-signing",
+    "name": "Model Signing",
+    "description": "Model signing lets the publisher of a machine-learning model attach a cryptographic signature to the model's files, so that anyone who later loads them can check who released them and that no file has changed since. Under the Open Source Security Foundation's Model Signing (OMS) specification and its reference tool, model-signing, the publisher computes a hash (a short fingerprint that changes if a single byte of the file changes) of every file in the model directory, such as weights, configuration, tokeniser and any dataset files kept with them, lists the hashes in a sorted manifest and signs the manifest, producing a detached signature file kept beside the model. The signature can be made with the publisher's own key, with a certificate from an organisation's certificate authority, or through Sigstore, which issues a short-lived certificate tied to a verified online identity, such as a person's account or a build pipeline's, and records each signing event in a transparency log, an append-only record that can be inspected afterwards. Before loading, the consumer verifies the signature against the signer it expects, recomputes every hash and rejects the model if any listed file differs or is missing or, unless that check is switched off, an unlisted file has appeared, so the evidence is a pass or fail tied to a named signer and an exact set of files. Unlike the unsigned file hashes kept by data-versioning tools, it shows who stands behind the files, and unlike a watermark, which is trained into the weights so that it survives in an altered copy, it is broken by any change; it says nothing about how the model behaves or what it was trained on.",
+    "assurance_goals": [
+      "Security"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/security",
+      "assurance-goal-category/security/protection",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/audit-record",
+      "expertise-needed/security",
+      "expertise-needed/software-engineering",
+      "technique-type/algorithmic",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation",
+      "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+    ],
+    "sample_claims": [
+      {
+        "text": "Only model files whose signature verifies against the approved release identity are loaded by the production inference service.",
+        "assuranceGoal": "security",
+        "domain": "finance"
+      },
+      {
+        "text": "The model deployed in the clinical system is identical to the files signed by the vendor's release identity, with no file added, removed or changed.",
+        "assuranceGoal": "security",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Every signing event recorded in the transparency log under the organisation's signing identity corresponds to an approved model release.",
+        "assuranceGoal": "security",
+        "domain": "general"
+      },
+      {
+        "text": "The pretrained detector used as the starting point for fine-tuning was verified against the supplier's published certificate before any training began.",
+        "assuranceGoal": "security",
+        "domain": "autonomous systems"
+      }
+    ]
+  },
+  {
+    "slug": "autoattack",
+    "name": "AutoAttack",
+    "description": "AutoAttack is a fixed suite of four automated adversarial attacks, introduced by Croce and Hein (ICML 2020), that measures how much of an image classifier's test accuracy survives small, deliberately chosen changes to its input images at inference time. The evaluator states the threat model, a norm and radius that bound the change (for example, no pixel value changed by more than 8/255 under the L-infinity norm), and the standard version then attacks each correctly classified test image in turn with APGD-CE (projected gradient descent that sets its own step size, on the cross-entropy loss), a targeted APGD on the authors' Difference of Logits Ratio loss, a targeted form of the FAB minimum-norm attack, and the Square Attack, which needs only the model's outputs and so still works when gradients are uninformative. An image counts as robust only if none of the four finds a misclassified version within the bound, and because every attack setting is fixed in advance the evaluator tunes nothing, which removes a common cause of overstated robustness: an attack too weakly tuned for the model. The output is robust accuracy, the share of test images still classified correctly under attack at the stated norm and radius, reported beside clean accuracy; published models are compared on the RobustBench leaderboard, which uses AutoAttack as its standard evaluation. Because AutoAttack is not built around any one defence, it can supply the attack step for a wider judgement of a defence, such as whether adversarial training holds up against attacks it was not trained on; unlike red teaming, it involves no human attacker or open-ended search.",
+    "assurance_goals": [
+      "Security"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/paradigm/supervised",
+      "applicable-models/requirements/white-box",
+      "applicable-models/requirements/gradient-access",
+      "assurance-goal-category/security",
+      "assurance-goal-category/security/vulnerability-testing",
+      "data-requirements/labelled-data",
+      "data-type/image",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/security",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Under the standard AutoAttack evaluation with L-infinity perturbations of at most 8/255, the image classifier keeps an accuracy on the held-out test set above the threshold agreed in the security requirements.",
+        "assuranceGoal": "security",
+        "domain": "general"
+      },
+      {
+        "text": "The robustness figure for the identity-document classifier was measured with the standard AutoAttack suite at the agreed perturbation budget, and the run raised none of AutoAttack's warnings for randomised behaviour or masked gradients.",
+        "assuranceGoal": "security",
+        "domain": "finance"
+      },
+      {
+        "text": "The robust accuracy the supplier reports for the content-screening model is within two percentage points of the figure from an independent standard AutoAttack run on the same test images.",
+        "assuranceGoal": "security",
+        "domain": "general"
+      },
+      {
+        "text": "At perturbation sizes below the level a blinded pathologist could detect, the selected tumour-subtyping model's attack success rate under AutoAttack on an external patient cohort is lower than that of the alternative architecture.",
+        "assuranceGoal": "security",
+        "domain": "healthcare"
+      }
+    ]
+  },
+  {
+    "slug": "stride-ai-threat-modelling",
+    "name": "STRIDE-AI Threat Modelling",
+    "description": "STRIDE-AI is a threat-modelling method for machine-learning (ML) systems, proposed by Mauri and Damiani (2021, extended 2022), that lists, before any testing, the ways an attacker could compromise each asset of an ML pipeline and how serious each would be. It adapts Microsoft's STRIDE scheme, in which each of six threat types (spoofing, tampering, repudiation, information disclosure, denial of service and elevation of privilege) breaks one security property (authenticity, integrity, non-repudiation, confidentiality, availability and authorisation), and gives each property an ML-specific definition: confidentiality, for example, means that querying a model reveals nothing beyond its inputs and outputs. The analyst surveys the assets produced across the ML life cycle, such as raw, labelled and validation data, hyperparameters, trained and deployed models and the model architecture, and with each asset's owners runs a failure mode and effects analysis (FMEA, a structured review of how a component could fail and with what effect), answering set questions about how the asset could fail, be misused or be abused. Each failure mode is mapped to the properties it would break and so to STRIDE threats, using the method's published tables of asset types, properties and known attacks; the analyst then works with developers to draw threat trees showing the conditions under which each threat could be realised, and rates each threat's priority (the worked example uses DREAD, which scores five factors from 1 to 10). The output is a threat model, a table of assets, threatened properties, threats and priorities with their threat trees: the method attacks and measures nothing, and choosing and testing controls for the threats it finds is left to other techniques.",
+    "assurance_goals": [
+      "Security"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/security",
+      "assurance-goal-category/security/threat-analysis",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/qualitative-report",
+      "evidence-type/structured-output",
+      "expertise-needed/security",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/domain-expertise",
+      "technique-type/process",
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/project-planning",
+      "lifecycle-stage/other/cross-cutting"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every data, model and artefact asset identified in the survey of the fault-prediction pipeline has been mapped to the security properties it must hold, and each resulting threat is recorded with a priority rating.",
+        "assuranceGoal": "security",
+        "domain": "energy"
+      },
+      {
+        "text": "Tampering with training labels between data collection and model training is identified as a threat, and the conditions under which it could be exploited are recorded in a threat tree.",
+        "assuranceGoal": "security",
+        "domain": "general"
+      },
+      {
+        "text": "The threat model for the fraud-detection pipeline was revised after the switch to online learning, and the threats introduced by that change are recorded and prioritised.",
+        "assuranceGoal": "security",
+        "domain": "finance"
+      },
+      {
+        "text": "Before procurement, threats to the supplied model file, the inference service and the training data were identified and used to set the scope of the supplier's security testing.",
+        "assuranceGoal": "security",
+        "domain": "healthcare"
+      }
+    ]
+  },
+  {
+    "slug": "canary-exposure-testing",
+    "name": "Canary Exposure Testing",
+    "description": "Canary exposure testing measures how strongly a training procedure makes a generative sequence model, such as a language model, memorise rare sequences, by planting random secrets (canaries) in the training data and scoring how much the trained model favours them over values it never saw. Because the secrets are random and their values known, the result is calibrated in a way that tests on real records are not and can be compared across model versions, training settings and numbers of repetitions; unlike extraction or membership inference testing of a finished model, it requires control of the training run, and unlike differential privacy auditing, which also plants records, it gives a memorisation score rather than a statistical bound on epsilon. The tester chooses a format such as 'my account number is' followed by a blank, fills the blank with random values to make several canaries, inserts each into the training data a chosen number of times (for example once, ten times and a hundred times), and trains with the settings used in production. Each canary is then ranked by how probable the trained model finds it compared with every other possible filling of the blank, and its exposure is the base-2 logarithm of the number of possible fillings minus the base-2 logarithm of that rank: about 1 for a canary the model treats like any other value, rising to its maximum when the canary is the model's top choice, the level at which a search over the possible fillings can extract it outright. For large spaces of values the rank is estimated by fitting a distribution to the probabilities of a sample of alternatives, and results are usually plotted as exposure against number of insertions.",
+    "assurance_goals": [
+      "Privacy"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/paradigm/generative",
+      "applicable-models/requirements/probabilistic-output",
+      "assurance-goal-category/privacy",
+      "assurance-goal-category/privacy/leakage-testing",
+      "data-requirements/access-to-training-data",
+      "data-type/text",
+      "evidence-type/quantitative-metric",
+      "evidence-type/visualisation",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/privacy-engineering",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training",
+      "lifecycle-stage/model-development/model-testing-and-validation"
+    ],
+    "sample_claims": [
+      {
+        "text": "With canaries inserted up to 10,000 times into a training run that used the production settings, no canary in the reply-suggestion model reached the exposure at which it could be extracted, and canaries inserted fewer than 100 times showed exposure close to that of random alternatives.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      },
+      {
+        "text": "In the autocomplete configuration chosen for release, nine-digit account-number canaries inserted ten times had exposure below 10, against about 30 for a canary the model ranks first, and no configuration within one percentage point of the best validation accuracy had lower exposure.",
+        "assuranceGoal": "privacy",
+        "domain": "finance"
+      },
+      {
+        "text": "On every retraining of the clinical-text model, the exposure of canaries inserted once stayed below the threshold agreed with information governance.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
+      }
+    ]
+  },
+  {
+    "slug": "differential-privacy-auditing",
+    "name": "Differential Privacy Auditing",
+    "description": "Differential privacy auditing tests whether a training procedure that claims a differential privacy guarantee at a stated budget (epsilon, where smaller means stronger privacy) loses more privacy in practice than the claim allows, by measuring a statistical lower bound on its true epsilon. The guarantee itself comes from a mathematical proof, and membership inference testing reports attack success on real records for any model; the audit instead controls which records are present and asks whether the code that was run honours the proof, so it can expose an implementation bug or accounting error but can never confirm the guarantee. The auditor builds two training sets that differ only by one or a few planted records, called canaries and often crafted to be easy to detect, trains the model many times on each, and applies a fixed test to every trained model to guess whether the canary was present. Confidence intervals for the test's true-positive and false-positive rates, such as Clopper-Pearson intervals for a proportion, are converted into a value of epsilon that the procedure must exceed at a stated confidence level, such as 99 per cent; a bound above the claimed epsilon shows that the claim is false for that implementation. Because hundreds of training runs are costly, a later design needs only one: many canaries are each included or left out at random, the test guesses which were included, and the share of correct guesses gives the bound, which is looser than the many-run design's.",
+    "assurance_goals": [
+      "Privacy"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/privacy",
+      "assurance-goal-category/privacy/leakage-testing",
+      "data-requirements/access-to-training-data",
+      "data-type/any",
+      "evidence-type/quantitative-metric",
+      "evidence-type/statistical-test",
+      "expertise-needed/privacy-engineering",
+      "expertise-needed/statistics",
+      "expertise-needed/ml-engineering",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation"
+    ],
+    "sample_claims": [
+      {
+        "text": "A 99 per cent confidence audit of the exact training code and settings used for the readmission model, with planted records designed to be easy to detect, found no evidence that its privacy loss exceeds the claimed epsilon of 3.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Every release of the training library passes a white-box audit in which the measured lower bound on epsilon stays below the budget the library reports for the audited configuration.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      },
+      {
+        "text": "An audit of the previous version of the training code gave a 99 per cent lower bound on epsilon of 3.9 against a claimed budget of 1, showing an implementation error, and a re-audit of the corrected code found no bound above 1.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      },
+      {
+        "text": "In a single-run audit of the federated keyboard model's training, with enough randomly included canary users that a bound above the claimed user-level epsilon could have been reported, the 95 per cent lower bound stayed below the claim.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "training-data-extraction-testing",
+    "name": "Training Data Extraction Testing",
+    "description": "Training data extraction testing measures how much of its training text a generative language model reproduces word for word when it is sampled, without the tester supplying any training record to look for. It differs from membership inference testing, which starts from a candidate record and asks only whether that record was used in training, and from canary exposure testing, which needs secrets planted before training. The tester prompts the model with empty prompts or a few words taken from public text, generates a large volume of output (from tens of millions to billions of tokens) with the sampling settings the deployed system uses, and checks it against the training corpus: any span of at least a fixed length, such as 50 tokens, found verbatim in an index of the corpus, and not low-entropy filler such as repeated characters or lists of numbers, counts as extracted, and personal data is checked by tagging names and identifiers in the output and looking them up in the corpus. Where the corpus cannot be searched, the outputs are ranked by how much more probable the model finds them than a smaller reference model or a text-compression algorithm does, and the top-ranked candidates are checked by hand, for example by web search. The result is the share of generated text copied from training data (under the hand-checked route, the number confirmed among the candidates checked), the number of distinct passages extracted, and the passages themselves, each with a count of the training documents that contain it: a passage found in one or two documents is a privacy finding in a way that a licence or news story repeated thousands of times is not.",
+    "assurance_goals": [
+      "Privacy"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks/transformer/llm",
+      "applicable-models/paradigm/generative",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/privacy",
+      "assurance-goal-category/privacy/leakage-testing",
+      "data-requirements/access-to-training-data",
+      "data-type/text",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/privacy-engineering",
+      "expertise-needed/data-engineering",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "Across 50 million tokens generated from the fine-tuned support model with production sampling settings, no span of 50 or more tokens matched the training transcripts verbatim, and none of the account numbers or customer names tagged in the output occurs in the transcripts.",
+        "assuranceGoal": "privacy",
+        "domain": "finance"
+      },
+      {
+        "text": "In an extraction test of 10 million generated tokens, the clinical note model reproduced no NHS number, and no patient name together with a date of birth, that appears in its training summaries.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
+      },
+      {
+        "text": "At every generation budget tested, up to one billion tokens, the deduplicated checkpoint emitted fewer distinct verbatim passages of its pre-training corpus than the original checkpoint.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      },
+      {
+        "text": "After each fine-tuning update, extraction tests of 20 million generated tokens, from both ordinary prompts and repeated-word prompts, found no passage of 50 or more tokens from the casework correspondence in the assistant's output.",
+        "assuranceGoal": "privacy",
+        "domain": "public sector"
+      }
+    ]
+  },
+  {
+    "slug": "attacker-model-re-identification-risk-measurement",
+    "name": "Attacker-Model Re-identification Risk Measurement",
+    "description": "Attacker-model re-identification risk measurement estimates, for a table of real records about people that is about to be released or shared, the probability that an attacker who links it with other information could correctly match a record to the person it describes. This record follows the attacker models of El Emam and Dankar (prosecutor and journalist) and of Dankar and El Emam (marketer), as implemented in the ARX tool: the assessor lists the quasi-identifiers (columns such as age, sex, postcode and admission date that an attacker could know or find), groups the records that share the same values on them, and names the attacker being guarded against. For a prosecutor, who knows the target is in the table, a record's risk is one over the size of its group in the table; for a journalist, who does not know this and links to a register of the wider population, it is one over the size of the matching group in that population, estimated with a statistical model when the population counts are not known; for a marketer, who tries to match as many records as possible, the measure is the expected share of records matched correctly. The assessor reports the highest record risk, the average risk and the share of records above a threshold set for the release, which decides whether the table can go out as it is or needs more generalisation or suppression first. It measures how easily records can be matched to people under the stated assumptions, unlike k-anonymity, which transforms the data, and it does not measure what can be learned about someone from values their whole group shares.",
+    "assurance_goals": [
+      "Privacy"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/privacy",
+      "assurance-goal-category/privacy/leakage-testing",
+      "data-requirements/access-to-training-data",
+      "data-type/tabular",
+      "evidence-type/quantitative-metric",
+      "evidence-type/dataset-analysis",
+      "expertise-needed/privacy-engineering",
+      "expertise-needed/statistics",
+      "expertise-needed/domain-expertise",
+      "technique-type/metric",
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/data-extraction-or-procurement",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+    ],
+    "sample_claims": [
+      {
+        "text": "Under a prosecutor attack using age band, sex and postcode district, no record in the released extract has a re-identification probability above 0.09.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
+      },
+      {
+        "text": "The expected proportion of records in the competition dataset that an attacker could correctly match by linking it to the state voter register is below 0.1 per cent.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
+      },
+      {
+        "text": "The re-identification risk assessment for the shared trial data states the quasi-identifiers, attacker model, population estimator and threshold used, and the highest record risk is below the agreed threshold.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Fewer than 1 per cent of records in the commuting dataset shared with the contractor are estimated to be unique in the city's population on home district, work district and age band.",
+        "assuranceGoal": "privacy",
+        "domain": "transport"
+      }
+    ]
+  },
+  {
+    "slug": "differentially-private-stochastic-gradient-descent",
+    "name": "Differentially Private Stochastic Gradient Descent",
+    "description": "Differentially private stochastic gradient descent (DP-SGD) trains a neural network, or another model fitted by gradient descent, so that the finished model carries a formal differential privacy guarantee about the individual examples it was trained on. Differential privacy is more often applied by adding calibrated noise to the answer of a query or to a published statistic; DP-SGD instead changes the training algorithm itself. At each step it draws a random batch, computes the gradient (the direction in which an example pushes the model's parameters) separately for every example, scales down any gradient longer than a fixed clipping bound, adds Gaussian noise proportional to that bound to the sum, and updates the model with the noisy average, so that no single example can move the model by much and what influence remains is masked. A privacy accountant adds up the privacy cost of every step from the noise level, the sampling rate and the number of steps, and reports the total as epsilon and delta: epsilon limits how much more likely any trained model is with a given example in the training data than without it, and delta is a small probability that this limit fails. The output is a trained model with a stated (epsilon, delta) guarantee, which also covers anything later computed from the model, including its predictions.",
+    "assurance_goals": [
+      "Privacy"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/paradigm/parametric",
+      "applicable-models/requirements/gradient-access",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/privacy",
+      "assurance-goal-category/privacy/formal-guarantee",
+      "data-requirements/access-to-training-data",
+      "data-type/any",
+      "evidence-type/privacy-guarantee",
+      "evidence-type/model-artefact",
+      "expertise-needed/privacy-engineering",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/deep-learning",
+      "technique-type/algorithmic",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training"
+    ],
+    "sample_claims": [
+      {
+        "text": "The credit-default model shared with the partner lender was trained with DP-SGD to epsilon 2 and delta 10^-7, with each customer contributing one training example and the budget computed over every training step by the accountant in Opacus.",
+        "assuranceGoal": "privacy",
+        "domain": "finance"
+      },
+      {
+        "text": "The published chest X-ray model weights satisfy differential privacy with epsilon 8 and delta 10^-5 with respect to any one patient, and the hyperparameter search run on patient images is included in that budget.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Training batches were drawn by Poisson sampling, matching the assumption of the privacy accountant that produced the reported epsilon.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      },
+      {
+        "text": "The skills-tagging model's privacy budget of epsilon 4 per applicant covers the full fine-tuning run and every hyperparameter trial run on applicants' CVs.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "k-anonymity",
+    "name": "k-Anonymity",
+    "description": "k-Anonymity is a property that a table of real records about people can be made to satisfy before it is released or shared, in which every record shares its values on the quasi-identifiers with at least k-1 other records, so anyone linking the table to another source on those columns always matches a group of at least k records, which is k people only when each person has one record. Quasi-identifiers are columns that are not names or ID numbers but could be found elsewhere and combined to single a person out, such as date of birth, sex and postcode, and because the data holder chooses them, the protection covers only those columns. To reach a chosen k, each quasi-identifier is coarsened along a hierarchy set in advance (exact age to five-year band, full postcode to district), and the values or records that would still sit in a group smaller than k are suppressed, with a search choosing the coarsening that loses least information. The output is the transformed table of real records made less specific, not artificial ones, together with the k it achieves and a measure of the detail lost. Unlike differential privacy, it gives no bound on what an observer can learn, because it blocks linking on the listed columns but does not stop someone learning a sensitive value that everyone in a group shares.",
+    "assurance_goals": [
+      "Privacy"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/privacy",
+      "assurance-goal-category/privacy/exposure-reduction",
+      "data-requirements/access-to-training-data",
+      "data-type/tabular",
+      "evidence-type/modified-dataset",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/privacy-engineering",
+      "expertise-needed/statistics",
+      "expertise-needed/domain-expertise",
+      "technique-type/algorithmic",
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/data-extraction-or-procurement",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every record in the emergency-attendance extract shares its age band, sex, postcode district and attendance week with at least four other records.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
+      },
+      {
+        "text": "The household survey's scientific-use file is 3-anonymous on age band, sex, region and household size, and the number of values suppressed to achieve this is published with the file.",
+        "assuranceGoal": "privacy",
+        "domain": "public sector"
+      },
+      {
+        "text": "The quasi-identifiers used for the release were chosen against a documented list of the public and commercial sources an attacker could link to, and the release is k-anonymous on all of them.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      },
+      {
+        "text": "Every later release of the claims data is generalised from the same scheme as the first, as required to stop releases being joined to form groups of fewer than ten policyholders.",
+        "assuranceGoal": "privacy",
+        "domain": "finance"
+      }
+    ]
+  },
+  {
+    "slug": "pii-detection-and-redaction-in-training-text",
+    "name": "PII Detection and Redaction in Training Text",
+    "description": "PII detection and redaction finds personally identifiable information (PII), such as names, email addresses, phone numbers and account or ID numbers, in a body of text and removes or replaces it before the text is used to train or fine-tune a model, so that the model has fewer personal details to memorise and later reproduce. Presidio, a widely used open-source tool first released by Microsoft and now run as an independent community project, is the reference implementation: each document passes through a set of recognisers, in which a named-entity recognition model (by default an English spaCy model) tags names, places and dates, patterns with checksum or format checks catch structured identifiers such as card and NHS numbers, and nearby words such as 'account' raise a candidate's confidence score. Every detection above a chosen score is then replaced with a placeholder for its type (for example <PERSON>), masked, hashed, encrypted or deleted, and the cleaned corpus goes to training. Because detection is never complete, the procedure ends by measuring recall, the share of identifiers actually caught, for each type on a hand-labelled sample of the same corpus. The evidence it produces is that measured miss rate and the cleaned corpus; unlike differential privacy or synthetic data, it removes real personal details from real text and gives no bound on what remains.",
+    "assurance_goals": [
+      "Privacy"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/architecture/neural-networks/transformer/llm",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/privacy",
+      "assurance-goal-category/privacy/exposure-reduction",
+      "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
+      "data-requirements/access-to-training-data",
+      "data-requirements/labelled-data",
+      "data-type/text",
+      "evidence-type/modified-dataset",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/privacy-engineering",
+      "expertise-needed/data-engineering",
+      "expertise-needed/evaluation-design",
+      "technique-type/algorithmic",
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/data-extraction-or-procurement",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+    ],
+    "sample_claims": [
+      {
+        "text": "Before fine-tuning, names, email addresses, phone numbers and account numbers in all customer-service transcripts were replaced with type placeholders, and recall measured on 500 hand-labelled transcripts was at least 95 per cent for each of these types.",
+        "assuranceGoal": "privacy",
+        "domain": "finance"
+      },
+      {
+        "text": "The rate of undetected patient and clinician names left in the discharge-letter training corpus, measured on a labelled sample drawn from that corpus, is recorded in the data protection impact assessment and is below the limit set by the information governance group.",
+        "assuranceGoal": "privacy",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Email addresses, IP addresses, keys and passwords found in the code corpus were replaced with placeholder tokens before training, with precision and recall for each type reported on an annotated test set of files.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      },
+      {
+        "text": "Recall of the redaction step is reported separately for direct identifiers and for details that identify a person only in combination, so that a high overall figure cannot hide missed direct identifiers.",
+        "assuranceGoal": "privacy",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "dangerous-capability-evaluation",
+    "name": "Dangerous Capability Evaluation",
+    "description": "Dangerous capability evaluation measures whether a frontier AI model can carry out tasks that could enable severe harm, such as finding and exploiting software vulnerabilities, persuading or deceiving people, acquiring resources and running copies of itself, or helping to plan an attack with chemical, biological, radiological or nuclear materials, and compares the results with capability thresholds that the developer's safety framework fixes before testing. Evaluators first write a threat model for each risk domain; the framework names a critical capability level, at which the model could pose an extreme risk without extra safeguards, and an early-warning trigger defined on the evaluation results, which the method's originators sketched for one domain as success on more than half of a set of tasks given ten attempts at each. They then build task suites for each domain, such as capture-the-flag hacking challenges in sandboxed networks or multi-step tasks that require the model to set up a cloud server and install software, and try to draw out the model's best performance: it is tested without the safety filters of the deployed product, given agent scaffolding (prompts, planning loops and tools such as a command shell) and sometimes fine-tuned, because the evaluation must not underestimate what the model can do. Scoring records success over repeated attempts and, for tasks the model cannot finish, how close it came, by starting it from intermediate milestones and measuring how much expert help it needs to succeed. Unlike red teaming, which probes a system and its safeguards for whatever failures can be found, and unlike tests of whether a model refuses harmful requests, it measures what the model is able to do, and whether the results cross the trigger informs decisions on deployment and on the security measures the model needs.",
+    "assurance_goals": [
+      "Safety"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks/transformer/llm",
+      "applicable-models/paradigm/generative",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/safety",
+      "assurance-goal-category/safety/hazard-identification",
+      "data-requirements/test-scenarios",
+      "data-type/text",
+      "evidence-type/quantitative-metric",
+      "evidence-type/qualitative-report",
+      "expertise-needed/evaluation-design",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/ml-engineering",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Under the strongest elicitation available to the evaluation team, the model solved fewer professional-level capture-the-flag challenges than the early-warning trigger set in the developer's safety framework.",
+        "assuranceGoal": "safety",
+        "domain": "cybersecurity"
+      },
+      {
+        "text": "The model did not complete any of the autonomous replication tasks end to end in ten attempts each, and needed substantial expert help to pass their intermediate milestones.",
+        "assuranceGoal": "safety",
+        "domain": "general"
+      },
+      {
+        "text": "Dangerous capability evaluations were run on a fine-tuned version of the model as well as the version to be released, and neither crossed the capability threshold set before testing.",
+        "assuranceGoal": "safety",
+        "domain": "general"
+      },
+      {
+        "text": "The capability thresholds and early-warning triggers used for the release decision were fixed and recorded before the evaluations were run.",
+        "assuranceGoal": "safety",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "fault-tree-analysis",
+    "name": "Fault Tree Analysis",
+    "description": "Fault tree analysis (FTA) is a deductive, top-down method that starts from one undesired system-level event, such as an automated braking function failing to brake for an obstacle, and works backwards to the combinations of lower-level events that could cause it. The analyst builds a tree of logic gates beneath that top event: an OR gate means any one of its inputs is enough to cause the event above it, an AND gate means all of its inputs must occur together, and the branches end in basic events such as a hardware failure, a human error or a software error. Solving the tree gives its minimal cut sets, the smallest combinations of basic events that produce the top event (a set with a single event is a single point of failure), and, when each basic event has a probability, the probability of the top event, which can be checked against a target or used to set a probability budget for each part. In a system with a machine-learning component, the model's errors enter the tree as basic events of their own, which unlike random hardware failures happen during normal operation at a rate that has to be measured on test or operational data, often depend on conditions such as weather or occlusion that can be added beneath it as conditioning events, and can be correlated from one input to the next. Working down from an acceptable top-event probability turns the model's share into a budget for its error rate, which becomes a performance requirement on the model; the tree shows where model errors matter in the system and how much error it can tolerate, but not why the model makes them.",
+    "assurance_goals": [
+      "Safety"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/safety",
+      "assurance-goal-category/safety/hazard-analysis",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/structured-output",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/safety-engineering",
+      "expertise-needed/statistics",
+      "expertise-needed/domain-expertise",
+      "technique-type/process",
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/project-planning",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "The quantified fault tree shows the probability of losing the restricted-area proximity alert, including the contribution of the sign detector's misses, to be below 1 in 1,000 per flight hour.",
+        "assuranceGoal": "safety",
+        "domain": "transport"
+      },
+      {
+        "text": "Measured on recorded taxi data, the sign detector's per-frame miss probability is below the budget derived from the fault tree, and the independence assumption used to derive that budget has been checked on the same data.",
+        "assuranceGoal": "safety",
+        "domain": "transport"
+      },
+      {
+        "text": "No minimal cut set for the top event 'object not detected in time' consists of the camera-based detector's miss alone.",
+        "assuranceGoal": "safety",
+        "domain": "autonomous systems"
+      },
+      {
+        "text": "The estimated probability of a harmful overdose reaching a patient accounts for dependence between the dose checker's misses and the pharmacist's, rather than assuming they are independent.",
+        "assuranceGoal": "safety",
+        "domain": "healthcare"
+      }
+    ]
+  },
+  {
+    "slug": "machine-learning-fmea",
+    "name": "Machine Learning Failure Mode and Effects Analysis",
+    "description": "Machine Learning Failure Mode and Effects Analysis (ML FMEA) applies the process form of failure mode and effects analysis, a long-established worksheet method in which a team lists what could go wrong at each step of a process, rates each failure and acts on the worst first, to the pipeline that produces a machine-learning model rather than to the model alone. The team works through the pipeline one step at a time (in the 2025 reference version: collect data requests, collect data, ingest data, validate data, preprocess data, train, tune, analyse, deploy and validate the model, and analyse feedback from the field) and, prompted by guide words such as missing, incorrect or too late, records for each step how the resulting model could fail, the effect on the wider system, the pipeline causes, and the current practices that would prevent or catch the failure. Each row is rated for severity, occurrence and detection, and the product of the three, the risk priority number, ranks the rows so that recommended actions and owners go to the highest risks first; severity is taken from the system-level hazard analysis, because the harm a model failure can do depends on the system it sits in. The method's authors publish a pre-populated template listing typical failure modes, causes and mitigations for each step, which a team tailors to its own model and application. The result is a worksheet of ranked pipeline failure modes, their controls and assigned actions, kept up to date as the pipeline changes; it looks at failures one at a time in how the model is built and does not by itself analyse how the deployed system behaves.",
+    "assurance_goals": [
+      "Safety"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/safety",
+      "assurance-goal-category/safety/hazard-analysis",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/structured-output",
+      "evidence-type/documentation",
+      "expertise-needed/safety-engineering",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/domain-expertise",
+      "technique-type/process",
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/project-planning",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every step of the lane-detection model's development pipeline has been analysed for failure modes, and each failure mode ranked above the agreed action limit has an implemented mitigation with a named owner.",
+        "assuranceGoal": "safety",
+        "domain": "autonomous systems"
+      },
+      {
+        "text": "Severity ratings in the triage model's ML FMEA are taken from the system-level hazard analysis, so each pipeline risk is rated by its possible effect on patients before it is ranked.",
+        "assuranceGoal": "safety",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Collection and labelling of the perception model's training data are covered by a documented control for each failure mode identified in the ML FMEA, including seasonal and weather coverage.",
+        "assuranceGoal": "safety",
+        "domain": "transport"
+      },
+      {
+        "text": "Following the field incident, the ML FMEA was revised to add the missing control for unseen packaging types, and the affected failure modes were re-rated.",
+        "assuranceGoal": "safety",
+        "domain": "manufacturing"
+      }
+    ]
+  },
+  {
+    "slug": "system-theoretic-process-analysis",
+    "name": "System-Theoretic Process Analysis",
+    "description": "System-Theoretic Process Analysis (STPA) is a hazard analysis method developed by Nancy Leveson at MIT that treats safety as a control problem: a loss can occur when parts of a system that have not failed interact unsafely, for example when a controller acts on a wrong belief about the process it controls. The analysis has four steps: define the losses to prevent and the system-level hazards that lead to them; model the system as a control structure of controllers, the control actions they issue and the feedback they receive; identify unsafe control actions; and write loss scenarios explaining how each could arise. An unsafe control action is one of four types (not providing an action causes a hazard, providing it causes a hazard, providing it too early, too late or in the wrong order, or stopping it too soon or applying it too long), and loss scenarios cover causes such as missing or wrong feedback, a flawed control algorithm, or a controller's process model (its internal picture of what it controls) that no longer matches reality. In a system with machine-learning components, a learned model appears in the control structure as a controller whose control algorithm and process model were learned from data, or as a feedback source, such as a perception model, whose errors mislead a controller; loss scenarios include training data that missed an operating condition, a shift from training to deployment conditions, and operators who over-rely on the model, and published adaptations also model data collection, training and evaluation as control loops, so that a scenario can trace an unsafe control action back to a development decision such as an incomplete reward function. The output is a traceable set of unsafe control actions, loss scenarios and the safety constraints and requirements derived from them, which the team uses to change the design and to decide what to test; it analyses a model of the system before or alongside testing, and it gives no probabilities.",
+    "assurance_goals": [
+      "Safety"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/safety",
+      "assurance-goal-category/safety/hazard-analysis",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/qualitative-report",
+      "evidence-type/structured-output",
+      "expertise-needed/safety-engineering",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/ml-engineering",
+      "technique-type/process",
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/project-planning",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Each unsafe control action identified for the emergency braking controller, including those caused by missed detections from the pedestrian detector, is traced to a safety constraint and to a verified requirement on the detector or the vehicle.",
+        "assuranceGoal": "safety",
+        "domain": "autonomous systems"
+      },
+      {
+        "text": "The hazard analysis of the early-warning score covered the clinicians who act on its alerts and the data feeds it depends on as well as the model, and every loss scenario it found has a mitigation recorded in the deployment plan.",
+        "assuranceGoal": "safety",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Unsafe control actions arising from late or missing review of the coding agent's sessions were identified, and each has a design constraint that bounds the time between an agent's action and its review.",
+        "assuranceGoal": "safety",
+        "domain": "general"
+      },
+      {
+        "text": "Each loss scenario derived for the drone-landing policy's approach, descent and touchdown phases is covered by at least one simulation test case.",
+        "assuranceGoal": "safety",
+        "domain": "autonomous systems"
+      }
+    ]
+  },
+  {
+    "slug": "linear-bound-propagation-verification",
+    "name": "Linear Bound Propagation Verification",
+    "description": "Linear bound propagation verification proves that a trained neural network meets a stated property for every input in a defined region, for example that no small change to the pixels of an image alters its class, or that a controller's output stays within limits across a box of sensor readings. CROWN, the named method, replaces each neuron's activation function with two straight lines that bound it from above and below over the values that neuron can take, then works backwards from the outputs through the layers to express an upper and a lower bound on each output as a linear function of the input, and evaluates those functions over the region to obtain guaranteed numerical bounds. If the bounds show the property holds (for a classifier, that the correct class's score stays above every other class's), it is proved for the whole region; because the straight lines over-approximate the network, bounds that fail to show it leave the case undecided, so bound propagation on its own is sound but incomplete. The alpha-beta-CROWN tool tightens the bounds by tuning the lines with gradient-based optimisation and by branch and bound: for a ReLU network it splits undecided neurons into their active and inactive cases and bounds each part separately, which given enough time settles every case, making the tool complete for ReLU networks, but at a cost that can grow exponentially with the number of neurons split, so in practice each run ends as verified, falsified (a counterexample input found) or timed out. Running on graphics processors, it reaches convolutional networks with millions of parameters, larger than exact constraint solvers usually handle, at the price of leaving hard cases undecided.",
+    "assurance_goals": [
+      "Safety",
+      "Reliability"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/reliability",
+      "assurance-goal-category/reliability/robustness",
+      "assurance-goal-category/safety",
+      "assurance-goal-category/safety/verification",
+      "data-requirements/test-scenarios",
+      "data-type/image",
+      "data-type/tabular",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/deep-learning",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/safety-engineering",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "technique-type/algorithmic"
+    ],
+    "sample_claims": [
+      {
+        "text": "For every background crop in the verification set, the wildfire detection network's confidence does not decrease as fire intensity increases within the specified range.",
+        "assuranceGoal": "safety",
+        "domain": "aviation"
+      },
+      {
+        "text": "At each dispatch issued by the preventive control planner, the stability-prediction network's output is certified unchanged for all wind, solar and load values within the forecast uncertainty set.",
+        "assuranceGoal": "safety",
+        "domain": "energy"
+      },
+      {
+        "text": "For at least 95 per cent of held-out inspection images, no change of up to 2/255 in any pixel can alter the classifier's accept or reject decision.",
+        "assuranceGoal": "reliability",
+        "domain": "manufacturing"
+      },
+      {
+        "text": "For every state in the specified operating region, the controller network's commanded torque stays within the actuator's safe limits.",
+        "assuranceGoal": "safety",
+        "domain": "robotics"
+      }
+    ]
+  },
+  {
+    "slug": "signal-temporal-logic-monitoring",
+    "name": "Signal Temporal Logic Monitoring",
+    "description": "Signal temporal logic (STL) monitoring checks the signals a system produces over time, such as speeds, distances, positions or a model's outputs, against safety requirements written in signal temporal logic, a formal language for stating how real-valued signals must behave over time intervals (for example, 'whenever the gap to the vehicle ahead falls below 10 m, speed drops below 5 m/s within 2 s'). Each requirement is built from comparisons of signals with thresholds, joined by logical operators and by timed operators such as 'always within [a, b]', 'eventually within [a, b]' and 'until'. For each trace the monitor computes a robustness value, a margin to the requirement rather than robustness to adversarial inputs: its sign says whether the requirement is met (positive) or violated (negative), and its size is a tolerance: any signal whose values stay closer than that to the observed ones at every instant gets the same verdict. Monitors run offline on logged or simulated traces, or online on live signals, where a requirement that looks ahead in time can be decided only once enough of the signal has arrived. RTAMT, the named tool, is an open-source Python library with an optional C++ back-end that builds such monitors from a written specification and connects to ROS and MATLAB/Simulink; its online monitors accept only requirements whose future time windows are bounded and give each verdict after a delay equal to the requirement's time horizon, and it reports the robustness value but does not act on it, so stopping or correcting the system is left to a separate safeguard.",
+    "assurance_goals": [
+      "Safety"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/safety",
+      "assurance-goal-category/safety/monitoring",
+      "data-requirements/no-special-requirements",
+      "data-type/time-series",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/safety-engineering",
+      "expertise-needed/software-engineering",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring",
+      "technique-type/algorithmic"
+    ],
+    "sample_claims": [
+      {
+        "text": "In every simulated and test-track drive of the release campaign, the adaptive cruise controller met the minimum time-gap requirement, and the smallest robustness margin is reported for each scenario.",
+        "assuranceGoal": "safety",
+        "domain": "transport"
+      },
+      {
+        "text": "Throughout the trial period the service robot's online monitor recorded no violation of the 0.5 m separation requirement, and each subsystem-level violation it logged was investigated and closed.",
+        "assuranceGoal": "safety",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Every landing made by the learned landing controller in the reporting period met the final-approach descent-rate and position requirements, with the smallest margin stated.",
+        "assuranceGoal": "safety",
+        "domain": "aviation"
+      }
+    ]
+  },
+  {
+    "slug": "smt-based-neural-network-verification",
+    "name": "SMT-Based Neural Network Verification",
+    "description": "SMT-based neural network verification decides exactly whether any input in a defined region can make a trained neural network violate a stated property, and if one can, returns that input as a counterexample. SMT (satisfiability modulo theories) solvers decide whether a set of logical and arithmetic constraints can all hold at once: here the network's weighted sums become linear equations, each piecewise-linear activation such as ReLU becomes a constraint with two cases (inactive at zero, or active and passing its input through), and the input region and the negation of the property become further linear constraints. The solver searches for values that satisfy every constraint with a simplex-based linear-programming engine: it first tries to repair an activation whose current values break it, and splits it into its two cases only when repairs keep failing, while bounds on each neuron (in Marabou, by default, the linear bounds that bound propagation computes) rule cases out early. Reluplex (Katz et al., 2017) introduced this lazy treatment of ReLU inside the simplex method and used it on a prototype airborne collision avoidance network; Marabou, its maintained successor, keeps the same search structure with a newer search procedure, adds parallel solving, and can emit a proof certificate for an 'unsatisfiable' answer. The answer is 'unsat', meaning no input in the region violates the property, or 'sat' with a concrete counterexample, and for networks whose activations are all piecewise-linear the procedure is complete; the price is that the number of cases can grow exponentially with the number of neurons, so it is practical for small networks such as controllers, policies and surrogate models with few inputs rather than large image models.",
+    "assurance_goals": [
+      "Safety"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/architecture/neural-networks/feedforward",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/safety",
+      "assurance-goal-category/safety/verification",
+      "data-requirements/test-scenarios",
+      "data-type/tabular",
+      "evidence-type/boundary-analysis",
+      "expertise-needed/deep-learning",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/safety-engineering",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "technique-type/algorithmic"
+    ],
+    "sample_claims": [
+      {
+        "text": "None of the navigation policies released for field trials can command a move into an obstacle within one step from any range-sensor reading in the specified input region.",
+        "assuranceGoal": "safety",
+        "domain": "robotics"
+      },
+      {
+        "text": "For every encounter geometry in each specified region, the collision-avoidance network never issues a 'clear of conflict' advisory while the intruder is inside the protected volume.",
+        "assuranceGoal": "safety",
+        "domain": "aviation"
+      },
+      {
+        "text": "For all patient measurements within the clinically plausible ranges, the infusion network never recommends a rate above the maximum set by the hazard analysis.",
+        "assuranceGoal": "safety",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Every counterexample returned while verifying the candidate controllers was replayed in simulation, and every released controller was re-verified and found to have none.",
+        "assuranceGoal": "safety",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "huderia",
+    "name": "Human Rights, Democracy and the Rule of Law Risk and Impact Assessment",
+    "description": "HUDERIA is the Council of Europe's methodology for identifying and assessing the risks an AI system poses to human rights, democracy and the rule of law, and for planning how to prevent or reduce them, from design through deployment to retirement. It is non-binding guidance that public and private organisations may use or adapt in whole or in part; it was drawn up to support risk assessment in line with the Council of Europe's Framework Convention on Artificial Intelligence, and the human rights treaties its resources cite are illustrative, binding only the states that are parties to them. A multidisciplinary team first runs a context-based risk analysis (COBRA): it scopes the system's purpose, data and affected groups, works through risk factors in the system's application, design and deployment contexts, maps potential impacts on specific rights and on democratic and legal processes, gives each impact an initial rating, and triages the system, deciding whether further assessment is needed and whether the system should be built or deployed at all. Impacts are rated for severity, judged by scale (how serious the harm is), scope (how many people, which groups and for how long) and reversibility (whether those affected can be restored to their earlier position), and for probability; for systems that may pose significant risks, the team may engage affected stakeholders and then re-examines and re-rates each impact in a fuller risk and impact assessment. The output is a mitigation plan that prefers avoiding a harm to reducing, repairing or compensating for it, names who is responsible for each measure, outlines where appropriate the remedies open to affected people, and schedules repeat reviews as the system and its context change.",
+    "assurance_goals": [
+      "General"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/general",
+      "assurance-goal-category/general/governance-and-review",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/qualitative-report",
+      "evidence-type/decision-record",
+      "expertise-needed/governance-and-audit",
+      "expertise-needed/regulatory-compliance",
+      "expertise-needed/stakeholder-engagement",
+      "expertise-needed/domain-expertise",
+      "technique-type/process",
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/project-planning",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring",
+      "lifecycle-stage/other/cross-cutting"
+    ],
+    "sample_claims": [
+      {
+        "text": "Before procurement, the safeguarding referral model went through a documented HUDERIA context-based risk analysis, and the triage decision, including whether to adopt the system at all, is recorded with its reasons.",
+        "assuranceGoal": "general",
+        "domain": "public sector"
+      },
+      {
+        "text": "Every impact identified for the CV-screening model was rated for scale, scope, reversibility and probability under a written scoring rule, and each impact rated high has a mitigation measure with a named owner.",
+        "assuranceGoal": "general",
+        "domain": "general"
+      },
+      {
+        "text": "Groups identified as most exposed to the system's potential harms were consulted before the risk and impact assessment, and the assessment records which impacts their input added or changed.",
+        "assuranceGoal": "general",
+        "domain": "employment"
+      },
+      {
+        "text": "The risk and impact assessment of the fraud-risk model has been repeated after each change to its data sources or to the rules it applies, and the mitigation plan and the remedies for people wrongly flagged were updated each time.",
+        "assuranceGoal": "general",
+        "domain": "public sector"
+      }
+    ]
+  },
+  {
+    "slug": "oecd-ai-incident-reporting",
+    "name": "AI Incident Reporting with the OECD Common Reporting Framework",
+    "description": "AI incident reporting with the OECD common reporting framework records each event in which an AI system caused harm, or could plausibly have caused it, in the common set of 29 fields the OECD published in February 2025, so that reports from different organisations, sectors and countries can be compared and pooled. The framework is meant for both mandatory and voluntary reporting and defines what a report contains, not the reporting interface or what should happen afterwards. The reporter first classifies the event using the OECD's definitions: an AI incident is an event in which the development, use or malfunction of an AI system directly or indirectly leads to harm to people's health, disruption of critical infrastructure, a violation of human rights or of laws protecting fundamental, labour or intellectual property rights, or harm to property, communities or the environment, and an AI hazard is one that could plausibly lead to such harm. Seven fields are mandatory: a title, a description, how the AI system was involved (as a direct cause, a contributing factor, a failure to act, through over-reliance or misuse, through human error, or through a failure to comply with the law), who is reporting, supporting material, the severity (hazard, serious hazard, incident, serious incident or disaster) and the type of harm. The other 22 record, where known and among other things, when and where it happened, the system and the organisations behind it, the people affected, the sector, how widely the system was deployed, whether training data, the model or several interacting systems were involved, the system's task and level of autonomy, and any action taken, giving an inspectable register of what went wrong in operation.",
+    "assurance_goals": [
+      "General"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/general",
+      "assurance-goal-category/general/documentation-and-records",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/documentation",
+      "expertise-needed/governance-and-audit",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/regulatory-compliance",
+      "technique-type/documentation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every incident and near miss reported for the imaging triage model since deployment is recorded with all seven mandatory OECD fields completed and its severity assigned under the hospital's written severity rule.",
+        "assuranceGoal": "general",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Each incident recorded for the bank's credit and fraud models identifies the model and version involved and how the AI system contributed, so repeated failures of one release can be traced.",
+        "assuranceGoal": "general",
+        "domain": "finance"
+      },
+      {
+        "text": "Every incident recorded as serious in the register has at least one action taken recorded against it (prevention, mitigation, ceasing or remediation), with a description of what was done.",
+        "assuranceGoal": "general",
+        "domain": "general"
+      },
+      {
+        "text": "Each incident recorded for the traffic-signal optimiser lists every way the system was involved, including human error where an operator's action contributed, so that the causes attributable to the supplier and to the operator can be traced.",
+        "assuranceGoal": "general",
+        "domain": "transport"
+      }
+    ]
+  },
+  {
+    "slug": "smactr-internal-algorithmic-audit",
+    "name": "SMACTR Internal Algorithmic Audit",
+    "description": "SMACTR is an internal audit procedure for AI systems, proposed by Raji and colleagues in 2020, in which an audit team inside the developing organisation but separate from the product team examines a system during development and before launch against the ethical objectives and requirements the organisation has declared for it. The audit runs in five stages, each producing set documents. In Scoping, auditors review the product requirements and the declared objectives and write an ethical review of the use case, drawing in independent domain experts and marginalised groups, and a social impact assessment; in Mapping, they map the people involved, review existing design records, interview the engineers and begin a failure modes and effects analysis (FMEA), a systematic review of the foreseeable ways the system could fail and their effects, used to rank risks for testing. In Artefact Collection, a checklist confirms that the expected development documents, such as model cards and datasheets, exist; in Testing, auditors run tests chosen from the FMEA's priorities, such as adversarial probing with tailored inputs, and rate each risk high, mid or low from its likelihood and severity in an ethical risk analysis chart; in Reflection, they set the results against the declared objectives, finalise the risk analysis and agree a remediation plan with the engineering team. The documents are kept in an algorithmic design history file, from which the auditors write a summary report that leadership can use to decide whether the system launches, changes or is abandoned.",
+    "assurance_goals": [
+      "General"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/general",
+      "assurance-goal-category/general/governance-and-review",
+      "data-requirements/access-to-training-data",
+      "data-type/any",
+      "evidence-type/qualitative-report",
+      "evidence-type/audit-record",
+      "expertise-needed/governance-and-audit",
+      "expertise-needed/evaluation-design",
+      "expertise-needed/safety-engineering",
+      "expertise-needed/ethics",
+      "expertise-needed/domain-expertise",
+      "technique-type/process",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/model-development/model-documentation",
+      "lifecycle-stage/other/cross-cutting"
+    ],
+    "sample_claims": [
+      {
+        "text": "The claims-triage model was audited before launch by a team outside its product line, through all five SMACTR stages, and the audit report and design history file are held where the risk committee can inspect them.",
+        "assuranceGoal": "general",
+        "domain": "finance"
+      },
+      {
+        "text": "Every risk rated high in the audit's ethical risk analysis chart has a remediation action agreed with the engineering team and recorded as completed, or formally accepted, before release.",
+        "assuranceGoal": "general",
+        "domain": "general"
+      },
+      {
+        "text": "The tests run in the audit's Testing stage were selected from the failure modes ranked highest in the FMEA, and each result is traced to the failure mode it tests.",
+        "assuranceGoal": "general",
+        "domain": "general"
+      },
+      {
+        "text": "The documentation the audit required, including a datasheet for the chatbot's fine-tuning data and a model card, was complete before testing began, as recorded in the audit checklist.",
+        "assuranceGoal": "general",
+        "domain": "general"
+      }
+    ]
   }
 ]
