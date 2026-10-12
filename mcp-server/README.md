@@ -126,7 +126,7 @@ pnpm dev --local  # Load data from local project files
 
 The image serves stateless MCP Streamable HTTP at `POST /mcp`, health metadata at `GET /healthz` and the catalogue's embedding description at `GET /embedding-spec`. There is **no authentication**; use it on a laptop or private network. Compose publishes port 3100 on loopback only. The existing stdio entry point and all ten MCP tool names remain; `suggest_techniques_for_claim` gains the optional `queryEmbedding` input. The TypeScript method `suggestForClaim` is exposed by the tool named `suggest_techniques_for_claim`.
 
-`POST /mcp` reads at most 256 KB of request body (a call with a 2,560-number vector is about 6 KB): a larger body, whether it declares its length or arrives chunked, gets `413`, and a body that is not JSON gets `400`.
+`POST /mcp` reads at most 256 KB of request body (a call with a 2,560-number vector is 35 to 55 KB, and about 57 KB with a 2,000-character claim). A larger body, whether it declares its length or arrives chunked, gets `413` and the connection is closed. A body that is not JSON gets `400`, and so does a JSON-RPC batch (an array of messages); send one call per request.
 
 The service runs no model. It holds the catalogue and its vectors, and answers with keyword search plus, when the caller supplies a question vector, semantic search over the vectors. Ranking is off in the image (`RANKING_ENABLED=false`), so results keep the fused retrieval order, `/healthz.rankingAvailable` is false and `/healthz` contacts no other service. Whatever calls the service does the embedding and any ranking itself.
 
