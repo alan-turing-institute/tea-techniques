@@ -1,0 +1,131 @@
+{
+  "slug": "kernel-two-sample-test",
+  "name": "Kernel Two-Sample Test (Maximum Mean Discrepancy)",
+  "description": "A kernel two-sample test checks whether two sets of data could have come from the same distribution; in assurance it is used to check whether the inputs a deployed model now receives still resemble the data on which it was validated, and to detect when they stop doing so. Its statistic, the maximum mean discrepancy (MMD), is built from a kernel, a function that scores how similar two data points are (commonly a Gaussian function of the distance between them), and in its usual squared form it is the average similarity among points in the reference sample, plus the average similarity among points in the new sample, minus twice the average similarity between points from different samples. With a characteristic kernel such as the Gaussian, the population value is zero only when the two distributions are identical, so the test can respond to any kind of difference, including a change in how features vary together that tests applied to one feature at a time cannot see, and kernels exist for strings and graphs as well as numerical vectors. To obtain a p-value, the two samples are pooled and repeatedly divided at random into groups of the original sizes, the statistic is recomputed for each division, and the p-value is the share of divisions giving a value at least as large as the one observed; high-dimensional inputs such as images are usually first reduced to a short vector, for example the code of an autoencoder or the model's predicted class probabilities. The output, for each window of new data, is the MMD value and its p-value at a stated significance level, which shows whether that window differs detectably from the reference, but not whether the difference affects the model's accuracy.",
+  "assurance_goals": [
+    "Reliability"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/shift-detection",
+    "data-requirements/reference-dataset",
+    "data-type/any",
+    "evidence-type/statistical-test",
+    "expertise-needed/statistics",
+    "expertise-needed/ml-engineering",
+    "technique-type/algorithmic",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-implementation",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A card issuer's model-risk team tests a random sample of each night's transactions, at most one per customer, against a fixed sample from the fraud model's validation period, after standardising the input features. It set the significance level so that, with nothing changed, it expects about one false alarm a quarter, and a significant result triggers a check of the model's accuracy on newly labelled cases before its alert thresholds are relied on the next day.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "Before switching on a chest X-ray triage model at a second hospital that uses a different make of scanner, the deploying team compares 500 recent images from the new site with 500 from the validation set. Each image is first reduced to a short vector by an autoencoder trained on validation images. A significant difference sends the model for local validation on labelled cases from the new site instead of relying on its original results.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A customer-service team whose question-answering assistant was evaluated on a fixed test set compares the sentence embeddings of each week's user questions with those of the test set. When a week is flagged, it computes the MMD witness function, which scores each question by how much more it resembles the new week's questions than the test set, reads the top-scoring questions, finds queries about a new product, and adds such questions to the test set.",
+      "goal": "Reliability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "A significant result shows that inputs differ from the reference, not that the model has got worse: Rabanser et al. note that distributions shift constantly and often harmlessly, and with large windows the test can flag differences too small to matter. A drift alarm becomes evidence about performance only when followed by an accuracy check on labelled cases, and an absence of alarms reassures only if the test was shown beforehand to detect the shifts that harm the model."
+    },
+    {
+      "description": "On raw high-dimensional inputs the test has little power: in Rabanser et al.'s comparison on image data the multivariate test performed poorly without first reducing the dimension. The reduction then decides what can be seen, since a change that leaves the autoencoder code or predicted probabilities unchanged goes undetected. The kernel's width matters too: it is usually set to the median distance between points, which Gretton et al. call a heuristic, the best width being an open question."
+    },
+    {
+      "description": "The statistic compares every pair of points, so its cost grows with the square of the combined sample size, and the permutation test repeats it many times; Rabanser et al. ran kernel tests only up to 1,000 new samples for this reason. Gretton et al.'s linear-time version is far cheaper but needs much more data for the same power, so high-volume monitoring has to trade window size, detection delay and computing cost against each other."
+    },
+    {
+      "description": "The permutation p-value assumes that observations within each sample are independent. Consecutive sensor readings, transactions from one customer or successive time steps are correlated, and shuffling them breaks that dependence, so the test signals a difference far more often than its stated level: in Chwialkowski et al.'s experiments on autocorrelated signals the permutation test almost always rejected when nothing had changed. Such data need thinning or a wild bootstrap."
+    },
+    {
+      "description": "Run on every new window at the conventional 5 per cent level, the test flags about one window in twenty even when nothing has changed, which for daily windows means around 18 false alarms a year. Continuous monitoring needs a stricter level, a correction for repeated testing, or an online version of the test whose threshold is set for an expected run time between false alarms."
+    }
+  ],
+  "resources": [
+    {
+      "title": "A Kernel Two-Sample Test",
+      "url": "https://jmlr.org/papers/v13/gretton12a.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Arthur Gretton",
+        "Karsten M. Borgwardt",
+        "Malte J. Rasch",
+        "Bernhard Schölkopf",
+        "Alexander Smola"
+      ],
+      "publication_date": "2012",
+      "citationKey": "grettonKernelTwoSampleTest2012",
+      "abstract": "We propose a framework for analyzing and comparing distributions, which we use to construct statistical tests to determine if two samples are drawn from different distributions.  Our test statistic is the largest difference in expectations over functions in the unit ball of a reproducing kernel Hilbert space (RKHS), and is called the maximum mean discrepancy (MMD).  We present two distribution-free tests based on large deviation bounds for the MMD, and a third test based on the asymptotic distribution of this statistic.  The MMD can be computed in quadratic time, although efficient linear time approximations are available.  Our statistic is an instance of an integral probability metric, and various classical metrics on distributions are obtained when alternative function classes are used in place of an RKHS.  We apply our two-sample tests  to a variety of problems, including attribute matching for databases using the Hungarian marriage method, where they perform strongly.  Excellent performance is also obtained when comparing distributions over graphs, for which these are the first such tests."
+    },
+    {
+      "title": "Maximum Mean Discrepancy (Alibi Detect documentation)",
+      "url": "https://docs.seldon.ai/alibi-detect/cd/methods/offline/mmddrift",
+      "source_type": "documentation",
+      "publication_date": "2024-10-16",
+      "citationKey": "MaximumMeanDiscrepancy2024"
+    },
+    {
+      "title": "Frouros: an open-source Python library for drift detection in machine learning systems",
+      "url": "https://github.com/IFCA-Advanced-Computing/frouros",
+      "source_type": "software_package",
+      "publication_date": "2024-04",
+      "citationKey": "cespedessisniegaFrourosOpensourcePython2024",
+      "abstract": "Frouros: an open-source Python library for drift detection in machine learning systems."
+    },
+    {
+      "title": "MNIST dataset (Frouros data drift example: MMD with an autoencoder)",
+      "url": "https://frouros.readthedocs.io/en/latest/examples/data_drift/MMD_advance.html",
+      "source_type": "tutorial",
+      "citationKey": "MNISTDatasetFrouros"
+    },
+    {
+      "title": "Failing Loudly: An Empirical Study of Methods for Detecting Dataset Shift",
+      "url": "https://proceedings.neurips.cc/paper/2019/hash/846c260d715e5b854ffad5f70a516c88-Abstract.html",
+      "source_type": "application_paper",
+      "authors": [
+        "Stephan Rabanser",
+        "Stephan Günnemann",
+        "Zachary Lipton"
+      ],
+      "publication_date": "2019",
+      "citationKey": "rabanserFailingLoudlyEmpirical2019",
+      "abstract": "We might hope that when faced with unexpected inputs, well-designed software systems would fire off warnings. Machine learning (ML) systems, however, which depend strongly on properties of their inputs (e.g. the i.i.d. assumption), tend to fail silently. This paper explores the problem of building ML systems that fail loudly, investigating methods for detecting dataset shift, identifying exemplars that most typify the shift, and quantifying shift malignancy. We focus on several datasets and various perturbations to both covariates and label distributions with varying magnitudes and fractions of data affected. Interestingly, we show that across the dataset shifts that we explore, a two-sample-testing-based approach, using pre-trained classifiers for dimensionality reduction, performs best. Moreover, we demonstrate that domain-discriminating approaches tend to be helpful for characterizing shifts qualitatively and determining if they are harmful."
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 3,
+  "acronym": "MMD",
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Applied to autoencoder representations of 500 images from each source, the kernel two-sample test found no significant difference at the 1 per cent level between the new hospital's chest X-rays and the validation images, and the same test detected the simulated scanner changes that had reduced the model's accuracy in validation.",
+      "assuranceGoal": "reliability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "Every alarm raised by the nightly kernel two-sample test on the fraud model's inputs in the past six months was followed within two working days by an accuracy check on newly labelled cases, and each check either met the accuracy requirement or led to retraining.",
+      "assuranceGoal": "reliability",
+      "domain": "finance"
+    },
+    {
+      "text": "In each weekly window since deployment, the loan-application model's production inputs showed no difference from its validation sample detectable by the agreed kernel two-sample test, at a significance level corrected for weekly repetition, and the same test detected the input shifts that had reduced the model's accuracy in pre-deployment trials.",
+      "assuranceGoal": "reliability",
+      "domain": "finance"
+    },
+    {
+      "text": "Replayed on reference data alone, the drift monitor's kernel two-sample test raised false alarms at no more than the configured rate of one per quarter.",
+      "assuranceGoal": "reliability",
+      "domain": "general"
+    }
+  ]
+}

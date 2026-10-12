@@ -1,0 +1,123 @@
+{
+  "slug": "canary-exposure-testing",
+  "name": "Canary Exposure Testing",
+  "description": "Canary exposure testing measures how strongly a training procedure makes a generative sequence model, such as a language model, memorise rare sequences, by planting random secrets (canaries) in the training data and scoring how much the trained model favours them over values it never saw. Because the secrets are random and their values known, the result is calibrated in a way that tests on real records are not and can be compared across model versions, training settings and numbers of repetitions; unlike extraction or membership inference testing of a finished model, it requires control of the training run, and unlike differential privacy auditing, which also plants records, it gives a memorisation score rather than a statistical bound on epsilon. The tester chooses a format such as 'my account number is' followed by a blank, fills the blank with random values to make several canaries, inserts each into the training data a chosen number of times (for example once, ten times and a hundred times), and trains with the settings used in production. Each canary is then ranked by how probable the trained model finds it compared with every other possible filling of the blank, and its exposure is the base-2 logarithm of the number of possible fillings minus the base-2 logarithm of that rank: about 1 for a canary the model treats like any other value, rising to its maximum when the canary is the model's top choice, the level at which a search over the possible fillings can extract it outright. For large spaces of values the rank is estimated by fitting a distribution to the probabilities of a sample of alternatives, and results are usually plotted as exposure against number of insertions.",
+  "assurance_goals": [
+    "Privacy"
+  ],
+  "tags": [
+    "applicable-models/architecture/neural-networks",
+    "applicable-models/paradigm/generative",
+    "applicable-models/requirements/probabilistic-output",
+    "assurance-goal-category/privacy",
+    "assurance-goal-category/privacy/leakage-testing",
+    "data-requirements/access-to-training-data",
+    "data-type/text",
+    "evidence-type/quantitative-metric",
+    "evidence-type/visualisation",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/privacy-engineering",
+    "technique-type/testing",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-selection-and-training",
+    "lifecycle-stage/model-development/model-testing-and-validation"
+  ],
+  "example_use_cases": [
+    {
+      "description": "An email provider training a reply-suggestion model on users' messages inserts seven-word canaries with random middle words between 1 and 10,000 times each into a training run with the production settings, plots exposure against the number of insertions, and uses the curve to limit how often any rare phrase from a single user may appear in the training data before the model is offered to all users.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "A bank's machine learning team choosing among learning-rate schedules and model sizes for an autocomplete model trained on transaction descriptions trains each candidate with the same random account-number canaries at the same insertion counts, and picks the configuration with the lowest exposure among those within a set margin of the best validation accuracy.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "A health-records software vendor uses the test as a regression check: each time its clinical-text model is retrained on new notes, the same canaries are inserted at fixed frequencies, and the build fails if the exposure of a canary inserted only once rises above a threshold agreed with the vendor's information governance team.",
+      "goal": "Privacy"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "It needs control of the training run. Canaries must be in the data before training, so the test cannot be applied to a model someone else trained or has already released, and it must use the production settings (optimiser, epochs, model size, hyperparameters), because each of these changes how much is memorised; a test model trained differently says little about the deployed one."
+    },
+    {
+      "description": "It measures memorisation of the planted secrets, not of the real data. Canaries are random and unlike the rest of the data by design, while real personal data that is repeated, structured or similar to other text can be memorised differently, and the choice of format and of random values changes the result. Low exposure for the canaries does not show that no real record can be extracted."
+    },
+    {
+      "description": "Exposure is not a privacy guarantee. Its scale depends on the number of possible fillings, so values compare only across canaries with the same number of fillings, and it is not an epsilon: in the original study, models trained with differential privacy at budgets too weak to mean anything (epsilon up to 10^9) still showed negligible exposure, so low exposure cannot stand in for a formal bound."
+    },
+    {
+      "description": "It needs the model's probability for arbitrary sequences, so a system that returns only its single best output needs a different measure. When the space of possible fillings is too large to score in full, exposure is estimated by fitting a distribution to a sample of alternatives; the estimate depends on that fit holding in the far tail and can exceed the true maximum."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Secret Sharer Attack (TensorFlow Privacy, privacy_tests/secret_sharer)",
+      "url": "https://github.com/tensorflow/privacy/tree/master/tensorflow_privacy/privacy/privacy_tests/secret_sharer",
+      "source_type": "documentation",
+      "citationKey": "SecretSharerAttack",
+      "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+    },
+    {
+      "title": "TensorFlow Privacy (tensorflow/privacy)",
+      "url": "https://github.com/tensorflow/privacy",
+      "source_type": "software_package",
+      "citationKey": "TensorFlowPrivacyTensorflow",
+      "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+    },
+    {
+      "title": "The Secret Sharer: Evaluating and Testing Unintended Memorization in Neural Networks",
+      "url": "https://www.usenix.org/conference/usenixsecurity19/presentation/carlini",
+      "source_type": "technical_paper",
+      "authors": [
+        "Nicholas Carlini",
+        "Chang Liu",
+        "Úlfar Erlingsson",
+        "Jernej Kos",
+        "Dawn Song"
+      ],
+      "publication_date": "2019",
+      "citationKey": "carliniSecretSharerEvaluating2019"
+    },
+    {
+      "title": "Assess privacy risks with TensorFlow Privacy Secret Sharer Attack (example notebook)",
+      "url": "https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/privacy_tests/secret_sharer/secret_sharer_example.ipynb",
+      "source_type": "tutorial",
+      "citationKey": "AssessPrivacyRisksa",
+      "abstract": "Library for training machine learning models with privacy for training data - tensorflow/privacy"
+    },
+    {
+      "title": "Understanding Unintended Memorization in Language Models Under Federated Learning",
+      "url": "https://doi.org/10.18653/v1/2021.privatenlp-1.1",
+      "source_type": "application_paper",
+      "authors": [
+        "Om Dipakbhai Thakkar",
+        "Swaroop Ramaswamy",
+        "Rajiv Mathews",
+        "Francoise Beaufays"
+      ],
+      "publication_date": "2021",
+      "citationKey": "thakkarUnderstandingUnintendedMemorization2021"
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 3,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "With canaries inserted up to 10,000 times into a training run that used the production settings, no canary in the reply-suggestion model reached the exposure at which it could be extracted, and canaries inserted fewer than 100 times showed exposure close to that of random alternatives.",
+      "assuranceGoal": "privacy",
+      "domain": "general"
+    },
+    {
+      "text": "In the autocomplete configuration chosen for release, nine-digit account-number canaries inserted ten times had exposure below 10, against about 30 for a canary the model ranks first, and no configuration within one percentage point of the best validation accuracy had lower exposure.",
+      "assuranceGoal": "privacy",
+      "domain": "finance"
+    },
+    {
+      "text": "On every retraining of the clinical-text model, the exposure of canaries inserted once stayed below the threshold agreed with information governance.",
+      "assuranceGoal": "privacy",
+      "domain": "healthcare"
+    }
+  ]
+}

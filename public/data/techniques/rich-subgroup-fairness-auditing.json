@@ -1,0 +1,129 @@
+{
+  "slug": "rich-subgroup-fairness-auditing",
+  "name": "Rich Subgroup Fairness Auditing",
+  "description": "Rich subgroup fairness auditing checks whether a binary classifier treats any subgroup much better or much worse than the population as a whole, where the subgroups are not a short list chosen in advance but every group that rules of a chosen kind over several protected attributes can describe, such as everyone for whom a weighted sum of age, sex and ethnicity indicators exceeds a threshold. Kearns, Neel, Roth and Wu (2018) proposed it to detect what they call fairness gerrymandering: a classifier can have equal false positive rates for men and for women, and for each ethnic group, yet very unequal rates for particular combinations, such as women of one ethnicity. For a chosen rate (the false positive or false negative rate, or in the paper also the rate of positive decisions), each subgroup is scored by the gap between its rate and the overall rate multiplied by the share of all records that are in the subgroup and count towards that rate (for the false positive rate, those with a negative true outcome), so a gap counts for more the larger the group, and the audit searches for the subgroup with the highest score. Exact search is computationally hard in the worst case, so it is posed as a weighted (cost-sensitive) classification problem over the protected attributes and solved approximately: the reference implementation fits two linear regressions that propose a candidate worst subgroup as a linear threshold rule, using only those attributes, the true outcomes and the classifier's decisions, not the model itself. The output is that rule with the subgroup's size, rate and weighted gap (called gamma), compared with a limit set beforehand; unlike reporting metrics for groups listed in advance, the audit finds subgroups nobody listed, and unlike multiaccuracy boosting, which checks a score's average error in each subgroup and then corrects the model, it compares a decision rate with the overall rate and changes nothing.",
+  "assurance_goals": [
+    "Fairness"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/paradigm/supervised",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/fairness",
+    "assurance-goal-category/fairness/bias-measurement",
+    "data-requirements/labelled-data",
+    "data-requirements/sensitive-attributes",
+    "data-type/tabular",
+    "evidence-type/fairness-metric",
+    "evidence-type/structured-output",
+    "expertise-needed/domain-expertise",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/statistics",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring",
+    "technique-type/testing"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A lender's model risk team validating a credit-risk model before release audits its decisions on a held-out sample of past applicants whose repayment is known, and records that these are only applicants the old policy approved. It searches subgroups over age, sex, ethnicity and disability status for the worst false positive rate gap (good payers flagged as high risk), compares it with a limit agreed with the risk committee, and sends the rule for any subgroup over it to the developers.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "A hospital's clinical AI team has confirmed that a sepsis early-warning model misses cases at similar rates for men and women and for each recorded ethnic group. Before rollout it audits the false negative rate over subgroups combining age, sex and ethnicity and, because the search is approximate, also scores a grid of rules over two of the attributes by brute force, as the method's authors did, to check the search did not miss a larger gap.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "A local authority's internal audit team re-audits a model that flags housing benefit claims for fraud review each quarter, using a random sample of claims reviewed whether or not they were flagged. It records the worst subgroup by false positive rate (legitimate claims flagged) over age, sex, ethnicity and disability, with its size and gap, and escalates to the system owner when the weighted gap exceeds the agreed limit.",
+      "goal": "Fairness"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "Finding the worst subgroup exactly is hard in the worst case, even for conjunctions or linear thresholds of attributes (Kearns et al. 2018, Theorem 3.3), so practical audits use a heuristic search. A subgroup it reports does have the measured gap on the audit data, but a clean result is only a lower bound: the authors note their auditor could miss a larger disparity and checked it by brute force on two attributes (Kearns et al. 2019). 'Nothing found' is a search result, not a proof."
+    },
+    {
+      "description": "Gaps are weighted by subgroup size, which the authors require for reliable estimates and which lets small groups pass with large gaps: a subgroup holding 2% of the records whose false positive rate is 20 percentage points above the overall rate scores at most 0.004, under the 0.005 limit used in the AIF360 demonstration. The audit cannot support a claim about a small named group; report that group's own rate, with an interval, instead."
+    },
+    {
+      "description": "Only subgroups that the rule class can describe, over the attributes designated as protected, are searched; the reference implementation uses linear threshold rules. The class has to be limited because, as the authors note, any imperfect classifier could be accused of unfairness to the set of people it misclassifies. A protected attribute that is not recorded or not designated is invisible, so the attributes used and their encoding must be stated with the finding."
+    },
+    {
+      "description": "Error-rate audits need the protected attributes and the true outcome for every audited record, which a deployed system may not supply, for example when outcomes are seen only for approved applications. Reliable estimates need more data the richer the subgroup class, the authors' experiments report in-sample results, and the tools give no confidence interval, so audit on held-out data and repeat on fresh data before relying on a worst-case figure."
+    },
+    {
+      "description": "It tests parity of one rate at a time for binary decisions, each subgroup's rate against the overall rate. A pass on false positives says nothing about false negatives, the AIF360 auditor implements only those two error rates, and other criteria, such as whether scores mean the same in every subgroup (calibration), need a different test. The rate must be chosen to match the fairness claim before the audit."
+    }
+  ],
+  "resources": [
+    {
+      "title": "aif360.metrics.BinaryLabelDatasetMetric (AIF360 documentation)",
+      "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.metrics.BinaryLabelDatasetMetric.html",
+      "source_type": "documentation",
+      "citationKey": "Aif360metricsBinaryLabelDatasetMetricAIF360Documentation"
+    },
+    {
+      "title": "AIF360",
+      "url": "https://github.com/Trusted-AI/AIF360",
+      "source_type": "software_package",
+      "publication_date": "2018-08-22",
+      "citationKey": "trusted-aiAIF3602018",
+      "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
+    },
+    {
+      "title": "Preventing Fairness Gerrymandering: Auditing and Learning for Subgroup Fairness",
+      "url": "https://proceedings.mlr.press/v80/kearns18a.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Michael Kearns",
+        "Seth Neel",
+        "Aaron Roth",
+        "Zhiwei Steven Wu"
+      ],
+      "publication_date": "2018-07-03",
+      "citationKey": "kearnsPreventingFairnessGerrymandering2018",
+      "abstract": "The most prevalent notions of fairness in machine learning fix a small collection of pre-defined groups (such as race or gender), and then ask for approximate parity of some statistic of the classifier (such as false positive rate) across these groups. Constraints of this form are susceptible to fairness gerrymandering, in which a classifier is fair on each individual group, but badly violates the fairness constraint on structured subgroups, such as certain combinations of protected attribute values. We thus consider fairness across exponentially or infinitely many subgroups, defined by a structured class of functions over the protected attributes. We first prove that the problem of auditing subgroup fairness for both equality of false positive rates and statistical parity is computationally equivalent to the problem of weak agnostic learning — which means it is hard in the worst case, even for simple structured subclasses. However, it also suggests that common heuristics for learning can be applied to successfully solve the auditing problem in practice. We then derive an algorithm that provably converges in a polynomial number of steps to the best subgroup-fair distribution over classifiers, given access to an oracle which can solve the agnostic learning problem. The algorithm is based on a formulation of subgroup fairness as a zero-sum game between a Learner (the primal player) and an Auditor (the dual player). We implement a variant of this algorithm using heuristic oracles, and show that we can effectively both audit and learn fair classifiers on a real dataset."
+    },
+    {
+      "title": "AIF360 demo: GerryFair rich subgroup fairness (notebook)",
+      "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/demo_gerryfair.ipynb",
+      "source_type": "tutorial",
+      "citationKey": "AIF360DemoGerryFair",
+      "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models. - Trusted-AI/AIF360"
+    },
+    {
+      "title": "An Empirical Study of Rich Subgroup Fairness for Machine Learning",
+      "url": "https://doi.org/10.1145/3287560.3287592",
+      "source_type": "application_paper",
+      "authors": [
+        "Michael Kearns",
+        "Seth Neel",
+        "Aaron Roth",
+        "Zhiwei Steven Wu"
+      ],
+      "publication_date": "2019-1-29",
+      "citationKey": "kearnsEmpiricalStudyRich2019"
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 2,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "On a held-out sample of 40,000 previously approved applicants with known repayment, the rich subgroup audit over age, sex, ethnicity and disability status found no subgroup whose size-weighted false positive rate gap exceeded the 0.005 limit agreed with the risk committee.",
+      "assuranceGoal": "fairness",
+      "domain": "finance"
+    },
+    {
+      "text": "Before rollout, neither the heuristic audit over age, sex and ethnicity nor a brute-force grid over age and ethnicity found a subgroup whose size-weighted gap in the rate of missed sepsis cases exceeded 0.003.",
+      "assuranceGoal": "fairness",
+      "domain": "healthcare"
+    },
+    {
+      "text": "In each of the last four quarterly re-audits, on a random sample of claims reviewed whether or not they were flagged, the worst subgroup found had a size-weighted false positive rate gap below the agreed limit, and its description and size were recorded.",
+      "assuranceGoal": "fairness",
+      "domain": "public sector"
+    }
+  ]
+}

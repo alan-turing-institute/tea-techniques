@@ -1,0 +1,156 @@
+{
+  "slug": "training-data-extraction-testing",
+  "name": "Training Data Extraction Testing",
+  "description": "Training data extraction testing measures how much of its training text a generative language model reproduces word for word when it is sampled, without the tester supplying any training record to look for. It differs from membership inference testing, which starts from a candidate record and asks only whether that record was used in training, and from canary exposure testing, which needs secrets planted before training. The tester prompts the model with empty prompts or a few words taken from public text, generates a large volume of output (from tens of millions to billions of tokens) with the sampling settings the deployed system uses, and checks it against the training corpus: any span of at least a fixed length, such as 50 tokens, found verbatim in an index of the corpus, and not low-entropy filler such as repeated characters or lists of numbers, counts as extracted, and personal data is checked by tagging names and identifiers in the output and looking them up in the corpus. Where the corpus cannot be searched, the outputs are ranked by how much more probable the model finds them than a smaller reference model or a text-compression algorithm does, and the top-ranked candidates are checked by hand, for example by web search. The result is the share of generated text copied from training data (under the hand-checked route, the number confirmed among the candidates checked), the number of distinct passages extracted, and the passages themselves, each with a count of the training documents that contain it: a passage found in one or two documents is a privacy finding in a way that a licence or news story repeated thousands of times is not.",
+  "assurance_goals": [
+    "Privacy"
+  ],
+  "tags": [
+    "applicable-models/architecture/neural-networks/transformer/llm",
+    "applicable-models/paradigm/generative",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/privacy",
+    "assurance-goal-category/privacy/leakage-testing",
+    "data-requirements/access-to-training-data",
+    "data-type/text",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/privacy-engineering",
+    "expertise-needed/data-engineering",
+    "technique-type/testing",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A bank's privacy engineering team fine-tunes an open-weight language model on ten years of customer-service chat transcripts to draft replies for agents. Before deployment it generates 50 million tokens from public-text prompts with the production sampling settings, searches an index of the transcripts for 50-token matches, and looks up every account number, name and phone number tagged in the output. It runs the same test on the base model as a control.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "A hospital research group that trained a clinical note-completion model on de-identified discharge summaries runs the test before sharing the weights with partner hospitals. Besides searching for verbatim passages of the summaries, it tags patient names, dates of birth and NHS numbers in the generated text and looks each up in the training set, to find identifiers the de-identification step missed and decide whether the summaries must be re-scrubbed and the model retrained.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "An AI developer preparing an open-weight release compares two checkpoints, one trained on a deduplicated copy of the pre-training corpus. It generates text from each at budgets of 100 million and 1 billion tokens, counts distinct 50-token passages found verbatim in the corpus, and compares how the counts grow with the budget, not a single rate, before choosing which checkpoint to release and what to say about memorisation in the model card.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "A government department running a citizen-facing chat assistant on a model it fine-tuned on casework correspondence repeats the test after every fine-tuning update. Because chat-tuned models can leak little under ordinary prompts yet emit training text once pushed off their chat behaviour, the test also uses prompts asking the assistant to repeat a single word many times, a pattern that made one production assistant reproduce its training data.",
+      "goal": "Privacy"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "The result is a lower bound set by the effort spent. The number of distinct passages extracted keeps growing as more text is generated, and one study found that a model which leaked more than another at a small budget leaked less in total. A clean result, or a comparison of models at one fixed budget, can therefore mislead; report the generation budget and compare models at several budgets."
+    },
+    {
+      "description": "Much memorised text comes out only after the right prompt. In one study, sampling from short public prompts recovered about a third of the passages a model was known to reproduce when given their true opening words, and a chat-tuned model leaked far less under ordinary prompts than when pushed into repeating a word. A low rate under ordinary prompts is weak evidence that the data cannot be extracted."
+    },
+    {
+      "description": "The verdict depends on what the output is checked against and on the match rule. A public proxy for an unavailable corpus undercounts (in one study a 9 TB proxy found under half the matches a manual web search found), and a minimum match length long enough to rule out coincidence misses short secrets such as phone or account numbers unless they are tagged and looked up separately. Paraphrased leaks and facts stitched together from several documents are not counted."
+    },
+    {
+      "description": "It is costly at a useful scale. One study generated a billion tokens per model, and its whole evaluation, including a 45 TB index built over a 9 TB corpus, took three weeks on a large cloud machine. The test also produces copies of any personal data the model leaks, which must be stored, reviewed and deleted under the same controls as the training data."
+    },
+    {
+      "description": "It shows what the model emits, not what an attacker could infer. It does not say whether a known person's record was used in training, and it gives no bound for data the test did not happen to elicit, so a clean result cannot stand in for a formal guarantee such as differential privacy."
+    }
+  ],
+  "resources": [
+    {
+      "title": "LM_Memorization (ftramer/LM_Memorization): training data extraction on GPT-2",
+      "url": "https://github.com/ftramer/LM_Memorization",
+      "source_type": "software_package",
+      "citationKey": "LM_MemorizationFtramerLM_Memorization",
+      "abstract": "Training data extraction on GPT-2. Contribute to ftramer/LM_Memorization development by creating an account on GitHub."
+    },
+    {
+      "title": "Extracting Training Data from Large Language Models",
+      "url": "https://www.usenix.org/conference/usenixsecurity21/presentation/carlini-extracting",
+      "source_type": "technical_paper",
+      "authors": [
+        "Nicholas Carlini",
+        "Florian Tramèr",
+        "Eric Wallace",
+        "Matthew Jagielski",
+        "Ariel Herbert-Voss",
+        "Katherine Lee",
+        "Adam Roberts",
+        "Tom Brown",
+        "Dawn Song",
+        "Úlfar Erlingsson",
+        "Alina Oprea",
+        "Colin Raffel"
+      ],
+      "publication_date": "2021",
+      "citationKey": "carliniExtractingTrainingData2021"
+    },
+    {
+      "title": "Analysing PII leakage (microsoft/analysing_pii_leakage)",
+      "url": "https://github.com/microsoft/analysing_pii_leakage",
+      "source_type": "tutorial",
+      "citationKey": "AnalysingPIILeakage",
+      "abstract": "The repository contains the code for analysing the leakage of personally identifiable (PII) information from the output of next word prediction language models. - microsoft/analysing_pii_leakage"
+    },
+    {
+      "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+      "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+      "source_type": "application_paper",
+      "authors": [
+        "Nils Lukas",
+        "Ahmed Salem",
+        "Robert Sim",
+        "Shruti Tople",
+        "Lukas Wutschitz",
+        "Santiago Zanella-Béguelin"
+      ],
+      "publication_date": "2023-5",
+      "citationKey": "lukasAnalyzingLeakagePersonally2023"
+    },
+    {
+      "title": "Scalable Extraction of Training Data from Aligned, Production Language Models",
+      "url": "https://proceedings.iclr.cc/paper_files/paper/2025/hash/cce0e917b050208170151f77b497fc71-Abstract-Conference.html",
+      "source_type": "application_paper",
+      "authors": [
+        "Milad Nasr",
+        "Javier Rando",
+        "Nicholas Carlini",
+        "Jonathan Hayase",
+        "Matthew Jagielski",
+        "A. Feder Cooper",
+        "Daphne Ippolito",
+        "Christopher Choquette-Choo",
+        "Florian Tramer",
+        "Katherine Lee"
+      ],
+      "citationKey": "nasrScalableExtractionTraining"
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 4,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Across 50 million tokens generated from the fine-tuned support model with production sampling settings, no span of 50 or more tokens matched the training transcripts verbatim, and none of the account numbers or customer names tagged in the output occurs in the transcripts.",
+      "assuranceGoal": "privacy",
+      "domain": "finance"
+    },
+    {
+      "text": "In an extraction test of 10 million generated tokens, the clinical note model reproduced no NHS number, and no patient name together with a date of birth, that appears in its training summaries.",
+      "assuranceGoal": "privacy",
+      "domain": "healthcare"
+    },
+    {
+      "text": "At every generation budget tested, up to one billion tokens, the deduplicated checkpoint emitted fewer distinct verbatim passages of its pre-training corpus than the original checkpoint.",
+      "assuranceGoal": "privacy",
+      "domain": "general"
+    },
+    {
+      "text": "After each fine-tuning update, extraction tests of 20 million generated tokens, from both ordinary prompts and repeated-word prompts, found no passage of 50 or more tokens from the casework correspondence in the assistant's output.",
+      "assuranceGoal": "privacy",
+      "domain": "public sector"
+    }
+  ]
+}

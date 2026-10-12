@@ -1,11 +1,9 @@
 {
   "slug": "cross-validation",
   "name": "Cross-validation",
-  "description": "Cross-validation evaluates model performance and robustness by systematically partitioning data into multiple subsets (folds) and training/testing repeatedly on different combinations. Common approaches include k-fold (splitting into k equal parts), stratified (preserving class distributions), and leave-one-out variants. By testing on multiple independent holdout sets, it reveals how performance varies across different data subsamples, provides robust estimates of generalisation ability, and helps detect overfitting or model instability that single train-test splits might miss.",
+  "description": "Cross-validation estimates how well a model will perform on data it has not seen, and how much that estimate depends on the particular data used. The dataset is divided into k parts called folds, the model is trained on all but one fold and scored on the held-out fold, and this repeats until every fold has served as the held-out set once. The scores are averaged to give a performance estimate, and their spread gives a rough indication of how much the result depends on which data the model was trained on. Common variants are stratified cross-validation, where each fold keeps the overall class proportions, and leave-one-out, where each fold is a single example. A large gap between training scores and held-out scores points to overfitting, where a model has learned quirks of its training data that do not carry over to new data.",
   "assurance_goals": [
-    "Reliability",
-    "Fairness",
-    "Transparency"
+    "Reliability"
   ],
   "tags": [
     "applicable-models/architecture/model-agnostic",
@@ -20,42 +18,38 @@
     "technique-type/testing",
     "assurance-goal-category/reliability",
     "assurance-goal-category/reliability/performance-assessment",
-    "assurance-goal-category/fairness",
-    "assurance-goal-category/fairness/performance-by-group",
-    "assurance-goal-category/transparency",
-    "assurance-goal-category/transparency/assessment-results",
     "lifecycle-stage/model-development",
     "lifecycle-stage/model-development/model-testing-and-validation"
   ],
   "example_use_cases": [
     {
-      "description": "Using 10-fold cross-validation to estimate a healthcare prediction model's true accuracy and detect overfitting, ensuring robust performance estimates that generalise beyond the specific training sample to new patient populations.",
-      "goal": "Reliability"
+      "goal": "Reliability",
+      "description": "A hospital data-science team has records for about 900 patients and is building a readmission-risk model. It runs 10-fold cross-validation with each patient's admissions kept in the same fold, then reports the mean and spread of held-out scores. A wide spread, or a large gap to the training score, tells the team the model is not yet stable enough to take to a prospective trial."
     },
     {
-      "description": "Providing transparent model evaluation in regulatory submissions by showing consistent performance across multiple validation folds, demonstrating to auditors that model performance claims are not cherry-picked from a single favourable test set.",
-      "goal": "Transparency"
+      "goal": "Reliability",
+      "description": "A bank's fraud team compares three candidate classifiers by running the same stratified 10-fold cross-validation on a year of labelled transactions, so every candidate is scored on identical folds and the rare fraud cases are spread evenly across them. They select the model with the best mean recall at a fixed false-alarm rate and drop any candidate whose fold-to-fold scores vary widely."
     },
     {
-      "description": "Ensuring fair model evaluation across demographic groups by using stratified cross-validation that maintains representative proportions of protected classes in each fold, revealing whether performance is consistent across different population segments.",
-      "goal": "Fairness"
+      "goal": "Reliability",
+      "description": "A materials-science group has only 120 labelled samples from costly experiments. Instead of trusting one train-test split, it repeats 5-fold cross-validation with different random splits and reports the spread of the accuracy estimate, which decides whether the model is reliable enough to guide the next round of experiments."
     }
   ],
   "limitations": [
     {
-      "description": "Computationally expensive for large datasets or complex models, requiring multiple training runs that scale linearly with the number of folds."
+      "description": "The number of folds trades cost against bias and variance. Each fold is another training run. Few folds (2 to 5) train on less data and tend to understate performance, whereas leave-one-out has little bias but unstable estimates and the highest cost. Ten folds is a common compromise, not a rule."
     },
     {
-      "description": "Can provide overly optimistic performance estimates when data has dependencies or structure (e.g., time series, grouped observations) that violate independence assumptions."
+      "description": "Assumes records are independent. If the same patient, customer or site appears in several records, a fold can be trained on records nearly identical to those it is tested on, and the score is optimistic. Folds must then be built by group, not drawn at random."
     },
     {
-      "description": "May not reflect real-world performance if the training data distribution differs significantly from future deployment conditions or population shifts."
+      "description": "Ignores time order. Training on later records and testing on earlier ones lets future information leak into the estimate and flatters the model. For time-ordered data, use an evaluation that always tests on data later than the training data, such as rolling-origin evaluation."
     },
     {
-      "description": "Choice of fold number (k) involves a bias-variance trade-off: fewer folds reduce computational cost but increase variance in estimates, whilst more folds increase computation but may introduce bias."
+      "description": "Anything learned from the data must be fitted inside each training fold, including scaling, feature selection and hyperparameter tuning. Done once on the full dataset beforehand, it leaks test-fold information and inflates the scores. Tuning and reporting on the same folds is also optimistic, so nested cross-validation is needed for both."
     },
     {
-      "description": "Standard cross-validation doesn't account for temporal ordering in sequential data, potentially leading to data leakage where future information influences past predictions."
+      "description": "A score from a small sample is imprecise, and the spread across folds understates the true uncertainty. In one neuroimaging study, error bars on a cross-validated score were roughly plus or minus 10% with 100 samples, so a small gain between two models can be noise."
     }
   ],
   "resources": [
@@ -70,17 +64,11 @@
       "citationKey": "scikit-learndevelopersCrossvalidationEvaluatingEstimator2007"
     },
     {
-      "title": "Cross-validation: what does it estimate and how well does it do it?",
-      "url": "http://arxiv.org/abs/2104.00673v4",
-      "source_type": "technical_paper",
-      "authors": [
-        "Stephen Bates",
-        "Trevor Hastie",
-        "Robert Tibshirani"
-      ],
-      "publication_date": "2021-04-01",
-      "citationKey": "batesCrossvalidationWhatDoes2021",
-      "abstract": "Cross-validation is a widely-used technique to estimate prediction error, but its behavior is complex and not fully understood. Ideally, one would like to think that cross-validation estimates the prediction error for the model at hand, fit to the training data. We prove that this is not the case for the linear model fit by ordinary least squares; rather it estimates the average prediction error of models fit on other unseen training sets drawn from the same population. We further show that this phenomenon occurs for most popular estimates of prediction error, including data splitting, bootstrapping, and Mallow's Cp. Next, the standard confidence intervals for prediction error derived from cross-validation may have coverage far below the desired level. Because each data point is used for both training and testing, there are correlations among the measured accuracies for each fold, and so the usual estimate of variance is too small. We introduce a nested cross-validation scheme to estimate this variance more accurately, and we show empirically that this modification leads to intervals with approximately correct coverage in many examples where traditional cross-validation intervals fail."
+      "title": "scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn",
+      "source_type": "software_package",
+      "citationKey": "Scikitlearn",
+      "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
     },
     {
       "title": "A Study of Cross-Validation and Bootstrap for Accuracy Estimation and Model Selection",
@@ -93,14 +81,33 @@
       "citationKey": "kohaviStudyCrossValidationBootstrap1995"
     },
     {
-      "title": "Cross-Validation in Machine Learning: How to Do It Right",
-      "url": "https://neptune.ai/blog/cross-validation-in-machine-learning-how-to-do-it-right",
-      "source_type": "tutorial",
+      "title": "Cross-Validatory Choice and Assessment of Statistical Predictions",
+      "url": "https://doi.org/10.1111/j.2517-6161.1974.tb00994.x",
+      "source_type": "technical_paper",
       "authors": [
-        "Vladimir Lyashenko"
+        "M. Stone"
       ],
-      "publication_date": "2022-07-21",
-      "citationKey": "lyashenkoCrossValidationMachineLearning2022"
+      "publication_date": "1974-1-1",
+      "citationKey": "stoneCrossValidatoryChoiceAssessment1974",
+      "abstract": "A generalized form of the cross-validation criterion is applied to the choice and assessment of prediction using the data-analytic concept of a prescription. The examples used to illustrate the application are drawn from the problem areas of univariate estimation, linear regression and analysis of variance."
+    },
+    {
+      "title": "Visualizing cross-validation behavior in scikit-learn",
+      "url": "https://scikit-learn.org/stable/auto_examples/model_selection/plot_cv_indices.html",
+      "source_type": "tutorial",
+      "citationKey": "VisualizingCrossvalidationBehavior",
+      "abstract": "Choosing the right cross-validation object is a crucial part of fitting a model properly. There are many ways to split data into training and test sets in order to avoid model overfitting, to stand..."
+    },
+    {
+      "title": "Cross-validation failure: Small sample sizes lead to large error bars",
+      "url": "https://doi.org/10.1016/j.neuroimage.2017.06.061",
+      "source_type": "application_paper",
+      "authors": [
+        "Gaël Varoquaux"
+      ],
+      "publication_date": "2018-10",
+      "citationKey": "varoquauxCrossvalidationFailureSmall2018",
+      "abstract": "Predictive models ground many state‐of‐the‐art developments in statistical brain image analysis: decoding, MVPA, searchlight, or extraction of biomarkers. The principled approach to establish their validity and usefulness is cross‐validation, testing prediction on unseen data. Here, I would like to raise awareness on error bars of cross‐validation, which are often underestimated. Simple experiments show that sample sizes of many neuroimaging studies inherently lead to large error bars, eg Symbol for 100 samples. The standard error across folds strongly underestimates them. These large error bars compromise the reliability of conclusions drawn with predictive models, such as biomarkers or methods developments where, unlike with cognitive neuroimaging MVPA approaches, more samples cannot be acquired by repeating the experiment across many subjects. Solutions to increase sample size must be investigated, tackling possible increases in heterogeneity of the data."
     }
   ],
   "complexity_rating": 2,
@@ -113,29 +120,24 @@
   ],
   "sample_claims": [
     {
-      "text": "The model's performance estimate is robust to the particular train-test partition used",
+      "assuranceGoal": "reliability",
       "domain": "general",
-      "assuranceGoal": "reliability"
+      "text": "Across ten stratified folds, the model's AUC varied by no more than 0.03 around its mean, so the reported performance does not depend on which records were held out."
     },
     {
-      "text": "The fraud detection system generalizes consistently across different subsets of historical transaction data",
+      "assuranceGoal": "reliability",
       "domain": "finance",
-      "assuranceGoal": "reliability"
+      "text": "The fraud detection model's recall on fraudulent transactions stays within the agreed band in every fold of the historical data, with no fold below the minimum acceptable recall."
     },
     {
-      "text": "The diagnostic model's validation results are reproducible across multiple independent holdout sets",
+      "assuranceGoal": "reliability",
       "domain": "healthcare",
-      "assuranceGoal": "transparency"
+      "text": "With all preprocessing and feature selection fitted inside each training fold, repeated cross-validation shows the readmission model's performance estimate is not inflated by information from the test folds."
     },
     {
-      "text": "The system maintains equitable performance across demographic groups when evaluated on different data partitions",
-      "domain": "public sector",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The model's accuracy claims reflect genuine predictive capability rather than overfitting to a single test set",
-      "domain": "general",
-      "assuranceGoal": "transparency"
+      "assuranceGoal": "reliability",
+      "domain": "healthcare",
+      "text": "The readmission-risk model shows no sign of overfitting, with held-out scores on every fold within the agreed margin of its training score."
     }
   ]
 }

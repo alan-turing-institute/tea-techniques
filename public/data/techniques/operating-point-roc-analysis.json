@@ -1,0 +1,159 @@
+{
+  "slug": "operating-point-roc-analysis",
+  "name": "Operating-Point ROC Analysis",
+  "description": "Operating-point ROC analysis measures how often a classifier makes each kind of mistake at the decision threshold it will actually use, which is the evidence behind claims such as 'the false-positive rate stays within acceptable bounds'. A classifier that outputs a score is turned into a yes-or-no decision by a threshold, and moving the threshold trades one kind of error against the other. On a labelled held-out set, the receiver operating characteristic (ROC) curve plots the true-positive rate (the share of actual positives that are flagged, also called sensitivity) against the false-positive rate (the share of actual negatives wrongly flagged, equal to one minus specificity) at every possible threshold; the operating threshold is then chosen from the curve to meet a stated limit on one error rate or to minimise the expected cost of errors, or an existing threshold is confirmed. At that one threshold the analysis reports the confusion matrix (the counts of true positives, false positives, false negatives and true negatives) and the false-positive and false-negative rates with their complements, specificity and sensitivity. The output is a set of error rates tied to a named threshold and a named test set, against which a requirement on error rates can be checked.",
+  "assurance_goals": [
+    "Reliability",
+    "Safety"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/paradigm/supervised",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/performance-assessment",
+    "assurance-goal-category/safety",
+    "assurance-goal-category/safety/verification",
+    "data-requirements/labelled-data",
+    "data-type/any",
+    "evidence-type/quantitative-metric",
+    "evidence-type/visualisation",
+    "expertise-needed/statistics",
+    "expertise-needed/domain-expertise",
+    "technique-type/metric",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A hospital's clinical informatics team evaluating a vendor's sepsis alert scores a year of its own admissions, plots the ROC curve and fixes the alert threshold its operations committee chose from the vendor's recommended range. At that threshold it reports sensitivity, specificity, positive predictive value and the share of all admissions that would trigger an alert, and uses the false-positive count and alert volume to decide whether ward staff can act on the alerts.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A card-payments company re-runs the analysis every month on transactions its fraud analysts have labelled, confirms that the false-positive rate at the live threshold is still under the limit agreed with its customer-service team, and, whenever the rate has drifted above that limit, reopens the threshold choice on the latest ROC curve and confirms the new threshold on the following month's labelled sample.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A manufacturer's quality engineers choose the threshold for a visual-inspection model by weighing the cost of scrapping a good part against the cost of shipping a defective one, using the ROC curve and the line's defect rate, then report the false-reject and defect-escape rates that the chosen threshold gives on a separate held-out production batch.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A rail operator's safety team assessing a camera-based obstacle detector for level crossings sets the decision threshold on a tuning set so that the miss rate meets the requirement allocated to the detector. It then measures the false-negative rate at that threshold on a separate set of recorded crossings, broken down into daylight, night and rain, and enters the confusion matrices in the safety case as verification evidence.",
+      "goal": "Safety"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "The rates are evidence only if they are measured on labelled cases that played no part in choosing the threshold. A threshold set to give a 1 per cent false-positive rate on a tuning set gives exactly that rate there by construction, and with a few hundred negative tuning cases its true rate on new data can be half as high again. Choosing the threshold on one set and reporting rates on another, or nesting the choice inside cross-validation, avoids this at the cost of more labelled data."
+    },
+    {
+      "description": "False-positive and true-positive rates do not change with how common the positive class is, but the share of alerts that are correct does. A false-positive rate within its limit can still mean most alerts are false when the condition is rare: at 90 per cent sensitivity and a 5 per cent false-positive rate, only about 15 per cent of alerts are correct when 1 case in 100 is positive. Claims about alert burden need the positive predictive value at the deployment prevalence as well."
+    },
+    {
+      "description": "A rate from a finite test set is an estimate, and with few negatives or few errors it can fall well below the true rate by chance. A claim that a rate is within a limit needs a confidence interval (exact binomial for a single rate; see Bootstrap Confidence Intervals for Evaluation Metrics for other metrics) narrower than the margin to the limit. With no misses, about 3,000 positives show a miss rate below 1 in 1,000, and 30,000 below 1 in 10,000, at 95 per cent confidence."
+    },
+    {
+      "description": "The threshold is a fixed score, so the rates hold only while the scores for each class stay as in the test set. A new scanner, fraud pattern or patient mix shifts the scores and moves the false-positive rate with no change to the model, so the analysis must be repeated on labelled operational samples, which can be slow or costly. Labels matter too: where only flagged cases are reviewed, the rate for unflagged cases is unknown unless a random sample of them is labelled."
+    },
+    {
+      "description": "A single rate averages over the whole test set. It can meet its limit overall while exceeding it for a group of people or an operating condition (night-time images, one hospital site) that is rare in the test data. Rates need reporting for each group and condition the claim covers, each with enough cases to be informative, which can multiply the labelled data required."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Receiver operating characteristic (ROC) (Metrics and scoring: quantifying the quality of predictions) — scikit-learn user guide",
+      "url": "https://scikit-learn.org/stable/modules/model_evaluation.html#receiver-operating-characteristic-roc",
+      "source_type": "documentation",
+      "citationKey": "ReceiverOperatingCharacteristic",
+      "abstract": "Which scoring function should I use?: Before we take a closer look into the details of the many scores and evaluation metrics, we want to give some guidance, inspired by statistical decision theory..."
+    },
+    {
+      "title": "scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn",
+      "source_type": "software_package",
+      "citationKey": "Scikitlearn",
+      "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
+    },
+    {
+      "title": "Basic principles of ROC analysis",
+      "url": "https://doi.org/10.1016/s0001-2998(78)80014-2",
+      "source_type": "technical_paper",
+      "authors": [
+        "Charles E. Metz"
+      ],
+      "publication_date": "1978-10",
+      "citationKey": "metzBasicPrinciplesROC1978"
+    },
+    {
+      "title": "An introduction to ROC analysis",
+      "url": "https://doi.org/10.1016/j.patrec.2005.10.010",
+      "source_type": "technical_paper",
+      "authors": [
+        "Tom Fawcett"
+      ],
+      "publication_date": "2006-6",
+      "citationKey": "fawcettIntroductionROCAnalysis2006"
+    },
+    {
+      "title": "Post-tuning the decision threshold for cost-sensitive learning — scikit-learn",
+      "url": "https://scikit-learn.org/stable/auto_examples/model_selection/plot_cost_sensitive_learning.html",
+      "source_type": "tutorial",
+      "citationKey": "PosttuningDecisionThreshold",
+      "abstract": "Once a classifier is trained, the output of the predict method outputs class label predictions corresponding to a thresholding of either the decision_function or the predict_proba output. For a bin..."
+    },
+    {
+      "title": "External Validation of a Widely Implemented Proprietary Sepsis Prediction Model in Hospitalized Patients",
+      "url": "https://doi.org/10.1001/jamainternmed.2021.2626",
+      "source_type": "application_paper",
+      "authors": [
+        "Andrew Wong",
+        "Erkin Otles",
+        "John P. Donnelly",
+        "Andrew Krumm",
+        "Jeffrey McCullough",
+        "Olivia DeTroyer-Cooley",
+        "Justin Pestrue",
+        "Marie Phillips",
+        "Judy Konye",
+        "Carleen Penoza",
+        "Muhammad Ghous",
+        "Karandeep Singh"
+      ],
+      "publication_date": "2021-8-1",
+      "citationKey": "wongExternalValidationWidely2021",
+      "abstract": "Importance: The Epic Sepsis Model (ESM), a proprietary sepsis prediction model, is implemented at hundreds of US hospitals. The ESM's ability to identify patients with sepsis has not been adequately evaluated despite widespread use. Objective: To externally validate the ESM in the prediction of sepsis and evaluate its potential clinical value compared with usual care. Design, Setting, and Participants: This retrospective cohort study was conducted among 27 697 patients aged 18 years or older admitted to Michigan Medicine, the academic health system of the University of Michigan, Ann Arbor, with 38 455 hospitalizations between December 6, 2018, and October 20, 2019. Exposure: The ESM score, calculated every 15 minutes. Main Outcomes and Measures: Sepsis, as defined by a composite of (1) the Centers for Disease Control and Prevention surveillance criteria and (2) International Statistical Classification of Diseases and Related Health Problems, Tenth Revision diagnostic codes accompanied by 2 systemic inflammatory response syndrome criteria and 1 organ dysfunction criterion within 6 hours of one another. Model discrimination was assessed using the area under the receiver operating characteristic curve at the hospitalization level and with prediction horizons of 4, 8, 12, and 24 hours. Model calibration was evaluated with calibration plots. The potential clinical benefit associated with the ESM was assessed by evaluating the added benefit of the ESM score compared with contemporary clinical practice (based on timely administration of antibiotics). Alert fatigue was evaluated by comparing the clinical value of different alerting strategies. Results: We identified 27 697 patients who had 38 455 hospitalizations (21 904 women [57%]; median age, 56 years [interquartile range, 35-69 years]) meeting inclusion criteria, of whom sepsis occurred in 2552 (7%). The ESM had a hospitalization-level area under the receiver operating characteristic curve of 0.63 (95% CI, 0.62-0.64). The ESM identified 183 of 2552 patients with sepsis (7%) who did not receive timely administration of antibiotics, highlighting the low sensitivity of the ESM in comparison with contemporary clinical practice. The ESM also did not identify 1709 patients with sepsis (67%) despite generating alerts for an ESM score of 6 or higher for 6971 of all 38 455 hospitalized patients (18%), thus creating a large burden of alert fatigue. Conclusions and Relevance: This external validation cohort study suggests that the ESM has poor discrimination and calibration in predicting the onset of sepsis. The widespread adoption of the ESM despite its poor performance raises fundamental concerns about sepsis management on a national level."
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 1,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "The classifier's false-positive rate at its operating threshold remains within the acceptable bound when re-measured on each quarter's labelled operational data.",
+      "assuranceGoal": "reliability",
+      "domain": "general"
+    },
+    {
+      "text": "At the live decision threshold, the fraud model flagged no more than 2 per cent of legitimate transactions in each of the last six months of analyst-labelled samples.",
+      "assuranceGoal": "reliability",
+      "domain": "finance"
+    },
+    {
+      "text": "At the alert threshold in clinical use, the sepsis model's sensitivity and specificity on a year of local admissions meet the limits agreed with the clinical team, and the share of admissions that trigger an alert stays within the agreed alert load.",
+      "assuranceGoal": "reliability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "The inspection model's threshold was fixed on a tuning batch before testing, and the false-reject and defect-escape rates measured at that threshold on a separate production batch are within the agreed limits.",
+      "assuranceGoal": "reliability",
+      "domain": "manufacturing"
+    },
+    {
+      "text": "At its deployed threshold, the level-crossing obstacle detector's miss rate on independent test recordings meets the requirement allocated to it in daylight, at night and in rain.",
+      "assuranceGoal": "safety",
+      "domain": "transport"
+    }
+  ]
+}

@@ -1,108 +1,154 @@
 {
   "slug": "integrated-gradients",
   "name": "Integrated Gradients",
-  "description": "Integrated Gradients is an attribution technique that explains a model's prediction by quantifying the contribution of each input feature. It works by accumulating gradients along a straight path from a user-defined baseline input (e.g., a black image or an all-zero vector) to the actual input. This path integral ensures that the attributions satisfy fundamental axioms like completeness (attributions sum up to the difference between the prediction and the baseline prediction) and sensitivity (non-zero attributions for features that change the prediction). The output is a set of importance scores, often visualised as heatmaps, indicating which parts of the input were most influential for the model's decision.",
+  "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
   "assurance_goals": [
-    "Explainability"
+    "Explainability",
+    "Fairness"
   ],
   "tags": [
+    "applicable-models/architecture/neural-networks",
+    "applicable-models/architecture/neural-networks/transformer",
+    "applicable-models/paradigm/parametric",
+    "applicable-models/paradigm/supervised",
+    "applicable-models/requirements/differentiable",
+    "applicable-models/requirements/gradient-access",
     "assurance-goal-category/explainability",
     "assurance-goal-category/explainability/attribution-methods/gradient-based",
     "assurance-goal-category/explainability/explains/feature-importance",
     "assurance-goal-category/explainability/property/completeness",
-    "assurance-goal-category/explainability/property/consistency",
+    "assurance-goal-category/fairness",
+    "assurance-goal-category/fairness/bias-diagnosis",
     "data-requirements/reference-dataset",
-    "data-type/any",
+    "data-type/image",
+    "data-type/tabular",
+    "data-type/text",
     "evidence-type/quantitative-metric",
     "evidence-type/visualisation",
-    "expertise-needed/ml-engineering",
     "expertise-needed/deep-learning",
+    "expertise-needed/ml-engineering",
     "explanatory-scope/local",
-    "technique-type/algorithmic",
-    "applicable-models/architecture/neural-networks",
-    "applicable-models/paradigm/parametric",
-    "applicable-models/paradigm/supervised",
-    "applicable-models/requirements/gradient-access",
-    "applicable-models/requirements/differentiable",
     "lifecycle-stage/model-development",
-    "lifecycle-stage/model-development/model-testing-and-validation"
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "technique-type/algorithmic"
   ],
   "example_use_cases": [
     {
-      "description": "Analysing a medical image classification model to understand which specific pixels or regions in an X-ray image contribute most to a diagnosis of pneumonia, ensuring the model focuses on relevant pathological features rather than artifacts.",
+      "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading.",
       "goal": "Explainability"
     },
     {
-      "description": "Explaining the sentiment prediction of a natural language processing model by highlighting which words or phrases in a review most strongly influenced its classification as positive or negative, revealing the model's interpretative focus.",
+      "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question.",
       "goal": "Explainability"
+    },
+    {
+      "description": "A trust-and-safety team investigating false positives in a toxic-content classifier aggregates token attributions over wrongly flagged posts to see whether identity terms, such as the name of a religion or a sexual orientation, rather than abusive language drive the score, and adds counter-examples to the training data where they do.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "A lender's model-risk team runs Integrated Gradients over a classifier that reads the free-text statements in loan applications, ranking the most highly attributed words across a sample of declined applications to check whether words that reveal a protected characteristic, or stand in for one, carry weight in the decision.",
+      "goal": "Fairness"
     }
   ],
   "limitations": [
     {
-      "description": "Requires a carefully chosen and meaningful baseline input; an inappropriate baseline can lead to misleading or uninformative attributions."
+      "description": "Attributions are measured against the baseline and no choice is neutral. Features that match the baseline score near zero even when the model relies on them: with a black-image baseline, dark pixels on the object get little credit. A comparison of blurred, noise and training-data baselines found none best, so the baseline is an assumption to state and to vary before drawing conclusions."
     },
     {
-      "description": "The model must be differentiable, which limits its direct application to models with non-differentiable components or discrete inputs without workarounds."
+      "description": "Requires gradient access to a differentiable model, so it cannot explain tree ensembles, rule-based components or a model reached only through an API. For text, the path runs through token embeddings whose intermediate points are not real words, and subword tokenisation splits a word across several scores that must be recombined before a reviewer can read them."
     },
     {
-      "description": "Computationally more expensive than simple gradient-based methods, as it requires multiple gradient calculations along the integration path."
+      "description": "Each explanation needs one gradient computation per step along the path; the original authors found 20 to 300 steps were usually enough for the scores to sum to within 5% of the output difference. Explaining long documents, high-resolution images or a large audit sample therefore costs tens to hundreds of forward and backward passes per prediction."
     },
     {
-      "description": "While satisfying completeness, the attributions can sometimes be visually noisy or difficult for humans to interpret intuitively, especially for complex inputs."
+      "description": "A score shows how sensitive the output was to a feature along one straight path, not that the feature causes the outcome in the world or that removing it would change the decision. Maps over neighbouring pixels or tokens are often noisy, and a plausible-looking heatmap does not show that the model's reasoning is sound."
     }
   ],
   "resources": [
     {
-      "title": "Integrated-Gradients",
-      "url": "https://github.com/ankurtaly/Integrated-Gradients",
-      "source_type": "software_package",
-      "publication_date": "2016-11-04",
-      "citationKey": "ankurtalyIntegratedGradients2016",
-      "abstract": "Attributing predictions made by the Inception network using the Integrated Gradients method"
+      "title": "Integrated Gradients — Captum API reference",
+      "url": "https://captum.ai/api/integrated_gradients.html",
+      "source_type": "documentation",
+      "citationKey": "IntegratedGradientsCaptum",
+      "abstract": "Model Interpretability for PyTorch"
     },
     {
       "title": "captum",
-      "url": "https://github.com/pytorch/captum",
+      "url": "https://github.com/meta-pytorch/captum",
       "source_type": "software_package",
       "publication_date": "2019-08-27",
       "citationKey": "meta-pytorchCaptum2019",
       "abstract": "Model interpretability and understanding for PyTorch"
     },
     {
-      "title": "Maximum Entropy Baseline for Integrated Gradients",
-      "url": "http://arxiv.org/abs/2204.05948v1",
+      "title": "Axiomatic Attribution for Deep Networks",
+      "url": "https://proceedings.mlr.press/v70/sundararajan17a.html",
       "source_type": "technical_paper",
       "authors": [
-        "Hanxiao Tan"
+        "Mukund Sundararajan",
+        "Ankur Taly",
+        "Qiqi Yan"
       ],
-      "publication_date": "2022-04-12",
-      "citationKey": "tanMaximumEntropyBaseline2022",
-      "abstract": "Integrated Gradients (IG), one of the most popular explainability methods available, still remains ambiguous in the selection of baseline, which may seriously impair the credibility of the explanations. This study proposes a new uniform baseline, i.e., the Maximum Entropy Baseline, which is consistent with the \"uninformative\" property of baselines defined in IG. In addition, we propose an improved ablating evaluation approach incorporating the new baseline, where the information conservativeness is maintained. We explain the linear transformation invariance of IG baselines from an information perspective. Finally, we assess the reliability of the explanations generated by different explainability methods and different IG baselines through extensive evaluation experiments."
+      "publication_date": "2017-03-04",
+      "citationKey": "sundararajanAxiomaticAttributionDeep2017",
+      "abstract": "We study the problem of attributing the prediction of a deep network to its input features, a problem previously studied by several other works. We identify two fundamental axioms---Sensitivity and Implementation Invariance that attribution methods ought to satisfy. We show that they are not satisfied by most known attribution methods, which we consider to be a fundamental weakness of those methods. We use the axioms to guide the design of a new attribution method called Integrated Gradients. Our method requires no modification to the original network and is extremely simple to implement; it just needs a few calls to the standard gradient operator. We apply this method to a couple of image models, a couple of text models and a chemistry model, demonstrating its ability to debug networks, to extract rules from a network, and to enable users to engage with models better."
     },
     {
-      "title": "Integrated Gradients from Scratch | Towards Data Science",
-      "url": "https://towardsdatascience.com/integrated-gradients-from-scratch-b46311e4ab4",
+      "title": "Integrated gradients — TensorFlow Core tutorials",
+      "url": "https://www.tensorflow.org/tutorials/interpretability/integrated_gradients",
+      "source_type": "tutorial",
+      "citationKey": "IntegratedGradientsTensorFlow"
+    },
+    {
+      "title": "Using a Deep Learning Algorithm and Integrated Gradients Explanation to Assist Grading for Diabetic Retinopathy",
+      "url": "https://doi.org/10.1016/j.ophtha.2018.11.016",
+      "source_type": "application_paper",
+      "authors": [
+        "Rory Sayres",
+        "Ankur Taly",
+        "Ehsan Rahimy",
+        "Katy Blumer",
+        "David Coz",
+        "Naama Hammel",
+        "Jonathan Krause",
+        "Arunachalam Narayanaswamy",
+        "Zahra Rastegar",
+        "Derek Wu",
+        "Shawn Xu",
+        "Scott Barb",
+        "Anthony Joseph",
+        "Michael Shumski",
+        "Jesse Smith",
+        "Arjun B. Sood",
+        "Greg S. Corrado",
+        "Lily Peng",
+        "Dale R. Webster"
+      ],
+      "publication_date": "2019-4",
+      "citationKey": "sayresUsingDeepLearning2019",
+      "abstract": "PURPOSE: To understand the impact of deep learning diabetic retinopathy (DR) algorithms on physician readers in computer-assisted settings. DESIGN: Evaluation of diagnostic technology. PARTICIPANTS: One thousand seven hundred ninety-six retinal fundus images from 1612 diabetic patients. METHODS: Ten ophthalmologists (5 general ophthalmologists, 4 retina specialists, 1 retina fellow) read images for DR severity based on the International Clinical Diabetic Retinopathy disease severity scale in each of 3 conditions: unassisted, grades only, or grades plus heatmap. Grades-only assistance comprised a histogram of DR predictions (grades) from a trained deep-learning model. For grades plus heatmap, we additionally showed explanatory heatmaps. MAIN OUTCOME MEASURES: For each experiment arm, we computed sensitivity and specificity of each reader and the algorithm for different levels of DR severity against an adjudicated reference standard. We also measured accuracy (exact 5-class level agreement and Cohen's quadratically weighted κ), reader-reported confidence (5-point Likert scale), and grading time. RESULTS: Readers graded more accurately with model assistance than without for the grades-only condition (P < 0.001). Grades plus heatmaps improved accuracy for patients with DR (P < 0.001), but reduced accuracy for patients without DR (P = 0.006). Both forms of assistance increased readers' sensitivity moderate-or-worse DR: unassisted: mean, 79.4% [95% confidence interval (CI), 72.3%-86.5%]; grades only: mean, 87.5% [95% CI, 85.1%-89.9%]; grades plus heatmap: mean, 88.7% [95% CI, 84.9%-92.5%] without a corresponding drop in specificity (unassisted: mean, 96.6% [95% CI, 95.9%-97.4%]; grades only: mean, 96.1% [95% CI, 95.5%-96.7%]; grades plus heatmap: mean, 95.5% [95% CI, 94.8%-96.1%]). Algorithmic assistance increased the accuracy of retina specialists above that of the unassisted reader or model alone; and increased grading confidence and grading time across all readers. For most cases, grades plus heatmap was only as effective as grades only. Over the course of the experiment, grading time decreased across all conditions, although most sharply for grades plus heatmap. CONCLUSIONS: Deep learning algorithms can improve the accuracy of, and confidence in, DR diagnosis in an assisted read setting. They also may increase grading time, although these effects may be ameliorated with experience."
+    },
+    {
+      "title": "Visualizing the Impact of Feature Attribution Baselines",
+      "url": "https://doi.org/10.23915/distill.00022",
       "source_type": "tutorial",
       "authors": [
-        "Alexey Kravets"
+        "Pascal Sturmfels",
+        "Scott Lundberg",
+        "Su-In Lee",
+        "Pascal Sturmfels",
+        "Scott Lundberg",
+        "Su-In Lee"
       ],
-      "publication_date": "2021-10-14",
-      "citationKey": "kravetsIntegratedGradientsScratch2021"
+      "publication_date": "2020",
+      "citationKey": "sturmfelsVisualizingImpactFeature2020"
     },
     {
-      "title": "Understanding Integrated Gradients with SmoothTaylor for Deep Neural Network Attribution",
-      "url": "http://arxiv.org/abs/2004.10484v2",
-      "source_type": "technical_paper",
-      "authors": [
-        "Gary S. W. Goh",
-        "Sebastian Lapuschkin",
-        "Leander Weber",
-        "Wojciech Samek",
-        "Alexander Binder"
-      ],
-      "publication_date": "2020-04-22",
-      "citationKey": "s.w.gohUnderstandingIntegratedGradients2020",
-      "abstract": "Integrated Gradients as an attribution method for deep neural network models offers simple implementability. However, it suffers from noisiness of explanations which affects the ease of interpretability. The SmoothGrad technique is proposed to solve the noisiness issue and smoothen the attribution maps of any gradient-based attribution method. In this paper, we present SmoothTaylor as a novel theoretical concept bridging Integrated Gradients and SmoothGrad, from the Taylor's theorem perspective. We apply the methods to the image classification problem, using the ILSVRC2012 ImageNet object recognition dataset, and a couple of pretrained image models to generate attribution maps. These attribution maps are empirically evaluated using quantitative measures for sensitivity and noise level. We further propose adaptive noising to optimize for the noise scale hyperparameter value. From our experiments, we find that the SmoothTaylor approach together with adaptive noising is able to generate better quality saliency maps with lesser noise and higher sensitivity to the relevant points in the input space as compared to Integrated Gradients."
+      "title": "Interpreting BERT Models (Part 1) — Captum tutorial",
+      "url": "https://captum.ai/tutorials/Bert_SQUAD_Interpret",
+      "source_type": "tutorial",
+      "citationKey": "InterpretingBERTModels",
+      "abstract": "Model Interpretability for PyTorch"
     }
   ],
   "complexity_rating": 4,
@@ -115,29 +161,29 @@
   ],
   "sample_claims": [
     {
-      "text": "The diagnostic model's predictions are attributable to specific anatomical features rather than spurious image artifacts",
+      "text": "The retinopathy grading model's referral predictions are attributable to lesion regions in the retinal image rather than to imaging artefacts, as shown by Integrated Gradients review of a stratified sample of graded cases",
       "domain": "healthcare",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The feature importance scores provided to credit analysts sum exactly to the difference between the model's prediction and its neutral baseline",
+      "text": "The attribution scores given to credit analysts for each decision sum, within a stated tolerance, to the difference between the model's score for the applicant and its score for the documented reference applicant",
       "domain": "finance",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The perception system's object detection decisions are traceable to specific visual elements within the sensor input",
-      "domain": "autonomous systems",
-      "assuranceGoal": "explainability"
-    },
-    {
-      "text": "The model's attribution of prediction confidence to input measurements respects the principle that zero-valued features receive proportional credit",
-      "domain": "environmental",
-      "assuranceGoal": "explainability"
-    },
-    {
-      "text": "The model's explanation quantifies each input feature's contribution along the path from a neutral reference state to the actual input",
+      "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
       "domain": "general",
       "assuranceGoal": "explainability"
+    },
+    {
+      "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+      "domain": "general",
+      "assuranceGoal": "fairness"
+    },
+    {
+      "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+      "domain": "finance",
+      "assuranceGoal": "fairness"
     }
   ]
 }

@@ -2,14 +2,14 @@
   "tag": {
     "name": "evidence-type/modified-dataset",
     "slug": "evidence-type-modified-dataset",
-    "count": 5,
+    "count": 8,
     "category": "evidence-type"
   },
   "techniques": [
     {
       "slug": "reweighing",
       "name": "Reweighing",
-      "description": "Reweighing is a pre-processing technique that mitigates bias by assigning different weights to training examples based on their group membership and class label. The weights are calculated to ensure that privileged and unprivileged groups have equal influence on the model's training process, effectively balancing the dataset without altering the feature values themselves. This helps to train fairer models by correcting for historical imbalances in how different groups are represented in the data.",
+      "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
       "assurance_goals": [
         "Fairness",
         "Transparency"
@@ -18,62 +18,54 @@
         "applicable-models/architecture/model-agnostic",
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/black-box",
-        "data-requirements/access-to-training-data",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/audit-trail",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
         "data-type/any",
+        "evidence-type/modified-dataset",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/statistics",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
-        "technique-type/algorithmic",
-        "expertise-needed/statistics",
-        "expertise-needed/domain-expertise",
-        "evidence-type/modified-dataset"
+        "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "In a loan application system, if historical data shows that a higher proportion of applicants from a minority group were denied loans (negative outcome), reweighing would assign higher weights to these instances. This forces the model to pay more attention to correctly classifying the underrepresented group, aiming to correct for historical bias and improve fairness metrics like equal opportunity.",
+          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model.",
           "goal": "Fairness"
         },
         {
-          "description": "When developing a hiring model, if the training data contains fewer female applicants for senior roles, reweighing can be applied to increase the importance of these instances. This helps to prevent the model from learning a spurious correlation between gender and seniority, ensuring that female candidates are evaluated more equitably during the screening process.",
+          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one.",
           "goal": "Fairness"
         },
         {
-          "description": "In a medical diagnosis system, reweighing provides transparency by explicitly showing which demographic groups required adjustment for balanced representation. The computed weights serve as documentation of historical bias patterns in medical data, helping clinicians understand potential disparities and ensuring the model's decisions are based on medical evidence rather than demographic correlations.",
+          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "An auditor reviewing a benefits-fraud model asks for the table of reweighing weights kept with the training run. A weight of 1.8 on one nationality group's not-fraud cases shows how far that group's historical labels departed from independence, and the table records exactly how the training data were adjusted, so the auditor can reconstruct the intervention without rerunning it.",
           "goal": "Transparency"
         }
       ],
       "limitations": [
         {
-          "description": "The technique only adjusts the overall influence of demographic groups and does not address biases that may be encoded within the features themselves."
+          "description": "Its target is fixed: equal rates of positive labels across groups in the weighted training data (statistical parity). It does not aim at equal error rates such as equal opportunity, and the weights are computed once, before training, so they cannot respond to where the trained model actually errs. An adaptive variant (Krasanakis et al., 2018) re-estimates weights during training for error-rate criteria, but it has no maintained implementation."
         },
         {
-          "description": "Assigning very high weights to a small number of instances from an underrepresented group can increase the model's variance and make it sensitive to outliers, potentially harming generalisation."
+          "description": "It removes all association between group and label, including any part a legitimate factor explains. Kamiran and Calders give the example of car insurance, where more accidents among men may justify different outcomes by sex; reweighing erases that difference too, so it over-corrects wherever some gap between groups is warranted."
         },
         {
-          "description": "The effectiveness of reweighing depends on the assumption that the labels in the training data are accurate; it cannot correct for label bias where outcomes were themselves the result of historical discrimination."
+          "description": "The learning algorithm must accept example weights; where it cannot, the data have to be resampled instead, which is a different method. Only the training data are balanced, so the trained model's predictions are not guaranteed to be: outcome rates by group must be measured on held-out data after training rather than assumed."
         },
         {
-          "description": "It may not be effective if the feature distributions for different groups are fundamentally different, as it cannot change the underlying data relationships."
+          "description": "When a group-label combination is rare its weight is large (a combination with a tenth of its expected count gets a weight of ten), so a handful of examples can dominate training. This raises variance and amplifies any labelling errors in exactly the group the method is meant to protect, and it bites hardest with small or intersectional groups."
         }
       ],
       "resources": [
-        {
-          "title": "Achieving Fairness at No Utility Cost via Data Reweighing with Influence",
-          "url": "http://arxiv.org/abs/2202.00787v2",
-          "source_type": "technical_paper",
-          "authors": [
-            "Peizhao Li",
-            "Hongfu Liu"
-          ],
-          "publication_date": "2022-02-01",
-          "citationKey": "liAchievingFairnessNo2022",
-          "abstract": "With the fast development of algorithmic governance, fairness has become a compulsory property for machine learning models to suppress unintentional discrimination. In this paper, we focus on the pre-processing aspect for achieving fairness, and propose a data reweighing approach that only adjusts the weight for samples in the training phase. Different from most previous reweighing methods which usually assign a uniform weight for each (sub)group, we granularly model the influence of each training sample with regard to fairness-related quantity and predictive utility, and compute individual weights based on influence under the constraints from both fairness and utility. Experimental results reveal that previous methods achieve fairness at a non-negligible cost of utility, while as a significant advantage, our approach can empirically release the tradeoff and obtain cost-free fairness for equal opportunity. We demonstrate the cost-free fairness through vanilla classifiers and standard training processes, compared to baseline methods on multiple real-world tabular datasets. Code available at https://github.com/brandeis-machine-learning/influence-fairness."
-        },
         {
           "title": "aif360.sklearn.preprocessing.Reweighing — aif360 0.6.1 ...",
           "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.sklearn.preprocessing.Reweighing.html",
@@ -85,28 +77,63 @@
           "citationKey": "aif360developersAif360sklearnpreprocessingReweighingAif3600612018"
         },
         {
-          "title": "influence-fairness",
-          "url": "https://github.com/brandeis-machine-learning/influence-fairness",
+          "title": "AIF360",
+          "url": "https://github.com/Trusted-AI/AIF360",
           "source_type": "software_package",
-          "publication_date": "2022-06-14",
-          "citationKey": "brandeis-machine-learningInfluencefairness2022",
-          "abstract": "Code for ICML 2022 paper: Achieving Fairness at No Utility Cost via Data Reweighing with Influence"
+          "publication_date": "2018-08-22",
+          "citationKey": "trusted-aiAIF3602018",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
         },
         {
-          "title": "Boosting Fair Classifier Generalization through Adaptive Priority Reweighing",
-          "url": "http://arxiv.org/abs/2309.08375v3",
+          "title": "Data preprocessing techniques for classification without discrimination",
+          "url": "https://doi.org/10.1007/s10115-011-0463-8",
           "source_type": "technical_paper",
           "authors": [
-            "Zhihao Hu",
-            "Yiran Xu",
-            "Mengnan Du",
-            "Jindong Gu",
-            "Xinmei Tian",
-            "Fengxiang He"
+            "Faisal Kamiran",
+            "Toon Calders"
           ],
-          "publication_date": "2023-09-15",
-          "citationKey": "huBoostingFairClassifier2023",
-          "abstract": "With the increasing penetration of machine learning applications in critical decision-making areas, calls for algorithmic fairness are more prominent. Although there have been various modalities to improve algorithmic fairness through learning with fairness constraints, their performance does not generalize well in the test set. A performance-promising fair algorithm with better generalizability is needed. This paper proposes a novel adaptive reweighing method to eliminate the impact of the distribution shifts between training and test data on model generalizability. Most previous reweighing methods propose to assign a unified weight for each (sub)group. Rather, our method granularly models the distance from the sample predictions to the decision boundary. Our adaptive reweighing method prioritizes samples closer to the decision boundary and assigns a higher weight to improve the generalizability of fair classifiers. Extensive experiments are performed to validate the generalizability of our adaptive priority reweighing method for accuracy and fairness measures (i.e., equal opportunity, equalized odds, and demographic parity) in tabular benchmarks. We also highlight the performance of our method in improving the fairness of language and vision models. The code is available at https://github.com/che2198/APW."
+          "publication_date": "2012-06-01",
+          "citationKey": "kamiranDataPreprocessingTechniques2012",
+          "abstract": "Recently, the following Discrimination-Aware Classification Problem was introduced: Suppose we are given training data that exhibit unlawful discrimination; e.g., toward sensitive attributes such as gender or ethnicity. The task is to learn a classifier that optimizes accuracy, but does not have this discrimination in its predictions on test data. This problem is relevant in many settings, such as when the data are generated by a biased decision process or when the sensitive attribute serves as a proxy for unobserved features. In this paper, we concentrate on the case with only one binary sensitive attribute and a two-class classification problem. We first study the theoretically optimal trade-off between accuracy and non-discrimination for pure classifiers. Then, we look at algorithmic solutions that preprocess the data to remove discrimination before a classifier is learned. We survey and extend our existing data preprocessing techniques, being suppression of the sensitive attribute, massaging the dataset by changing class labels, and reweighing or resampling the data to remove discrimination without relabeling instances. These preprocessing techniques have been implemented in a modified version of Weka and we present the results of experiments on real-life data."
+        },
+        {
+          "title": "AIF360 tutorial: Detecting and mitigating age bias on credit decisions (notebook)",
+          "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/tutorial_credit_scoring.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AIF360TutorialDetecting",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models. - Trusted-AI/AIF360"
+        },
+        {
+          "title": "Comparison of Methods to Reduce Bias From Clinical Prediction Models of Postpartum Depression",
+          "url": "https://doi.org/10.1001/jamanetworkopen.2021.3909",
+          "source_type": "application_paper",
+          "authors": [
+            "Yoonyoung Park",
+            "Jianying Hu",
+            "Moninder Singh",
+            "Issa Sylla",
+            "Irene Dankwa-Mullan",
+            "Eileen Koski",
+            "Amar K. Das"
+          ],
+          "publication_date": "2021-4-15",
+          "citationKey": "parkComparisonMethodsReduce2021",
+          "abstract": "Importance: The lack of standards in methods to reduce bias for clinical algorithms presents various challenges in providing reliable predictions and in addressing health disparities. Objective: To evaluate approaches for reducing bias in machine learning models using a real-world clinical scenario. Design, Setting, and Participants: Health data for this cohort study were obtained from the IBM MarketScan Medicaid Database. Eligibility criteria were as follows: (1) Female individuals aged 12 to 55 years with a live birth record identified by delivery-related codes from January 1, 2014, through December 31, 2018; (2) greater than 80% enrollment through pregnancy to 60 days post partum; and (3) evidence of coverage for depression screening and mental health services. Statistical analysis was performed in 2020. Exposures: Binarized race (Black individuals and White individuals). Main Outcomes and Measures: Machine learning models (logistic regression [LR], random forest, and extreme gradient boosting) were trained for 2 binary outcomes: postpartum depression (PPD) and postpartum mental health service utilization. Risk-adjusted generalized linear models were used for each outcome to assess potential disparity in the cohort associated with binarized race (Black or White). Methods for reducing bias, including reweighing, Prejudice Remover, and removing race from the models, were examined by analyzing changes in fairness metrics compared with the base models. Baseline characteristics of female individuals at the top-predicted risk decile were compared for systematic differences. Fairness metrics of disparate impact (DI, 1 indicates fairness) and equal opportunity difference (EOD, 0 indicates fairness). Results: Among 573 634 female individuals initially examined for this study, 314 903 were White (54.9%), 217 899 were Black (38.0%), and the mean (SD) age was 26.1 (5.5) years. The risk-adjusted odds ratio comparing White participants with Black participants was 2.06 (95% CI, 2.02-2.10) for clinically recognized PPD and 1.37 (95% CI, 1.33-1.40) for postpartum mental health service utilization. Taking the LR model for PPD prediction as an example, reweighing reduced bias as measured by improved DI and EOD metrics from 0.31 and -0.19 to 0.79 and 0.02, respectively. Removing race from the models had inferior performance for reducing bias compared with the other methods (PPD: DI = 0.61; EOD = -0.05; mental health service utilization: DI = 0.63; EOD = -0.04). Conclusions and Relevance: Clinical prediction models trained on potentially biased data may produce unfair outcomes on the basis of the chosen metrics. This study's results suggest that the performance varied depending on the model, outcome label, and method for reducing bias. This approach toward evaluating algorithmic bias can be used as an example for the growing number of researchers who wish to examine and address bias in their data and models."
+        },
+        {
+          "title": "Bias Discovery in Machine Learning Models for Mental Health",
+          "url": "https://doi.org/10.3390/info13050237",
+          "source_type": "application_paper",
+          "authors": [
+            "Pablo Mosteiro",
+            "Jesse Kuiper",
+            "Judith Masthoff",
+            "Floortje Scheepers",
+            "Marco Spruit"
+          ],
+          "publication_date": "2022-5-5",
+          "citationKey": "mosteiroBiasDiscoveryMachine2022",
+          "abstract": "Fairness and bias are crucial concepts in artificial intelligence, yet they are relatively ignored in machine learning applications in clinical psychiatry. We computed fairness metrics and present bias mitigation strategies using a model trained on clinical mental health data. We collected structured data related to the admission, diagnosis, and treatment of patients in the psychiatry department of the University Medical Center Utrecht. We trained a machine learning model to predict future administrations of benzodiazepines on the basis of past data. We found that gender plays an unexpected role in the predictions—this constitutes bias. Using the AI Fairness 360 package, we implemented reweighing and discrimination-aware regularization as bias mitigation strategies, and we explored their implications for model performance. This is the first application of bias exploration and mitigation in a machine learning model trained on real clinical psychiatry data."
         }
       ],
       "complexity_rating": 2,
@@ -118,18 +145,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The lending model's training process gives equal consideration to applicants from all demographic groups regardless of their representation in historical data",
+          "text": "The approval model was trained on loan history reweighed so that every ethnic group has the same approval rate in the weighted data, and its approval-rate gap on held-out applicants is reported alongside its accuracy.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The hiring system's learned patterns reflect balanced influence from all candidate demographics rather than reinforcing historical application imbalances",
+          "text": "The postpartum depression outreach model, trained with reweighing by race, has a disparate impact ratio within the agreed range on held-out patients.",
+          "domain": "healthcare",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The model training adjustments applied to address historical group imbalances are quantified and documented for regulatory review",
-          "domain": "finance",
+          "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
+          "domain": "public sector",
           "assuranceGoal": "transparency"
         }
       ]
@@ -139,8 +171,7 @@
       "name": "Disparate Impact Remover",
       "description": "Disparate Impact Remover is a preprocessing technique that transforms feature values in a dataset to reduce statistical dependence between features and protected attributes (like race or gender). The method modifies non-protected features through mathematical transformations that preserve the utility of the data whilst reducing correlations that could lead to discriminatory outcomes. This approach specifically targets the '80% rule' disparate impact threshold by adjusting feature distributions to ensure more equitable treatment across demographic groups in downstream model predictions.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -149,8 +180,6 @@
         "data-requirements/access-to-training-data",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "data-requirements/sensitive-attributes",
         "data-type/tabular",
         "expertise-needed/domain-expertise",
@@ -168,10 +197,6 @@
         {
           "description": "Preprocessing a recruitment dataset where features like 'previous job titles' and 'university attended' correlate with gender, modifying these features to ensure the '80% rule' is met whilst maintaining useful information for predicting job performance.",
           "goal": "Fairness"
-        },
-        {
-          "description": "Preprocessing financial lending data to provide transparent bias metrics showing the quantified reduction in correlation between protected attributes and creditworthiness features, enabling institutions to demonstrate compliance with the 80% rule and explain their fairness interventions to regulators.",
-          "goal": "Transparency"
         }
       ],
       "limitations": [
@@ -190,14 +215,6 @@
       ],
       "resources": [
         {
-          "title": "holisticai",
-          "url": "https://github.com/holistic-ai/holisticai",
-          "source_type": "software_package",
-          "publication_date": "2023-01-26",
-          "citationKey": "holistic-aiHolisticai2023",
-          "abstract": "This is an open-source tool to assess and improve the trustworthiness of AI systems."
-        },
-        {
           "title": "Disparate Impact Remover — holisticai documentation",
           "url": "https://holisticai.readthedocs.io/en/latest/getting_started/bias/mitigation/preprocessing/bc_disparate_impact_remover_disparate_impact_remover.html",
           "source_type": "documentation",
@@ -208,14 +225,6 @@
           "citationKey": "holisticaidevelopersDisparateImpactRemover2023"
         },
         {
-          "title": "AIF360",
-          "url": "https://github.com/Trusted-AI/AIF360",
-          "source_type": "software_package",
-          "publication_date": "2018-08-22",
-          "citationKey": "trusted-aiAIF3602018",
-          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
-        },
-        {
           "title": "aif360.algorithms.preprocessing.DisparateImpactRemover — aif360 ...",
           "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.algorithms.preprocessing.DisparateImpactRemover.html",
           "source_type": "documentation",
@@ -224,6 +233,73 @@
           ],
           "publication_date": "2018",
           "citationKey": "aif360developersAif360algorithmspreprocessingDisparateImpactRemoverAif3602018"
+        },
+        {
+          "title": "holisticai",
+          "url": "https://github.com/holistic-ai/holisticai",
+          "source_type": "software_package",
+          "publication_date": "2023-01-26",
+          "citationKey": "holistic-aiHolisticai2023",
+          "abstract": "This is an open-source tool to assess and improve the trustworthiness of AI systems."
+        },
+        {
+          "title": "AIF360",
+          "url": "https://github.com/Trusted-AI/AIF360",
+          "source_type": "software_package",
+          "publication_date": "2018-08-22",
+          "citationKey": "trusted-aiAIF3602018",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
+        },
+        {
+          "title": "Certifying and Removing Disparate Impact",
+          "url": "https://doi.org/10.1145/2783258.2783311",
+          "source_type": "technical_paper",
+          "authors": [
+            "Michael Feldman",
+            "Sorelle A. Friedler",
+            "John Moeller",
+            "Carlos Scheidegger",
+            "Suresh Venkatasubramanian"
+          ],
+          "publication_date": "2015-8-10",
+          "citationKey": "feldmanCertifyingRemovingDisparate2015",
+          "abstract": "What does it mean for an algorithm to be biased? In U.S. law, unintentional bias is encoded via disparate impact, which occurs when a selection process has widely different outcomes for different groups, even as it appears to be neutral. This legal determination hinges on a definition of a protected class (ethnicity, gender) and an explicit description of the process. When computers are involved, determining disparate impact (and hence bias) is harder. It might not be possible to disclose the process. In addition, even if the process is open, it might be hard to elucidate in a legal setting how the algorithm makes its decisions. Instead of requiring access to the process, we propose making inferences based on the data it uses. We present four contributions. First, we link disparate impact to a measure of classification accuracy that while known, has received relatively little attention. Second, we propose a test for disparate impact based on how well the protected class can be predicted from the other attributes. Third, we describe methods by which data might be made unbiased. Finally, we present empirical evidence supporting the effectiveness of our test for disparate impact and our approach for both masking bias and preserving relevant information in the data. Interestingly, our approach resembles some actual selection practices that have recently received legal scrutiny."
+        },
+        {
+          "title": "AIF360 demo: Disparate Impact Remover (notebook)",
+          "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/demo_disparate_impact_remover.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AIF360DemoDisparate",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models. - Trusted-AI/AIF360"
+        },
+        {
+          "title": "A comparative study of fairness-enhancing interventions in machine learning",
+          "url": "https://doi.org/10.1145/3287560.3287589",
+          "source_type": "application_paper",
+          "authors": [
+            "Sorelle A. Friedler",
+            "Carlos Scheidegger",
+            "Suresh Venkatasubramanian",
+            "Sonam Choudhary",
+            "Evan P. Hamilton",
+            "Derek Roth"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "friedlerComparativeStudyFairnessenhancing2019",
+          "abstract": "Computers are increasingly used to make decisions that have significant impact on people's lives. Often, these predictions can affect different population subgroups disproportionately. As a result, the issue of fairness has received much recent interest, and a number of fairness-enhanced classifiers have appeared in the literature. This paper seeks to study the following questions: how do these different techniques fundamentally compare to one another, and what accounts for the differences? Specifically, we seek to bring attention to many under-appreciated aspects of such fairness-enhancing interventions that require investigation for these algorithms to receive broad adoption."
+        },
+        {
+          "title": "Evaluating Fairness Strategies in Educational Data Mining: A Comparative Study of Bias Mitigation Techniques",
+          "url": "https://doi.org/10.3390/electronics14091856",
+          "source_type": "application_paper",
+          "authors": [
+            "George Raftopoulos",
+            "Gregory Davrazos",
+            "Sotiris Kotsiantis"
+          ],
+          "publication_date": "2025-5-1",
+          "citationKey": "raftopoulosEvaluatingFairnessStrategies2025",
+          "abstract": "Ensuring fairness in machine learning models applied to educational data is crucial for mitigating biases that can reinforce systemic inequities. This paper compares various fairness-enhancing algorithms across preprocessing, in-processing, and post-processing stages. Preprocessing methods such as Reweighting, Learning Fair Representations, and Disparate Impact Remover aim to adjust training data to reduce bias before model learning. In-processing techniques, including Adversarial Debiasing and Prejudice Remover, intervene during model training to directly minimize discrimination. Post-processing approaches, such as Equalized Odds Post-Processing, Calibrated Equalized Odds Post-Processing, and Reject Option Classification, adjust model predictions to improve fairness without altering the underlying model. We evaluate these methods on educational datasets, examining their effectiveness in reducing disparate impact while maintaining predictive performance. Our findings highlight tradeoffs between fairness and accuracy, as well as the suitability of different techniques for various educational applications."
         }
       ],
       "complexity_rating": 3,
@@ -244,11 +320,6 @@
           "text": "The credit assessment system meets the 80% rule threshold for equitable treatment across demographic groups",
           "domain": "finance",
           "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The hiring system's feature correlations with protected attributes are quantifiably documented and minimized",
-          "domain": "general",
-          "assuranceGoal": "transparency"
         },
         {
           "text": "The lending model's feature transformations preserve creditworthiness information whilst reducing demographic correlations",
@@ -313,40 +384,36 @@
       ],
       "resources": [
         {
+          "title": "themis-ml",
+          "url": "https://github.com/cosmicBboy/themis-ml",
+          "source_type": "software_package",
+          "publication_date": "2026-02-28T00:18:37Z",
+          "citationKey": "bantilanThemisml2026",
+          "abstract": "A library that implements fairness-aware machine learning algorithms"
+        },
+        {
           "title": "Data preprocessing techniques for classification without discrimination",
-          "url": "https://link.springer.com/article/10.1007/s10115-011-0463-8",
+          "url": "https://doi.org/10.1007/s10115-011-0463-8",
           "source_type": "technical_paper",
           "authors": [
             "Faisal Kamiran",
             "Toon Calders"
           ],
           "publication_date": "2012-06-01",
-          "citationKey": "kamiranDataPreprocessingTechniques2012"
+          "citationKey": "kamiranDataPreprocessingTechniques2012",
+          "abstract": "Recently, the following Discrimination-Aware Classification Problem was introduced: Suppose we are given training data that exhibit unlawful discrimination; e.g., toward sensitive attributes such as gender or ethnicity. The task is to learn a classifier that optimizes accuracy, but does not have this discrimination in its predictions on test data. This problem is relevant in many settings, such as when the data are generated by a biased decision process or when the sensitive attribute serves as a proxy for unobserved features. In this paper, we concentrate on the case with only one binary sensitive attribute and a two-class classification problem. We first study the theoretically optimal trade-off between accuracy and non-discrimination for pure classifiers. Then, we look at algorithmic solutions that preprocess the data to remove discrimination before a classifier is learned. We survey and extend our existing data preprocessing techniques, being suppression of the sensitive attribute, massaging the dataset by changing class labels, and reweighing or resampling the data to remove discrimination without relabeling instances. These preprocessing techniques have been implemented in a modified version of Weka and we present the results of experiments on real-life data."
         },
         {
           "title": "Classifying without discriminating",
-          "url": "https://www.researchgate.net/publication/224440330_Classifying_without_discriminating",
+          "url": "https://doi.org/10.1109/IC4.2009.4909197",
           "source_type": "technical_paper",
           "authors": [
             "Toon Calders",
             "Sicco Verwer"
           ],
-          "publication_date": "2010-02-01",
-          "citationKey": "caldersClassifyingDiscriminating2010"
-        },
-        {
-          "title": "Data Pre-Processing for Discrimination Prevention",
-          "url": "https://krvarshney.github.io/pubs/CalmonWVRV_jstsp2018.pdf",
-          "source_type": "technical_paper",
-          "authors": [
-            "Flavio Calmon",
-            "Dennis Wei",
-            "Bhanukiran Vinzamuri",
-            "Karthikeyan Natesan Ramamurthy",
-            "Kush R. Varshney"
-          ],
-          "publication_date": "2018-01-01",
-          "citationKey": "calmonDataPreProcessingDiscrimination2018"
+          "publication_date": "2009",
+          "citationKey": "caldersClassifyingDiscriminating2010",
+          "abstract": "Classification models usually make predictions on the basis of training data. If the training data is biased towards certain groups or classes of objects, e.g., there is racial discrimination towards black people, the learned model will also show discriminatory behavior towards that particular community. This partial attitude of the learned model may lead to biased outcomes when labeling future unlabeled data objects. Often, however, impartial classification results are desired or even required by law for future data objects in spite of having biased training data. In this paper, we tackle this problem by introducing a new classification scheme for learning unbiased models on biased training data. Our method is based on massaging the dataset by making the least intrusive modifications which lead to an unbiased dataset. On this modified dataset we then learn a non-discriminating classifier. The proposed method has been implemented and experimental results on a credit approval dataset show promising results: in all experiments our method is able to reduce the prejudicial behavior for future classification significantly without loosing too much predictive accuracy."
         }
       ],
       "complexity_rating": 3,
@@ -435,15 +502,31 @@
       ],
       "resources": [
         {
+          "title": "resample: Resample data — fairmodels reference",
+          "url": "https://modeloriented.github.io/fairmodels/reference/resample.html",
+          "source_type": "documentation",
+          "citationKey": "ResampleResampleData",
+          "abstract": "Method of bias mitigation. Similarly to reweight this method computes desired number of observations if the protected variable is independent\nfrom y and on this basis decides if this subgroup with certain class (+ or -) should be more or less numerous. Than performs oversampling or undersampling depending on the case.\nIf type of sampling is set to 'preferential' and probs are provided than instead of uniform sampling preferential sampling will be performed. Preferential sampling depending on the case\nwill sample observations close to border or far from border."
+        },
+        {
+          "title": "fairmodels",
+          "url": "https://github.com/ModelOriented/fairmodels",
+          "source_type": "software_package",
+          "publication_date": "2026-02-27T09:54:37Z",
+          "citationKey": "Fairmodels2026",
+          "abstract": "Flexible tool for bias detection, visualization, and mitigation"
+        },
+        {
           "title": "Data preprocessing techniques for classification without discrimination",
-          "url": "https://link.springer.com/article/10.1007/s10115-011-0463-8",
+          "url": "https://doi.org/10.1007/s10115-011-0463-8",
           "source_type": "technical_paper",
           "authors": [
             "Faisal Kamiran",
             "Toon Calders"
           ],
           "publication_date": "2012-06-01",
-          "citationKey": "kamiranDataPreprocessingTechniques2012"
+          "citationKey": "kamiranDataPreprocessingTechniques2012",
+          "abstract": "Recently, the following Discrimination-Aware Classification Problem was introduced: Suppose we are given training data that exhibit unlawful discrimination; e.g., toward sensitive attributes such as gender or ethnicity. The task is to learn a classifier that optimizes accuracy, but does not have this discrimination in its predictions on test data. This problem is relevant in many settings, such as when the data are generated by a biased decision process or when the sensitive attribute serves as a proxy for unobserved features. In this paper, we concentrate on the case with only one binary sensitive attribute and a two-class classification problem. We first study the theoretically optimal trade-off between accuracy and non-discrimination for pure classifiers. Then, we look at algorithmic solutions that preprocess the data to remove discrimination before a classifier is learned. We survey and extend our existing data preprocessing techniques, being suppression of the sensitive attribute, massaging the dataset by changing class labels, and reweighing or resampling the data to remove discrimination without relabeling instances. These preprocessing techniques have been implemented in a modified version of Weka and we present the results of experiments on real-life data."
         },
         {
           "title": "Classification with no discrimination by preferential sampling",
@@ -457,19 +540,11 @@
           "citationKey": "kamiranClassificationNoDiscrimination2010"
         },
         {
-          "title": "A Survey on Bias and Fairness in Machine Learning",
-          "url": "https://arxiv.org/abs/1908.09635",
-          "source_type": "technical_paper",
-          "authors": [
-            "Ninareh Mehrabi",
-            "Fred Morstatter",
-            "Nripsuta Saxena",
-            "Kristina Lerman",
-            "Aram Galstyan"
-          ],
-          "publication_date": "2019-08-23",
-          "citationKey": "mehrabiSurveyBiasFairness2019",
-          "abstract": "With the widespread use of AI systems and applications in our everyday lives, it is important to take fairness issues into consideration while designing and engineering these types of systems. Such systems can be used in many sensitive environments to make important and life-changing decisions; thus, it is crucial to ensure that the decisions do not reflect discriminatory behavior toward certain groups or populations. We have recently seen work in machine learning, natural language processing, and deep learning that addresses such challenges in different subdomains. With the commercialization of these systems, researchers are becoming aware of the biases that these applications can contain and have attempted to address them. In this survey we investigated different real-world applications that have shown biases in various ways, and we listed different sources of biases that can affect AI applications. We then created a taxonomy for fairness definitions that machine learning researchers have defined in order to avoid the existing bias in AI systems. In addition to that, we examined different domains and subdomains in AI showing what researchers have observed with regard to unfair outcomes in the state-of-the-art methods and how they have tried to address them. There are still many future directions and solutions that can be taken to mitigate the problem of bias in AI systems. We are hoping that this survey will motivate researchers to tackle these issues in the near future by observing existing work in their respective fields."
+          "title": "fairmodels: Advanced tutorial (bias mitigation)",
+          "url": "https://modeloriented.github.io/fairmodels/articles/Advanced_tutorial.html",
+          "source_type": "tutorial",
+          "citationKey": "FairmodelsAdvancedTutorial",
+          "abstract": "fairmodels"
         }
       ],
       "complexity_rating": 2,
@@ -562,7 +637,7 @@
       "resources": [
         {
           "title": "Fairness Through Awareness",
-          "url": "https://arxiv.org/abs/1104.3913",
+          "url": "https://doi.org/10.1145/2090236.2090255",
           "source_type": "technical_paper",
           "authors": [
             "Cynthia Dwork",
@@ -576,59 +651,42 @@
           "abstract": "We study fairness in classification, where individuals are classified, e.g., admitted to a university, and the goal is to prevent discrimination against individuals based on their membership in some group, while maintaining utility for the classifier (the university). The main conceptual contribution of this paper is a framework for fair classification comprising (1) a (hypothetical) task-specific metric for determining the degree to which individuals are similar with respect to the classification task at hand; (2) an algorithm for maximizing utility subject to the fairness constraint, that similar individuals are treated similarly. We also present an adaptation of our approach to achieve the complementary goal of \"fair affirmative action,\" which guarantees statistical parity (i.e., the demographics of the set of individuals receiving any classification are the same as the demographics of the underlying population), while treating similar individuals as similarly as possible. Finally, we discuss the relationship of fairness to privacy: when fairness implies privacy, and how tools developed in the context of differential privacy may be applied to fairness."
         },
         {
-          "title": "Fairness Constraints: Mechanisms for Fair Classification",
-          "url": "https://arxiv.org/abs/1507.05259",
+          "title": "Counterfactual Fairness",
+          "url": "https://proceedings.neurips.cc/paper/2017/hash/a486cd07e4ac3d270571622f4f316ec5-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
-            "Muhammad Bilal Zafar",
-            "Isabel Valera",
-            "Manuel Gomez Rodriguez",
-            "Krishna P. Gummadi"
+            "Matt J. Kusner",
+            "Joshua Loftus",
+            "Chris Russell",
+            "Ricardo Silva"
           ],
-          "publication_date": "2015-07-19",
-          "citationKey": "bilalzafarFairnessConstraintsMechanisms2015",
-          "abstract": "Algorithmic decision making systems are ubiquitous across a wide variety of online as well as offline services. These systems rely on complex learning methods and vast amounts of data to optimize the service functionality, satisfaction of the end user and profitability. However, there is a growing concern that these automated decisions can lead, even in the absence of intent, to a lack of fairness, i.e., their outcomes can disproportionately hurt (or, benefit) particular groups of people sharing one or more sensitive attributes (e.g., race, sex). In this paper, we introduce a flexible mechanism to design fair classifiers by leveraging a novel intuitive measure of decision boundary (un)fairness. We instantiate this mechanism with two well-known classifiers, logistic regression and support vector machines, and show on real-world data that our mechanism allows for a fine-grained control on the degree of fairness, often at a small cost in terms of accuracy."
+          "publication_date": "2017-12-04",
+          "citationKey": "kusnerCounterfactualFairness2017",
+          "abstract": "Machine learning can impact people with legal or ethical consequences when it is used to automate decisions in areas such as insurance, lending, hiring, and predictive policing. In many of these scenarios, previous decisions have been made that are unfairly biased against certain subpopulations, for example those of a particular race, gender, or sexual orientation. Since this past data may be biased, machine learning predictors must account for this to avoid perpetuating or creating discriminatory practices. In this paper, we develop a framework for modeling fairness using tools from causal inference. Our definition of counterfactual fairness captures the intuition that a decision is fair towards an individual if it the same in (a) the actual world and (b) a counterfactual world where the individual belonged to a different demographic group. We demonstrate our framework on a real-world problem of fair prediction of success in law school."
         },
         {
-          "title": "fairlearn",
-          "url": "https://github.com/fairlearn/fairlearn",
-          "source_type": "software_package",
-          "publication_date": "2018-05-15",
-          "citationKey": "fairlearnFairlearn2018",
-          "abstract": "A Python package to assess and improve fairness of machine learning models."
-        },
-        {
-          "title": "The Ethical Algorithm: The Science of Socially Aware Algorithm Design",
-          "url": "https://global.oup.com/academic/product/the-ethical-algorithm-9780190948207",
-          "source_type": "documentation",
+          "title": "Comparison of Methods to Reduce Bias From Clinical Prediction Models of Postpartum Depression",
+          "url": "https://doi.org/10.1001/jamanetworkopen.2021.3909",
+          "source_type": "application_paper",
           "authors": [
-            "Kearns, Michael",
-            "Roth, Aaron"
+            "Yoonyoung Park",
+            "Jianying Hu",
+            "Moninder Singh",
+            "Issa Sylla",
+            "Irene Dankwa-Mullan",
+            "Eileen Koski",
+            "Amar K. Das"
           ],
-          "publication_date": "2019-11-01",
-          "citationKey": "michaelEthicalAlgorithmScience2019"
-        },
-        {
-          "title": "A Survey on Bias and Fairness in Machine Learning",
-          "url": "https://arxiv.org/abs/1908.09635",
-          "source_type": "technical_paper",
-          "authors": [
-            "Ninareh Mehrabi",
-            "Fred Morstatter",
-            "Nripsuta Saxena",
-            "Kristina Lerman",
-            "Aram Galstyan"
-          ],
-          "publication_date": "2019-08-23",
-          "citationKey": "mehrabiSurveyBiasFairness2019",
-          "abstract": "With the widespread use of AI systems and applications in our everyday lives, it is important to take fairness issues into consideration while designing and engineering these types of systems. Such systems can be used in many sensitive environments to make important and life-changing decisions; thus, it is crucial to ensure that the decisions do not reflect discriminatory behavior toward certain groups or populations. We have recently seen work in machine learning, natural language processing, and deep learning that addresses such challenges in different subdomains. With the commercialization of these systems, researchers are becoming aware of the biases that these applications can contain and have attempted to address them. In this survey we investigated different real-world applications that have shown biases in various ways, and we listed different sources of biases that can affect AI applications. We then created a taxonomy for fairness definitions that machine learning researchers have defined in order to avoid the existing bias in AI systems. In addition to that, we examined different domains and subdomains in AI showing what researchers have observed with regard to unfair outcomes in the state-of-the-art methods and how they have tried to address them. There are still many future directions and solutions that can be taken to mitigate the problem of bias in AI systems. We are hoping that this survey will motivate researchers to tackle these issues in the near future by observing existing work in their respective fields."
+          "publication_date": "2021-4-15",
+          "citationKey": "parkComparisonMethodsReduce2021",
+          "abstract": "Importance: The lack of standards in methods to reduce bias for clinical algorithms presents various challenges in providing reliable predictions and in addressing health disparities. Objective: To evaluate approaches for reducing bias in machine learning models using a real-world clinical scenario. Design, Setting, and Participants: Health data for this cohort study were obtained from the IBM MarketScan Medicaid Database. Eligibility criteria were as follows: (1) Female individuals aged 12 to 55 years with a live birth record identified by delivery-related codes from January 1, 2014, through December 31, 2018; (2) greater than 80% enrollment through pregnancy to 60 days post partum; and (3) evidence of coverage for depression screening and mental health services. Statistical analysis was performed in 2020. Exposures: Binarized race (Black individuals and White individuals). Main Outcomes and Measures: Machine learning models (logistic regression [LR], random forest, and extreme gradient boosting) were trained for 2 binary outcomes: postpartum depression (PPD) and postpartum mental health service utilization. Risk-adjusted generalized linear models were used for each outcome to assess potential disparity in the cohort associated with binarized race (Black or White). Methods for reducing bias, including reweighing, Prejudice Remover, and removing race from the models, were examined by analyzing changes in fairness metrics compared with the base models. Baseline characteristics of female individuals at the top-predicted risk decile were compared for systematic differences. Fairness metrics of disparate impact (DI, 1 indicates fairness) and equal opportunity difference (EOD, 0 indicates fairness). Results: Among 573 634 female individuals initially examined for this study, 314 903 were White (54.9%), 217 899 were Black (38.0%), and the mean (SD) age was 26.1 (5.5) years. The risk-adjusted odds ratio comparing White participants with Black participants was 2.06 (95% CI, 2.02-2.10) for clinically recognized PPD and 1.37 (95% CI, 1.33-1.40) for postpartum mental health service utilization. Taking the LR model for PPD prediction as an example, reweighing reduced bias as measured by improved DI and EOD metrics from 0.31 and -0.19 to 0.79 and 0.02, respectively. Removing race from the models had inferior performance for reducing bias compared with the other methods (PPD: DI = 0.61; EOD = -0.05; mental health service utilization: DI = 0.63; EOD = -0.04). Conclusions and Relevance: Clinical prediction models trained on potentially biased data may produce unfair outcomes on the basis of the chosen metrics. This study's results suggest that the performance varied depending on the model, outcome label, and method for reducing bias. This approach toward evaluating algorithmic bias can be used as an example for the growing number of researchers who wish to examine and address bias in their data and models."
         }
       ],
       "complexity_rating": 1,
       "computational_cost_rating": 1,
       "related_techniques": [
-        "bayesian-fairness-regularization",
-        "sensitivity-analysis-for-fairness",
+        "fair-bayesian-optimisation",
+        "causal-discrimination-testing",
         "reweighing"
       ],
       "sample_claims": [
@@ -658,7 +716,479 @@
           "assuranceGoal": "transparency"
         }
       ]
+    },
+    {
+      "slug": "fair-adversarial-networks",
+      "name": "Fair Adversarial Networks",
+      "description": "Fair Adversarial Networks is a pre-processing method, proposed by Cevora (2020), that produces a de-biased copy of a dataset from which a protected characteristic such as race, sex or age can no longer be predicted, including through proxies such as postcode or occupation. It trains two neural networks against each other: an autoencoder (a network that learns to reproduce its input) rewrites each record while trying to keep it as close to the original as possible, and an adversary network tries to predict the protected characteristic from the rewritten records. The autoencoder's loss adds its reconstruction error to the adversary's predictive success, so over alternating rounds of training it learns to remove the information the adversary relies on while changing the data as little as it can. The output is the rewritten dataset, which any downstream analysis or model can use without modification, together with the evidence that a freshly trained adversary predicts the characteristic no better than always guessing the most common category.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/pre-processing",
+        "data-requirements/access-to-training-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/modified-dataset",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A probation service's analytics team wants to model reoffending from defendant records in which race is encoded indirectly, through charge descriptions and neighbourhood. It runs the records through a Fair Adversarial Network before modelling, confirms that a freshly trained classifier can no longer predict race from the transformed data better than chance, and then checks that predicted risk no longer differs by race among defendants with the same recorded outcome.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "An HR analytics team at a courier company building an absenteeism model removes information about employees' age group from its personnel records, including through proxies such as length of service and family circumstances, so that the standard modelling tools its analysts already use can run on the transformed data unchanged.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A local education authority allocating support funding with a model of school performance data de-biases the data with respect to each school's majority ethnic composition before modelling, and keeps the adversary's chance-level result and the reconstruction error with the funding model's documentation as evidence of what was removed and how much the data changed.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "No public implementation exists. The paper withholds the parts that make training practical (an approximation of how well a fully trained adversary would do, a stabilising mechanism and regularisers) as its company's intellectual property, saying only that standard approaches can replicate the result on a one-off basis with heavy tuning, and the company's web tool is no longer online. Adopting the method means reimplementing it from the paper."
+        },
+        {
+          "description": "It removes every trace of the protected characteristic, including relationships that are legitimate or deliberately protective; the author notes it also removes positive discrimination. Where the characteristic carries legitimate information, such as sex in some clinical data, that information goes along with the bias, and the accuracy drops seen on the demonstration datasets cannot be split into bias removed and signal lost."
+        },
+        {
+          "description": "Success is judged against one adversary: in the paper, a single-hidden-layer network trained from three random starts. A more capable model may still recover the characteristic from the rewritten data, and the author states that residual discrimination is likely still present and was not analysed, so a chance-level adversary is weaker evidence than it appears."
+        },
+        {
+          "description": "Every variable in every record can be altered by the autoencoder, so the de-biased dataset no longer contains the original values. Individual records cannot be checked against source data, feature meanings drift, and any explanation of a downstream model refers to transformed features rather than to the applicant's actual postcode or income."
+        },
+        {
+          "description": "Adversarial training is unstable and its settings have no principled choice: the weight balancing reconstruction against the adversary, the network architectures and the stopping point all need tuning per dataset. The paper keeps the lowest-loss state to guard against run-away training and describes its own convergence as fairly sub-optimal."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Fair Adversarial Networks",
+          "url": "https://arxiv.org/abs/2002.12144",
+          "source_type": "technical_paper",
+          "authors": [
+            "George Cevora"
+          ],
+          "publication_date": "2020-02-23",
+          "citationKey": "cevoraFairAdversarialNetworks2020",
+          "abstract": "The influence of human judgement is ubiquitous in datasets used across the analytics industry, yet humans are known to be sub-optimal decision makers prone to various biases. Analysing biased datasets then leads to biased outcomes of the analysis. Bias by protected characteristics (e.g. race) is of particular interest as it may not only make the output of analytical process sub-optimal, but also illegal. Countering the bias by constraining the analytical outcomes to be fair is problematic because A) fairness lacks a universally accepted definition, while at the same time some definitions are mutually exclusive, and B) the use of optimisation constraints ensuring fairness is incompatible with most analytical pipelines. Both problems are solved by methods which remove bias from the data and returning an altered dataset. This approach aims to not only remove the actual bias variable (e.g. race), but also alter all proxy variables (e.g. postcode) so the bias variable is not detectable from the rest of the data. The advantage of using this approach is that the definition of fairness as a lack of detectable bias in the data (as opposed to the output of analysis) is universal and therefore solves problem (A). Furthermore, as the data is altered to remove bias the problem (B) disappears because the analytical pipelines can remain unchanged. This approach has been adopted by several technical solutions. None of them, however, seems to be satisfactory in terms of ability to remove multivariate, non-linear and non-binary biases. Therefore, in this paper I propose the concept of Fair Adversarial Networks as an easy-to-implement general method for removing bias from data. This paper demonstrates that Fair Adversarial Networks achieve this aim."
+        },
+        {
+          "title": "Demonstrating Rosa: the fairness solution for any Data Analytic pipeline",
+          "url": "https://arxiv.org/abs/2003.00899",
+          "source_type": "application_paper",
+          "authors": [
+            "Kate Wilkinson",
+            "George Cevora"
+          ],
+          "publication_date": "2020-02-28",
+          "citationKey": "wilkinsonDemonstratingRosaFairness2020",
+          "abstract": "Most datasets of interest to the analytics industry are impacted by various forms of human bias. The outcomes of Data Analytics [DA] or Machine Learning [ML] on such data are therefore prone to replicating the bias. As a result, a large number of biased decision-making systems based on DA/ML have recently attracted attention. In this paper we introduce Rosa, a free, web-based tool to easily de-bias datasets with respect to a chosen characteristic. Rosa is based on the principles of Fair Adversarial Networks, developed by illumr Ltd., and can therefore remove interactive, non-linear, and non-binary bias. Rosa is stand-alone pre-processing step / API, meaning it can be used easily with any DA/ML pipeline. We test the efficacy of Rosa in removing bias from data-driven decision making systems by performing standard DA tasks on five real-world datasets, selected for their relevance to current DA problems, and also their high potential for bias. We use simple ML models to model a characteristic of analytical interest, and compare the level of bias in the model output both with and without Rosa as a pre-processing step. We find that in all cases there is a substantial decrease in bias of the data-driven decision making systems when the data is pre-processed with Rosa."
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
+      "related_techniques": [
+        "adversarial-debiasing",
+        "exponentiated-gradient-reduction",
+        "fairness-gan"
+      ],
+      "sample_claims": [
+        {
+          "text": "A classifier trained on the de-biased reoffending dataset cannot predict defendants' race better than always guessing the majority group.",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The personnel records used to train the absenteeism model carry no recoverable information about employees' age group, including through proxies such as length of service.",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The school funding model was trained on data de-biased with respect to majority ethnic composition, and its predictions no longer differ by that composition among schools with the same recorded performance.",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        }
+      ]
+    },
+    {
+      "slug": "k-anonymity",
+      "name": "k-Anonymity",
+      "description": "k-Anonymity is a property that a table of real records about people can be made to satisfy before it is released or shared, in which every record shares its values on the quasi-identifiers with at least k-1 other records, so anyone linking the table to another source on those columns always matches a group of at least k records, which is k people only when each person has one record. Quasi-identifiers are columns that are not names or ID numbers but could be found elsewhere and combined to single a person out, such as date of birth, sex and postcode, and because the data holder chooses them, the protection covers only those columns. To reach a chosen k, each quasi-identifier is coarsened along a hierarchy set in advance (exact age to five-year band, full postcode to district), and the values or records that would still sit in a group smaller than k are suppressed, with a search choosing the coarsening that loses least information. The output is the transformed table of real records made less specific, not artificial ones, together with the k it achieves and a measure of the detail lost. Unlike differential privacy, it gives no bound on what an observer can learn, because it blocks linking on the listed columns but does not stop someone learning a sensitive value that everyone in a group shares.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "data-requirements/access-to-training-data",
+        "data-type/tabular",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A hospital trust preparing an extract of emergency attendances for a university research team treats age, sex, postcode district and attendance date as quasi-identifiers, since local news reports and social media posts about incidents often carry them. Using ARX it generalises age to five-year bands and dates to weeks, suppresses the records still in groups smaller than five, and sends the extract with a note of the k achieved, the columns covered and the share of records suppressed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A national statistics office preparing a scientific-use file of a household survey for registered researchers recodes region and occupation into broader groups in sdcMicro, then applies local suppression until every combination of age band, sex, region and household size occurs at least three times, and publishes the number of suppressed values with the file so that users can judge the effect on their analyses.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A motor insurer sharing a claims table with an analytics firm that will build a fraud-detection model applies 10-anonymity to policyholder age, vehicle model and postcode district. Before release it agrees with the firm that the coarser bands still carry enough signal for the model, and it keeps the generalisation scheme so that later releases are generalised from the same scheme rather than a new one.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "k-Anonymity hides which record is a person's, not what their group has in common. If all k records in a group share the same diagnosis, anyone who can place a person in that group learns the diagnosis, and an attacker with extra background knowledge can rule out other members of the group. Extensions such as l-diversity and t-closeness add conditions on the sensitive column for this reason; k-anonymity alone does not prevent sensitive values being disclosed."
+        },
+        {
+          "description": "The protection covers only the columns the data holder lists as quasi-identifiers, and rests on the holder judging correctly which columns an attacker could find elsewhere. A column left off the list, such as a rare diagnosis that a local newspaper has reported, can still single a record out, and the property says nothing about it. Choosing the list needs a realistic picture of the public, commercial and leaked data an attacker could hold."
+        },
+        {
+          "description": "Each release is protected only on its own. Two k-anonymous versions of the same data, generalised differently or produced at different times as records are added, can be joined to narrow groups below k, and two releases that keep the rows in the same order can be lined up row by row. Later releases must be built from the first, or treat all its released columns as quasi-identifiers, and row order must be randomised before each release."
+        },
+        {
+          "description": "With many quasi-identifiers or detailed values such as exact dates and measurements, most records are unique, and reaching k needs coarsening or suppression heavy enough to remove the detail an analysis or model depends on; the method suits continuous variables poorly. Because the suppressed records are those with rare combinations of values, the released table can under-represent exactly the unusual cases a model most needs to handle."
+        },
+        {
+          "description": "Requiring k within the released table treats the attacker as knowing their target is in it. When the table is a small sample of a larger population, a record unique in the table may match many people outside it, so the requirement over-protects; El Emam and Dankar found this over-anonymisation, and the loss of information it causes, greatest at small sampling fractions. A re-identification risk assessment against the population can justify a lighter transformation."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Privacy models – ARX – Data Anonymization Tool",
+          "url": "https://arx.deidentifier.org/overview/privacy-criteria/",
+          "source_type": "documentation",
+          "citationKey": "PrivacyModelsARX"
+        },
+        {
+          "title": "ARX Data Anonymization Tool (arx-deidentifier/arx)",
+          "url": "https://github.com/arx-deidentifier/arx",
+          "source_type": "software_package",
+          "citationKey": "ARXDataAnonymization",
+          "abstract": "ARX is a comprehensive open source data anonymization tool aiming to provide scalability and usability. It supports various anonymization techniques, methods for analyzing data quality and re-ident..."
+        },
+        {
+          "title": "sdcMicro: Statistical Disclosure Control Methods for Anonymization of Data and Risk Estimation",
+          "url": "https://cran.r-project.org/package=sdcMicro",
+          "source_type": "software_package",
+          "publication_date": "2026-06-12",
+          "citationKey": "templSdcMicroStatisticalDisclosure2026",
+          "abstract": "Data from statistical agencies and other institutions are mostly confidential. This package, introduced in Templ, Kowarik and Meindl (2017) <doi:10.18637/jss.v067.i04>, can be used for the generation of anonymized (micro)data, i.e. for the creation of public- and scientific-use files. The theoretical basis for the methods implemented can be found in Templ (2017) <doi:10.1007/978-3-319-50272-4>. Various risk estimation and anonymization methods are included. Note that the package includes a graphical user interface published in Meindl and Templ (2019) <doi:10.3390/a12090191> that allows to use various methods of this package."
+        },
+        {
+          "title": "k-ANONYMITY: A MODEL FOR PROTECTING PRIVACY",
+          "url": "https://doi.org/10.1142/s0218488502001648",
+          "source_type": "technical_paper",
+          "authors": [
+            "LATANYA SWEENEY"
+          ],
+          "publication_date": "2002-10",
+          "citationKey": "sweeneyKANONYMITYMODELPROTECTING2002"
+        },
+        {
+          "title": "ACHIEVING k-ANONYMITY PRIVACY PROTECTION USING GENERALIZATION  AND SUPPRESSION",
+          "url": "https://doi.org/10.1142/s021848850200165x",
+          "source_type": "technical_paper",
+          "authors": [
+            "LATANYA SWEENEY"
+          ],
+          "publication_date": "2002-10",
+          "citationKey": "sweeneyACHIEVINGKANONYMITYPRIVACY2002"
+        },
+        {
+          "title": "Anonymization Methods — Statistical Disclosure Control for Microdata: A Practice Guide for sdcMicro",
+          "url": "https://sdcpractice.readthedocs.io/en/latest/anon_methods.html",
+          "source_type": "tutorial",
+          "citationKey": "AnonymizationMethodsStatistical"
+        },
+        {
+          "title": "De-identification Methods for Open Health Data: The Case of the Heritage Health Prize Claims Dataset",
+          "url": "https://doi.org/10.2196/jmir.2001",
+          "source_type": "application_paper",
+          "authors": [
+            "Khaled El Emam",
+            "Luk Arbuckle",
+            "Gunes Koru",
+            "Benjamin Eze",
+            "Lisa Gaudette",
+            "Emilio Neri",
+            "Sean Rose",
+            "Jeremy Howard",
+            "Jonathan Gluck"
+          ],
+          "publication_date": "2012-2-27",
+          "citationKey": "elemamDeidentificationMethodsOpen2012"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every record in the emergency-attendance extract shares its age band, sex, postcode district and attendance week with at least four other records.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The household survey's scientific-use file is 3-anonymous on age band, sex, region and household size, and the number of values suppressed to achieve this is published with the file.",
+          "assuranceGoal": "privacy",
+          "domain": "public sector"
+        },
+        {
+          "text": "The quasi-identifiers used for the release were chosen against a documented list of the public and commercial sources an attacker could link to, and the release is k-anonymous on all of them.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Every later release of the claims data is generalised from the same scheme as the first, as required to stop releases being joined to form groups of fewer than ten policyholders.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "pii-detection-and-redaction-in-training-text",
+      "name": "PII Detection and Redaction in Training Text",
+      "description": "PII detection and redaction finds personally identifiable information (PII), such as names, email addresses, phone numbers and account or ID numbers, in a body of text and removes or replaces it before the text is used to train or fine-tune a model, so that the model has fewer personal details to memorise and later reproduce. Presidio, a widely used open-source tool first released by Microsoft and now run as an independent community project, is the reference implementation: each document passes through a set of recognisers, in which a named-entity recognition model (by default an English spaCy model) tags names, places and dates, patterns with checksum or format checks catch structured identifiers such as card and NHS numbers, and nearby words such as 'account' raise a candidate's confidence score. Every detection above a chosen score is then replaced with a placeholder for its type (for example <PERSON>), masked, hashed, encrypted or deleted, and the cleaned corpus goes to training. Because detection is never complete, the procedure ends by measuring recall, the share of identifiers actually caught, for each type on a hand-labelled sample of the same corpus. The evidence it produces is that measured miss rate and the cleaned corpus; unlike differential privacy or synthetic data, it removes real personal details from real text and gives no bound on what remains.",
+      "assurance_goals": [
+        "Privacy"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/privacy",
+        "assurance-goal-category/privacy/exposure-reduction",
+        "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/text",
+        "evidence-type/modified-dataset",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/privacy-engineering",
+        "expertise-needed/data-engineering",
+        "expertise-needed/evaluation-design",
+        "technique-type/algorithmic",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-extraction-or-procurement",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank preparing two years of customer-service chat transcripts to fine-tune an assistant runs Presidio with added pattern recognisers for sort codes and its own account-number format, replaces each detection with a type placeholder, and has staff label 500 transcripts by hand to measure recall per entity type. It fine-tunes only once recall for names and account numbers meets the target in its data protection impact assessment, where it records the miss rate.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "An NHS trust preparing discharge letters to fine-tune a summarisation model finds on a labelled sample that the default English model misses many names written in clinical shorthand and does not detect ward and bed codes at all. It adds lists of staff names and patterns for local codes, re-measures recall on a fresh labelled sample, and reports the remaining miss rate to its information governance group, which decides whether further controls are needed.",
+          "goal": "Privacy"
+        },
+        {
+          "description": "A company building a code-completion model from its internal repositories detects email addresses, IP addresses, keys and passwords with patterns and a trained detector, discards detections that are too short or are private network addresses to cut false alarms, replaces the rest with tokens such as <EMAIL> and <KEY>, and reports precision and recall per type on an annotated set of files kept apart from tuning.",
+          "goal": "Privacy"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Detection always misses some identifiers, and a model can memorise and reproduce what is missed, especially details repeated across many documents. A study that fine-tuned GPT-2 on court judgments and emails scrubbed with Presidio's default tagger and a second recogniser concluded that scrubbing reduces but cannot fully prevent leakage of personal information; Presidio's README gives no guarantee of finding it all. The evidence is a measured miss rate, not proof that none remains."
+        },
+        {
+          "description": "It finds only the categories it has recognisers for. On a 2022 benchmark of European Court of Human Rights judgments, Presidio's default setup caught about 70 per cent of identifying mentions but only about 45 per cent of direct identifiers, because it did not recognise case numbers, which identify the applicant on their own. Details that identify someone only in combination, such as a job title, employer and town, are not entity types at all, so redacted text can still point to a person."
+        },
+        {
+          "description": "The default recognisers are built for general English text. Clinical shorthand, other languages, source code and in-house identifier formats need extra recognisers or a different model, and recall measured on one corpus does not carry over to another, so the labelled sample used for the measurement must come from the corpus being cleaned and be kept apart from any tuning of the recognisers."
+        },
+        {
+          "description": "Raising recall by lowering the score threshold or switching on broad entity types also removes text that is not personal, such as names of public bodies, laws and places the task depends on, which lowers the value of the data for training. On the court-judgment benchmark, switching on organisation names raised Presidio's recall slightly but cut its precision from about 0.76 to 0.54."
+        },
+        {
+          "description": "Redaction removes identifiers from the text but does not hide whether a document was used for training, and it gives no formal bound. In the GPT-2 study, membership inference on the scrubbed model still reached an AUC of 0.82, where 0.5 is chance, and adding differentially private training brought it down to 0.5. Claims about membership, or a formal guarantee, need DP-SGD or another method alongside redaction."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Presidio: Data Protection and De-identification SDK — documentation",
+          "url": "https://presidio.dataprivacystack.org/",
+          "source_type": "documentation",
+          "citationKey": "PresidioDataProtection",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "Presidio (data-privacy-stack/presidio)",
+          "url": "https://github.com/data-privacy-stack/presidio",
+          "source_type": "software_package",
+          "citationKey": "PresidioDataprivacystackPresidio",
+          "abstract": "An open-source framework for detecting, redacting, masking, and anonymizing sensitive data (PII) across text, images, and structured data. Supports NLP, pattern matching, and customizable pipelines..."
+        },
+        {
+          "title": "Replacing personally-identifying information in medical records, the Scrub system",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8947683/",
+          "source_type": "technical_paper",
+          "citationKey": "ReplacingPersonallyidentifyingInformation"
+        },
+        {
+          "title": "Analyzing Leakage of Personally Identifiable Information in Language Models",
+          "url": "https://doi.org/10.1109/sp46215.2023.10179300",
+          "source_type": "application_paper",
+          "authors": [
+            "Nils Lukas",
+            "Ahmed Salem",
+            "Robert Sim",
+            "Shruti Tople",
+            "Lukas Wutschitz",
+            "Santiago Zanella-Béguelin"
+          ],
+          "publication_date": "2023-5",
+          "citationKey": "lukasAnalyzingLeakagePersonally2023"
+        },
+        {
+          "title": "The Text Anonymization Benchmark (TAB): A Dedicated Corpus and Evaluation Framework for Text Anonymization",
+          "url": "https://doi.org/10.1162/coli_a_00458",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ildikó Pilán",
+            "Pierre Lison",
+            "Lilja Øvrelid",
+            "Anthi Papadopoulou",
+            "David Sánchez",
+            "Montserrat Batet"
+          ],
+          "publication_date": "2022",
+          "citationKey": "pilanTextAnonymizationBenchmark2022"
+        },
+        {
+          "title": "Tutorial: Customization in Presidio",
+          "url": "https://presidio.dataprivacystack.org/tutorial/",
+          "source_type": "tutorial",
+          "citationKey": "TutorialCustomizationPresidio",
+          "abstract": "PII anonymization for text, images, and structured data."
+        },
+        {
+          "title": "StarCoder: may the source be with you!",
+          "url": "https://openreview.net/forum?id=KoFOg41haE",
+          "source_type": "application_paper",
+          "authors": [
+            "Raymond Li",
+            "Loubna Ben Allal",
+            "Yangtian Zi",
+            "Niklas Muennighoff",
+            "Denis Kocetkov",
+            "Chenghao Mou",
+            "Marc Marone",
+            "Christopher Akiki",
+            "Jia Li",
+            "Jenny Chim",
+            "Qian Liu",
+            "Evgenii Zheltonozhskii",
+            "Terry Yue Zhuo",
+            "Thomas Wang",
+            "Olivier Dehaene",
+            "Mishig Davaadorj",
+            "Joel Lamy-Poirier",
+            "João Monteiro",
+            "Oleh Shliazhko",
+            "Nicolas Gontier",
+            "Nicholas Meade",
+            "Armel Zebaze",
+            "Ming-Ho Yee",
+            "Logesh Kumar Umapathi",
+            "Jian Zhu",
+            "Benjamin Lipkin",
+            "Muhtasham Oblokulov",
+            "Zhiruo Wang",
+            "Rudra Murthy",
+            "Jason Stillerman",
+            "Siva Sankalp Patel",
+            "Dmitry Abulkhanov",
+            "Marco Zocca",
+            "Manan Dey",
+            "Zhihan Zhang",
+            "Nour Fahmy",
+            "Urvashi Bhattacharyya",
+            "Wenhao Yu",
+            "Swayam Singh",
+            "Sasha Luccioni",
+            "Paulo Villegas",
+            "Maxim Kunakov",
+            "Fedor Zhdanov",
+            "Manuel Romero",
+            "Tony Lee",
+            "Nadav Timor",
+            "Jennifer Ding",
+            "Claire Schlesinger",
+            "Hailey Schoelkopf",
+            "Jan Ebert",
+            "Tri Dao",
+            "Mayank Mishra",
+            "Alex Gu",
+            "Jennifer Robinson",
+            "Carolyn Jane Anderson",
+            "Brendan Dolan-Gavitt",
+            "Danish Contractor",
+            "Siva Reddy",
+            "Daniel Fried",
+            "Dzmitry Bahdanau",
+            "Yacine Jernite",
+            "Carlos Muñoz Ferrandis",
+            "Sean Hughes",
+            "Thomas Wolf",
+            "Arjun Guha",
+            "Leandro von Werra",
+            "Harm de Vries"
+          ],
+          "citationKey": "StarCoderMaySource"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Before fine-tuning, names, email addresses, phone numbers and account numbers in all customer-service transcripts were replaced with type placeholders, and recall measured on 500 hand-labelled transcripts was at least 95 per cent for each of these types.",
+          "assuranceGoal": "privacy",
+          "domain": "finance"
+        },
+        {
+          "text": "The rate of undetected patient and clinician names left in the discharge-letter training corpus, measured on a labelled sample drawn from that corpus, is recorded in the data protection impact assessment and is below the limit set by the information governance group.",
+          "assuranceGoal": "privacy",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Email addresses, IP addresses, keys and passwords found in the code corpus were replaced with placeholder tokens before training, with precision and recall for each type reported on an annotated test set of files.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        },
+        {
+          "text": "Recall of the redaction step is reported separately for direct identifiers and for details that identify a person only in combination, so that a high overall figure cannot hide missed direct identifiers.",
+          "assuranceGoal": "privacy",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 5
+  "count": 8
 }

@@ -1,0 +1,159 @@
+{
+  "slug": "continuous-ranked-probability-score",
+  "name": "Continuous Ranked Probability Score",
+  "description": "The continuous ranked probability score (CRPS) measures the quality of a probabilistic forecast of a numerical quantity, such as tomorrow's temperature or next week's demand, by scoring the whole predicted distribution, not just a single best guess, against the value later observed. For each case it compares the forecast's cumulative distribution (the predicted probability that the outcome will fall below each possible value) with a step that jumps from 0 to 1 at the observed value, squares the gap at every value and adds these up, which is the same as adding up the Brier score of the yes-or-no forecasts 'the outcome will be below this value' over every possible threshold. For a forecast given as an ensemble or a sample it can be computed as the average distance between the members and the observation minus half the average distance between pairs of members, closed forms exist for common distributions such as the Gaussian, and for a single-value forecast it reduces to the absolute error, so probabilistic and deterministic forecasts can be compared directly. The score is proper: a forecaster expects the best score by reporting the distribution they actually believe, so it cannot be improved on average by making forecasts narrower or wider than warranted, and it is lowest when the forecast distribution matches how outcomes actually vary. Scores are averaged over many cases, are in the units of the forecast quantity with lower values better, and are often reported as a skill score relative to a reference forecast such as climatology (the long-run historical distribution), giving evidence for claims about the accuracy of a forecaster's probabilities by variable, location and lead time.",
+  "assurance_goals": [
+    "Reliability"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "applicable-models/requirements/probabilistic-output",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/performance-assessment",
+    "data-requirements/labelled-data",
+    "data-type/time-series",
+    "data-type/tabular",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/statistics",
+    "technique-type/metric",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A national weather service deciding whether to run a machine-learning ensemble alongside its physics-based ensemble scores both against a year of station observations, computing the fair CRPS (the two ensembles differ in size) for 2-metre temperature and 10-metre wind at every station and lead time. It adopts the new system only for the variables and lead times where its CRPS skill relative to the existing ensemble is positive.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A wind-farm operator choosing between two vendors of probabilistic power forecasts for day-ahead trading receives 19 quantiles per hour from each. It approximates each forecast's CRPS by averaging the quantile scores across those levels and compares the vendors over a full winter against metered output. Because high-output hours drive balancing costs, it also compares them on a version of the score weighted towards the upper quantiles, averaged over all hours, not only those with high output.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A hospital group's capacity team plans elective admissions with a probabilistic forecast of bed occupancy one week ahead. Each week it computes the forecast's CRPS against the occupancy that followed and its skill score against a seasonal naive forecast, and a rolling eight-week skill score below zero triggers a review of the model before it is used for the next planning cycle.",
+      "goal": "Reliability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "One CRPS value combines calibration (whether outcomes behave like draws from the forecast distribution) and sharpness (how narrow the forecast is), so a better score does not show which improved, and an average over many cases can hide conditions in which forecasts are consistently too narrow or too wide. A claim about calibration needs Hersbach's decomposition of the score into reliability and resolution parts, a rank histogram or a spread-skill check as well."
+    },
+    {
+      "description": "Every threshold carries equal weight and extreme outcomes are rare, so the average score says little about how well extremes are forecast; WeatherBench 2 notes that the CRPS does not specifically focus on extreme weather. Averaging only over cases in which an extreme occurred does not repair this and can discredit skilful forecasters (Lerch et al. 2017); claims about warnings of extremes need a threshold-weighted CRPS that emphasises the tails."
+    },
+    {
+      "description": "It scores one quantity at one place and lead time at a time, so it does not test whether a forecast gets the relationships between places, times or variables right. WeatherBench 2 notes that its CRPS results ignore spatial and temporal correlation, and found models trained on each wind component separately biased in wind speed; claims about joint quantities, such as rainfall totalled over a catchment, need a multivariate score such as the energy score."
+    },
+    {
+      "description": "The score is in the units of the forecast quantity and grows with how variable that quantity is, so raw values cannot be compared or pooled across variables, locations or seasons with different variability, and averages are dominated by the most variable cases. Comparisons across these need a skill score relative to a stated reference forecast, and the choice of reference, such as climatology or persistence, changes the result."
+    },
+    {
+      "description": "For an ensemble, the usual estimate treats the members as the whole forecast distribution, which penalises small ensembles: if two systems draw members from the same distribution, the one with fewer members scores worse on average. Ferro (2014) showed the usual ensemble CRPS is unfair in this sense and gave an adjusted fair version, which libraries such as scoringrules provide; it should be used whenever ensembles of different sizes are compared."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Scoring Rules for Continuous Probability Distributions",
+      "url": "https://doi.org/10.1287/mnsc.22.10.1087",
+      "source_type": "technical_paper",
+      "authors": [
+        "James E. Matheson",
+        "Robert L. Winkler"
+      ],
+      "publication_date": "1976-6",
+      "citationKey": "mathesonScoringRulesContinuous1976"
+    },
+    {
+      "title": "Strictly Proper Scoring Rules, Prediction, and Estimation",
+      "url": "https://doi.org/10.1198/016214506000001437",
+      "source_type": "technical_paper",
+      "authors": [
+        "Tilmann Gneiting",
+        "Adrian E Raftery"
+      ],
+      "publication_date": "2007-3",
+      "citationKey": "gneitingStrictlyProperScoring2007"
+    },
+    {
+      "title": "Ensemble forecasts (scoringrules documentation)",
+      "url": "https://scoringrules.readthedocs.io/en/latest/crps_estimators.html",
+      "source_type": "documentation",
+      "citationKey": "EnsembleForecastsScoringrules"
+    },
+    {
+      "title": "scoringrules: a python library for probabilistic forecast evaluation",
+      "url": "https://github.com/frazane/scoringrules",
+      "source_type": "software_package",
+      "publication_date": "2026-10-01T11:33:37Z",
+      "citationKey": "zanettaScoringrulesPythonLibrary2026",
+      "abstract": "Lightweight library for probabilistic forecast evaluation and optimization."
+    },
+    {
+      "title": "Evaluating Probabilistic Forecasts with                     <b>scoringRules</b>",
+      "url": "https://doi.org/10.18637/jss.v090.i12",
+      "source_type": "tutorial",
+      "authors": [
+        "Alexander Jordan",
+        "Fabian Krüger",
+        "Sebastian Lerch"
+      ],
+      "publication_date": "2019",
+      "citationKey": "jordanEvaluatingProbabilisticForecasts2019"
+    },
+    {
+      "title": "WeatherBench 2: A Benchmark for the Next Generation of Data‐Driven Global Weather Models",
+      "url": "https://doi.org/10.1029/2023ms004019",
+      "source_type": "application_paper",
+      "authors": [
+        "Stephan Rasp",
+        "Stephan Hoyer",
+        "Alexander Merose",
+        "Ian Langmore",
+        "Peter Battaglia",
+        "Tyler Russell",
+        "Alvaro Sanchez‐Gonzalez",
+        "Vivian Yang",
+        "Rob Carver",
+        "Shreya Agrawal",
+        "Matthew Chantry",
+        "Zied Ben Bouallegue",
+        "Peter Dueben",
+        "Carla Bromberg",
+        "Jared Sisk",
+        "Luke Barrington",
+        "Aaron Bell",
+        "Fei Sha"
+      ],
+      "publication_date": "2024-6",
+      "citationKey": "raspWeatherBench2Benchmark2024"
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 1,
+  "acronym": "CRPS",
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Over the 2025 verification year, the machine-learning ensemble has a lower mean fair CRPS for 2-metre temperature than the operational ensemble at every lead time from one to ten days, averaged over all stations in the service area.",
+      "assuranceGoal": "reliability",
+      "domain": "environmental"
+    },
+    {
+      "text": "The one-week-ahead bed-occupancy forecast has had a positive CRPS skill score relative to a seasonal naive forecast in every rolling eight-week window since it entered use.",
+      "assuranceGoal": "reliability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "Scored against metered output over the winter season, the selected vendor's probabilistic wind-power forecasts have a lower mean CRPS than the alternative vendor's, and also a lower mean when the score is weighted towards high output, with both averages taken over all hours.",
+      "assuranceGoal": "reliability",
+      "domain": "energy"
+    },
+    {
+      "text": "The comparison between the 20-member and 50-member ensemble systems used the fair version of the CRPS, so the reported difference does not reflect ensemble size.",
+      "assuranceGoal": "reliability",
+      "domain": "general"
+    }
+  ]
+}

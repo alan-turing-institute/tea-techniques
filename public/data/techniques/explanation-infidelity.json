@@ -1,0 +1,130 @@
+{
+  "slug": "explanation-infidelity",
+  "name": "Explanation Infidelity",
+  "description": "Explanation infidelity scores a feature-attribution explanation (one importance score per input feature) by how well it predicts what the model does when the input is changed. The evaluator chooses a distribution of meaningful perturbations, for example small random noise around a reference input, or setting random subsets of features or square patches of an image to a reference value, and draws many perturbations from it. For each one it compares the change in output that the explanation predicts, the sum over features of each feature's perturbation multiplied by its attribution score, with the change the model actually shows, its output on the original input minus its output on the perturbed one. Infidelity is the average squared difference between the two, estimated by random sampling, so lower is better; Yeh et al. (2019), who proposed it, showed that several common explanation methods each have the lowest infidelity for one particular perturbation distribution, so the distribution chosen defines what counts as faithful in a given test. Scores are averaged over a set of inputs and compared across explanation methods, or across settings of one method, under the same perturbations; unlike a deletion curve, the score uses the size of each attribution as well as its rank.",
+  "assurance_goals": [
+    "Explainability"
+  ],
+  "tags": [
+    "assurance-goal-category/explainability",
+    "assurance-goal-category/explainability/explanation-evaluation",
+    "explanatory-scope/local",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/explainability/property/fidelity",
+    "data-requirements/no-special-requirements",
+    "data-type/image",
+    "data-type/tabular",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/statistics",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/model-updating-or-deprovisioning",
+    "technique-type/metric"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A bank's model-risk team must choose which attribution method supplies the reason scores shown to credit analysts for a neural-network default model. It computes infidelity on held-out applications for three candidate methods, with perturbations that set random subsets of features to a documented reference applicant and with rescaling switched on, and records the perturbation distribution in the validation report beside the method it selects.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "A manufacturer's quality team uses a convolutional network to flag defects in weld radiographs and smooths its gradient heatmaps by averaging them over noisy copies of each image. It sets the amount of noise by computing infidelity under square-patch perturbations sized to typical defects on validation radiographs and choosing the level with the lowest score, since in the original study infidelity first fell and then rose as smoothing increased.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "A hospital's clinical AI team retrains its deterioration-risk model each quarter and shows ward staff the attribution scores behind each alert. After every retraining it recomputes rescaled infidelity on the latest validation data, with the perturbations fixed at first validation, for the deployed attribution settings and two alternatives, and holds the release for review if the deployed settings are no longer the lowest, since the absolute score also moves with the retrained model.",
+      "goal": "Explainability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "What counts as faithful is set by the perturbation distribution. Yeh et al. show that several common explanations each have the lowest possible infidelity for one particular distribution (for example, Shapley values for the feature-subset scheme that SHAP uses), so a comparison can be won by choosing matching perturbations. The distribution should be fixed in advance and justified by the question the explanation is meant to answer."
+    },
+    {
+      "description": "The score is a squared error between predicted and actual changes in output, so it depends on the scale of the attribution scores: two methods that rank features identically but on different scales get different infidelity. Yeh et al. rescale each explanation optimally before scoring, and Captum offers this rescaling as an option that is off by default; without it, comparisons across methods mislead."
+    },
+    {
+      "description": "Some attribution methods multiply each feature's sensitivity by the input's distance from a reference and others do not, and the perturbation term has to be computed to match. Yeh et al. compare the two kinds separately, and Captum asks the user to state which kind is being scored; getting this wrong produces a score that reflects the mismatch rather than the explanation."
+    },
+    {
+      "description": "It follows from the definition, though Yeh et al. do not discuss it, that the predicted change is a sum of per-feature effects. Where the model's response to the chosen perturbations is not additive, as when pixels within an object or words within a phrase interact, no attribution can reach zero infidelity. The floor is the same for every method scored on the same model and perturbations, so rankings stand, but the score is not the explanation's error alone and cannot be compared across models."
+    },
+    {
+      "description": "The score is an average over random perturbations, each needing a model evaluation. Yeh et al. used 1,000 perturbations per input; Captum's default is 10. Few samples give noisy scores, so small differences between methods need repeated runs, while many samples multiply the cost by the inputs, methods and settings compared. Quantus's built-in version perturbs square patches and so handles image data only."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Metrics — Captum API reference",
+      "url": "https://captum.ai/api/metrics.html",
+      "source_type": "documentation",
+      "citationKey": "MetricsCaptumAPI",
+      "abstract": "Model Interpretability for PyTorch"
+    },
+    {
+      "title": "captum",
+      "url": "https://github.com/meta-pytorch/captum",
+      "source_type": "software_package",
+      "publication_date": "2019-08-27",
+      "citationKey": "meta-pytorchCaptum2019",
+      "abstract": "Model interpretability and understanding for PyTorch"
+    },
+    {
+      "title": "On the (In)fidelity and Sensitivity of Explanations",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2019/hash/a7471fdc77b3435276507cc8f2dc2569-Abstract.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Chih-Kuan Yeh",
+        "Cheng-Yu Hsieh",
+        "Arun Suggala",
+        "David I Inouye",
+        "Pradeep K Ravikumar"
+      ],
+      "publication_date": "2019",
+      "citationKey": "yehInfidelitySensitivityExplanations2019",
+      "abstract": "We consider objective evaluation measures of saliency explanations for complex black-box machine learning models. We propose simple robust variants of two notions that have been considered in recent literature: (in)fidelity, and sensitivity. We analyze optimal explanations with respect to both these measures, and while the optimal explanation for sensitivity is a vacuous constant explanation, the optimal explanation for infidelity is a novel combination of two popular explanation methods. By varying the perturbation distribution that defines infidelity, we obtain novel explanations by optimizing infidelity, which we show to out-perform existing explanations in both quantitative and qualitative measurements. Another salient question given these measures is how to modify any given explanation to have better values with respect to these measures. We propose a simple modification based on lowering sensitivity, and moreover show that when done appropriately, we could simultaneously improve both sensitivity as well as fidelity."
+    },
+    {
+      "title": "ImageNet Example All Metrics (Quantus tutorial)",
+      "url": "https://github.com/understandable-machine-intelligence-lab/Quantus/blob/main/tutorials/Tutorial_ImageNet_Example_All_Metrics.ipynb",
+      "source_type": "tutorial",
+      "citationKey": "ImageNetExampleAll",
+      "abstract": "[JMLR 2023] Quantus is an eXplainable AI toolkit for responsible evaluation of neural network explanations - understandable-machine-intelligence-lab/Quantus"
+    },
+    {
+      "title": "Investigations on Explainable Artificial Intelligence methods for the deep learning classification of fibre layup defect in the automated composite manufacturing",
+      "url": "https://doi.org/10.1016/j.compositesb.2021.109160",
+      "source_type": "application_paper",
+      "authors": [
+        "Sebastian Meister",
+        "Mahdieu Wermes",
+        "Jan Stüve",
+        "Roger M. Groves"
+      ],
+      "publication_date": "2021-11",
+      "citationKey": "meisterInvestigationsExplainableArtificial2021"
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 3,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Under the documented perturbation distribution, the attribution method that supplies credit analysts' reason scores has the lowest rescaled infidelity of the candidate methods on the held-out applications.",
+      "assuranceGoal": "explainability",
+      "domain": "finance"
+    },
+    {
+      "text": "The smoothing level used for weld-radiograph heatmaps gives lower mean infidelity under square-patch perturbations than the unsmoothed heatmaps on the validation radiographs.",
+      "assuranceGoal": "explainability",
+      "domain": "manufacturing"
+    },
+    {
+      "text": "After each quarterly retraining, the deployed attribution settings have the lowest rescaled infidelity of the settings compared on current validation data, under the perturbation distribution fixed when the explainer was first validated.",
+      "assuranceGoal": "explainability",
+      "domain": "healthcare"
+    }
+  ]
+}

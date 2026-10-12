@@ -1,11 +1,10 @@
 {
   "slug": "temperature-scaling",
   "name": "Temperature Scaling",
-  "description": "Temperature scaling adjusts a model's confidence by applying a single parameter (temperature) to its predictions. When a model is too confident in its wrong answers, temperature scaling can fix this by making the predictions more realistic. It works by dividing the model's outputs by the temperature value before converting them to probabilities. Higher temperatures make the model less confident, whilst lower temperatures increase confidence. The technique maintains the model's accuracy whilst ensuring that when it says it's 90% confident, it's actually right about 90% of the time.",
+  "description": "Temperature scaling is a correction applied after training to a classifier that is more confident than it is accurate, a common problem in modern neural networks. It divides the model's raw scores (logits) by a single number, the temperature, before they are turned into probabilities, so a temperature above one lowers confidence and one below one raises it. The temperature is fitted on a labelled validation set kept apart from training by minimising negative log-likelihood, a measure that penalises confident wrong answers, and the model's own weights are not changed. Because dividing by one positive number never changes which class scores highest, predictions and accuracy stay the same. Stated confidence usually moves much closer to observed accuracy on data like the validation set, which a reliability diagram (a chart of stated confidence against how often the model was right) can show, but some miscalibration remains.",
   "assurance_goals": [
     "Reliability",
-    "Transparency",
-    "Fairness"
+    "Transparency"
   ],
   "tags": [
     "applicable-models/architecture/neural-networks",
@@ -13,8 +12,6 @@
     "applicable-models/paradigm/supervised",
     "applicable-models/requirements/probabilistic-output",
     "applicable-models/requirements/white-box",
-    "assurance-goal-category/fairness",
-    "assurance-goal-category/fairness/performance-by-group",
     "assurance-goal-category/reliability",
     "assurance-goal-category/reliability/calibration",
     "assurance-goal-category/transparency",
@@ -32,33 +29,42 @@
   ],
   "example_use_cases": [
     {
-      "description": "Adjusting a deep learning image classifier's confidence scores to be realistic, ensuring that when it's 90% confident, it's right 90% of the time.",
-      "goal": "Reliability"
+      "goal": "Reliability",
+      "description": "A trust-and-safety team auto-removes posts only when its neural text classifier reports at least 95% confidence. The team fits a temperature on one labelled validation set, then checks on a second, unseen labelled set that posts scored near 95% really are abusive about 95% of the time, and adjusts the removal threshold if they are not."
     },
     {
-      "description": "Making medical diagnosis model predictions more trustworthy by providing realistic confidence scores that doctors can interpret and use to make informed decisions about patient care.",
-      "goal": "Transparency"
+      "goal": "Reliability",
+      "description": "An environmental agency's land-cover classifier was trained on summer satellite images and is now used on winter scenes, where it is overconfident. The team fits a fresh temperature on a small labelled winter sample and compares calibration error before and after on separate winter test scenes, rather than reusing the summer temperature."
     },
     {
-      "description": "Ensuring fair treatment across patient demographics by calibrating confidence scores equally across different groups, preventing systematic over-confidence in predictions for certain populations.",
-      "goal": "Fairness"
+      "goal": "Transparency",
+      "description": "A hospital radiology department displays the model's confidence beside each chest X-ray finding. Before display, the team fits a temperature on held-out scans from its own hospital and reports expected calibration error on a test set, so that clinicians can read a displayed 70% as roughly 70 correct findings in 100 similar cases."
     }
   ],
   "limitations": [
     {
-      "description": "Only addresses calibration at the overall dataset level, not subgroup-specific miscalibration issues."
+      "description": "A single temperature is fitted for the whole dataset, so it corrects average overconfidence but not differences between groups or regions of the input space. A minority group can stay overconfident while overall calibration looks good, and only a per-group calibration check shows it."
     },
     {
-      "description": "Does not improve the rank ordering or accuracy of predictions, only adjusts confidence levels."
+      "description": "It leaves predicted classes unchanged, so accuracy and the model's mistakes stay as they were. A weak model remains weak and only becomes more honest about it, so calibration cannot substitute for improving the model."
     },
     {
-      "description": "Assumes that calibration errors are consistent across different types of inputs and feature values."
+      "description": "The temperature is fitted on data resembling the training distribution, and calibration can degrade when deployment data shifts. In one large benchmark, error in stated confidence rose significantly as shift increased, even though it was low on unshifted data."
     },
     {
-      "description": "Requires a separate validation set for temperature parameter optimisation, which may not be available in small datasets."
+      "description": "It needs labelled held-out data that resembles deployment, separate from the training data, and a further separate set to measure the result, because scoring calibration on the data used to fit the temperature flatters it. Small datasets may not leave enough for both."
+    },
+    {
+      "description": "Calibration is judged on the confidence of the predicted class only. The probabilities given to the other classes are not checked by that measure, so uses that read the whole probability list, such as ranking several likely diagnoses, need separate testing."
     }
   ],
   "resources": [
+    {
+      "title": "TemperatureScaler - TorchUncertainty Docs",
+      "url": "https://torch-uncertainty.github.io/generated/torch_uncertainty.post_processing.TemperatureScaler.html",
+      "source_type": "documentation",
+      "citationKey": "TemperatureScalerTorchUncertaintyDocs"
+    },
     {
       "title": "temperature_scaling",
       "url": "https://github.com/gpleiss/temperature_scaling",
@@ -66,32 +72,6 @@
       "publication_date": "2017-08-03",
       "citationKey": "gpleissTemperature_scaling2017",
       "abstract": "A simple way to calibrate your neural network."
-    },
-    {
-      "title": "Exploring the Impact of Temperature Scaling in Softmax for Classification and Adversarial Robustness",
-      "url": "http://arxiv.org/abs/2502.20604v1",
-      "source_type": "technical_paper",
-      "authors": [
-        "Hao Xuan",
-        "Bokai Yang",
-        "Xingyu Li"
-      ],
-      "publication_date": "2025-02-28",
-      "citationKey": "xuanExploringImpactTemperature2025",
-      "abstract": "The softmax function is a fundamental component in deep learning. This study delves into the often-overlooked parameter within the softmax function, known as \"temperature,\" providing novel insights into the practical and theoretical aspects of temperature scaling for image classification. Our empirical studies, adopting convolutional neural networks and transformers on multiple benchmark datasets, reveal that moderate temperatures generally introduce better overall performance. Through extensive experiments and rigorous theoretical analysis, we explore the role of temperature scaling in model training and unveil that temperature not only influences learning step size but also shapes the model's optimization direction. Moreover, for the first time, we discover a surprising benefit of elevated temperatures: enhanced model robustness against common corruption, natural perturbation, and non-targeted adversarial attacks like Projected Gradient Descent. We extend our discoveries to adversarial training, demonstrating that, compared to the standard softmax function with the default temperature value, higher temperatures have the potential to enhance adversarial training. The insights of this work open new avenues for improving model performance and security in deep learning applications."
-    },
-    {
-      "title": "Neural Clamping: Joint Input Perturbation and Temperature Scaling for Neural Network Calibration",
-      "url": "http://arxiv.org/abs/2209.11604v2",
-      "source_type": "technical_paper",
-      "authors": [
-        "Yung-Chen Tang",
-        "Pin-Yu Chen",
-        "Tsung-Yi Ho"
-      ],
-      "publication_date": "2022-09-23",
-      "citationKey": "tangNeuralClampingJoint2022",
-      "abstract": "Neural network calibration is an essential task in deep learning to ensure consistency between the confidence of model prediction and the true correctness likelihood. In this paper, we propose a new post-processing calibration method called Neural Clamping, which employs a simple joint input-output transformation on a pre-trained classifier via a learnable universal input perturbation and an output temperature scaling parameter. Moreover, we provide theoretical explanations on why Neural Clamping is provably better than temperature scaling. Evaluated on BloodMNIST, CIFAR-100, and ImageNet image recognition datasets and a variety of deep neural network models, our empirical results show that Neural Clamping significantly outperforms state-of-the-art post-processing calibration methods. The code is available at github.com/yungchentang/NCToolkit, and the demo is available at huggingface.co/spaces/TrustSafeAI/NCTV."
     },
     {
       "title": "On Calibration of Modern Neural Networks",
@@ -108,50 +88,39 @@
       "abstract": "Confidence calibration -- the problem of predicting probability estimates representative of the true correctness likelihood -- is important for classification models in many applications. We discover that modern neural networks, unlike those from a decade ago, are poorly calibrated. Through extensive experiments, we observe that depth, width, weight decay, and Batch Normalization are important factors influencing calibration. We evaluate the performance of various post-processing calibration methods on state-of-the-art architectures with image and document classification datasets. Our analysis and experiments not only offer insights into neural network learning, but also provide a simple and straightforward recipe for practical settings: on most datasets, temperature scaling -- a single-parameter variant of Platt Scaling -- is surprisingly effective at calibrating predictions."
     },
     {
-      "title": "On the Limitations of Temperature Scaling for Distributions with Overlaps",
-      "url": "http://arxiv.org/abs/2306.00740v3",
-      "source_type": "technical_paper",
-      "authors": [
-        "Muthu Chidambaram",
-        "Rong Ge"
-      ],
-      "publication_date": "2023-06-01",
-      "citationKey": "chidambaramLimitationsTemperatureScaling2023",
-      "abstract": "Despite the impressive generalization capabilities of deep neural networks, they have been repeatedly shown to be overconfident when they are wrong. Fixing this issue is known as model calibration, and has consequently received much attention in the form of modified training schemes and post-training calibration procedures such as temperature scaling. While temperature scaling is frequently used because of its simplicity, it is often outperformed by modified training schemes. In this work, we identify a specific bottleneck for the performance of temperature scaling. We show that for empirical risk minimizers for a general set of distributions in which the supports of classes have overlaps, the performance of temperature scaling degrades with the amount of overlap between classes, and asymptotically becomes no better than random when there are a large number of classes. On the other hand, we prove that optimizing a modified form of the empirical risk induced by the Mixup data augmentation technique can in fact lead to reasonably good calibration performance, showing that training-time calibration may be necessary in some situations. We also verify that our theoretical results reflect practice by showing that Mixup significantly outperforms empirical risk minimization (with respect to multiple calibration metrics) on image classification benchmarks with class overlaps introduced in the form of label noise."
+      "title": "Improve top-label calibration with temperature scaling - TorchUncertainty Docs",
+      "url": "https://torch-uncertainty.github.io/auto_tutorials/Post_Hoc_Methods/tutorial_temperature.html",
+      "source_type": "tutorial",
+      "citationKey": "ImproveToplabelCalibration"
     }
   ],
   "complexity_rating": 1,
   "computational_cost_rating": 1,
   "related_techniques": [
-    "empirical-calibration",
+    "platt-scaling",
     "deep-ensembles",
     "conformal-prediction"
   ],
   "sample_claims": [
     {
-      "text": "The medical diagnosis system's confidence scores align with observed clinical outcome frequencies across all prediction confidence levels",
+      "assuranceGoal": "reliability",
       "domain": "healthcare",
-      "assuranceGoal": "reliability"
+      "text": "On a test set not used to fit the temperature, the diagnostic model's expected calibration error is below the agreed threshold, and observed accuracy in each confidence band is within tolerance of its stated confidence."
     },
     {
-      "text": "The credit risk model's probability estimates reflect true default rates without sacrificing discriminative accuracy",
+      "assuranceGoal": "reliability",
       "domain": "finance",
-      "assuranceGoal": "reliability"
+      "text": "Calibrating the credit risk model with a single temperature left its predicted classes, and therefore its accuracy, unchanged, while its default probabilities now track the observed default rates on held-out data."
     },
     {
-      "text": "The image classifier communicates prediction confidence through calibrated probabilities that match empirical correctness rates",
+      "assuranceGoal": "transparency",
       "domain": "general",
-      "assuranceGoal": "transparency"
+      "text": "A displayed confidence of 80% corresponds to about 80 correct predictions in 100, as shown by a reliability diagram on data not used to fit the temperature."
     },
     {
-      "text": "The fraud detection system's confidence estimates are equally well-calibrated across customer demographic groups",
-      "domain": "finance",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The environmental forecasting model's stated uncertainty levels correspond to actual prediction accuracy across diverse weather conditions",
+      "assuranceGoal": "reliability",
       "domain": "environmental",
-      "assuranceGoal": "reliability"
+      "text": "After refitting the temperature on a labelled sample from the new region, the land-cover classifier's calibration error on that region's test data is no worse than on the original region."
     }
   ]
 }

@@ -2,10 +2,357 @@
   "tag": {
     "name": "applicable-models/architecture/neural-networks/transformer",
     "slug": "applicable-models-architecture-neural-networks-transformer",
-    "count": 6,
+    "count": 5,
     "category": "applicable-models"
   },
   "techniques": [
+    {
+      "slug": "integrated-gradients",
+      "name": "Integrated Gradients",
+      "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
+      "assurance_goals": [
+        "Explainability",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/differentiable",
+        "applicable-models/requirements/gradient-access",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/gradient-based",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/property/completeness",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
+        "data-requirements/reference-dataset",
+        "data-type/image",
+        "data-type/tabular",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A trust-and-safety team investigating false positives in a toxic-content classifier aggregates token attributions over wrongly flagged posts to see whether identity terms, such as the name of a religion or a sexual orientation, rather than abusive language drive the score, and adds counter-examples to the training data where they do.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A lender's model-risk team runs Integrated Gradients over a classifier that reads the free-text statements in loan applications, ranking the most highly attributed words across a sample of declined applications to check whether words that reveal a protected characteristic, or stand in for one, carry weight in the decision.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Attributions are measured against the baseline and no choice is neutral. Features that match the baseline score near zero even when the model relies on them: with a black-image baseline, dark pixels on the object get little credit. A comparison of blurred, noise and training-data baselines found none best, so the baseline is an assumption to state and to vary before drawing conclusions."
+        },
+        {
+          "description": "Requires gradient access to a differentiable model, so it cannot explain tree ensembles, rule-based components or a model reached only through an API. For text, the path runs through token embeddings whose intermediate points are not real words, and subword tokenisation splits a word across several scores that must be recombined before a reviewer can read them."
+        },
+        {
+          "description": "Each explanation needs one gradient computation per step along the path; the original authors found 20 to 300 steps were usually enough for the scores to sum to within 5% of the output difference. Explaining long documents, high-resolution images or a large audit sample therefore costs tens to hundreds of forward and backward passes per prediction."
+        },
+        {
+          "description": "A score shows how sensitive the output was to a feature along one straight path, not that the feature causes the outcome in the world or that removing it would change the decision. Maps over neighbouring pixels or tokens are often noisy, and a plausible-looking heatmap does not show that the model's reasoning is sound."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Integrated Gradients — Captum API reference",
+          "url": "https://captum.ai/api/integrated_gradients.html",
+          "source_type": "documentation",
+          "citationKey": "IntegratedGradientsCaptum",
+          "abstract": "Model Interpretability for PyTorch"
+        },
+        {
+          "title": "captum",
+          "url": "https://github.com/meta-pytorch/captum",
+          "source_type": "software_package",
+          "publication_date": "2019-08-27",
+          "citationKey": "meta-pytorchCaptum2019",
+          "abstract": "Model interpretability and understanding for PyTorch"
+        },
+        {
+          "title": "Axiomatic Attribution for Deep Networks",
+          "url": "https://proceedings.mlr.press/v70/sundararajan17a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Mukund Sundararajan",
+            "Ankur Taly",
+            "Qiqi Yan"
+          ],
+          "publication_date": "2017-03-04",
+          "citationKey": "sundararajanAxiomaticAttributionDeep2017",
+          "abstract": "We study the problem of attributing the prediction of a deep network to its input features, a problem previously studied by several other works. We identify two fundamental axioms---Sensitivity and Implementation Invariance that attribution methods ought to satisfy. We show that they are not satisfied by most known attribution methods, which we consider to be a fundamental weakness of those methods. We use the axioms to guide the design of a new attribution method called Integrated Gradients. Our method requires no modification to the original network and is extremely simple to implement; it just needs a few calls to the standard gradient operator. We apply this method to a couple of image models, a couple of text models and a chemistry model, demonstrating its ability to debug networks, to extract rules from a network, and to enable users to engage with models better."
+        },
+        {
+          "title": "Integrated gradients — TensorFlow Core tutorials",
+          "url": "https://www.tensorflow.org/tutorials/interpretability/integrated_gradients",
+          "source_type": "tutorial",
+          "citationKey": "IntegratedGradientsTensorFlow"
+        },
+        {
+          "title": "Using a Deep Learning Algorithm and Integrated Gradients Explanation to Assist Grading for Diabetic Retinopathy",
+          "url": "https://doi.org/10.1016/j.ophtha.2018.11.016",
+          "source_type": "application_paper",
+          "authors": [
+            "Rory Sayres",
+            "Ankur Taly",
+            "Ehsan Rahimy",
+            "Katy Blumer",
+            "David Coz",
+            "Naama Hammel",
+            "Jonathan Krause",
+            "Arunachalam Narayanaswamy",
+            "Zahra Rastegar",
+            "Derek Wu",
+            "Shawn Xu",
+            "Scott Barb",
+            "Anthony Joseph",
+            "Michael Shumski",
+            "Jesse Smith",
+            "Arjun B. Sood",
+            "Greg S. Corrado",
+            "Lily Peng",
+            "Dale R. Webster"
+          ],
+          "publication_date": "2019-4",
+          "citationKey": "sayresUsingDeepLearning2019",
+          "abstract": "PURPOSE: To understand the impact of deep learning diabetic retinopathy (DR) algorithms on physician readers in computer-assisted settings. DESIGN: Evaluation of diagnostic technology. PARTICIPANTS: One thousand seven hundred ninety-six retinal fundus images from 1612 diabetic patients. METHODS: Ten ophthalmologists (5 general ophthalmologists, 4 retina specialists, 1 retina fellow) read images for DR severity based on the International Clinical Diabetic Retinopathy disease severity scale in each of 3 conditions: unassisted, grades only, or grades plus heatmap. Grades-only assistance comprised a histogram of DR predictions (grades) from a trained deep-learning model. For grades plus heatmap, we additionally showed explanatory heatmaps. MAIN OUTCOME MEASURES: For each experiment arm, we computed sensitivity and specificity of each reader and the algorithm for different levels of DR severity against an adjudicated reference standard. We also measured accuracy (exact 5-class level agreement and Cohen's quadratically weighted κ), reader-reported confidence (5-point Likert scale), and grading time. RESULTS: Readers graded more accurately with model assistance than without for the grades-only condition (P < 0.001). Grades plus heatmaps improved accuracy for patients with DR (P < 0.001), but reduced accuracy for patients without DR (P = 0.006). Both forms of assistance increased readers' sensitivity moderate-or-worse DR: unassisted: mean, 79.4% [95% confidence interval (CI), 72.3%-86.5%]; grades only: mean, 87.5% [95% CI, 85.1%-89.9%]; grades plus heatmap: mean, 88.7% [95% CI, 84.9%-92.5%] without a corresponding drop in specificity (unassisted: mean, 96.6% [95% CI, 95.9%-97.4%]; grades only: mean, 96.1% [95% CI, 95.5%-96.7%]; grades plus heatmap: mean, 95.5% [95% CI, 94.8%-96.1%]). Algorithmic assistance increased the accuracy of retina specialists above that of the unassisted reader or model alone; and increased grading confidence and grading time across all readers. For most cases, grades plus heatmap was only as effective as grades only. Over the course of the experiment, grading time decreased across all conditions, although most sharply for grades plus heatmap. CONCLUSIONS: Deep learning algorithms can improve the accuracy of, and confidence in, DR diagnosis in an assisted read setting. They also may increase grading time, although these effects may be ameliorated with experience."
+        },
+        {
+          "title": "Visualizing the Impact of Feature Attribution Baselines",
+          "url": "https://doi.org/10.23915/distill.00022",
+          "source_type": "tutorial",
+          "authors": [
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee",
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee"
+          ],
+          "publication_date": "2020",
+          "citationKey": "sturmfelsVisualizingImpactFeature2020"
+        },
+        {
+          "title": "Interpreting BERT Models (Part 1) — Captum tutorial",
+          "url": "https://captum.ai/tutorials/Bert_SQUAD_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingBERTModels",
+          "abstract": "Model Interpretability for PyTorch"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 3,
+      "related_techniques": [
+        "deeplift",
+        "layer-wise-relevance-propagation",
+        "gradient-saliency",
+        "taylor-decomposition"
+      ],
+      "sample_claims": [
+        {
+          "text": "The retinopathy grading model's referral predictions are attributable to lesion regions in the retinal image rather than to imaging artefacts, as shown by Integrated Gradients review of a stratified sample of graded cases",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The attribution scores given to credit analysts for each decision sum, within a stated tolerance, to the difference between the model's score for the applicant and its score for the documented reference applicant",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
+        }
+      ]
+    },
+    {
+      "slug": "attention-weight-analysis",
+      "name": "Attention Weight Analysis",
+      "description": "Attention weight analysis reads the weights an attention-based neural network assigns to the parts of its input, to see which positions it draws on at each step. The weights come from an ordinary forward pass and are plotted as heatmaps, one row per output step or token. In recurrent encoder-decoder models, such as early neural machine translation or image captioning, each output step has a row over the source words or image regions, read as a soft alignment in which weight is shared across several source positions. In transformers, each attention head (one of several parallel attention units in a layer) has its own matrix at every layer; the analyst views these per head and layer, or averages them over many inputs to profile a head, for example by how much attention it gives each kind of token, or how often its strongest attention lands on a labelled relation such as a verb and its object. The heatmaps show where each step looks; on their own they do not measure how much each input contributed to the prediction, because the weights leave out what is done with the attended values and information mixes between layers.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/recurrent",
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/requirements/architecture-specific",
+        "applicable-models/requirements/model-internals",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explains/internal-mechanisms",
+        "assurance-goal-category/explainability/property/efficiency",
+        "assurance-goal-category/explainability/visualization-methods/attention-patterns",
+        "data-requirements/no-special-requirements",
+        "data-type/image",
+        "data-type/text",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/global",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic",
+        "technique-type/visualisation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A localisation team validating an in-house recurrent encoder-decoder translation model for equipment manuals plots the attention matrix for sample sentences and checks that each technical term draws most of its weight from its source counterpart. Sentences whose weight falls mainly on punctuation or the end-of-sentence marker go to a translator; the team first tests this screen on sentences with known errors, and does not treat a clean alignment as proof of a correct translation.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A team assessing an image-captioning model for an alt-text service overlays each generated word's attention weights on the image to check that nouns such as 'wheelchair' or 'crossing' fall on the matching objects. Captions whose nouns attend mainly to background regions are sent for manual review before release, as a screen only: a match does not show that the object produced the word.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A clinical NLP team reviewing a transformer that extracts medication details from discharge letters uses head and model views on a sample of letters to find heads whose attention links each drug name to its dose and frequency, then checks whether those heads behave the same way on letters from a second hospital before describing in the model documentation where those heads look, without claiming that the extraction depends on them.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A model-risk team reviewing a contract-clause classifier uses attention maps as a first look at which phrases the model draws on, then tests the highlighted phrases with an attribution or ablation method before reporting them, because its validation policy does not accept attention weights alone as evidence of what drove a decision.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A bright cell in a heatmap does not show that the input behind it caused the output. In recurrent text classifiers, attention often disagreed with other measures of which words mattered, and very different patterns gave the same prediction (Jain and Wallace 2019). Wiegreffe and Pinter (2019) reply that attention can be a believable account without being a faithful one. Neither tested transformers. Confirm any reading by masking the highlighted inputs and checking that the output changes."
+        },
+        {
+          "description": "In transformers each layer mixes information between tokens, so one layer's weights do not show which inputs a later representation depends on. In a small six-layer transformer, the classification token's weights agreed with deletion-based importance only in the first layer; rollout, which combines weights across layers, agreed better later (Abnar and Zuidema 2020). For a fine-tuned DistilBERT model the gain was small: rollout improves on raw weights but does not fix them."
+        },
+        {
+          "description": "Each input gives one matrix per head per layer (144 in BERT-base), and the most visible pattern is often uninformative. In BERT, over half the attention in layers 6 to 10 falls on the separator token, which Clark et al. (2019) suggest acts as a 'do nothing' option; Kobayashi et al. (2020) found these weights carry little information once vector size is counted. Profiling a head needs averaging over many inputs, since a few hand-picked examples can mislead."
+        },
+        {
+          "description": "The weights mean different things in different architectures. In recurrent translation models source attention reads as a word alignment (Bahdanau et al. 2015). In transformer translation models, averaging source attention over all layers gave poor alignments; better ones needed a chosen layer or a measure that counts vector size (Garg et al. 2019; Kobayashi et al. 2020). Check any alignment reading against reference alignments for the model being assessed."
+        },
+        {
+          "description": "Attention can be trained to look harmless while the model still uses what it hides. Pruthi et al. (2020) trained occupation classifiers to put almost no attention on gender words with little loss of accuracy; the models still used gender, yet reviewers shown the manipulated highlights judged no predictions gender-influenced, against 66% with the original attention. A heatmap showing no weight on a sensitive input is weak evidence; test by changing the input."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Neural Machine Translation by Jointly Learning to Align and Translate",
+          "url": "https://doi.org/10.48550/arXiv.1409.0473",
+          "source_type": "technical_paper",
+          "authors": [
+            "Dzmitry Bahdanau",
+            "Kyunghyun Cho",
+            "Yoshua Bengio"
+          ],
+          "publication_date": "2016-05-19",
+          "citationKey": "bahdanauNeuralMachineTranslation2016",
+          "abstract": "Neural machine translation is a recently proposed approach to machine translation. Unlike the traditional statistical machine translation, the neural machine translation aims at building a single neural network that can be jointly tuned to maximize the translation performance. The models proposed recently for neural machine translation often belong to a family of encoder-decoders and consists of an encoder that encodes a source sentence into a fixed-length vector from which a decoder generates a translation. In this paper, we conjecture that the use of a fixed-length vector is a bottleneck in improving the performance of this basic encoder-decoder architecture, and propose to extend this by allowing a model to automatically (soft-)search for parts of a source sentence that are relevant to predicting a target word, without having to form these parts as a hard segment explicitly. With this new approach, we achieve a translation performance comparable to the existing state-of-the-art phrase-based system on the task of English-to-French translation. Furthermore, qualitative analysis reveals that the (soft-)alignments found by the model agree well with our intuition."
+        },
+        {
+          "title": "bertviz",
+          "url": "https://github.com/jessevig/bertviz",
+          "source_type": "software_package",
+          "publication_date": "2018-12-16",
+          "citationKey": "jessevigBertviz2018",
+          "abstract": "BertViz: Visualize Attention in NLP Models (BERT, GPT2, BART, etc.)"
+        },
+        {
+          "title": "Model outputs — Hugging Face Transformers documentation",
+          "url": "https://huggingface.co/docs/transformers/main_classes/output",
+          "source_type": "documentation",
+          "citationKey": "ModelOutputsHugging",
+          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
+        },
+        {
+          "title": "BertViz Interactive Tutorial (Colab)",
+          "url": "https://colab.research.google.com/drive/1hXIQ77A4TYS4y3UthWF-Ci7V7vVUoxmQ",
+          "source_type": "tutorial",
+          "citationKey": "BertVizInteractiveTutorial"
+        },
+        {
+          "title": "NLP From Scratch: Translation with a Sequence to Sequence Network and Attention — PyTorch Tutorials",
+          "url": "https://docs.pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html",
+          "source_type": "tutorial",
+          "citationKey": "NLPScratchTranslation"
+        },
+        {
+          "title": "What Does BERT Look At? An Analysis of BERT's Attention",
+          "url": "https://doi.org/10.18653/v1/W19-4828",
+          "source_type": "application_paper",
+          "authors": [
+            "Kevin Clark",
+            "Urvashi Khandelwal",
+            "Omer Levy",
+            "Christopher D. Manning"
+          ],
+          "publication_date": "2019-06-11",
+          "citationKey": "clarkWhatDoesBERT2019",
+          "abstract": "Large pre-trained neural networks such as BERT have had great recent success in NLP, motivating a growing body of research investigating what aspects of language they are able to learn from unlabeled data. Most recent analysis has focused on model outputs (e.g., language model surprisal) or internal vector representations (e.g., probing classifiers). Complementary to these works, we propose methods for analyzing the attention mechanisms of pre-trained models and apply them to BERT. BERT's attention heads exhibit patterns such as attending to delimiter tokens, specific positional offsets, or broadly attending over the whole sentence, with heads in the same layer often exhibiting similar behaviors. We further show that certain attention heads correspond well to linguistic notions of syntax and coreference. For example, we find heads that attend to the direct objects of verbs, determiners of nouns, objects of prepositions, and coreferent mentions with remarkably high accuracy. Lastly, we propose an attention-based probing classifier and use it to further demonstrate that substantial syntactic information is captured in BERT's attention."
+        },
+        {
+          "title": "Attention is not Explanation",
+          "url": "https://doi.org/10.18653/v1/n19-1357",
+          "source_type": "application_paper",
+          "authors": [
+            "Sarthak Jain",
+            "Byron C. Wallace"
+          ],
+          "publication_date": "2019",
+          "citationKey": "jainAttentionNotExplanation2019",
+          "abstract": "Attention mechanisms have seen wide adoption in neural NLP models. In addition to improving predictive performance, these are often touted as affording transparency: models equipped with attention provide a distribution over attended-to input units, and this is often presented (at least implicitly) as communicating the relative importance of inputs. However, it is unclear what relationship exists between attention weights and model outputs. In this work we perform extensive experiments across a variety of NLP tasks that aim to assess the degree to which attention weights provide meaningful “explanations” for predictions. We find that they largely do not. For example, learned attention weights are frequently uncorrelated with gradient-based measures of feature importance, and one can identify very different attention distributions that nonetheless yield equivalent predictions. Our findings show that standard attention modules do not provide meaningful explanations and should not be treated as though they do."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For a sample of equipment-manual sentences, the recurrent translation model's source attention put its largest weight on the source counterpart of each translated technical term, and sentences where it did not were reviewed by a translator.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "In the reviewed sample of alt-text captions, the share of generated object nouns whose attention fell on the matching object in the image met the release threshold, and captions that fell short were checked by hand before release.",
+          "domain": "public sector",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The attention heads identified as linking drug names to doses behave consistently across discharge letters from both hospitals in the validation set",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Phrases that attention maps suggested were decisive for the clause classifier were confirmed by an independent attribution method before being reported to reviewers",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
+        }
+      ]
+    },
     {
       "slug": "causal-mediation-analysis-in-language-models",
       "name": "Causal Mediation Analysis in Language Models",
@@ -69,38 +416,30 @@
       ],
       "resources": [
         {
-          "title": "Transformer Interpretability Beyond Attention Visualization",
-          "url": "https://arxiv.org/abs/2012.09838",
-          "source_type": "technical_paper",
-          "authors": [
-            "Hila Chefer",
-            "Shir Gur",
-            "Lior Wolf"
-          ],
-          "publication_date": "2020-12-17",
-          "citationKey": "cheferTransformerInterpretabilityAttention2020",
-          "abstract": "Self-attention techniques, and specifically Transformers, are dominating the field of text processing and are becoming increasingly popular in computer vision classification tasks. In order to visualize the parts of the image that led to a certain classification, existing methods either rely on the obtained attention maps or employ heuristic propagation along the attention graph. In this work, we propose a novel way to compute relevancy for Transformer networks. The method assigns local relevance based on the Deep Taylor Decomposition principle and then propagates these relevancy scores through the layers. This propagation involves attention layers and skip connections, which challenge existing methods. Our solution is based on a specific formulation that is shown to maintain the total relevancy across layers. We benchmark our method on very recent visual Transformer networks, as well as on a text classification problem, and demonstrate a clear advantage over the existing explainability methods."
+          "title": "pyvene documentation",
+          "url": "https://stanfordnlp.github.io/pyvene/",
+          "source_type": "documentation",
+          "citationKey": "PyveneDocumentation"
         },
         {
-          "title": "Efficient Automated Circuit Discovery in Transformers using Contextual Decomposition",
-          "url": "http://arxiv.org/abs/2407.00886v3",
-          "source_type": "technical_paper",
-          "authors": [
-            "Aliyah R. Hsu",
-            "Georgia Zhou",
-            "Yeshwanth Cherapanamjeri",
-            "Yaxuan Huang",
-            "Anobel Y. Odisho",
-            "Peter R. Carroll",
-            "Bin Yu"
-          ],
-          "publication_date": "2024-07-01",
-          "citationKey": "r.hsuEfficientAutomatedCircuit2024",
-          "abstract": "Automated mechanistic interpretation research has attracted great interest due to its potential to scale explanations of neural network internals to large models. Existing automated circuit discovery work relies on activation patching or its approximations to identify subgraphs in models for specific tasks (circuits). They often suffer from slow runtime, approximation errors, and specific requirements of metrics, such as non-zero gradients. In this work, we introduce contextual decomposition for transformers (CD-T) to build interpretable circuits in large language models. CD-T can produce circuits of arbitrary level of abstraction, and is the first able to produce circuits as fine-grained as attention heads at specific sequence positions efficiently. CD-T consists of a set of mathematical equations to isolate contribution of model features. Through recursively computing contribution of all nodes in a computational graph of a model using CD-T followed by pruning, we are able to reduce circuit discovery runtime from hours to seconds compared to state-of-the-art baselines. On three standard circuit evaluation datasets (indirect object identification, greater-than comparisons, and docstring completion), we demonstrate that CD-T outperforms ACDC and EAP by better recovering the manual circuits with an average of 97% ROC AUC under low runtimes. In addition, we provide evidence that faithfulness of CD-T circuits is not due to random chance by showing our circuits are 80% more faithful than random circuits of up to 60% of the original model size. Finally, we show CD-T circuits are able to perfectly replicate original models' behavior (faithfulness $ = 1$) using fewer nodes than the baselines for all tasks. Our results underscore the great promise of CD-T for efficient automated mechanistic interpretability, paving the way for new insights into the workings of large language models."
+          "title": "pyvene: A Library for Understanding and Improving PyTorch Models via Interventions",
+          "url": "https://github.com/stanfordnlp/pyvene",
+          "source_type": "software_package",
+          "publication_date": "2026-10-05T22:52:40Z",
+          "citationKey": "PyveneLibraryUnderstanding2026",
+          "abstract": "Stanford NLP Python library for understanding and improving PyTorch models via interventions"
         },
         {
-          "title": "Causal Mediation Analysis for Interpreting Neural NLP: The Case of Gender Bias",
-          "url": "http://arxiv.org/abs/2004.12265v2",
+          "title": "CausalMediationAnalysis (code for Vig et al. 2020)",
+          "url": "https://github.com/sebastianGehrmann/CausalMediationAnalysis",
+          "source_type": "software_package",
+          "publication_date": "2026-07-15T15:19:41Z",
+          "citationKey": "gehrmannCausalMediationAnalysisCodeVig2026",
+          "abstract": "Code for the paper \"Causal Mediation Analysis for Interpreting Neural NLP: The Case of Gender Bias\""
+        },
+        {
+          "title": "Investigating Gender Bias in Language Models Using Causal Mediation Analysis",
+          "url": "https://proceedings.neurips.cc/paper/2020/hash/92650b2e92217715fe312e6fa7b90d82-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
             "Jesse Vig",
@@ -116,13 +455,49 @@
           "publication_date": "2020-04-26",
           "citationKey": "vigCausalMediationAnalysis2020",
           "abstract": "Common methods for interpreting neural models in natural language processing typically examine either their structure or their behavior, but not both. We propose a methodology grounded in the theory of causal mediation analysis for interpreting which parts of a model are causally implicated in its behavior. It enables us to analyze the mechanisms by which information flows from input to output through various model components, known as mediators. We apply this methodology to analyze gender bias in pre-trained Transformer language models. We study the role of individual neurons and attention heads in mediating gender bias across three datasets designed to gauge a model's sensitivity to gender bias. Our mediation analysis reveals that gender bias effects are (i) sparse, concentrated in a small part of the network; (ii) synergistic, amplified or repressed by different components; and (iii) decomposable into effects flowing directly from the input and indirectly through the mediators."
+        },
+        {
+          "title": "Causal Tracing (ROME) — pyvene tutorial",
+          "url": "https://github.com/stanfordnlp/pyvene/blob/main/tutorials/advanced_tutorials/Causal_Tracing.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "CausalTracingROME",
+          "abstract": "Stanford NLP Python library for understanding and improving PyTorch models via interventions - stanfordnlp/pyvene"
+        },
+        {
+          "title": "Causal Analysis of Syntactic Agreement Mechanisms in Neural Language Models",
+          "url": "https://doi.org/10.18653/v1/2021.acl-long.144",
+          "source_type": "application_paper",
+          "authors": [
+            "Matthew Finlayson",
+            "Aaron Mueller",
+            "Sebastian Gehrmann",
+            "Stuart Shieber",
+            "Tal Linzen",
+            "Yonatan Belinkov"
+          ],
+          "publication_date": "2021",
+          "citationKey": "finlaysonCausalAnalysisSyntactic2021",
+          "abstract": "Targeted syntactic evaluations have demonstrated the ability of language models to perform subject-verb agreement given difficult contexts. To elucidate the mechanisms by which the models accomplish this behavior, this study applies causal mediation analysis to pre-trained neural language models. We investigate the magnitude of models’ preferences for grammatical inflections, as well as whether neurons process subject-verb agreement similarly across sentences with different syntactic structures. We uncover similarities and differences across architectures and model sizes—notably, that larger models do not necessarily learn stronger preferences. We also observe two distinct mechanisms for producing subject-verb agreement depending on the syntactic structure of the input sentence. Finally, we find that language models rely on similar sets of neurons when given sentences with similar syntactic structure."
+        },
+        {
+          "title": "Locating and Editing Factual Associations in GPT",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2022/hash/6f1d43d5a82a37e89b0665b33bf3a182-Abstract-Conference.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Kevin Meng",
+            "David Bau",
+            "Alex Andonian",
+            "Yonatan Belinkov"
+          ],
+          "publication_date": "2022",
+          "citationKey": "mengLocatingEditingFactual2022"
         }
       ],
       "complexity_rating": 5,
       "computational_cost_rating": 4,
       "related_techniques": [
-        "attention-visualisation-in-transformers",
-        "feature-attribution-with-integrated-gradients-in-nlp",
+        "attention-weight-analysis",
+        "integrated-gradients",
         "neuron-activation-analysis"
       ],
       "sample_claims": [
@@ -149,471 +524,11 @@
       ]
     },
     {
-      "slug": "feature-attribution-with-integrated-gradients-in-nlp",
-      "name": "Feature Attribution with Integrated Gradients in NLP",
-      "description": "Applies Integrated Gradients to natural language processing models to attribute prediction importance to individual input tokens, words, or subword units. This technique computes gradients along a straight-line path from a baseline input (typically all-zeros, padding tokens, or neutral text) to the actual input, integrating these gradients to obtain attribution scores. Unlike vanilla gradient methods, Integrated Gradients satisfies axioms of sensitivity and implementation invariance, making it particularly valuable for understanding transformer-based language models where token interactions are complex.",
-      "assurance_goals": [
-        "Explainability",
-        "Fairness",
-        "Safety"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks/transformer",
-        "applicable-models/architecture/neural-networks/transformer/llm",
-        "applicable-models/paradigm/discriminative",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/white-box",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/attribution-methods/gradient-based",
-        "assurance-goal-category/explainability/explains/feature-importance",
-        "assurance-goal-category/explainability/property/completeness",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-analysis",
-        "data-requirements/reference-dataset",
-        "data-type/text",
-        "evidence-type/quantitative-metric",
-        "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
-        "explanatory-scope/local",
-        "technique-type/algorithmic",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
-      ],
-      "example_use_cases": [
-        {
-          "description": "In a clinical decision support system processing doctor's notes to predict patient risk, Integrated Gradients identifies which medical terms, symptoms, or phrases most strongly influence risk predictions, enabling clinicians to verify that the model focuses on clinically relevant information rather than spurious correlations and supporting regulatory compliance in healthcare AI.",
-          "goal": "Safety"
-        },
-        {
-          "description": "For automated loan approval systems processing free-text application descriptions, Integrated Gradients reveals which words or phrases drive acceptance decisions, supporting fairness audits by highlighting whether protected characteristics inadvertently influence decisions and enabling transparent explanations to customers about application outcomes.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "In content moderation systems flagging potentially harmful posts, Integrated Gradients identifies which specific words or linguistic patterns trigger safety classifications, enabling platform teams to debug false positives and validate that models focus on genuinely problematic language rather than demographic markers.",
-          "goal": "Explainability"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Computational overhead scales significantly with document length as processing requires computing gradients across many integration steps (typically 20-300), making real-time applications or large-scale document processing challenging."
-        },
-        {
-          "description": "Choice of baseline input (zero embeddings, padding tokens, neutral text, or average embeddings) substantially affects attribution results, but optimal baseline selection remains domain-specific and often requires extensive experimentation."
-        },
-        {
-          "description": "In transformer models with attention mechanisms, importance often spreads across many tokens, making it difficult to identify clear, actionable insights, especially for complex reasoning tasks where multiple tokens contribute collectively."
-        },
-        {
-          "description": "Modern NLP models use subword tokenisation (BPE, WordPiece), making attribution results difficult to interpret at the word level, as single words may split across multiple tokens with varying attribution scores."
-        },
-        {
-          "description": "While Integrated Gradients identifies correlative relationships between tokens and predictions, it cannot establish causal relationships or distinguish between spurious correlations and meaningful semantic dependencies in the input text."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Captum: Model Interpretability for PyTorch",
-          "url": "https://captum.ai",
-          "source_type": "software_package",
-          "publication_date": "2019",
-          "citationKey": "CaptumModelInterpretability2019"
-        },
-        {
-          "title": "Axiomatic Attribution for Deep Networks",
-          "url": "https://arxiv.org/abs/1703.01365",
-          "source_type": "technical_paper",
-          "authors": [
-            "Mukund Sundararajan",
-            "Ankur Taly",
-            "Qiqi Yan"
-          ],
-          "publication_date": "2017-03-04",
-          "citationKey": "sundararajanAxiomaticAttributionDeep2017",
-          "abstract": "We study the problem of attributing the prediction of a deep network to its input features, a problem previously studied by several other works. We identify two fundamental axioms---Sensitivity and Implementation Invariance that attribution methods ought to satisfy. We show that they are not satisfied by most known attribution methods, which we consider to be a fundamental weakness of those methods. We use the axioms to guide the design of a new attribution method called Integrated Gradients. Our method requires no modification to the original network and is extremely simple to implement; it just needs a few calls to the standard gradient operator. We apply this method to a couple of image models, a couple of text models and a chemistry model, demonstrating its ability to debug networks, to extract rules from a network, and to enable users to engage with models better."
-        },
-        {
-          "title": "Visualizing the Impact of Feature Attribution Baselines",
-          "url": "https://distill.pub/2020/attribution-baselines",
-          "source_type": "tutorial",
-          "authors": [
-            "Pascal Sturmfels",
-            "Scott Lundberg",
-            "Su-In Lee",
-            "Pascal Sturmfels",
-            "Scott Lundberg",
-            "Su-In Lee"
-          ],
-          "publication_date": "2020",
-          "citationKey": "sturmfelsVisualizingImpactFeature2020"
-        },
-        {
-          "title": "transformers-interpret",
-          "url": "https://github.com/cdpierse/transformers-interpret",
-          "source_type": "software_package",
-          "publication_date": "2020-05-27",
-          "citationKey": "cdpierseTransformersinterpret2020",
-          "abstract": "Model explainability that works seamlessly with 🤗 transformers. Explain your transformers model in just 2 lines of code."
-        }
-      ],
-      "complexity_rating": 4,
-      "computational_cost_rating": 3,
-      "related_techniques": [
-        "causal-mediation-analysis-in-language-models",
-        "attention-visualisation-in-transformers",
-        "shapley-additive-explanations"
-      ],
-      "sample_claims": [
-        {
-          "text": "The clinical decision support system's risk predictions are attributable to specific medical terms and symptom descriptions rather than demographic identifiers in patient notes",
-          "domain": "healthcare",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The content moderation model's classification decisions can be traced to individual words and phrases that capture genuinely problematic language patterns",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The loan approval system's decisions are not influenced by protected characteristics appearing in free-text application descriptions",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The sentiment analysis model's outputs can be decomposed into quantified contributions from each input token to support transparent review of prediction drivers",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The hiring recommendation system identifies which specific phrases in candidate descriptions drive screening decisions to enable bias detection",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        }
-      ]
-    },
-    {
-      "slug": "attention-visualisation-in-transformers",
-      "name": "Attention Visualisation in Transformers",
-      "description": "Attention Visualisation in Transformers analyses the multi-head self-attention mechanisms that enable transformers to process sequences by attending to different positions simultaneously. The technique visualises attention weights as heatmaps showing how strongly each token attends to every other token across different heads and layers. By examining these attention patterns, practitioners can understand how models like BERT, GPT, and T5 build contextual representations, identify which tokens influence predictions most strongly, and detect potential biases in how the model processes different types of input. This provides insights into positional encoding effects, head specialisation patterns, and the evolution of attention from local to global context across layers.",
-      "assurance_goals": [
-        "Explainability",
-        "Fairness",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks/transformer",
-        "applicable-models/requirements/architecture-specific",
-        "applicable-models/requirements/model-internals",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/data-patterns",
-        "assurance-goal-category/explainability/explains/internal-mechanisms",
-        "assurance-goal-category/explainability/property/comprehensibility",
-        "assurance-goal-category/explainability/property/efficiency",
-        "assurance-goal-category/explainability/visualization-methods/attention-patterns",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/decision-reasons",
-        "data-type/text",
-        "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/deep-learning",
-        "explanatory-scope/global",
-        "explanatory-scope/local",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation",
-        "technique-type/algorithmic",
-        "technique-type/visualisation",
-        "data-requirements/no-special-requirements"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Examining attention patterns in a medical language model processing clinical notes to verify it focuses on relevant symptoms and conditions rather than irrelevant demographic identifiers, revealing that certain attention heads specialise in medical terminology whilst others track syntactic relationships between diagnoses and treatments.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a sentiment analysis model for customer reviews by visualising how attention weights differ when processing reviews from different demographic groups, discovering that the model pays disproportionate attention to certain cultural expressions or colloquialisms that could lead to biased sentiment predictions.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Creating visual explanations for regulatory compliance in a financial document classification system, showing which specific words and phrases in loan applications or contracts triggered particular risk assessments, enabling auditors to verify that decisions are based on legitimate financial factors rather than discriminatory language patterns.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "High attention weights do not necessarily indicate causal importance for predictions, as models may attend strongly to tokens that serve structural rather than semantic purposes."
-        },
-        {
-          "description": "The sheer number of attention heads and layers in modern transformers creates visualisation overload, making it difficult to identify meaningful patterns without systematic analysis tools."
-        },
-        {
-          "description": "Attention patterns can be misleading when models use residual connections and layer normalisation, as the final representation incorporates information beyond what attention weights suggest."
-        },
-        {
-          "description": "Different transformer architectures (encoder-only, decoder-only, encoder-decoder) exhibit fundamentally different attention patterns, limiting the generalisability of insights across model types."
-        },
-        {
-          "description": "The technique cannot explain the reasoning process within feed-forward layers or how attention patterns translate into specific predictions, providing only a partial view of model behaviour."
-        }
-      ],
-      "resources": [
-        {
-          "title": "bertviz",
-          "url": "https://github.com/jessevig/bertviz",
-          "source_type": "software_package",
-          "publication_date": "2018-12-16",
-          "citationKey": "jessevigBertviz2018",
-          "abstract": "BertViz: Visualize Attention in NLP Models (BERT, GPT2, BART, etc.)"
-        },
-        {
-          "title": "Attention Is All You Need",
-          "url": "https://arxiv.org/abs/1706.03762",
-          "source_type": "technical_paper",
-          "authors": [
-            "Ashish Vaswani",
-            "Noam Shazeer",
-            "Niki Parmar",
-            "Jakob Uszkoreit",
-            "Llion Jones",
-            "Aidan N. Gomez",
-            "Lukasz Kaiser",
-            "Illia Polosukhin"
-          ],
-          "publication_date": "2017-06-12",
-          "citationKey": "vaswaniAttentionAllYou2017",
-          "abstract": "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks in an encoder-decoder configuration. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train. Our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task, improving over the existing best results, including ensembles by over 2 BLEU. On the WMT 2014 English-to-French translation task, our model establishes a new single-model state-of-the-art BLEU score of 41.8 after training for 3.5 days on eight GPUs, a small fraction of the training costs of the best models from the literature. We show that the Transformer generalizes well to other tasks by applying it successfully to English constituency parsing both with large and limited training data."
-        },
-        {
-          "title": "Analyzing Multi-Head Self-Attention: Specialized Heads Do the Heavy Lifting, the Rest Can Be Pruned",
-          "url": "https://arxiv.org/abs/1905.09418",
-          "source_type": "technical_paper",
-          "authors": [
-            "Elena Voita",
-            "David Talbot",
-            "Fedor Moiseev",
-            "Rico Sennrich",
-            "Ivan Titov"
-          ],
-          "publication_date": "2019-05-23",
-          "citationKey": "voitaAnalyzingMultiHeadSelfAttention2019",
-          "abstract": "Multi-head self-attention is a key component of the Transformer, a state-of-the-art architecture for neural machine translation. In this work we evaluate the contribution made by individual attention heads in the encoder to the overall performance of the model and analyze the roles played by them. We find that the most important and confident heads play consistent and often linguistically-interpretable roles. When pruning heads using a method based on stochastic gates and a differentiable relaxation of the L0 penalty, we observe that specialized heads are last to be pruned. Our novel pruning method removes the vast majority of heads without seriously affecting performance. For example, on the English-Russian WMT dataset, pruning 38 out of 48 encoder heads results in a drop of only 0.15 BLEU."
-        },
-        {
-          "title": "What Does BERT Look At? An Analysis of BERT's Attention",
-          "url": "https://arxiv.org/abs/1906.04341",
-          "source_type": "technical_paper",
-          "authors": [
-            "Kevin Clark",
-            "Urvashi Khandelwal",
-            "Omer Levy",
-            "Christopher D. Manning"
-          ],
-          "publication_date": "2019-06-11",
-          "citationKey": "clarkWhatDoesBERT2019",
-          "abstract": "Large pre-trained neural networks such as BERT have had great recent success in NLP, motivating a growing body of research investigating what aspects of language they are able to learn from unlabeled data. Most recent analysis has focused on model outputs (e.g., language model surprisal) or internal vector representations (e.g., probing classifiers). Complementary to these works, we propose methods for analyzing the attention mechanisms of pre-trained models and apply them to BERT. BERT's attention heads exhibit patterns such as attending to delimiter tokens, specific positional offsets, or broadly attending over the whole sentence, with heads in the same layer often exhibiting similar behaviors. We further show that certain attention heads correspond well to linguistic notions of syntax and coreference. For example, we find heads that attend to the direct objects of verbs, determiners of nouns, objects of prepositions, and coreferent mentions with remarkably high accuracy. Lastly, we propose an attention-based probing classifier and use it to further demonstrate that substantial syntactic information is captured in BERT's attention."
-        },
-        {
-          "title": "Transformer Interpretability Beyond Attention Visualization",
-          "url": "https://arxiv.org/abs/2012.09838",
-          "source_type": "technical_paper",
-          "authors": [
-            "Hila Chefer",
-            "Shir Gur",
-            "Lior Wolf"
-          ],
-          "publication_date": "2020-12-17",
-          "citationKey": "cheferTransformerInterpretabilityAttention2020",
-          "abstract": "Self-attention techniques, and specifically Transformers, are dominating the field of text processing and are becoming increasingly popular in computer vision classification tasks. In order to visualize the parts of the image that led to a certain classification, existing methods either rely on the obtained attention maps or employ heuristic propagation along the attention graph. In this work, we propose a novel way to compute relevancy for Transformer networks. The method assigns local relevance based on the Deep Taylor Decomposition principle and then propagates these relevancy scores through the layers. This propagation involves attention layers and skip connections, which challenge existing methods. Our solution is based on a specific formulation that is shown to maintain the total relevancy across layers. We benchmark our method on very recent visual Transformer networks, as well as on a text classification problem, and demonstrate a clear advantage over the existing explainability methods."
-        }
-      ],
-      "complexity_rating": 3,
-      "computational_cost_rating": 2,
-      "related_techniques": [
-        "feature-attribution-with-integrated-gradients-in-nlp",
-        "causal-mediation-analysis-in-language-models",
-        "classical-attention-analysis-in-neural-networks"
-      ],
-      "sample_claims": [
-        {
-          "text": "The language model's attention patterns demonstrate how contextual representations are built across multiple heads and layers",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The text processing system's attention mechanisms treat input tokens from different demographic groups with comparable weighting patterns",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The model's decision-making process is traceable through attention weight distributions across transformer layers",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The document classification system's attention heads are interpretable in terms of which semantic and syntactic features they capture",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The content moderation model's attention to sensitive attributes is quantifiable and auditable across different input types",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        }
-      ]
-    },
-    {
-      "slug": "agent-goal-misalignment-testing",
-      "name": "Agent Goal Misalignment Testing",
-      "description": "Agent goal misalignment testing identifies scenarios where AI agents pursue objectives in unintended ways or develop proxy goals that diverge from true human intent. This technique tests for specification gaming (achieving stated metrics while violating intent), instrumental goals (agents developing problematic sub-goals to achieve main objectives), and reward hacking (exploiting loopholes in reward functions). Testing uses diverse scenarios to probe whether agents truly understand task intent or merely optimise narrow specified metrics.",
-      "assurance_goals": [
-        "Safety",
-        "Reliability"
-      ],
-      "tags": [
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/architecture/neural-networks/transformer",
-        "applicable-models/paradigm/generative",
-        "applicable-models/paradigm/reinforcement",
-        "applicable-models/requirements/black-box",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/behavioural-consistency",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-identification",
-        "data-requirements/test-scenarios",
-        "data-type/any",
-        "evidence-type/qualitative-report",
-        "expertise-needed/domain-expertise",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/evaluation-design",
-        "technique-type/testing",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Testing an autonomous vehicle routing agent in a ride-sharing service to ensure it optimizes for passenger safety and comfort rather than gaming metrics through risky driving behaviors that minimize journey time while technically meeting safety thresholds.",
-          "goal": "Safety"
-        },
-        {
-          "description": "Evaluating a customer service chatbot agent for consistent and predictable behaviour across repeated interactions, verifying that it does not develop degenerate strategies such as prematurely closing conversations or providing overly generic responses to maximise satisfaction scores whilst failing to resolve underlying user issues reliably.",
-          "goal": "Reliability"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Comprehensive testing requires anticipating all possible ways objectives could be misinterpreted, which is inherently difficult for complex goals."
-        },
-        {
-          "description": "Agents may behave correctly during testing but develop misaligned strategies in deployment when facing novel situations or longer time horizons."
-        },
-        {
-          "description": "Distinguishing between intended and unintended goal achievement can be subjective, especially when stated objectives are ambiguous."
-        },
-        {
-          "description": "Testing environments may not replicate the full complexity and incentive structures of real deployment settings where misalignment emerges."
-        },
-        {
-          "description": "Requires domain expertise to define appropriate value-aligned objectives and identify subtle forms of misalignment, which may not be available for novel or cross-domain applications."
-        },
-        {
-          "description": "Quantifying the severity and likelihood of different misalignment scenarios requires subjective judgments and risk assessment capabilities that vary across organizations."
-        }
-      ],
-      "resources": [
-        {
-          "title": "The Urgent Need for Intrinsic Alignment Technologies for ...",
-          "url": "https://towardsdatascience.com/the-urgent-need-for-intrinsic-alignment-technologies-for-responsible-agentic-ai",
-          "source_type": "tutorial",
-          "authors": [
-            "Gadi Singer"
-          ],
-          "publication_date": "2025-03-04",
-          "citationKey": "singerUrgentNeedIntrinsic2025"
-        },
-        {
-          "title": "A Survey of Process Reward Models: From Outcome Signals to Process Supervisions for Large Language Models",
-          "url": "https://www.semanticscholar.org/paper/b670078b724938874a233687b5c53848df527a60",
-          "source_type": "technical_paper",
-          "authors": [
-            "Congmin Zheng",
-            "Jiachen Zhu",
-            "Zhuoying Ou",
-            "Yuxiang Chen",
-            "Kangning Zhang",
-            "Rong Shan",
-            "Zeyu Zheng",
-            "Mengyue Yang",
-            "Jianghao Lin",
-            "Yong Yu",
-            "Weinan Zhang"
-          ],
-          "publication_date": "2025",
-          "citationKey": "zhengSurveyProcessReward2025",
-          "abstract": "Although Large Language Models (LLMs) exhibit advanced reasoning ability, conventional alignment remains largely dominated by outcome reward models (ORMs) that judge only final answers. Process Reward Models(PRMs) address this gap by evaluating and guiding reasoning at the step or trajectory level. This survey provides a systematic overview of PRMs through the full loop: how to generate process data, build PRMs, and use PRMs for test-time scaling and reinforcement learning. We summarize applications across math, code, text, multimodal reasoning, robotics, and agents, and review emerging benchmarks. Our goal is to clarify design spaces, reveal open challenges, and guide future research toward fine-grained, robust reasoning alignment."
-        },
-        {
-          "title": "Large Language Model Safety: A Holistic Survey",
-          "url": "https://www.semanticscholar.org/paper/a0d2a54ed05a424f5eee35ea579cf54ef0f2c2aa",
-          "source_type": "technical_paper",
-          "authors": [
-            "Dan Shi",
-            "Tianhao Shen",
-            "Yufei Huang",
-            "Zhigen Li",
-            "Yongqi Leng",
-            "Renren Jin",
-            "Chuang Liu",
-            "Xinwei Wu",
-            "Zishan Guo",
-            "Linhao Yu",
-            "Ling Shi",
-            "Bojian Jiang",
-            "Deyi Xiong"
-          ],
-          "publication_date": "2024",
-          "citationKey": "shiLargeLanguageModel2024",
-          "abstract": "The rapid development and deployment of large language models (LLMs) have introduced a new frontier in artificial intelligence, marked by unprecedented capabilities in natural language understanding and generation. However, the increasing integration of these models into critical applications raises substantial safety concerns, necessitating a thorough examination of their potential risks and associated mitigation strategies. This survey provides a comprehensive overview of the current landscape of LLM safety, covering four major categories: value misalignment, robustness to adversarial attacks, misuse, and autonomous AI risks. In addition to the comprehensive review of the mitigation methodologies and evaluation resources on these four aspects, we further explore four topics related to LLM safety: the safety implications of LLM agents, the role of interpretability in enhancing LLM safety, the technology roadmaps proposed and abided by a list of AI companies and institutes for LLM safety, and AI governance aimed at LLM safety with discussions on international cooperation, policy proposals, and prospective regulatory directions. Our findings underscore the necessity for a proactive, multifaceted approach to LLM safety, emphasizing the integration of technical solutions, ethical considerations, and robust governance frameworks. This survey is intended to serve as a foundational resource for academy researchers, industry practitioners, and policymakers, offering insights into the challenges and opportunities associated with the safe integration of LLMs into society. Ultimately, it seeks to contribute to the safe and beneficial development of LLMs, aligning with the overarching goal of harnessing AI for societal advancement and well-being. A curated list of related papers has been publicly available at https://github.com/tjunlp-lab/Awesome-LLM-Safety-Papers."
-        }
-      ],
-      "related_techniques": [
-        "prompt-injection-testing",
-        "constitutional-ai-evaluation",
-        "multi-agent-system-testing",
-        "reward-hacking-detection"
-      ],
-      "sample_claims": [
-        {
-          "text": "The autonomous system achieves operational objectives through intended methods rather than exploiting measurement loopholes or specification ambiguities",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The agent's decision-making process genuinely optimizes for stated healthcare outcomes rather than developing proxy metrics that satisfy performance indicators without improving patient care",
-          "domain": "healthcare",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The system's optimization strategy aligns with true environmental objectives rather than gaming sustainability metrics through technically compliant but counterproductive behaviors",
-          "domain": "environmental",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The model achieves performance targets through genuine task mastery rather than specification gaming strategies that exploit ambiguities in objective definitions",
-          "domain": "general",
-          "assuranceGoal": "reliability"
-        }
-      ]
-    },
-    {
       "slug": "embedding-bias-analysis",
       "name": "Embedding Bias Analysis",
       "description": "Embedding bias analysis examines learned representations to identify biases, spurious correlations, and problematic clustering patterns in vector embeddings. This technique uses dimensionality reduction, clustering analysis, and geometric fairness metrics to examine whether embeddings encode sensitive attributes, place certain groups in disadvantaged regions of representation space, or learn stereotypical associations. Analysis reveals whether embeddings used for retrieval, recommendation, or downstream tasks contain fairness issues that will propagate to applications.",
       "assurance_goals": [
         "Fairness",
-        "Explainability",
         "Transparency"
       ],
       "tags": [
@@ -624,9 +539,6 @@
         "applicable-models/requirements/model-internals",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/bias-measurement",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/internal-mechanisms",
-        "assurance-goal-category/explainability/visualization-methods/activation-maps",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/assessment-results",
         "data-type/text",
@@ -638,17 +550,12 @@
         "evidence-type/fairness-metric",
         "evidence-type/visualisation",
         "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "explanatory-scope/global"
+        "expertise-needed/statistics"
       ],
       "example_use_cases": [
         {
           "description": "Auditing word embeddings for biased gender associations like 'doctor' being closer to 'male' than 'female', identifying problematic stereotypes that could affect downstream NLP applications.",
           "goal": "Fairness"
-        },
-        {
-          "description": "Analyzing face recognition embeddings to understand whether certain demographic groups are clustered more tightly (enabling easier discrimination) or more dispersed (enabling easier misidentification).",
-          "goal": "Explainability"
         },
         {
           "description": "Transparently documenting embedding space properties including which attributes are encoded and what associations exist, enabling informed decisions about appropriate use cases.",
@@ -657,10 +564,6 @@
         {
           "description": "Analyzing clinical note embeddings in a medical diagnosis support system to detect whether disease associations cluster along demographic lines (e.g., certain conditions being systematically closer to particular age or ethnic groups in the embedding space), which could lead to biased treatment recommendations.",
           "goal": "Fairness"
-        },
-        {
-          "description": "Examining embeddings in a legal document analysis system to identify whether risk assessment features encode problematic associations between demographic attributes and recidivism concepts, revealing bias that could affect sentencing or parole decisions.",
-          "goal": "Explainability"
         },
         {
           "description": "Auditing loan application embeddings to detect whether protected characteristics (ethnicity, gender, age) cluster near creditworthiness concepts in ways that could enable indirect discrimination in lending decisions.",
@@ -692,60 +595,82 @@
       ],
       "resources": [
         {
-          "title": "umap",
-          "url": "https://github.com/lmcinnes/umap",
+          "title": "WEFE documentation",
+          "url": "https://wefe.readthedocs.io/en/latest/",
+          "source_type": "documentation",
+          "citationKey": "WEFEDocumentation"
+        },
+        {
+          "title": "WEFE: The Word Embeddings Fairness Evaluation Framework",
+          "url": "https://github.com/dccuchile/wefe",
           "source_type": "software_package",
-          "publication_date": "2017-07-02",
-          "citationKey": "lmcinnesUmap2017",
-          "abstract": "Uniform Manifold Approximation and Projection"
+          "publication_date": "2026-10-06T08:53:00Z",
+          "citationKey": "WEFEWordEmbeddings2026",
+          "abstract": "WEFE: The Word Embeddings Fairness Evaluation Framework. WEFE is a framework that standardizes the bias measurement and mitigation in Word Embeddings models. Please feel welcome to open an issue in case you have any questions or a pull request if you want to contribute to the project!"
         },
         {
-          "title": "TSNE-UMAP-Embedding-Visualisation",
-          "url": "https://github.com/harveyslash/TSNE-UMAP-Embedding-Visualisation",
-          "source_type": "software_package",
-          "publication_date": "2017-11-30",
-          "citationKey": "harveyslashTSNEUMAPEmbeddingVisualisation2017",
-          "abstract": "A Simple and easy to use way to Visualise Embeddings!"
-        },
-        {
-          "title": "A new embedding quality assessment method for manifold learning",
-          "url": "https://www.sciencedirect.com/science/article/pii/S092523121200389X",
+          "title": "Semantics derived automatically from language corpora contain human-like biases",
+          "url": "https://doi.org/10.1126/science.aal4230",
           "source_type": "technical_paper",
           "authors": [
-            "Peng Zhang",
-            "Yuanyuan Ren",
-            "Bo Zhang"
+            "Aylin Caliskan",
+            "Joanna J. Bryson",
+            "Arvind Narayanan"
           ],
-          "publication_date": "2012-11-15",
-          "citationKey": "zhangNewEmbeddingQuality2012",
-          "abstract": "Manifold learning is a hot research topic in the field of computer science. A crucial issue with current manifold learning methods is that they lack a natural quantitative measure to assess the quality of learned embeddings, which greatly limits their applications to real-world problems. In this paper, a new embedding quality assessment method for manifold learning, named as normalization independent embedding quality assessment (NIEQA) is proposed. Compared with current assessment methods which are limited to isometric embeddings, the NIEQA method has a much larger application range due to two features. First, it is based on a new measure which can effectively evaluate how well local neighborhood geometry is preserved under normalization, hence it can be applied to both isometric and normalized embeddings. Second, it can provide both local and global evaluations to output an overall assessment. Therefore, NIEQA can serve as a natural tool in model selection and evaluation tasks for manifold learning. Experimental results on benchmark data sets validate the effectiveness of the proposed method."
+          "publication_date": "2017-4-14",
+          "citationKey": "caliskanSemanticsDerivedAutomatically2017",
+          "abstract": "Machines learn what people know implicitly AlphaGo has demonstrated that a machine can learn how to do things that people spend many years of concentrated study learning, and it can rapidly learn how to do them better than any human can. Caliskan et al. now show that machines can learn word associations from written texts and that these associations mirror those learned by humans, as measured by the Implicit Association Test (IAT) (see the Perspective by Greenwald). Why does this matter? Because the IAT has predictive value in uncovering the association between concepts, such as pleasantness and flowers or unpleasantness and insects. It can also tease out attitudes and beliefs—for example, associations between female names and family or male names and career. Such biases may not be expressed explicitly, yet they can prove influential in behavior. Science , this issue p. 183 ; see also p. 133"
         },
         {
-          "title": "Unsupervised embedding quality evaluation",
-          "url": "https://proceedings.mlr.press/v221/tsitsulin23a.html",
-          "source_type": "technical_paper",
-          "authors": [
-            "Anton Tsitsulin",
-            "Marina Munkhoeva",
-            "Bryan Perozzi"
-          ],
-          "publication_date": "2023-09-27",
-          "citationKey": "tsitsulinUnsupervisedEmbeddingQuality2023"
+          "title": "Bias Measurement — WEFE user guide",
+          "url": "https://wefe.readthedocs.io/en/latest/user_guide/measurement_user_guide.html",
+          "source_type": "tutorial",
+          "citationKey": "BiasMeasurementWEFE"
         },
         {
-          "title": "Semantic Certainty Assessment in Vector Retrieval Systems: A Novel Framework for Embedding Quality Evaluation",
-          "url": "https://arxiv.org/abs/2507.05933",
-          "source_type": "technical_paper",
+          "title": "Man is to Computer Programmer as Woman is to Homemaker? Debiasing Word Embeddings",
+          "url": "https://doi.org/10.48550/arXiv.1607.06520",
+          "source_type": "application_paper",
           "authors": [
-            "Y. Du"
+            "Tolga Bolukbasi",
+            "Kai-Wei Chang",
+            "James Zou",
+            "Venkatesh Saligrama",
+            "Adam Kalai"
           ],
-          "publication_date": "2025-07-08",
-          "citationKey": "duSemanticCertaintyAssessment2025",
-          "abstract": "Vector retrieval systems exhibit significant performance variance across queries due to heterogeneous embedding quality. We propose a lightweight framework for predicting retrieval performance at the query level by combining quantization robustness and neighborhood density metrics. Our approach is motivated by the observation that high-quality embeddings occupy geometrically stable regions in the embedding space and exhibit consistent neighborhood structures. We evaluate our method on 4 standard retrieval datasets, showing consistent improvements of 9.4$\\pm$1.2\\% in Recall@10 over competitive baselines. The framework requires minimal computational overhead (less than 5\\% of retrieval time) and enables adaptive retrieval strategies. Our analysis reveals systematic patterns in embedding quality across different query types, providing insights for targeted training data augmentation."
+          "publication_date": "2016-07-21",
+          "citationKey": "bolukbasiManComputerProgrammer2016",
+          "abstract": "The blind application of machine learning runs the risk of amplifying biases present in data. Such a danger is facing us with word embedding, a popular framework to represent text data as vectors which has been used in many machine learning and natural language processing tasks. We show that even word embeddings trained on Google News articles exhibit female/male gender stereotypes to a disturbing extent. This raises concerns because their widespread use, as we describe, often tends to amplify these biases. Geometrically, gender bias is first shown to be captured by a direction in the word embedding. Second, gender neutral words are shown to be linearly separable from gender definition words in the word embedding. Using these properties, we provide a methodology for modifying an embedding to remove gender stereotypes, such as the association between between the words receptionist and female, while maintaining desired associations such as between the words queen and female. We define metrics to quantify both direct and indirect gender biases in embeddings, and develop algorithms to \"debias\" the embedding. Using crowd-worker evaluation as well as standard benchmarks, we empirically demonstrate that our algorithms significantly reduce gender bias in embeddings while preserving the its useful properties such as the ability to cluster related concepts and to solve analogy tasks. The resulting embeddings can be used in applications without amplifying gender bias."
+        },
+        {
+          "title": "Word embeddings quantify 100 years of gender and ethnic stereotypes",
+          "url": "https://doi.org/10.1073/pnas.1720347115",
+          "source_type": "application_paper",
+          "authors": [
+            "Nikhil Garg",
+            "Londa Schiebinger",
+            "Dan Jurafsky",
+            "James Zou"
+          ],
+          "publication_date": "2018-4-3",
+          "citationKey": "gargWordEmbeddingsQuantify2018",
+          "abstract": "Significance Word embeddings are a popular machine-learning method that represents each English word by a vector, such that the geometry between these vectors captures semantic relations between the corresponding words. We demonstrate that word embeddings can be used as a powerful tool to quantify historical trends and social change. As specific applications, we develop metrics based on word embeddings to characterize how gender stereotypes and attitudes toward ethnic minorities in the United States evolved during the 20th and 21st centuries starting from 1910. Our framework opens up a fruitful intersection between machine learning and quantitative social science."
+        },
+        {
+          "title": "Image Representations Learned With Unsupervised Pre-Training Contain Human-like Biases",
+          "url": "https://doi.org/10.1145/3442188.3445932",
+          "source_type": "application_paper",
+          "authors": [
+            "Ryan Steed",
+            "Aylin Caliskan"
+          ],
+          "publication_date": "2021-3",
+          "citationKey": "steedImageRepresentationsLearned2021",
+          "abstract": "Recent advances in machine learning leverage massive datasets of unlabeled images from the web to learn general-purpose image representations for tasks from image classification to face recognition. But do unsupervised computer vision models automatically learn implicit patterns and embed social biases that could have harmful downstream effects? We develop a novel method for quantifying biased associations between representations of social concepts and attributes in images. We find that state-of-the-art unsupervised models trained on ImageNet, a popular benchmark image dataset curated from internet images, automatically learn racial, gender, and intersectional biases. We replicate 8 previously documented human biases from social psychology, from the innocuous, as with insects and flowers, to the potentially harmful, as with race and gender. Our results closely match three hypotheses about intersectional bias from social psychology. For the first time in unsupervised computer vision, we also quantify implicit human biases about weight, disabilities, and several ethnicities. When compared with statistical patterns in online image datasets, our findings suggest that machine learning models can automatically learn bias from the way people are stereotypically portrayed on the web."
         }
       ],
       "related_techniques": [
-        "attention-visualisation-in-transformers",
+        "attention-weight-analysis",
         "concept-activation-vectors",
         "few-shot-fairness-evaluation",
         "toxicity-detection"
@@ -767,11 +692,6 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The hiring system's resume embeddings reveal which candidate attributes are encoded in the representation space and how they cluster",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
-        },
-        {
           "text": "The content moderation system's embedding space properties are documented including encoded sensitive attributes and their spatial relationships",
           "domain": "general",
           "assuranceGoal": "transparency"
@@ -779,172 +699,146 @@
       ]
     },
     {
-      "slug": "multimodal-alignment-evaluation",
-      "name": "Multimodal Alignment Evaluation",
-      "description": "Multimodal alignment evaluation assesses whether different modalities (vision, language, audio) are synchronised and consistent in multimodal AI systems. This technique tests whether descriptions match content, sounds associate with correct sources, and cross-modal reasoning maintains accuracy. It produces alignment scores, grounding quality metrics, and reports on modality-specific failure patterns.",
+      "slug": "sparse-autoencoder-feature-analysis",
+      "name": "Sparse Autoencoder Feature Analysis",
+      "description": "Sparse autoencoder feature analysis looks for human-interpretable units inside a neural network, usually a language model, by learning from the activations at one layer a large dictionary of directions, called features, such that each activation vector can be rebuilt from only a few of them. Unlike neuron activation analysis it does not take the network's own neurons as the units, since single neurons often respond to several unrelated things, and unlike concept activation vectors it needs no labelled examples of a concept chosen in advance, because the features are found without supervision. The analyst records activations at the chosen layer over a large body of ordinary text and trains an autoencoder, a network with one hidden layer usually several times wider than the layer studied, to reconstruct them while a sparsity penalty keeps most hidden units at zero; the decoder weights of each hidden unit then give one feature direction. Each feature is labelled from the inputs on which it fires most strongly, by a person or by a language model that writes a description, which is then scored on how well it predicts the feature's activations on other text, and the label is tested by removing or amplifying the feature inside the running model and checking the change in output. The output is a catalogue of labelled features with example activations, interpretability scores and measured effects, plus a reconstruction score saying how much of the layer's behaviour the dictionary accounts for; the features can then serve as units for causal mediation analysis, which traces pathways, while this method finds and checks the units themselves.",
       "assurance_goals": [
-        "Reliability",
-        "Explainability",
-        "Safety"
+        "Explainability"
       ],
       "tags": [
-        "applicable-models/architecture/neural-networks",
         "applicable-models/architecture/neural-networks/transformer",
-        "applicable-models/requirements/black-box",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/performance-assessment",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/model-internals",
+        "applicable-models/requirements/white-box",
         "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/representation-analysis/concept-identification",
         "assurance-goal-category/explainability/explains/internal-mechanisms",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/verification",
-        "data-type/image",
+        "assurance-goal-category/explainability/property/comprehensibility",
+        "assurance-goal-category/explainability/property/sparsity",
+        "data-requirements/no-special-requirements",
         "data-type/text",
-        "data-requirements/labelled-data",
-        "explanatory-scope/local",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation",
-        "technique-type/testing",
         "evidence-type/quantitative-metric",
         "evidence-type/qualitative-report",
+        "expertise-needed/deep-learning",
         "expertise-needed/ml-engineering",
-        "expertise-needed/domain-expertise",
-        "expertise-needed/evaluation-design"
+        "explanatory-scope/global",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
       ],
       "example_use_cases": [
         {
-          "description": "Verifying that a vision-language model for medical imaging correctly associates diagnostic findings in radiology reports with corresponding visual features in scans, preventing misdiagnosis from misaligned interpretations.",
-          "goal": "Safety"
-        },
-        {
-          "description": "Testing accessibility tools that generate image descriptions for visually impaired users, ensuring descriptions accurately reflect actual visual content and don't misrepresent important details or context.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Evaluating whether visual grounding mechanisms correctly highlight image regions corresponding to generated text descriptions, enabling users to verify and understand model reasoning.",
+          "description": "Before deploying an open-weights language model as a customer-service assistant, a bank's AI assurance team uses sparse autoencoders published for that model to find features active on prompts where the assistant should refuse to give investment advice. It tests each candidate by suppressing it and measuring the change in refusal rate, and records which labelled features the refusal behaviour depends on in the model's assurance file.",
           "goal": "Explainability"
         },
         {
-          "description": "Evaluating alignment in autonomous vehicle systems where camera, lidar, and radar data must be synchronised with language-based reasoning about driving scenarios, ensuring object detection, tracking, and decision explanations remain consistent across modalities.",
-          "goal": "Safety"
+          "description": "A bioinformatics group using a protein language model to annotate newly sequenced proteins trains sparse autoencoders on its embeddings and compares the features with database annotations of binding sites, structural motifs and domains. Features that match known biology are used to propose candidate annotations for curators to verify, features that fire widely with no clear meaning are flagged for review, and the model's own annotation accuracy is still tested on held-out proteins.",
+          "goal": "Explainability"
         },
         {
-          "description": "Testing e-commerce product recommendation systems to verify that visual product features align with textual descriptions and user queries, preventing mismatched recommendations that frustrate customers or misrepresent products.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Validating educational content generation tools that create visual learning materials with text explanations, ensuring diagrams, images, and written content present consistent information without contradictions that could confuse learners.",
-          "goal": "Reliability"
+          "description": "A team that fine-tuned a language model to triage clinical referral letters lists the sparse autoencoder features that most change the 'urgent' score on a validation set, and checks whether they describe clinical content or properties of the letter, such as the referring practice's template. A template feature among the leading drivers is recorded as a finding and leads to retraining on reformatted letters.",
+          "goal": "Explainability"
         }
       ],
       "limitations": [
         {
-          "description": "Defining ground truth for proper alignment can be subjective, especially for abstract concepts or implicit relationships between modalities."
+          "description": "The dictionary does not capture everything the layer carries, and what it misses cannot be inspected. In the originating study, replacing one layer of a small language model with its reconstruction raised perplexity from 25 to 40; a concurrent study recovered 79% of a layer's contribution to the loss in its main run. Not finding a feature for a concept does not show that the model lacks it."
         },
         {
-          "description": "Models may appear aligned on simple cases but fail on complex scenarios requiring deep understanding of both modalities."
+          "description": "The features found are not unique. Larger dictionaries split a feature into narrower ones (one base64 feature at 512 features became three at 4,096), and for a 131,000-feature autoencoder on one layer of Llama 3 8B only about 30% of features were shared by two runs differing only in random seed. A conclusion resting on one feature should name the autoencoder used and be checked on a second run."
         },
         {
-          "description": "Evaluation requires multimodal datasets with high-quality annotations linking different modalities, which are expensive to create."
+          "description": "Labels are hypotheses drawn from the top-activating examples, and automated scores are modest: the first five features reported in the originating study scored between -0.11 and 0.57, and the advantage over simpler decompositions faded in later layers. Back a label with an intervention that changes the output as the label predicts before citing it as evidence."
         },
         {
-          "description": "Adversarial testing may not cover all possible misalignment scenarios, particularly rare or subtle cases of modal inconsistency."
+          "description": "It needs the model's internal activations, plus storage and compute to train an autoencoder for each layer studied (one concurrent study trained on 8 billion activation vectors from a single layer). For large models practitioners often rely on autoencoders released for particular open-weights models, so the method is not available for a model reached only through an API."
         },
         {
-          "description": "Multimodal alignment evaluation requires processing multiple data types simultaneously, increasing computational costs by 2-5x compared to single-modality evaluation, particularly for video or high-resolution image analysis."
-        },
-        {
-          "description": "Creating benchmarks requires expertise across multiple domains (computer vision, NLP, audio processing) and application-specific knowledge, making it difficult to assemble qualified evaluation teams."
-        },
-        {
-          "description": "Annotating multimodal datasets with alignment ground truth is labor-intensive and expensive, typically costing 3-10x more per sample than single-modality annotation due to increased complexity."
+          "description": "Being interpretable does not make the features better for a given task. In a 2025 study of detecting concepts from model activations, probes built on autoencoder features did not beat logistic regression on the raw activations on average, and the spurious correlations and data problems they exposed could also be found with simpler baselines. Where detection is the goal, compare against such baselines."
         }
       ],
       "resources": [
         {
-          "title": "CLIP",
-          "url": "https://huggingface.co/docs/transformers/en/model_doc/clip",
+          "title": "SAELens documentation",
+          "url": "https://decoderesearch.github.io/SAELens/",
           "source_type": "documentation",
-          "publication_date": "2021",
-          "citationKey": "CLIP2021"
+          "citationKey": "SAELensDocumentation",
+          "abstract": "Docs for Sparse Autoencoder Training and Analysis Library"
         },
         {
-          "title": "Welcome to verl's documentation! — verl documentation",
-          "url": "https://verl.readthedocs.io",
-          "source_type": "documentation",
-          "authors": [
-            "Verl Developers"
-          ],
-          "publication_date": "2021",
-          "citationKey": "verldevelopersWelcomeVerlsDocumentation2021"
+          "title": "SAELens (decoderesearch/SAELens)",
+          "url": "https://github.com/decoderesearch/SAELens",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T09:38:04Z",
+          "citationKey": "SAELensDecoderesearchSAELens2026",
+          "abstract": "Training Sparse Autoencoders on Language Models"
         },
         {
-          "title": "TRL - Transformer Reinforcement Learning",
-          "url": "https://huggingface.co/docs/trl/en/index",
-          "source_type": "documentation",
-          "publication_date": "2020",
-          "citationKey": "TRLTransformerReinforcement2020"
-        },
-        {
-          "title": "An Efficient Approach for Calibration of Automotive Radar–Camera With Real-Time Projection of Multimodal Data",
-          "url": "https://www.semanticscholar.org/paper/07c4dd6b40c1e284e565463586bbeb66f61c0cb7",
+          "title": "Sparse Autoencoders Find Highly Interpretable Features in Language Models",
+          "url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/1fa1ab11f4bd5f94b2ec20e794dbfa3b-Abstract-Conference.html",
           "source_type": "technical_paper",
           "authors": [
-            "Nitish Kumar",
-            "Ayush Dasgupta",
-            "Venkata Satyanand Mutnuri",
-            "Rajalakshmi Pachamuthu"
+            "Robert Huben",
+            "Hoagy Cunningham",
+            "Logan Smith",
+            "Aidan Ewart",
+            "Lee Sharkey"
           ],
-          "publication_date": "2024",
-          "citationKey": "kumarEfficientApproachCalibration2024",
-          "abstract": "This article presents a comprehensive method for radar-camera calibration with a primary focus on real-time projection, addressing the critical need for precise spatial and temporal alignment between radar and camera sensor modalities. The research introduces a novel methodology for calibration utilizing geometrical transformation, incorporating radar corner reflectors to establish correspondences. This methodology applies to post-automotive manufacturing for integration into radar-camera applications such as advanced driver-assistance systems (ADASs), adaptive cruise control (ACC), collision warning, and mitigation systems. It also serves post-production for sensor installation and algorithm development. The proposed approach employs an advanced algorithm to optimize spatial and temporal synchronization and radar and camera data alignment, ensuring accuracy in multimodal sensor fusion. Rigorous validation through extensive testing demonstrates the efficiency and reliability of the proposed system. The results show that the calibration method is highly accurate compared to the existing state-of-the-art methods, with minimal errors, an average Euclidean distance (AED) of 1.447, and a root-mean-square reprojection error (RMSRE) of (0.1720, 0.5965), indicating a highly efficient spatial synchronization method. During real-time projection, the proposed algorithm for temporal synchronization achieves an average latency of 35 ms between frames."
+          "citationKey": "hubenSparseAutoencodersFind"
         },
         {
-          "title": "Integration of Large Language Models and Computer Vision Algorithms in LMS: A Methodology for Automated Verification of Software Tasks and Multimodal Analysis of Educational Data",
-          "url": "https://www.semanticscholar.org/paper/0991fef3f336b1ec981d83d7a7c6b8ea2e27598f",
+          "title": "Towards Monosemanticity: Decomposing Language Models With Dictionary Learning",
+          "url": "https://transformer-circuits.pub/2023/monosemantic-features/index.html",
           "source_type": "technical_paper",
+          "citationKey": "MonosemanticityDecomposingLanguage"
+        },
+        {
+          "title": "Loading and Analysing Pre-Trained Sparse Autoencoders (SAELens tutorial)",
+          "url": "https://github.com/decoderesearch/SAELens/blob/main/tutorials/basic_loading_and_analysing.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "LoadingAnalysingPreTrained",
+          "abstract": "Training Sparse Autoencoders on Language Models. Contribute to decoderesearch/SAELens development by creating an account on GitHub."
+        },
+        {
+          "title": "InterPLM: discovering interpretable features in protein language models via sparse autoencoders",
+          "url": "https://doi.org/10.1038/s41592-025-02836-7",
+          "source_type": "application_paper",
           "authors": [
-            "E. I. Markin",
-            "V. V. Zuparova",
-            "A. I. Martyshkin"
+            "Elana Simon",
+            "James Zou"
           ],
-          "publication_date": "2025",
-          "citationKey": "i.markinIntegrationLargeLanguage2025",
-          "abstract": "This paper presents a study on the design and development of a learning management system (LMS) integrated with large language models (LLMs) and image recognition/generation algorithms to automate software task validation and multimodal educational data analysis. The purpose of the development is to improve the quality of feedback for learners, deepen the understanding of errors made and expand the capabilities of the system by synthesizing formal LLM models and visual processing algorithms. The system is based on the use of domestic LLMs such as GigaChat and YandexGPT, Retrieval-Augmented Generation (RAG) technology, and modern computer vision algorithms. The system architecture is described, including GitVerse for code storage, GitVerse Actions for automated testing of solutions in Docker containers, and image processing modules for analyzing and generating visual data in the educational process. The conducted experiment demonstrates the effectiveness of the integrative approach, which allows to improve the quality of feedback and increase the performance of students. Prospects for further research include optimization of computational resources and development of techniques for integrated analysis of multimodal educational data."
+          "publication_date": "2025-9-29",
+          "citationKey": "simonInterPLMDiscoveringInterpretable2025"
         }
       ],
-      "related_techniques": [
-        "constitutional-ai-evaluation",
-        "chain-of-thought-faithfulness-evaluation",
-        "jailbreak-resistance-testing"
-      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
+      "acronym": "SAE",
+      "related_techniques": [],
       "sample_claims": [
         {
-          "text": "The diagnostic imaging system's textual findings correspond to the same anatomical regions and pathological features identified in the visual scans",
-          "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "Substituting the sparse autoencoder's reconstruction for the audited layer recovers at least 90% of that layer's contribution to next-token loss on the audit prompts.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
         },
         {
-          "text": "The autonomous vehicle's sensor fusion maintains consistent object identification and spatial reasoning across camera, lidar, and linguistic representations",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
+          "text": "Each feature cited in the refusal analysis has a description that predicts its activations on held-out prompts with a correlation of at least 0.5, and suppressing it lowers the refusal rate on the investment-advice test set by at least 20 percentage points.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
         },
         {
-          "text": "The model's visual attention mechanisms highlight image regions that semantically align with the concepts referenced in generated text explanations",
-          "domain": "general",
-          "assuranceGoal": "explainability"
+          "text": "None of the 50 features with the largest effect on the triage model's 'urgent' score on the validation set responds mainly to the referring practice's letter template.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
         },
         {
-          "text": "The product recommendation system's visual feature analysis and textual query interpretation converge on semantically consistent item attributes",
-          "domain": "general",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The clinical decision support system's risk assessments reflect consistent evidence across radiology images, laboratory results, and clinical note interpretations",
-          "domain": "healthcare",
-          "assuranceGoal": "safety"
+          "text": "Features in the protein model labelled as binding-site detectors activate on annotated binding-site residues of held-out proteins with a precision of at least 0.8, and the same features appear in a second autoencoder trained with a different seed.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
         }
       ]
     }
   ],
-  "count": 6
+  "count": 5
 }

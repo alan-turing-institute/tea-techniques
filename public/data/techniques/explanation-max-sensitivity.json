@@ -1,0 +1,150 @@
+{
+  "slug": "explanation-max-sensitivity",
+  "name": "Explanation Max-Sensitivity",
+  "description": "Explanation max-sensitivity measures how stable an explanation is: whether inputs that differ only slightly, in ways that should not change the answer, receive very different explanations. For each input, the evaluator samples many nearby points within a small radius (for example, no feature moved by more than 0.02 on a 0 to 1 scale), recomputes the explanation at each with the same explanation method, and records the largest distance between a recomputed explanation and the original; Yeh et al. (2019) defined the measure and estimated it by random sampling. Dividing each change in the explanation by the distance the input moved, and taking the largest ratio, gives the closely related local Lipschitz estimate of Alvarez-Melis and Jaakkola (2018), which they maximised with an optimiser rather than by sampling; the two are not interchangeable, because the ratio is dominated by the smallest input changes and can be unbounded where max-sensitivity is finite, so they can rank methods differently. Lower scores mean a more stable explanation, and scores are compared across explanation methods, or across settings of one method, on the same inputs, radius and distance measure. The test treats the explanation method as a black box, so it applies to attribution scores from any method, but on its own it says nothing about faithfulness: a constant explanation that ignores the model is perfectly stable.",
+  "assurance_goals": [
+    "Explainability"
+  ],
+  "tags": [
+    "assurance-goal-category/explainability",
+    "assurance-goal-category/explainability/explanation-evaluation",
+    "explanatory-scope/local",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/explainability/property/consistency",
+    "data-requirements/no-special-requirements",
+    "data-type/image",
+    "data-type/tabular",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/statistics",
+    "technique-type/metric"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A consumer lender tells declined applicants the main reasons for each decision, taken from Shapley-value attributions of its credit model. Its model-risk team measures max-sensitivity on a sample of declined applications, perturbing features only within bounds the lending policy treats as immaterial, to choose between two sampling budgets for the explainer, because applicants who differ trivially should not be given different main reasons.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "An Earth-observation team comparing attribution methods for a multi-label land-cover classifier on satellite image patches computes max-sensitivity for each method together with a most-relevant-first deletion curve, and short-lists methods that do well on both. Pairing the two matters because smoothing an explanation lowers its sensitivity, and a stable method is worth choosing only if it also tracks the model.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "A vehicle perception team averages gradient heatmaps over noisy copies of each camera frame to steady them for safety reviewers. It sets the noise level by tracking max-sensitivity and infidelity together on validation frames as the level rises, and picks the point where sensitivity has levelled off before infidelity starts to increase, since too much smoothing produces stable maps that no longer reflect the detector.",
+      "goal": "Explainability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "A low score does not mean the explanation is right. The most stable explanation possible is a constant one that ignores the model, and heavy smoothing keeps lowering sensitivity while eventually making the explanation less faithful. Max-sensitivity should be reported with a measure of faithfulness on the same inputs, and a method should not be chosen for stability alone."
+    },
+    {
+      "description": "The sampled maximum is a lower bound on the true worst case: with a handful of random samples per input (Captum's default is 10), the largest change found can be far below the largest that exists. Deliberately chosen perturbations that leave the prediction unchanged can alter explanations dramatically, so a low score does not show that explanations resist manipulation."
+    },
+    {
+      "description": "The number depends on settings that differ between tools: the radius, the distance measure for inputs and explanations, the number of samples and whether explanations are normalised first. By default Captum samples 10 points within a radius of 0.02 and Quantus 200 points within 0.2, ten times wider, while Yeh et al. used 50 points within 0.1 and normalised explanations to unit length. Scores are comparable only under identical settings and identically scaled inputs."
+    },
+    {
+      "description": "A high score can come from the model rather than the explanation method. Near a decision boundary, or where the model's output changes quickly, a faithful explanation should change, and Yeh et al. note that explanations built from the model's own sensitivity can be more sensitive than the model. Perturbations that change the prediction should be excluded or reported separately."
+    },
+    {
+      "description": "The test assumes inputs can be nudged by small continuous amounts. For words, categories or other discrete inputs no such small change exists, and the fallback of comparing explanations of similar examples already in the test data is weaker and depends on how many close neighbours the data contain. The per-unit Lipschitz form can be unbounded for gradient explanations of ReLU networks, one reason Yeh et al. prefer the undivided maximum, which stays finite."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Metrics — Captum API reference",
+      "url": "https://captum.ai/api/metrics.html",
+      "source_type": "documentation",
+      "citationKey": "MetricsCaptumAPI",
+      "abstract": "Model Interpretability for PyTorch"
+    },
+    {
+      "title": "captum",
+      "url": "https://github.com/meta-pytorch/captum",
+      "source_type": "software_package",
+      "publication_date": "2019-08-27",
+      "citationKey": "meta-pytorchCaptum2019",
+      "abstract": "Model interpretability and understanding for PyTorch"
+    },
+    {
+      "title": "On the (In)fidelity and Sensitivity of Explanations",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2019/hash/a7471fdc77b3435276507cc8f2dc2569-Abstract.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Chih-Kuan Yeh",
+        "Cheng-Yu Hsieh",
+        "Arun Suggala",
+        "David I Inouye",
+        "Pradeep K Ravikumar"
+      ],
+      "publication_date": "2019",
+      "citationKey": "yehInfidelitySensitivityExplanations2019",
+      "abstract": "We consider objective evaluation measures of saliency explanations for complex black-box machine learning models. We propose simple robust variants of two notions that have been considered in recent literature: (in)fidelity, and sensitivity. We analyze optimal explanations with respect to both these measures, and while the optimal explanation for sensitivity is a vacuous constant explanation, the optimal explanation for infidelity is a novel combination of two popular explanation methods. By varying the perturbation distribution that defines infidelity, we obtain novel explanations by optimizing infidelity, which we show to out-perform existing explanations in both quantitative and qualitative measurements. Another salient question given these measures is how to modify any given explanation to have better values with respect to these measures. We propose a simple modification based on lowering sensitivity, and moreover show that when done appropriately, we could simultaneously improve both sensitivity as well as fidelity."
+    },
+    {
+      "title": "On the Robustness of Interpretability Methods",
+      "url": "https://arxiv.org/abs/1806.08049",
+      "source_type": "technical_paper",
+      "authors": [
+        "David Alvarez-Melis",
+        "Tommi S. Jaakkola"
+      ],
+      "publication_date": "2018-06-21",
+      "citationKey": "alvarez-melisRobustnessInterpretabilityMethods2018",
+      "abstract": "We argue that robustness of explanations---i.e., that similar inputs should give rise to similar explanations---is a key desideratum for interpretability. We introduce metrics to quantify robustness and demonstrate that current methods do not perform well according to these metrics. Finally, we propose ways that robustness can be enforced on existing interpretability approaches."
+    },
+    {
+      "title": "Getting started — Quantus documentation",
+      "url": "https://quantus.readthedocs.io/en/latest/getting_started/getting_started_example.html",
+      "source_type": "tutorial",
+      "citationKey": "GettingStartedQuantus"
+    },
+    {
+      "title": "Evaluating explainable artificial intelligence methods for multi-label deep learning classification tasks in remote sensing",
+      "url": "https://doi.org/10.1016/j.jag.2021.102520",
+      "source_type": "application_paper",
+      "authors": [
+        "Ioannis Kakogeorgiou",
+        "Konstantinos Karantzalos"
+      ],
+      "publication_date": "2021-12",
+      "citationKey": "kakogeorgiouEvaluatingExplainableArtificial2021"
+    },
+    {
+      "title": "Investigations on Explainable Artificial Intelligence methods for the deep learning classification of fibre layup defect in the automated composite manufacturing",
+      "url": "https://doi.org/10.1016/j.compositesb.2021.109160",
+      "source_type": "application_paper",
+      "authors": [
+        "Sebastian Meister",
+        "Mahdieu Wermes",
+        "Jan Stüve",
+        "Roger M. Groves"
+      ],
+      "publication_date": "2021-11",
+      "citationKey": "meisterInvestigationsExplainableArtificial2021"
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 3,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "On a held-out sample of declined applications, the largest change in normalised attribution scores under perturbations within the lending policy's immaterial bounds stays below the agreed threshold for at least 95% of applications.",
+      "assuranceGoal": "explainability",
+      "domain": "finance"
+    },
+    {
+      "text": "The attribution method used for land-cover analysts has the lowest mean max-sensitivity of the candidate methods on the validation patches at the stated radius and sample count, and a steeper deletion curve than a random ranking.",
+      "assuranceGoal": "explainability",
+      "domain": "environmental"
+    },
+    {
+      "text": "At the noise level used to smooth the perception system's heatmaps, mean infidelity on validation frames is no higher than at any lower level tested, and mean max-sensitivity is within the tolerance stated in the test plan of the lowest value reached across the levels tested.",
+      "assuranceGoal": "explainability",
+      "domain": "autonomous systems"
+    }
+  ]
+}

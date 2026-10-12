@@ -1,0 +1,138 @@
+{
+  "slug": "bootstrap-confidence-intervals-for-evaluation-metrics",
+  "name": "Bootstrap Confidence Intervals for Evaluation Metrics",
+  "description": "Bootstrap confidence intervals put a range around a model's measured performance, showing how much the score could differ had another test set of the same size been drawn from the same population. The labelled held-out evaluation set is resampled with replacement thousands of times, each resample holding as many cases as the original so that some cases appear more than once and others not at all, and the metric (an error rate, the area under a curve, a translation score) is recomputed on each resample from the model's stored predictions, with no retraining. The spread of these recomputed values stands in for the sampling distribution of the metric: the percentile interval takes its 2.5th and 97.5th percentiles for a 95 per cent interval, and the bias-corrected and accelerated (BCa) interval shifts those percentiles to correct for bias and skew in that distribution. The statistic can also be the difference between two models scored on the same cases, recomputed on each shared resample, which shows whether an observed improvement is larger than the noise from test-set sampling. The result is the metric with lower and upper bounds at a stated confidence level, so a requirement such as a maximum false-positive rate can be checked against the bound rather than the point estimate.",
+  "assurance_goals": [
+    "Reliability"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/performance-assessment",
+    "data-requirements/labelled-data",
+    "data-type/any",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/statistics",
+    "technique-type/algorithmic",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A medical-imaging company preparing a regulatory submission reports its fracture detector's sensitivity and specificity at the locked threshold with 95 per cent bootstrap intervals. Because each patient contributes several radiographs, it resamples patients rather than images, so the interval reflects the number of independent patients in the test set rather than the larger number of images.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A machine-translation team deciding whether to replace its production model scores the current and candidate systems on the same held-out sentences, recomputes the difference in BLEU score on 1,000 shared bootstrap resamples of those sentences, and approves the change only if the 95 per cent interval for the difference lies above zero.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A fisheries agency whose vessel-detection model must keep false alarms below 2 per cent of non-vessel image patches re-measures the false-positive rate each quarter on several thousand newly labelled patches, puts a bootstrap interval on it, and states compliance against the interval's upper bound. In a quarter where the labelled sample yields only a handful of false positives, the agency uses an exact binomial interval instead, because the bootstrap interval is too narrow at that count.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "An evaluation team comparing two large language models on a 500-question internal benchmark reports each model's accuracy with a BCa bootstrap interval and puts a paired interval on the difference, which shows that a 1.5-point lead is within the sampling noise of a test set that size, so the team does not cite it as evidence that one model is better.",
+      "goal": "Reliability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "For a rate built from rare errors, such as a low false-positive rate, the interval is too narrow when the test set holds only a handful of errors. With 200 negatives and a true rate of 0.5 per cent, about a third of test sets have no false positives; the percentile interval is then [0, 0] and BCa may return no value. For a single proportion the exact binomial (Clopper-Pearson) interval avoids this; the bootstrap earns its place on metrics with no simple formula."
+    },
+    {
+      "description": "Resampling single cases assumes they are independent. When several test cases come from one patient, vessel, user or time window, their errors are correlated, and resampling cases treats them as separate evidence, giving intervals that can be much too narrow. Resampling whole clusters (patients, days) instead restores the right width when there are enough clusters, which needs the cluster of each case to be recorded in the test set; with few clusters the interval is again too narrow."
+    },
+    {
+      "description": "The interval reflects only which cases happened to be in the test set. It says nothing about variation from retraining the model on other data or with another random seed, nor about whether the test set represents the deployment population, so a narrow interval on an unrepresentative test set is precise and still wrong. Uncertainty in a single prediction, from retraining on resampled training data, is a different procedure; see Bootstrap Ensembles."
+    },
+    {
+      "description": "If the decision threshold, the model or the metric was chosen by looking at the same test set, resampling that set leaves the interval centred on an optimistic estimate, because the selection effect is not reproduced in the resamples. The choice has to be made on data separate from the set that is resampled."
+    },
+    {
+      "description": "Coverage is approximate and improves with test-set size. Percentile intervals can be too narrow on small test sets, and more so for skewed metrics; the BCa interval corrects for bias and skew but not for the narrowness that comes from a small test set, so small test sets stay a problem. BCa also needs an extra leave-one-out pass over the test set, which is slow for large sets or costly metrics, and it returns no interval when every resample gives the same value."
+    }
+  ],
+  "resources": [
+    {
+      "title": "scipy.stats.bootstrap",
+      "url": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html",
+      "source_type": "documentation",
+      "publication_date": "2008",
+      "citationKey": "Scipystatsbootstrap2008"
+    },
+    {
+      "title": "scipy/scipy: SciPy library main repository",
+      "url": "https://github.com/scipy/scipy",
+      "source_type": "software_package",
+      "publication_date": "2026-10-09T01:20:17Z",
+      "citationKey": "ScipyScipySciPy2026",
+      "abstract": "SciPy library main repository"
+    },
+    {
+      "title": "Bootstrap Methods: Another Look at the Jackknife",
+      "url": "https://doi.org/10.1214/aos/1176344552",
+      "source_type": "technical_paper",
+      "authors": [
+        "B. Efron"
+      ],
+      "publication_date": "1979-1-1",
+      "citationKey": "efronBootstrapMethodsAnother1979",
+      "abstract": "We discuss the following problem: given a random sample X = (X1, X2, …, Xn) from an unknown probability distribution F, estimate the sampling distribution of some prespecified random variable R(X, F), on the basis of the observed data x. (Standard jackknife theory gives an approximate mean and variance in the case R(X, F) = θ(F̂) − θ(F), θ some parameter of interest.) A general method, called the \"bootstrap,\" is introduced, and shown to work satisfactorily on a variety of estimation problems. The jackknife is shown to be a linear approximation method for the bootstrap. The exposition proceeds by a series of examples: variance of the sample median, error rates in a linear discriminant analysis, ratio estimation, estimating regression parameters, etc."
+    },
+    {
+      "title": "Better Bootstrap Confidence Intervals",
+      "url": "https://doi.org/10.1080/01621459.1987.10478410",
+      "source_type": "technical_paper",
+      "authors": [
+        "Bradley Efron"
+      ],
+      "publication_date": "1987-3",
+      "citationKey": "efronBetterBootstrapConfidence1987",
+      "abstract": "We consider the problem of setting approximate confidence intervals for a single parameter θ in a multiparameter family. The standard approximate intervals based on maximum likelihood theory, , can be quite misleading. In practice, tricks based on transformations, bias corrections, and so forth, are often used to improve their accuracy. The bootstrap confidence intervals discussed in this article automatically incorporate such tricks without requiring the statistician to think them through for each new application, at the price of a considerable increase in computational effort. The new intervals incorporate an improvement over previously suggested methods, which results in second-order correctness in a wide variety of problems. In addition to parametric families, bootstrap intervals are also developed for nonparametric situations."
+    },
+    {
+      "title": "The Bootstrap — SciPy Cookbook, Resampling and Monte Carlo Methods tutorials",
+      "url": "https://github.com/scipy/scipy-cookbook/blob/main/ipython/ResamplingAndMonteCarloMethods/resampling_tutorial_3.ipynb",
+      "source_type": "tutorial",
+      "citationKey": "BootstrapSciPyCookbook"
+    },
+    {
+      "title": "Statistical Significance Tests for Machine Translation Evaluation",
+      "url": "https://aclanthology.org/W04-3250/",
+      "source_type": "application_paper",
+      "authors": [
+        "Philipp Koehn"
+      ],
+      "publication_date": "2004-07",
+      "citationKey": "koehnStatisticalSignificanceTests2004"
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 2,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "The upper bound of the 95 per cent bootstrap confidence interval for the vessel detector's false-positive rate on this quarter's labelled patches is below the 2 per cent limit, and the number of false positives it rests on is reported with it.",
+      "assuranceGoal": "reliability",
+      "domain": "environmental"
+    },
+    {
+      "text": "The fracture detector's sensitivity and specificity at the locked threshold are reported with 95 per cent confidence intervals computed by resampling patients, not images.",
+      "assuranceGoal": "reliability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "The candidate translation model's improvement in BLEU over the production model has a 95 per cent bootstrap interval, computed on shared resamples of the test sentences, that excludes zero.",
+      "assuranceGoal": "reliability",
+      "domain": "language technology"
+    },
+    {
+      "text": "Every performance figure in the evaluation report is given with a 95 per cent bootstrap confidence interval and the number of test cases it rests on.",
+      "assuranceGoal": "reliability",
+      "domain": "general"
+    }
+  ]
+}

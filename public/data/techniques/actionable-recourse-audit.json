@@ -1,0 +1,120 @@
+{
+  "slug": "actionable-recourse-audit",
+  "name": "Actionable Recourse Audit",
+  "description": "An actionable recourse audit checks whether the people a linear classifier refuses, for example for a loan, a job interview or a public service, could change that decision through actions open to them, and how much they would have to change. The auditor first writes an action set saying which features can change and how: immutable features such as age stay fixed, features such as education level can only rise, and each changeable feature gets bounds and a grid of realistic values. Then, for each refused person in a sample drawn from the population the model will serve, an integer programming solver (optimisation software that searches discrete choices exactly) looks through the permitted actions for the cheapest change that flips the decision, measuring cost as the largest shift, in population percentiles, that the change makes to any one feature, and either returns that action or proves that none exists, which a search that simply fails to find a counterfactual cannot do. The audit reports the share of refused people who have recourse and the distribution of its cost, which can be compared across candidate models or broken down by group, and the same solver can list a refused person's cheapest alternative changes (a 'flipset') for a decision notice. Unlike the Contrastive Explanation Method, which explains one prediction through features that must be present or absent, or Diverse Counterfactual Explanations (DiCE), which searches any model for several alternative inputs that would change one decision, the audit works only on linear models but certifies whether any permitted action exists and summarises the answer across a population.",
+  "assurance_goals": [
+    "Transparency",
+    "Fairness"
+  ],
+  "tags": [
+    "applicable-models/architecture/linear-models",
+    "applicable-models/architecture/linear-models/logistic",
+    "applicable-models/requirements/white-box",
+    "assurance-goal-category/transparency",
+    "assurance-goal-category/transparency/notice-and-recourse",
+    "assurance-goal-category/fairness",
+    "assurance-goal-category/fairness/bias-measurement",
+    "data-requirements/reference-dataset",
+    "data-requirements/sensitive-attributes",
+    "data-type/tabular",
+    "evidence-type/quantitative-metric",
+    "evidence-type/fairness-metric",
+    "evidence-type/structured-output",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/domain-expertise",
+    "technique-type/testing",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring"
+  ],
+  "example_use_cases": [
+    {
+      "description": "Before launching a linear model that ranks applications to a housing support scheme, a local authority's analytics team audits recourse on last year's applicants, with age and household size fixed. Its report to the scheme's oversight board gives the share of refused applicants who could qualify through changes the scheme expects, such as completing a tenancy course, and how large those changes are, so the board can decide whether to approve the model.",
+      "goal": "Transparency"
+    },
+    {
+      "description": "A credit card issuer generates a flipset for each applicant its linear scorecard declines and puts the two cheapest items in the decline letter, for example reducing current debt to a stated amount, together with the other scored features the applicant should keep unchanged, so that following the stated actions would change the decision under the current model.",
+      "goal": "Transparency"
+    },
+    {
+      "description": "A lender's model risk committee is shown recourse audits for candidate credit models of almost equal accuracy. It rejects the most accurate, under which some refused applicants had no feasible action because of an 'ever defaulted' feature, adopts a variant that uses recent defaults only, and has the audit re-run each quarter on new applicants, watching younger applicants, who were scarce in the training data.",
+      "goal": "Transparency"
+    },
+    {
+      "description": "An employer's analytics team audits its linear screening model for interview invitations and compares the cost of recourse for refused women and men with similar predicted scores. Sex is not a model input, but the cost can still differ by sex. Refused candidates' true suitability is never observed, so the team cannot also match on outcome as the originating study did, and reports any gap with that caveat to its fairness review panel, which decides whether the features need revising.",
+      "goal": "Fairness"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "The proof that no action exists depends on the model being linear, such as logistic regression, a linear support vector machine or a rule set that can be written in linear form. For tree ensembles or neural networks, a local linear approximation can still suggest actions, which then have to be checked on the real model, but a failure to find one proves nothing, so the share of refused people without recourse is no longer a certified figure."
+    },
+    {
+      "description": "Every conclusion rests on the action set and cost the auditor chooses. Bounds that are too tight make people appear to lack recourse; loose bounds let a model 'provide' recourse only through drastic changes, which shows only as high cost; and the default cost treats a one-percentile change as equally hard in every feature unless someone who knows the domain sets how much harder some changes are."
+    },
+    {
+      "description": "The search treats features as changing independently unless the auditor adds constraints. Real actions have knock-on effects: raising income can also raise savings, so a listed action may cost more than needed, or may not change the decision once its effects on other features are counted, as Karimi, Schölkopf and Valera showed for recourse methods that ignore causal relations between features."
+    },
+    {
+      "description": "Recourse is defined for a fixed model. After retraining, an action given in an earlier notice may no longer change the decision, so the audit has to be re-run after each update. An action that changes the prediction need not change the real outcome either: showing a refused applicant how to be approved can lead them into credit they cannot repay."
+    },
+    {
+      "description": "A flipset lists only the features to change, so a person who also changes an undisclosed feature may still be refused unless the notice says what must stay the same. The originating paper builds flipsets from public credit datasets and does not test whether refused people understand them or can act on them. Owners may also resist publishing flipsets, because many of them together can let others reconstruct the model."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Actionable Recourse in Linear Classification",
+      "url": "https://doi.org/10.1145/3287560.3287566",
+      "source_type": "technical_paper",
+      "authors": [
+        "Berk Ustun",
+        "Alexander Spangher",
+        "Yang Liu"
+      ],
+      "publication_date": "2019-1-29",
+      "citationKey": "ustunActionableRecourseLinear2019"
+    },
+    {
+      "title": "actionable-recourse",
+      "url": "https://github.com/ustunb/actionable-recourse",
+      "source_type": "software_package",
+      "publication_date": "2026-07-11T02:55:36Z",
+      "citationKey": "ustunActionablerecourse2026",
+      "abstract": "python tools to check recourse in linear classification"
+    },
+    {
+      "title": "actionable-recourse example: Auditing Recourse",
+      "url": "https://github.com/ustunb/actionable-recourse/blob/master/examples/ex_02_audit_model-effects-of-recourse-demo.ipynb",
+      "source_type": "tutorial",
+      "citationKey": "ActionablerecourseExampleAuditing",
+      "abstract": "python tools to check recourse in linear classification - ustunb/actionable-recourse"
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 2,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Every refused applicant in the audit sample, drawn from last year's applications to the scheme, has at least one action under the agreed action set that would make them eligible under the deployed model.",
+      "assuranceGoal": "transparency",
+      "domain": "public sector"
+    },
+    {
+      "text": "Under the agreed action set, at least half of the declined applicants in the audit sample have an action that would bring approval while moving no feature by more than 25 percentiles of the applicant population.",
+      "assuranceGoal": "transparency",
+      "domain": "finance"
+    },
+    {
+      "text": "Among candidates refused by the screening model with similar predicted scores, the median cost of recourse for women is within five percentile points of that for men.",
+      "assuranceGoal": "fairness",
+      "domain": "employment"
+    },
+    {
+      "text": "Each decline letter lists at least one action that would change the decision under the current scorecard, together with the scored features the applicant must keep unchanged.",
+      "assuranceGoal": "transparency",
+      "domain": "finance"
+    }
+  ]
+}

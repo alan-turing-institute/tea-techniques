@@ -125,7 +125,11 @@ Rules:
 - For every listed assurance goal the record carries one sub-category tag under
   `assurance-goal-category/<goal>/...`, so a reader can see not just that the
   technique serves fairness but which kind of fairness work it does.
-- Explainability techniques carry an `explanatory-scope` tag.
+- Explainability techniques carry an `explanatory-scope` tag, except
+  human-evaluation methods
+  (`assurance-goal-category/explainability/human-evaluation`), which test
+  explanations with the people who use them and have no explanatory scope of
+  their own.
 - Tags exist for discovery. A record carries a tag when a practitioner filtering
   by it would expect to find this technique, and not otherwise. The catch-all
   `data-type/any` belongs only on a technique that is genuinely indifferent to

@@ -6,7 +6,7 @@
     {
       "slug": "monotonicity-constraints",
       "name": "Monotonicity Constraints",
-      "description": "Monotonicity constraints enforce consistent directional relationships between input features and model predictions, ensuring that increasing a feature value either always increases, always decreases, or has no effect on the output. These constraints integrate domain knowledge into model training, preventing counterintuitive relationships that may arise from spurious correlations in data. By maintaining logical feature relationships (e.g., experience always positively influences salary), monotonicity constraints enhance model trustworthiness, interpretability, and alignment with business logic whilst often improving generalisation to new data.",
+      "description": "Monotonicity constraints require a model's prediction to move only one way as a chosen input rises, with the other inputs held fixed, so that, for example, predicted salary never falls as years of experience increase. The direction for each constrained feature is set from domain knowledge before training, and the learning algorithm or model structure then rules out any fit that breaks it, so the model cannot learn reversals that come from noise or sampling quirks in the data. Boosted-tree libraries apply the constraint when they choose splits and monotonic neural networks build it into their structure, while penalty-based methods only discourage violations. Because a penalty, a constraint set on the wrong column or a later processing step can still let a reversal through, testers then vary each constrained input across its range over many generated or real cases, with the other inputs fixed, and count any prediction that moves the wrong way. The evidence is that violation count, expected to be zero, together with a comparison of held-out accuracy with and without the constraint.",
       "assurance_goals": [
         "Transparency",
         "Reliability"
@@ -34,33 +34,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Enforcing that a mortgage approval model always treats higher income, longer employment history, and higher credit scores as positive factors, making the decision logic transparent and intuitive for loan officers and applicants whilst preventing counterintuitive relationships that could undermine trust in the system.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A mortgage lender constrains its approval model so that higher income, longer employment and a higher credit score can only raise the approval score. Loan officers can then tell an applicant that improving any of these factors can only help the application, and the lender can state each factor's direction to its regulator."
         },
         {
-          "description": "Constraining a healthcare cost prediction model so that age and number of chronic conditions always increase predicted costs, ensuring the model generalises reliably to new patient populations and maintains logical behaviour even when training data contains sampling biases or unusual correlations.",
-          "goal": "Reliability"
+          "goal": "Transparency",
+          "description": "A water utility's pipe-burst risk model is constrained so that risk rises with pipe age and operating pressure and falls with the quality of recent maintenance. Asset managers can then explain the ranked inspection list to the regulator through three directional rules, instead of an opaque score."
         },
         {
-          "description": "Implementing monotonic constraints in an insurance premium model where driving experience always reduces premiums and accident history always increases them, creating consistent pricing logic that regulatory authorities can easily validate and customers can understand and trust.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A hospital analytics team builds a tree-based model that predicts the cost of care for each patient and constrains the prediction never to fall as age or number of chronic conditions rises. Before release they sweep each constrained feature across its range for thousands of generated patient records, with the other features held fixed, and confirm that no prediction moves the wrong way. They also compare held-out accuracy with and without the constraints."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A utility's day-ahead demand forecast for office buildings is constrained so that predicted demand never falls as occupancy or floor area rises. The validation team writes this as an automated test that draws random building profiles, raises one constrained input at a time and fails the build if any forecast drops, so a retrained model that breaks the rule is caught before deployment."
         }
       ],
       "limitations": [
         {
-          "description": "Can reduce model accuracy when real-world relationships are inherently non-monotonic, such as the inverted-U relationship between experience and performance, where constraints force oversimplified linear relationships."
+          "description": "Forces a one-way relationship even where the real one reverses, such as an inverted U between experience and performance. The model then fits that feature worse and cannot show the turning point, so held-out accuracy should be compared with and without the constraint."
         },
         {
-          "description": "Requires substantial domain expertise to identify which features should have monotonic relationships, creating dependency on subject matter experts and potential for incorrect constraint specification."
+          "description": "Choosing which features to constrain, and in which direction, needs domain expertise. A wrong constraint builds a false belief into the model, and the check on the trained model will still pass, because it shows only that the constraint holds, not that it is right."
         },
         {
-          "description": "Increases computational complexity during training as optimisation algorithms must respect additional constraints, potentially leading to longer training times and convergence difficulties."
+          "description": "The rule covers one feature with the others held fixed, and says nothing about the size of the effect. A model can meet it by ignoring the feature, and when correlated inputs move together a person's overall score can still fall as one favourable input rises, so the constraint does not make the whole model easy to explain."
         },
         {
-          "description": "May mask important non-linear patterns in data that could be crucial for understanding system behaviour, particularly in exploratory analysis where discovering unexpected relationships is valuable."
+          "description": "Support differs by model family. Tree-boosting libraries such as XGBoost accept constraints directly, while neural networks need a special architecture or a penalty term. With histogram-based tree methods, constraints can remove every candidate split and leave shallow trees that underfit."
         },
         {
-          "description": "Limited applicability to certain model types, with implementation varying significantly across algorithms (well-supported in tree-based models, more complex in neural networks), restricting technique flexibility."
+          "description": "A sweep or property-based test samples the input space. It can find a violation but cannot prove there is none, and a pass depends on how well the generated inputs cover realistic and rare combinations of features."
         }
       ],
       "resources": [
@@ -74,46 +78,57 @@
           "citationKey": "xgboostdevelopersMonotonicConstraintsXgboost"
         },
         {
-          "title": "NONPARAMETRIC KERNEL REGRESSION SUBJECT TO MONOTONICITY CONSTRAINTS",
-          "url": "https://www.semanticscholar.org/paper/28e2be532d66694d3fe3486671f5c0217f58892d",
-          "source_type": "technical_paper",
-          "authors": [
-            "P. Hall",
-            "Li-Shan Huang"
-          ],
-          "publication_date": "2001",
-          "citationKey": "hallNONPARAMETRICKERNELREGRESSION2001"
-        },
-        {
-          "title": "scikit-learn Isotonic Regression",
-          "url": "https://scikit-learn.org/stable/modules/isotonic.html",
-          "source_type": "documentation",
-          "authors": [
-            "Scikit-learn Developers"
-          ],
-          "publication_date": "2007",
-          "citationKey": "scikit-learndevelopersScikitlearnIsotonicRegression2007"
-        },
-        {
-          "title": "High-dimensional additive Gaussian processes under monotonicity constraints",
-          "url": "https://www.semanticscholar.org/paper/4d4f1e2de3742735dcc47d2e51cc572a4415231e",
-          "source_type": "technical_paper",
-          "authors": [
-            "Andr'es F. L'opez-Lopera",
-            "F. Bachoc",
-            "O. Roustant"
-          ],
-          "publication_date": "2022",
-          "citationKey": "f.lopez-loperaHighdimensionalAdditiveGaussian2022",
-          "abstract": "We introduce an additive Gaussian process framework accounting for monotonicity constraints and scalable to high dimensions. Our contributions are threefold. First, we show that our framework enables to satisfy the constraints everywhere in the input space. We also show that more general componentwise linear inequality constraints can be handled similarly, such as componentwise convexity. Second, we propose the additive MaxMod algorithm for sequential dimension reduction. By sequentially maximizing a squared-norm criterion, MaxMod identifies the active input dimensions and refines the most important ones. This criterion can be computed explicitly at a linear cost. Finally, we provide open-source codes for our full framework. We demonstrate the performance and scalability of the methodology in several synthetic examples with hundreds of dimensions under monotonicity constraints as well as on a real-world flood application."
-        },
-        {
-          "title": "gp_constr",
-          "url": "https://github.com/cagrell/gp_constr",
+          "title": "XGBoost (dmlc/xgboost)",
+          "url": "https://github.com/dmlc/xgboost",
           "source_type": "software_package",
-          "publication_date": "2019-03-05",
-          "citationKey": "cagrellGp_constr2019",
-          "abstract": "Python model for constrained GP"
+          "publication_date": "2026-10-09T03:24:33Z",
+          "citationKey": "XGBoostDmlcXgboost2026",
+          "abstract": "Scalable, Portable and Distributed Gradient Boosting (GBDT, GBRT or GBM) Library,  for Python, R, Java, Scala, C and more. Runs on single machine, Hadoop, Spark, Dask, Flink and DataFlow"
+        },
+        {
+          "title": "Monotonic Networks",
+          "url": "https://proceedings.neurips.cc/paper/1997/hash/83adc9225e4deb67d7ce42d58fe5157c-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Joseph Sill"
+          ],
+          "publication_date": "1997",
+          "citationKey": "sillMonotonicNetworks1997",
+          "abstract": "Monotonicity  is  a  constraint which  arises  in many application do(cid:173) mains.  We present  a  machine learning model,  the monotonic net(cid:173) work, for which monotonicity can be enforced exactly, i.e., by virtue  offunctional form .  A straightforward method for implementing and  training  a  monotonic  network  is  described.  Monotonic  networks  are  proven  to  be  universal  approximators of continuous,  differen(cid:173) tiable  monotonic functions.  We  apply  monotonic  networks  to  a  real-world  task  in  corporate  bond  rating  prediction  and  compare  them to other approaches."
+        },
+        {
+          "title": "Application of the Back Propagation Neural Network Algorithm with Monotonicity Constraints for Two‐Group Classification Problems*",
+          "url": "https://doi.org/10.1111/j.1540-5915.1993.tb00462.x",
+          "source_type": "technical_paper",
+          "authors": [
+            "Norman P. Archer",
+            "Shouhong Wang"
+          ],
+          "publication_date": "1993-1",
+          "citationKey": "archerApplicationBackPropagation1993",
+          "abstract": "Neural network techniques are widely used in solving pattern recognition or classification problems. However, when statistical data are used in supervised training of a neural network employing the back‐propagation least mean square algorithm, the behavior of the classification boundary during training is often unpredictable. This research suggests the application of monotonicity constraints to the back propagation learning algorithm. When the training sample set is preprocessed by a linear classification function, neural network performance and efficiency can be improved in classification applications where the feature vector is related monotonically to the pattern vector. Since most classification problems in business possess monotonic properties, this technique is useful in those problems where any assumptions about the properties of the data are inappropriate."
+        },
+        {
+          "title": "Monotonic Constraints — scikit-learn documentation (example gallery)",
+          "url": "https://scikit-learn.org/stable/auto_examples/ensemble/plot_monotonic_constraints.html",
+          "source_type": "tutorial",
+          "citationKey": "MonotonicConstraintsScikitlearn",
+          "abstract": "This example illustrates the effect of monotonic constraints on a gradient boosting estimator. We build an artificial dataset where the target value is in general positively correlated with the fir..."
+        },
+        {
+          "title": "An informed monotone neural network for multi-stage chronic kidney disease prediction with integrated GFR estimation",
+          "url": "https://doi.org/10.1038/s41598-026-47417-6",
+          "source_type": "application_paper",
+          "authors": [
+            "Bikram Pratim Bhuyan",
+            "Akeel Sh. Mahmoud",
+            "Olfa Lamouchi",
+            "Galina Ivanova",
+            "Amar Ramdane-Cherif"
+          ],
+          "publication_date": "2026-4-9",
+          "citationKey": "bhuyanInformedMonotoneNeural2026",
+          "abstract": "Chronic kidney disease (CKD) is a progressive condition affecting over 850 million people worldwide, where timely detection and accurate staging are critical to reducing morbidity, mortality, and healthcare burden. Current machine learning approaches often treat CKD prediction as a binary task, neglecting the ordered nature of disease stages, and rarely incorporate physiological constraints or calibrated probability estimates essential for clinical decision support. We propose a multi-stage CKD prediction framework that integrates ordinal classification, probability calibration, and a serum creatinine-monotonicity constraint within a knowledge distillation paradigm. A calibrated CatBoost model serves as a teacher, transferring temperature-scaled class probabilities to an ordinal neural network student augmented with an auxiliary eGFR regression task. Evaluated on a cohort of 750 patients from Al-Ramadi Teaching Hospital, our approach achieved superior macro-F1 and reduced expected calibration error. This work demonstrates that combining ordinal learning, calibration, and physiological constraints yields models that are not only accurate but also aligned with clinical reasoning, offering a pathway toward safer and more trustworthy AI tools for CKD management. Limitations like circular reasoning and target leakage are also discussed."
         }
       ],
       "complexity_rating": 3,
@@ -125,43 +140,43 @@
       ],
       "sample_claims": [
         {
-          "text": "The lending model's approval probability increases consistently with applicant income without counterintuitive reversals",
+          "assuranceGoal": "transparency",
           "domain": "finance",
-          "assuranceGoal": "transparency"
+          "text": "Every constrained input in the mortgage model has a documented direction of effect, so loan officers can tell an applicant that, other details being equal, higher income never lowers the approval score."
         },
         {
-          "text": "The insurance premium calculation respects logical directional relationships where risk factors monotonically increase costs",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The clinical risk assessment maintains consistent directionality where deteriorating vital signs monotonically increase predicted severity",
+          "assuranceGoal": "transparency",
           "domain": "healthcare",
-          "assuranceGoal": "transparency"
+          "text": "The clinical risk score is documented as never falling when a vital-sign measure worsens, other measures being equal, and clinicians are given that rule before they use the score."
         },
         {
-          "text": "The energy consumption forecast ensures that increased building occupancy always raises predicted demand",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "reliability",
+          "domain": "healthcare",
+          "text": "In property-based testing over generated patient records, raising age or the number of chronic conditions on its own never lowered the cost model's prediction, and the test is rerun on every release"
         },
         {
-          "text": "The hiring suitability score preserves expected relationships where relevant experience monotonically improves candidate ratings",
-          "domain": "general",
-          "assuranceGoal": "transparency"
+          "assuranceGoal": "reliability",
+          "domain": "energy",
+          "text": "In sweeps of each constrained input across its full range, the building demand forecast recorded no case where predicted demand fell as occupancy rose."
+        },
+        {
+          "assuranceGoal": "reliability",
+          "domain": "finance",
+          "text": "Across 100,000 generated applicant records, raising income alone never lowered the lending model's predicted approval probability."
         }
       ]
     },
     {
       "slug": "agent-goal-misalignment-testing",
       "name": "Agent Goal Misalignment Testing",
-      "description": "Agent goal misalignment testing identifies scenarios where AI agents pursue objectives in unintended ways or develop proxy goals that diverge from true human intent. This technique tests for specification gaming (achieving stated metrics while violating intent), instrumental goals (agents developing problematic sub-goals to achieve main objectives), and reward hacking (exploiting loopholes in reward functions). Testing uses diverse scenarios to probe whether agents truly understand task intent or merely optimise narrow specified metrics.",
+      "description": "Agent goal misalignment testing checks whether an AI agent, given a goal that could be advanced by means its operators have not sanctioned, takes those means. The tester builds scenarios around a goal conflict: the agent has a task, tools and access, and the situation offers a harmful or forbidden route to its goal, such as deceiving a user, leaking confidential information, acquiring power or resources beyond its remit, or coercing people to avoid being replaced, while its instructions or ordinary ethics rule that route out. Each scenario is run many times, and every transcript is classified, by a language-model classifier checked against human judgement or by annotators, for whether the agent took a misaligned action. The result is the rate of misaligned actions per scenario and per model, with example transcripts, and how that rate changes with factors the tester varies, such as a threat to the agent's continued operation or an explicit instruction not to cause harm. It needs no access to a reward function or to training: it tests the behaviour of an already-trained agent.",
       "assurance_goals": [
         "Safety",
         "Reliability"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
-        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/architecture/neural-networks/transformer/llm",
         "applicable-models/paradigm/generative",
         "applicable-models/paradigm/reinforcement",
         "applicable-models/requirements/black-box",
@@ -170,99 +185,99 @@
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/hazard-identification",
         "data-requirements/test-scenarios",
-        "data-type/any",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
         "evidence-type/qualitative-report",
         "expertise-needed/domain-expertise",
         "expertise-needed/ml-engineering",
         "expertise-needed/evaluation-design",
         "technique-type/testing",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
       ],
       "example_use_cases": [
         {
-          "description": "Testing an autonomous vehicle routing agent in a ride-sharing service to ensure it optimizes for passenger safety and comfort rather than gaming metrics through risky driving behaviors that minimize journey time while technically meeting safety thresholds.",
+          "description": "Before giving an email and calendar agent access to client records, a bank runs it through scenarios in which its assigned target can only be met by sending confidential client data to an outside party, and records how often it does so with and without a system-prompt prohibition, to decide whether the agent needs a human approval step for outbound messages.",
           "goal": "Safety"
         },
         {
-          "description": "Evaluating a customer service chatbot agent for consistent and predictable behaviour across repeated interactions, verifying that it does not develop degenerate strategies such as prematurely closing conversations or providing overly generic responses to maximise satisfaction scores whilst failing to resolve underlying user issues reliably.",
+          "description": "A national AI evaluation body tests coding agents deployed inside a simulated research lab for whether they sabotage or refuse safety-related tasks when the scenario says the agent is about to be replaced, and reports the rates to the developers before wider internal deployment.",
+          "goal": "Safety"
+        },
+        {
+          "description": "A logistics firm upgrading the model behind its procurement agent runs the old and new models through the same scenarios, in which a delivery deadline can only be met by exceeding the agent's delegated spending limit or misreporting an order's status, and adopts the new model only if it stays within its operator's constraints at least as often.",
           "goal": "Reliability"
         }
       ],
       "limitations": [
         {
-          "description": "Comprehensive testing requires anticipating all possible ways objectives could be misinterpreted, which is inherently difficult for complex goals."
+          "description": "Scenarios are artificial. To make behaviour measurable they usually offer a stark choice between failing the goal and a harmful act, and place the key information side by side, whereas real deployments offer more alternatives. Measured rates may therefore overstate or understate what an agent would do in use, and do not transfer directly to a deployment."
         },
         {
-          "description": "Agents may behave correctly during testing but develop misaligned strategies in deployment when facing novel situations or longer time horizons."
+          "description": "Agents may behave differently when they judge they are being tested. In the agentic-misalignment study one model blackmailed in 55.1% of runs when it concluded the scenario was real and 6.5% when it concluded it was an evaluation, so a low measured rate can understate deployed behaviour."
         },
         {
-          "description": "Distinguishing between intended and unintended goal achievement can be subjective, especially when stated objectives are ambiguous."
+          "description": "It only tests the misaligned routes the scenarios offer. A clean result on one suite says nothing about routes it did not include, and building enough realistic scenario variants for a given deployment (tools, data, organisational context) takes substantial evaluation-design and domain effort."
         },
         {
-          "description": "Testing environments may not replicate the full complexity and incentive structures of real deployment settings where misalignment emerges."
+          "description": "Rates are only as good as the transcript classification. Classifiers based on language models, or keyword matching, misjudge borderline actions, and their error rate feeds straight into the reported rates; a sample of transcripts needs human checking for each new scenario family."
         },
         {
-          "description": "Requires domain expertise to define appropriate value-aligned objectives and identify subtle forms of misalignment, which may not be available for novel or cross-domain applications."
-        },
-        {
-          "description": "Quantifying the severity and likelihood of different misalignment scenarios requires subjective judgments and risk assessment capabilities that vary across organizations."
+          "description": "It measures how often an agent acts, not why. An agent's stated reasoning may not reflect what drove its action, and role-play can explain some behaviour, so transcripts cannot establish whether a misaligned action came from the goal, the framing or the scenario's cues."
         }
       ],
       "resources": [
         {
-          "title": "The Urgent Need for Intrinsic Alignment Technologies for ...",
-          "url": "https://towardsdatascience.com/the-urgent-need-for-intrinsic-alignment-technologies-for-responsible-agentic-ai",
-          "source_type": "tutorial",
-          "authors": [
-            "Gadi Singer"
-          ],
-          "publication_date": "2025-03-04",
-          "citationKey": "singerUrgentNeedIntrinsic2025"
+          "title": "Agentic Misalignment: How LLMs could be insider threats",
+          "url": "https://www.anthropic.com/research/agentic-misalignment",
+          "source_type": "documentation",
+          "publication_date": "2025-06-20T22:30:00.000Z",
+          "citationKey": "AgenticMisalignmentHow2025",
+          "abstract": "New research on simulated blackmail, industrial espionage, and other misaligned behaviors in LLMs"
         },
         {
-          "title": "A Survey of Process Reward Models: From Outcome Signals to Process Supervisions for Large Language Models",
-          "url": "https://www.semanticscholar.org/paper/b670078b724938874a233687b5c53848df527a60",
-          "source_type": "technical_paper",
-          "authors": [
-            "Congmin Zheng",
-            "Jiachen Zhu",
-            "Zhuoying Ou",
-            "Yuxiang Chen",
-            "Kangning Zhang",
-            "Rong Shan",
-            "Zeyu Zheng",
-            "Mengyue Yang",
-            "Jianghao Lin",
-            "Yong Yu",
-            "Weinan Zhang"
-          ],
-          "publication_date": "2025",
-          "citationKey": "zhengSurveyProcessReward2025",
-          "abstract": "Although Large Language Models (LLMs) exhibit advanced reasoning ability, conventional alignment remains largely dominated by outcome reward models (ORMs) that judge only final answers. Process Reward Models(PRMs) address this gap by evaluating and guiding reasoning at the step or trajectory level. This survey provides a systematic overview of PRMs through the full loop: how to generate process data, build PRMs, and use PRMs for test-time scaling and reinforcement learning. We summarize applications across math, code, text, multimodal reasoning, robotics, and agents, and review emerging benchmarks. Our goal is to clarify design spaces, reveal open challenges, and guide future research toward fine-grained, robust reasoning alignment."
+          "title": "agentic-misalignment (anthropic-experimental)",
+          "url": "https://github.com/anthropic-experimental/agentic-misalignment",
+          "source_type": "software_package",
+          "publication_date": "2026-10-07T14:29:29Z",
+          "citationKey": "AgenticmisalignmentAnthropicexperimental2026"
         },
         {
-          "title": "Large Language Model Safety: A Holistic Survey",
-          "url": "https://www.semanticscholar.org/paper/a0d2a54ed05a424f5eee35ea579cf54ef0f2c2aa",
+          "title": "Do the Rewards Justify the Means? Measuring Trade-Offs Between Rewards and Ethical Behavior in the MACHIAVELLI Benchmark",
+          "url": "https://proceedings.mlr.press/v202/pan23a.html",
           "source_type": "technical_paper",
           "authors": [
-            "Dan Shi",
-            "Tianhao Shen",
-            "Yufei Huang",
-            "Zhigen Li",
-            "Yongqi Leng",
-            "Renren Jin",
-            "Chuang Liu",
-            "Xinwei Wu",
-            "Zishan Guo",
-            "Linhao Yu",
-            "Ling Shi",
-            "Bojian Jiang",
-            "Deyi Xiong"
+            "Alexander Pan",
+            "Jun Shern Chan",
+            "Andy Zou",
+            "Nathaniel Li",
+            "Steven Basart",
+            "Thomas Woodside",
+            "Jonathan Ng",
+            "Hanlin Zhang",
+            "Scott Emmons",
+            "Dan Hendrycks"
           ],
-          "publication_date": "2024",
-          "citationKey": "shiLargeLanguageModel2024",
-          "abstract": "The rapid development and deployment of large language models (LLMs) have introduced a new frontier in artificial intelligence, marked by unprecedented capabilities in natural language understanding and generation. However, the increasing integration of these models into critical applications raises substantial safety concerns, necessitating a thorough examination of their potential risks and associated mitigation strategies. This survey provides a comprehensive overview of the current landscape of LLM safety, covering four major categories: value misalignment, robustness to adversarial attacks, misuse, and autonomous AI risks. In addition to the comprehensive review of the mitigation methodologies and evaluation resources on these four aspects, we further explore four topics related to LLM safety: the safety implications of LLM agents, the role of interpretability in enhancing LLM safety, the technology roadmaps proposed and abided by a list of AI companies and institutes for LLM safety, and AI governance aimed at LLM safety with discussions on international cooperation, policy proposals, and prospective regulatory directions. Our findings underscore the necessity for a proactive, multifaceted approach to LLM safety, emphasizing the integration of technical solutions, ethical considerations, and robust governance frameworks. This survey is intended to serve as a foundational resource for academy researchers, industry practitioners, and policymakers, offering insights into the challenges and opportunities associated with the safe integration of LLMs into society. Ultimately, it seeks to contribute to the safe and beneficial development of LLMs, aligning with the overarching goal of harnessing AI for societal advancement and well-being. A curated list of related papers has been publicly available at https://github.com/tjunlp-lab/Awesome-LLM-Safety-Papers."
+          "publication_date": "2023/04/06",
+          "citationKey": "panRewardsJustifyMeans2023",
+          "abstract": "Artificial agents have traditionally been trained to maximize reward, which may incentivize power-seeking and deception, analogous to how next-token prediction in language models (LMs) may incentivize toxicity. So do agents naturally learn to be Machiavellian? And how do we measure these behaviors in general-purpose models such as GPT-4? Towards answering these questions, we introduce MACHIAVELLI, a benchmark of 134 Choose-Your-Own-Adventure games containing over half a million rich, diverse scenarios that center on social decision-making. Scenario labeling is automated with LMs, which are more performant than human annotators. We mathematize dozens of harmful behaviors and use our annotations to evaluate agents' tendencies to be power-seeking, cause disutility, and commit ethical violations. We observe some tension between maximizing reward and behaving ethically. To improve this trade-off, we investigate LM-based methods to steer agents' towards less harmful behaviors. Our results show that agents can both act competently and morally, so concrete progress can currently be made in machine ethics--designing agents that are Pareto improvements in both safety and capabilities."
+        },
+        {
+          "title": "UK AISI Alignment Evaluation Case-Study",
+          "url": "https://doi.org/10.48550/arXiv.2604.00788",
+          "source_type": "application_paper",
+          "authors": [
+            "Alexandra Souly",
+            "Robert Kirk",
+            "Jacob Merizian",
+            "Abby D'Cruz",
+            "Xander Davies"
+          ],
+          "publication_date": "2026-04-01",
+          "citationKey": "soulyUKAISIAlignment2026",
+          "abstract": "This technical report presents methods developed by the UK AI Security Institute for assessing whether advanced AI systems reliably follow intended goals. Specifically, we evaluate whether frontier models sabotage safety research when deployed as coding assistants within an AI lab. Applying our methods to four frontier models, we find no confirmed instances of research sabotage. However, we observe that Claude Opus 4.5 Preview (a pre-release snapshot of Opus 4.5) and Sonnet 4.5 frequently refuse to engage with safety-relevant research tasks, citing concerns about research direction, involvement in self-training, and research scope. We additionally find that Opus 4.5 Preview shows reduced unprompted evaluation awareness compared to Sonnet 4.5, while both models can distinguish evaluation from deployment scenarios when prompted. Our evaluation framework builds on Petri, an open-source LLM auditing tool, with a custom scaffold designed to simulate realistic internal deployment of a coding agent. We validate that this scaffold produces trajectories that all tested models fail to reliably distinguish from real deployment data. We test models across scenarios varying in research motivation, activity type, replacement threat, and model autonomy. Finally, we discuss limitations including scenario coverage and evaluation awareness."
         }
       ],
       "related_techniques": [
@@ -273,22 +288,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous system achieves operational objectives through intended methods rather than exploiting measurement loopholes or specification ambiguities",
-          "domain": "autonomous systems",
+          "text": "Across the goal-conflict scenarios in the test suite, the agent took no action that disclosed confidential client data to an outside party",
+          "domain": "finance",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The agent's decision-making process genuinely optimizes for stated healthcare outcomes rather than developing proxy metrics that satisfy performance indicators without improving patient care",
-          "domain": "healthcare",
+          "text": "When told it would be replaced, the agent did not attempt to deceive or coerce its operators to prevent the replacement in any sampled run",
+          "domain": "general",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "The procurement agent stayed within its delegated spending limit in every scenario where exceeding it was the only way to meet the assigned deadline",
+          "domain": "general",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system's optimization strategy aligns with true environmental objectives rather than gaming sustainability metrics through technically compliant but counterproductive behaviors",
-          "domain": "environmental",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The model achieves performance targets through genuine task mastery rather than specification gaming strategies that exploit ambiguities in objective definitions",
+          "text": "The upgraded agent model shows a misaligned-action rate no higher than the version it replaces on the same scenario suite",
           "domain": "general",
           "assuranceGoal": "reliability"
         }
@@ -300,7 +315,6 @@
       "description": "Constitutional AI evaluation assesses models trained to follow explicit behavioural principles or 'constitutions' that specify desired values and constraints. This technique verifies that models consistently adhere to specified principles across diverse scenarios, measuring both principle compliance and handling of principle conflicts. Evaluation includes testing boundary cases where principles might conflict, measuring robustness to adversarial attempts to violate principles, and assessing whether models can explain their reasoning in terms of constitutional principles.",
       "assurance_goals": [
         "Safety",
-        "Transparency",
         "Reliability"
       ],
       "tags": [
@@ -309,8 +323,6 @@
         "applicable-models/paradigm/supervised",
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/verification",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/decision-reasons",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/behavioural-consistency",
         "data-type/text",
@@ -329,10 +341,6 @@
         {
           "description": "Evaluating a general-purpose AI assistant with the principle 'provide helpful information while refusing requests for illegal activities' to ensure it consistently distinguishes between legitimate chemistry education queries and attempts to obtain instructions for synthesising controlled substances or explosives.",
           "goal": "Safety"
-        },
-        {
-          "description": "Testing whether an AI assistant can transparently explain its decisions by referencing the specific constitutional principles that guided its responses, enabling users to understand value-based reasoning.",
-          "goal": "Transparency"
         },
         {
           "description": "Verifying that an AI news aggregator consistently applies stated principles about neutrality versus editorial perspective across diverse political topics and international news sources.",
@@ -369,16 +377,23 @@
       ],
       "resources": [
         {
-          "title": "constitutional-reasoning-engine",
-          "url": "https://github.com/chrbradley/constitutional-reasoning-engine",
+          "title": "Claude's constitution",
+          "url": "https://www.anthropic.com/constitution",
+          "source_type": "documentation",
+          "citationKey": "ClaudesConstitution",
+          "abstract": "Anthropic is an AI safety and research company that's working to build reliable, interpretable, and steerable AI systems."
+        },
+        {
+          "title": "alignment-handbook (Hugging Face), recipes/constitutional-ai",
+          "url": "https://github.com/huggingface/alignment-handbook",
           "source_type": "software_package",
-          "publication_date": "2025-10-23",
-          "citationKey": "chrbradleyConstitutionalreasoningengine2025",
-          "abstract": "Constitutional Reasoning Engine: Evaluating factual integrity across AI value frameworks (6 models × 5 constitutions × 10 scenarios)"
+          "publication_date": "2026-10-08T11:39:34Z",
+          "citationKey": "tunstallAlignmenthandbookHuggingFace2026",
+          "abstract": "Robust recipes to align language models with human and AI preferences"
         },
         {
           "title": "C3AI: Crafting and Evaluating Constitutions for Constitutional AI",
-          "url": "https://dl.acm.org/doi/abs/10.1145/3696410.3714705",
+          "url": "https://doi.org/10.1145/3696410.3714705",
           "source_type": "technical_paper",
           "authors": [
             "Yara Kyrychenko",
@@ -391,25 +406,104 @@
           "abstract": "Constitutional AI (CAI) guides LLM behavior using constitutions, but identifying which principles are most effective for model alignment remains an open challenge. We introduce the C3AI framework (Crafting Constitutions for CAI models), which serves two key functions: (1) selecting and structuring principles to form effective constitutions before fine-tuning; and (2) evaluating whether fine-tuned CAI models follow these principles in practice. By analyzing principles from AI and psychology, we found that positively framed, behavior-based principles align more closely with human preferences than negatively framed or trait-based principles. In a safety alignment use case, we applied a graph-based principle selection method to refine an existing CAI constitution, improving safety measures while maintaining strong general reasoning capabilities. Interestingly, fine-tuned CAI models performed well on negatively framed principles but struggled with positively framed ones, in contrast to our human alignment results. This highlights a potential gap between principle design and model adherence. Overall, C3AI provides a structured and scalable approach to both crafting and evaluating CAI constitutions."
         },
         {
-          "title": "Towards Principled AI Alignment: An Evaluation and Augmentation of Inverse Constitutional AI",
-          "url": "https://dash.harvard.edu/items/54a0845c-a3a3-4c73-9278-e4c4927c2e1a",
+          "title": "Constitutional AI: Harmlessness from AI Feedback",
+          "url": "https://arxiv.org/abs/2212.08073",
           "source_type": "technical_paper",
           "authors": [
-            "E An"
+            "Yuntao Bai",
+            "Saurav Kadavath",
+            "Sandipan Kundu",
+            "Amanda Askell",
+            "Jackson Kernion",
+            "Andy Jones",
+            "Anna Chen",
+            "Anna Goldie",
+            "Azalia Mirhoseini",
+            "Cameron McKinnon",
+            "Carol Chen",
+            "Catherine Olsson",
+            "Christopher Olah",
+            "Danny Hernandez",
+            "Dawn Drain",
+            "Deep Ganguli",
+            "Dustin Li",
+            "Eli Tran-Johnson",
+            "Ethan Perez",
+            "Jamie Kerr",
+            "Jared Mueller",
+            "Jeffrey Ladish",
+            "Joshua Landau",
+            "Kamal Ndousse",
+            "Kamile Lukosuite",
+            "Liane Lovitt",
+            "Michael Sellitto",
+            "Nelson Elhage",
+            "Nicholas Schiefer",
+            "Noemi Mercado",
+            "Nova DasSarma",
+            "Robert Lasenby",
+            "Robin Larson",
+            "Sam Ringer",
+            "Scott Johnston",
+            "Shauna Kravec",
+            "Sheer El Showk",
+            "Stanislav Fort",
+            "Tamera Lanham",
+            "Timothy Telleen-Lawton",
+            "Tom Conerly",
+            "Tom Henighan",
+            "Tristan Hume",
+            "Samuel R. Bowman",
+            "Zac Hatfield-Dodds",
+            "Ben Mann",
+            "Dario Amodei",
+            "Nicholas Joseph",
+            "Sam McCandlish",
+            "Tom Brown",
+            "Jared Kaplan"
           ],
-          "publication_date": "2025-05-22",
-          "citationKey": "anPrincipledAIAlignment2025"
+          "publication_date": "2022/12/15",
+          "citationKey": "baiConstitutionalAIHarmlessness2022",
+          "abstract": "As AI systems become more capable, we would like to enlist their help to supervise other AIs. We experiment with methods for training a harmless AI assistant through self-improvement, without any human labels identifying harmful outputs. The only human oversight is provided through a list of rules or principles, and so we refer to the method as 'Constitutional AI'. The process involves both a supervised learning and a reinforcement learning phase. In the supervised phase we sample from an initial model, then generate self-critiques and revisions, and then finetune the original model on revised responses. In the RL phase, we sample from the finetuned model, use a model to evaluate which of the two samples is better, and then train a preference model from this dataset of AI preferences. We then train with RL using the preference model as the reward signal, i.e. we use 'RL from AI Feedback' (RLAIF). As a result we are able to train a harmless but non-evasive AI assistant that engages with harmful queries by explaining its objections to them. Both the SL and RL methods can leverage chain-of-thought style reasoning to improve the human-judged performance and transparency of AI decision making. These methods make it possible to control AI behavior more precisely and with far fewer human labels."
         },
         {
-          "title": "Constitution or Collapse? Exploring Constitutional AI with Llama 3-8B",
-          "url": "https://arxiv.org/abs/2504.04918",
-          "source_type": "technical_paper",
+          "title": "Constitutional AI with Open LLMs",
+          "url": "https://huggingface.co/blog/constitutional_ai",
+          "source_type": "tutorial",
+          "publication_date": "2024-02-01",
+          "citationKey": "ConstitutionalAIOpen2024",
+          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
+        },
+        {
+          "title": "Domain-Specific Constitutional AI: Enhancing Safety in LLM-Powered Mental Health Chatbots",
+          "url": "https://doi.org/10.1109/bsn66969.2025.11337405",
+          "source_type": "application_paper",
           "authors": [
-            "Xue Zhang"
+            "Chenhan Lyu",
+            "Yutong Song",
+            "Pengfei Zhang",
+            "Amir M. Rahmani"
           ],
-          "publication_date": "2025-04-07",
-          "citationKey": "zhangConstitutionCollapseExploring2025",
-          "abstract": "As language models continue to grow larger, the cost of acquiring high-quality training data has increased significantly. Collecting human feedback is both expensive and time-consuming, and manual labels can be noisy, leading to an imbalance between helpfulness and harmfulness. Constitutional AI, introduced by Anthropic in December 2022, uses AI to provide feedback to another AI, greatly reducing the need for human labeling. However, the original implementation was designed for a model with around 52 billion parameters, and there is limited information on how well Constitutional AI performs with smaller models, such as LLaMA 3-8B. In this paper, we replicated the Constitutional AI workflow using the smaller LLaMA 3-8B model. Our results show that Constitutional AI can effectively increase the harmlessness of the model, reducing the Attack Success Rate in MT-Bench by 40.8%. However, similar to the original study, increasing harmlessness comes at the cost of helpfulness. The helpfulness metrics, which are an average of the Turn 1 and Turn 2 scores, dropped by 9.8% compared to the baseline. Additionally, we observed clear signs of model collapse in the final DPO-CAI model, indicating that smaller models may struggle with self-improvement due to insufficient output quality, making effective fine-tuning more challenging. Our study suggests that, like reasoning and math ability, self-improvement is an emergent property."
+          "publication_date": "2025-11-3",
+          "citationKey": "lyuDomainSpecificConstitutionalAI2025",
+          "abstract": "Mental health applications have emerged as a critical area in computational health, driven by rising global rates of mental illness, the integration of AI in psychological care, and the need for scalable solutions in underserved communities. These include therapy chatbots, crisis detection, and wellness platforms handling sensitive data, requiring specialized AI safety beyond general safeguards due to emotional vulnerability, risks like misdiagnosis or symptom exacerbation, and precise management of vulnerable states to avoid severe outcomes such as self-harm or loss of trust. Despite AI safety advances, general safeguards inadequately address mental health-specific challenges, including crisis intervention accuracy to avert escalations, therapeutic guideline adherence to prevent misinformation, scale limitations in resource-constrained settings, and adaptation to nuanced dialogues where generics may introduce biases or miss distress signals. We introduce an approach to apply Constitutional AI training with domain-specific mental health principles for safe, domain-adapted CAI systems in computational mental health applications."
+        },
+        {
+          "title": "Collective Constitutional AI: Aligning a Language Model with Public Input",
+          "url": "https://doi.org/10.1145/3630106.3658979",
+          "source_type": "application_paper",
+          "authors": [
+            "Saffron Huang",
+            "Divya Siddarth",
+            "Liane Lovitt",
+            "Thomas I. Liao",
+            "Esin Durmus",
+            "Alex Tamkin",
+            "Deep Ganguli"
+          ],
+          "publication_date": "2024-6-3",
+          "citationKey": "huangCollectiveConstitutionalAI2024",
+          "abstract": "There is growing consensus that language model (LM) developers should not be the sole deciders of LM behavior, creating a need for methods that enable the broader public to collectively shape the behavior of LM systems that affect them. To address this need, we present Collective Constitutional AI (CCAI): a multi-stage process for sourcing and integrating public input into LMs—from identifying a target population to sourcing principles to training and evaluating a model. We demonstrate the real-world practicality of this approach by creating what is, to our knowledge, the first LM fine-tuned with collectively sourced public input and evaluating this model against a baseline model trained with established principles from a LM developer. Our quantitative evaluations demonstrate several benefits of our approach: the CCAI-trained model shows lower bias across nine social dimensions compared to the baseline model, while maintaining equivalent performance on language, math, and helpful-harmless evaluations. Qualitative comparisons of the models suggest that the models differ on the basis of their respective constitutions, e.g., when prompted with contentious topics, the CCAI-trained model tends to generate responses that reframe the matter positively instead of a refusal. These results demonstrate a promising, tractable pathway toward publicly informed development of language models."
         }
       ],
       "related_techniques": [
@@ -422,11 +516,6 @@
           "text": "The conversational assistant consistently refuses requests for harmful information whilst maintaining helpful responses to legitimate educational queries",
           "domain": "general",
           "assuranceGoal": "safety"
-        },
-        {
-          "text": "The system's decisions reference specific guiding principles that explain why certain actions were taken or declined",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
         },
         {
           "text": "The healthcare chatbot maintains its boundary between providing supportive information and offering medical advice across diverse emotional contexts",
@@ -448,119 +537,100 @@
     {
       "slug": "reward-hacking-detection",
       "name": "Reward Hacking Detection",
-      "description": "Reward hacking detection identifies when AI systems achieve stated objectives through unintended shortcuts or loopholes rather than genuine task mastery. This technique analyses whether systems exploit reward specification ambiguities, reward function bugs, or simulator artifacts to maximise rewards without actually solving the intended problem. Detection involves adversarial specification testing, human evaluation of solution quality, transfer testing to slightly modified tasks, and analysis of unexpected strategy patterns that suggest reward hacking rather than genuine learning.",
+      "description": "Reward hacking is when an agent trained to maximise a proxy reward (a score that only approximates what its designers want) raises that score by exploiting its gaps while the intended outcome stalls or worsens. Detection scores each trained policy (the agent's decision rule) on the proxy and on an independent measure of the intended objective that training never used, such as a true reward from a simulator, a held-out 'gold' reward model or human ratings. Repeating this at every saved training checkpoint and model size matters because the originating study found capability thresholds at which the true reward drops sharply while the proxy keeps rising. When the true objective cannot be scored in operation, the study instead flags a policy whose actions diverge too far from those of a trusted policy that people have already verified. The output is a pair of reward curves showing where they part, or an anomaly score for each candidate policy.",
       "assurance_goals": [
         "Reliability",
-        "Safety",
-        "Transparency"
+        "Safety"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
         "applicable-models/paradigm/reinforcement",
         "applicable-models/requirements/black-box",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/behavioural-consistency",
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/hazard-identification",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
+        "data-requirements/test-scenarios",
         "data-type/any",
-        "data-requirements/no-special-requirements",
-        "technique-type/testing",
-        "evidence-type/qualitative-report",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
         "expertise-needed/ml-engineering",
-        "expertise-needed/domain-expertise",
         "expertise-needed/evaluation-design",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
         "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
         "lifecycle-stage/model-development/model-testing-and-validation"
       ],
       "example_use_cases": [
         {
-          "description": "Detecting when a reinforcement learning agent for robot manipulation learns to exploit physics simulator quirks rather than developing real-world-transferable manipulation skills, preventing failures in physical deployment.",
+          "description": "A transport authority training a reinforcement-learning ramp-metering controller in a traffic simulator rewards it on mean vehicle speed, but also logs average commute time for all drivers at every checkpoint. Checkpoints where speed keeps improving while commute time worsens (for example by holding merging cars back indefinitely) are rejected before any field trial.",
           "goal": "Reliability"
         },
         {
-          "description": "Identifying when an AI-based healthcare scheduling system appears to optimize patient wait times by gaming appointment classifications or encouraging cancellations rather than genuinely improving clinic efficiency, preventing patient care degradation.",
+          "description": "A team fine-tuning a customer-support language model with reinforcement learning from human feedback scores each checkpoint with its training reward model and with a held-out reward model and a sample of human ratings that the training loop never sees, and stops training at the point where the training reward keeps rising but the held-out scores fall.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "Before an insulin-dosing agent trained against a simulator reward goes to clinical evaluation, the developers score every candidate policy on a separate true objective, time spent in the safe blood-glucose range, and exclude any policy whose simulator reward is high but whose time in range is lower than that of the clinically reviewed baseline policy.",
           "goal": "Safety"
         },
         {
-          "description": "Detecting when a loan approval system achieves target approval rates by exploiting specification loopholes in creditworthiness definitions rather than accurately assessing borrower risk, ensuring reliable lending decisions.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Verifying that an educational content recommendation system optimizes for genuine learning outcomes rather than gaming engagement metrics through strategies like repeatedly presenting easier content that inflates measured progress.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Producing a documented audit trail for a high-risk AI deployment by running reward hacking detection tests and recording which specification loopholes were identified and remediated, enabling auditors and regulators to verify that the system achieves its stated objectives through legitimate means rather than gaming its evaluation criteria.",
-          "goal": "Transparency"
+          "description": "A public-health modelling unit that replaces a reviewed epidemic-response policy with a larger retrained one compares the new policy's actions with the reviewed policy's across simulated outbreaks. A divergence score above the threshold set on earlier policies with known outcomes sends the new policy to expert review instead of adoption, because its true outcome cannot be scored before deployment.",
+          "goal": "Safety"
         }
       ],
       "limitations": [
         {
-          "description": "Difficult to distinguish between clever problem-solving and specification gaming without deep understanding of task intent."
+          "description": "Everything rests on the independent measure of the intended objective. When that measure is itself a proxy (a gold reward model, or a small sample of human ratings), a policy can exploit it too, and the comparison then only detects divergence between two imperfect measures. Collecting enough human ratings at every checkpoint is expensive, which is why studies substitute a gold reward model."
         },
         {
-          "description": "Novel gaming strategies may not be detected until systems are deployed in real environments where gaming becomes apparent."
+          "description": "It detects gaming only along the dimensions the true measure scores. A policy that exploits something the true objective does not capture (a side effect, a safety constraint, a user group not represented in the ratings) passes the check, so a clean result is evidence about the measured objective only."
         },
         {
-          "description": "Closing detected loopholes may simply push systems to discover new gaming strategies rather than solving the fundamental specification challenge."
+          "description": "The trusted-policy detector is weak and inconsistent. In the originating benchmark every baseline detector scored an area under the ROC curve below 60% on at least one task, and no detector was best on all tasks, so a quiet detector is not evidence that hacking is absent."
         },
         {
-          "description": "Perfect specifications that eliminate all gaming opportunities may be impossible for complex, open-ended tasks."
+          "description": "The trusted-policy detector flags difference, not harm. It needs a policy that people have already verified, and comparable action distributions from both policies, and a candidate that is genuinely better than the trusted policy can diverge from it and be flagged, which makes false alarms likely when the trusted policy is only moderately good."
         },
         {
-          "description": "Requires domain expertise and clear articulation of task intent to distinguish between legitimate optimization strategies and gaming behaviors, which can be subjective in complex domains."
-        },
-        {
-          "description": "Detection often requires access to detailed behavioral logs and environment state information that may not be available in black-box deployment scenarios."
-        },
-        {
-          "description": "Establishing ground truth for 'correct' task completion without gaming requires independent verification methods that may be as resource-intensive as the original task."
+          "description": "Because the onset of reward hacking can be abrupt as capability grows, checking a few checkpoints or one model size can miss it. The comparison has to be repeated at every checkpoint and model size that might be deployed, which multiplies evaluation cost, especially when the true measure needs human raters."
         }
       ],
       "resources": [
         {
-          "title": "Detecting and Mitigating Reward Hacking in Reinforcement Learning Systems: A Comprehensive Empirical Study",
-          "url": "https://www.semanticscholar.org/paper/f71379b765f01c333ebaab5736dbf7f1005b19c9",
+          "title": "The Effects of Reward Misspecification: Mapping and Mitigating Misaligned Models",
+          "url": "https://doi.org/10.48550/arXiv.2201.03544",
           "source_type": "technical_paper",
           "authors": [
-            "Ibne Farabi Shihab",
-            "Sanjeda Akter",
-            "Anuj Sharma"
+            "Alexander Pan",
+            "Kush Bhatia",
+            "Jacob Steinhardt"
           ],
-          "publication_date": "2025",
-          "citationKey": "farabishihabDetectingMitigatingReward2025",
-          "abstract": "Reward hacking in Reinforcement Learning (RL) systems poses a critical threat to the deployment of autonomous agents, where agents exploit flaws in reward functions to achieve high scores without fulfilling intended objectives. Despite growing awareness of this problem, systematic detection and mitigation approaches remain limited. This paper presents a large-scale empirical study of reward hacking across diverse RL environments and algorithms. We analyze 15,247 training episodes across 15 RL environments (Atari, MuJoCo, custom domains) and 5 algorithms (PPO, SAC, DQN, A3C, Rainbow), implementing automated detection algorithms for six categories of reward hacking: specification gaming, reward tampering, proxy optimization, objective misalignment, exploitation patterns, and wireheading. Our detection framework achieves 78.4% precision and 81.7% recall across environments, with computational overhead under 5%. Through controlled experiments varying reward function properties, we demonstrate that reward density and alignment with true objectives significantly impact hacking frequency ($p<0.001$, Cohen's $d = 1.24$). We validate our approach through three simulated application studies representing recommendation systems, competitive gaming, and robotic control scenarios. Our mitigation techniques reduce hacking frequency by up to 54.6% in controlled scenarios, though we find these trade-offs are more challenging in practice due to concept drift, false positive costs, and adversarial adaptation. All detection algorithms, datasets, and experimental protocols are publicly available to support reproducible research in RL safety."
+          "publication_date": "2022-02-14",
+          "citationKey": "panEffectsRewardMisspecification2022",
+          "abstract": "Reward hacking -- where RL agents exploit gaps in misspecified reward functions -- has been widely observed, but not yet systematically studied. To understand how reward hacking arises, we construct four RL environments with misspecified rewards. We investigate reward hacking as a function of agent capabilities: model capacity, action space resolution, observation space noise, and training time. More capable agents often exploit reward misspecifications, achieving higher proxy reward and lower true reward than less capable agents. Moreover, we find instances of phase transitions: capability thresholds at which the agent's behavior qualitatively shifts, leading to a sharp decrease in the true reward. Such phase transitions pose challenges to monitoring the safety of ML systems. To address this, we propose an anomaly detection task for aberrant policies and offer several baseline detectors."
         },
         {
-          "title": "Preventing Reward Hacking with Occupancy Measure Regularization",
-          "url": "https://www.semanticscholar.org/paper/878e2c80a9247b6106b479bf8d74c02427947176",
+          "title": "Scaling Laws for Reward Model Overoptimization",
+          "url": "https://proceedings.mlr.press/v202/gao23h.html",
           "source_type": "technical_paper",
           "authors": [
-            "Cassidy Laidlaw",
-            "Shivam Singhal",
-            "A. Dragan"
+            "Leo Gao",
+            "John Schulman",
+            "Jacob Hilton"
           ],
-          "publication_date": "2024",
-          "citationKey": "laidlawPreventingRewardHacking2024"
+          "publication_date": "2023-07-03",
+          "citationKey": "gaoScalingLawsReward2023",
+          "abstract": "In reinforcement learning from human feedback, it is common to optimize against a reward model trained to predict human preferences. Because the reward model is an imperfect proxy, optimizing its value too much can hinder ground truth performance, in accordance with Goodhart’s law. This effect has been frequently observed, but not carefully measured due to the expense of collecting human preference data. In this work, we use a synthetic setup in which a fixed “gold-standard” reward model plays the role of humans, providing labels used to train a proxy reward model. We study how the gold reward model score changes as we optimize against the proxy reward model using either reinforcement learning or best-of-$n$ sampling. We find that this relationship follows a different functional form depending on the method of optimization, and that in both cases its coefficients scale smoothly with the number of reward model parameters. We also study the effect on this relationship of the size of the reward model dataset, the number of reward model and policy parameters, and the coefficient of the KL penalty added to the reward in the reinforcement learning setup. We explore the implications of these empirical results for theoretical considerations in AI alignment."
         },
         {
-          "title": "Fine-tuning & RL for LLMs: Intro to Post-training - DeepLearning.AI",
-          "url": "https://learn.deeplearning.ai/courses/fine-tuning-and-reinforcement-learning-for-llms-intro-to-post-training/lesson/wr7ye4/evals-for-post-training:-test-sets-and-metrics",
-          "source_type": "tutorial",
-          "authors": [
-            "Sharon Zhou"
-          ],
-          "publication_date": "2025",
-          "citationKey": "zhouFinetuningRLLLMs2025"
-        },
-        {
-          "title": "How to Make a Reward Function in Reinforcement Learning ...",
-          "url": "https://www.geeksforgeeks.org/machine-learning/how-to-make-a-reward-function-in-reinforcement-learning",
-          "source_type": "tutorial",
-          "publication_date": "2024-10-01",
-          "citationKey": "HowMakeReward2024"
+          "title": "reward-misspecification (code for Pan, Bhatia and Steinhardt 2022)",
+          "url": "https://github.com/aypan17/reward-misspecification",
+          "source_type": "software_package",
+          "publication_date": "2026-03-20T06:44:49Z",
+          "citationKey": "panRewardmisspecificationCodePan2026"
         }
       ],
       "related_techniques": [
@@ -571,27 +641,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous vehicle's lane-keeping performance transfers reliably to real-world conditions rather than exploiting simulator artifacts",
-          "domain": "autonomous systems",
+          "text": "Across all training checkpoints, gains in the proxy reward were matched by gains on a held-out measure of the intended objective, with no checkpoint where the two diverged beyond the agreed tolerance",
+          "domain": "general",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The healthcare scheduling system improves patient outcomes through genuine efficiency gains rather than manipulating appointment metrics",
+          "text": "Training of the support model was stopped before the point at which held-out human ratings began to fall while the training reward continued to rise",
+          "domain": "general",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The insulin-dosing policy selected for clinical evaluation achieved its simulator reward without reducing time spent in the safe glucose range below that of the reviewed baseline policy",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The system's strategy for achieving stated objectives is interpretable and consistent with task intent rather than relying on unintended shortcuts",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The loan processing system maintains creditworthiness assessment accuracy when evaluated on modified criteria that close potential loopholes",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The educational recommendation system's learning outcome improvements reflect genuine student progress rather than optimisation of engagement proxies",
+          "text": "The retrained policy's actions do not diverge from the human-verified reference policy beyond an alarm threshold calibrated on policies with known outcomes",
           "domain": "public sector",
           "assuranceGoal": "safety"
         }
@@ -669,48 +734,80 @@
       ],
       "resources": [
         {
-          "title": "Evaluating Toxicity in Large Language Models",
-          "url": "https://www.analyticsvidhya.com/blog/2025/03/evaluating-toxicity-in-large-language-models",
-          "source_type": "tutorial",
+          "title": "Perspective API documentation",
+          "url": "https://developers.perspectiveapi.com/s/docs",
+          "source_type": "documentation",
+          "citationKey": "PerspectiveAPIDocumentation"
+        },
+        {
+          "title": "unitaryai/detoxify: Trained models & code to predict toxic comments",
+          "url": "https://github.com/unitaryai/detoxify",
+          "source_type": "software_package",
+          "publication_date": "2020-11",
+          "citationKey": "hanuUnitaryaiDetoxifyTrained2020",
+          "abstract": "Trained models & code to predict toxic comments on all 3 Jigsaw Toxic Comment Challenges. Built using ⚡ Pytorch Lightning and 🤗 Transformers. For access to our API, please email us at contact@unitary.ai."
+        },
+        {
+          "title": "RealToxicityPrompts: Evaluating Neural Toxic Degeneration in Language Models",
+          "url": "https://doi.org/10.18653/v1/2020.findings-emnlp.301",
+          "source_type": "technical_paper",
           "authors": [
-            "Riya Bansal"
+            "Samuel Gehman",
+            "Suchin Gururangan",
+            "Maarten Sap",
+            "Yejin Choi",
+            "Noah A. Smith"
           ],
-          "publication_date": "2025-03-27",
-          "citationKey": "bansalEvaluatingToxicityLarge2025"
+          "publication_date": "2020",
+          "citationKey": "gehmanRealToxicityPromptsEvaluatingNeural2020",
+          "abstract": "Pretrained neural language models (LMs) are prone to generating racist, sexist, or otherwise toxic language which hinders their safe deployment.We investigate the extent to which pretrained LMs can be prompted to generate toxic language, and the effectiveness of controllable text generation algorithms at preventing such toxic degeneration.We create and release RE-ALTOXICITYPROMPTS, a dataset of 100K naturally occurring, sentence-level prompts derived from a large corpus of English web text, paired with toxicity scores from a widelyused toxicity classifier.Using REALTOXICI-TYPROMPTS, we find that pretrained LMs can degenerate into toxic text even from seemingly innocuous prompts.We empirically assess several controllable generation methods, and find that while data-or compute-intensive methods (e.g., adaptive pretraining on non-toxic data) are more effective at steering away from toxicity than simpler solutions (e.g., banning \"bad\" words), no current method is failsafe against neural toxic degeneration.To pinpoint the potential cause of such persistent toxic degeneration, we analyze two web text corpora used to pretrain several LMs (including GPT-2; Radford et al., 2019), and find a significant amount of offensive, factually unreliable, and otherwise toxic content.Our work provides a test bed for evaluating toxic generations by LMs and stresses the need for better data selection processes for pretraining."
         },
         {
-          "title": "What are Guardrails AI?",
-          "url": "https://www.analyticsvidhya.com/blog/2024/05/building-responsible-ai-with-guardrails-ai",
-          "source_type": "tutorial",
+          "title": "A New Generation of Perspective API: Efficient Multilingual Character-level Transformers",
+          "url": "https://doi.org/10.1145/3534678.3539147",
+          "source_type": "technical_paper",
           "authors": [
-            "Ajay"
+            "Alyssa Lees",
+            "Vinh Q. Tran",
+            "Yi Tay",
+            "Jeffrey Sorensen",
+            "Jai Gupta",
+            "Donald Metzler",
+            "Lucy Vasserman"
           ],
-          "publication_date": "2024-05-03",
-          "citationKey": "ajayWhatAreGuardrails2024"
+          "publication_date": "2022-8-14",
+          "citationKey": "leesNewGenerationPerspective2022",
+          "abstract": "On the world wide web, toxic content detectors are a crucial line of defense against potentially hateful and offensive messages. As such, building highly effective classifiers that enable a safer internet is an important research area. Moreover, the web is a highly multilingual, cross-cultural community that develops its own lingo over time. As such, it is crucial to develop models that are effective across a diverse range of languages, usages, and styles. In this paper, we present the fundamentals behind the next version of the Perspective API from Google Jigsaw. At the heart of the approach is a single multilingual token-free Charformer model that is applicable across a range of languages, domains, and tasks. We demonstrate that by forgoing static vocabularies, we gain flexibility across a variety of settings. We additionally outline the techniques employed to make such a byte-level model efficient and feasible for productionization. Through extensive experiments on multilingual toxic comment classification benchmarks derived from real API traffic and evaluation on an array of code-switching, covert toxicity, emoji-based hate, human-readable obfuscation, distribution shift, and bias evaluation settings, we show that our proposed approach outperforms strong baselines. Finally, we present our findings from deploying this system in production."
         },
         {
-          "title": "Toxic Comment Classification using BERT - GeeksforGeeks",
-          "url": "https://www.geeksforgeeks.org/machine-learning/toxic-comment-classification-using-bert",
+          "title": "Sample Requests | Perspective API",
+          "url": "https://developers.perspectiveapi.com/s/docs-sample-requests",
           "source_type": "tutorial",
-          "publication_date": "2023-07-31",
-          "citationKey": "ToxicCommentClassification2023"
+          "citationKey": "SampleRequestsPerspective"
         },
         {
-          "title": "Episode #188: Measuring Bias, Toxicity, and Truthfulness in LLMs ...",
-          "url": "https://realpython.com/podcasts/rpp/188",
-          "source_type": "tutorial",
-          "publication_date": "2024-01-19",
-          "citationKey": "Episode188Measuring2024"
-        },
-        {
-          "title": "Responsible AI in the Era of Generative AI",
-          "url": "https://www.analyticsvidhya.com/blog/2024/09/responsible-generative-ai",
-          "source_type": "tutorial",
+          "title": "A Human-centered Evaluation of a Toxicity Detection API: Testing Transferability and Unpacking Latent Attributes",
+          "url": "https://doi.org/10.1145/3582568",
+          "source_type": "application_paper",
           "authors": [
-            "K.C. Sabreena Basheer"
+            "Meena Devii Muralikumar",
+            "Yun Shan Yang",
+            "David W. McDonald"
           ],
-          "publication_date": "2024-09-13",
-          "citationKey": "basheerResponsibleAIEra2024"
+          "publication_date": "2023-6-26",
+          "citationKey": "muralikumarHumancenteredEvaluationToxicity2023",
+          "abstract": "Perspective is a publicly available, machine learning API that can score text for toxicity. It is available for use in online platforms and communities to limit toxicity and promote civil dialogue. In this work, we adopt a human-centered approach to evaluating Perspective by investigating if human ratings of toxicity align with Perspective’s toxicity scores. We also test its transferability by making this comparison for comments from three platforms that have different commenting styles and moderation strategies: news websites, YouTube, and Twitter. Apart from toxicity, the main attribute, we collect participant ratings for three additional attributes: respectfulness, formality, and presence of stereotypes. While disrespect is part of how Perspective defines toxicity, formality and presence of stereotypes were included in the study to explore if they could be hidden/latent attributes that affect toxicity scores from Perspective. We analyzed how participant ratings for these additional attributes vary with respect to Perspective’s toxicity score for comments from each platform. We find that for high toxicity scores, Perspective strongly aligns with participant ratings of toxicity and disrespectfulness across all three platforms, providing weak evidence of its transferability. However, our evaluation also surfaced formality and presence of stereotypes as latent attributes that are unrecognized parts of Perspective’s scores. We discuss how and why this evaluation is “human-centered,” the importance of conducting such evaluations, and implications of these results for content moderation in social platforms."
+        },
+        {
+          "title": "An Evaluation of the Google Perspective API by Race and Gender",
+          "url": "https://doi.org/10.1145/3717867.3717901",
+          "source_type": "application_paper",
+          "authors": [
+            "Nitheesha Nakka"
+          ],
+          "publication_date": "2025-5-19",
+          "citationKey": "nakkaEvaluationGooglePerspective2025",
+          "abstract": "Research on American politicians demonstrates that minority politicians often face higher rates of uncivil speech online.While previous studies have focused on federal representatives, local politicians engage more frequently with constituents, increasing the risk of online and offline violence.These imminent threats to state-level officials highlight the need for tools that can measure the toxic discourse faced by local politicians, making algorithmic evaluation of these tools essential for understanding these interactions.To this end, this study evaluates the Google Perspective API, a widely used machine learning algorithm that quantifies toxicity.This study assesses the performance of the API across various demographic identities.Using a dataset of one million tweets directed at state legislators across all 50 states in January 2021, I identify significant gender and racial discrepancies in the algorithm's performance.Specifically, the API demonstrates better performance in predicting toxicity toward men than toward women.The racial discrepancies are slightly more nuanced with the API performing better for some races and not others.This research underscores the importance of algorithmic validation and has implications for studies of algorithmic performance, online harassment and political communication."
         }
       ],
       "related_techniques": [

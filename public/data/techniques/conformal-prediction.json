@@ -1,7 +1,7 @@
 {
   "slug": "conformal-prediction",
   "name": "Conformal Prediction",
-  "description": "Conformal prediction provides mathematically guaranteed uncertainty quantification by creating prediction sets that contain the true outcome with a specified probability (e.g., exactly 95% coverage). The technique works by measuring how 'strange' or 'nonconforming' new predictions are compared to calibration data - if a prediction seems unusual, it gets wider intervals. For example, in medical diagnosis, instead of saying 'likely cancer', it might say 'possible diagnoses: {cancer, benign tumour} with 95% confidence'. This distribution-free method works with any underlying model (neural networks, random forests, etc.) and requires no assumptions about data distribution, making it a robust framework for reliable uncertainty estimates in high-stakes applications.",
+  "description": "Conformal prediction wraps any trained model so that, instead of a single answer, it returns a set of plausible answers (an interval, for a numeric prediction) that contains the true outcome at a chosen rate, such as at least 95% of the time. It first scores, on a calibration set of labelled data kept apart from training, how unusual each known outcome looks given the model's prediction, using a nonconformity score, and for a new case it keeps every candidate answer whose score falls below a threshold taken from those calibration scores. A diagnostic model might then return 'cancer or benign tumour' rather than 'likely cancer', and with a suitable score the sets grow larger where the model is less certain. The guarantee is distribution-free, meaning it assumes nothing about the shape of the data, but it does assume the calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. It holds on average over all cases, not within each subgroup, unless the calibration is done separately within each predefined group (Mondrian conformal prediction), which needs enough calibration cases in every group.",
   "assurance_goals": [
     "Reliability",
     "Transparency",
@@ -28,36 +28,54 @@
   ],
   "example_use_cases": [
     {
-      "description": "Creating prediction sets for drug discovery that guarantee 95% coverage, such as 'this compound will likely have activity against {target A, target B, target C}', ensuring reliable decision-making in costly experimental validation.",
-      "goal": "Reliability"
+      "goal": "Reliability",
+      "description": "A medicinal chemistry team screening compounds in silico builds prediction sets of the protein targets each compound may be active against, at 95% coverage. Compounds with a single-target set go to lab testing for that target, and those with several targets go to a wider panel, so costly experiments follow how uncertain the model is."
     },
     {
-      "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories with guaranteed coverage, enabling judges to see the full range of possibilities rather than just a single point estimate.",
-      "goal": "Transparency"
+      "goal": "Transparency",
+      "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories at the stated coverage level, enabling judges to see the full range of possibilities rather than just a single point estimate."
     },
     {
-      "description": "Ensuring fair uncertainty quantification across demographic groups in college admissions by verifying that prediction set sizes (number of possible outcomes) are consistent across protected groups, preventing discriminatory overconfidence for certain populations.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A university predicts whether first-year students will complete their degree and offers early support when the 90% prediction set includes 'withdraws'. To keep that 90% true for every group, not only on average, the data team calibrates the sets separately within each demographic group, then checks coverage and average set size per group on held-out students. A group with too few calibration cases is reported as not covered by the guarantee."
     }
   ],
   "limitations": [
     {
-      "description": "Prediction sets can be unnecessarily wide when nonconformity scores vary greatly across the feature space, leading to conservative intervals that reduce practical utility."
+      "description": "Sets can be wide enough to be useless. A multi-class set holding most classes, or an interval spanning the plausible range, meets the coverage target but tells the decision-maker little, and sets containing opposing outcomes make decisions hard. Width depends on the model's quality and the scoring rule chosen, and the guarantee says nothing about it."
     },
     {
-      "description": "Requires a held-out calibration set separate from training data, reducing the amount of data available for model training, which can impact performance on small datasets."
+      "description": "Needs labelled calibration data kept apart from training. On small datasets that means less data to train on, or a coarse and unstable coverage level, and variants that avoid a separate calibration set need several model fits."
     },
     {
-      "description": "Guarantees only hold under the exchangeability assumption - if test data distribution differs significantly from calibration data, coverage guarantees may be violated."
+      "description": "The guarantee assumes calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. Drift, a changed population or strongly time-ordered data break it, and coverage then falls below target with no warning. In Shafer and Vovk's example, a nominal 5% error rate rose to 8% on a systematically different test set."
     },
     {
-      "description": "For multi-class problems, prediction sets may include many classes when the model is uncertain, making decisions difficult when sets contain opposing outcomes."
+      "description": "Coverage is guaranteed on average over all cases, not for each individual or subgroup, so a model can reach 95% overall while covering a minority group far less often. Mondrian calibration fixes this only for predefined, non-overlapping groups. It needs each new case's group at prediction time and is unstable when a group has few calibration cases (MAPIE's tutorial gives under 200 as an example)."
     },
     {
-      "description": "Computational cost increases with the number of calibration samples, and efficient implementation requires careful design for large-scale or real-time applications."
+      "description": "Cost depends on the variant. Split conformal prediction adds little beyond scoring a held-out set, but full conformal prediction re-evaluates every candidate outcome and cross-conformal variants refit the model several times, which can be prohibitive for large models or real-time use."
     }
   ],
   "resources": [
+    {
+      "title": "MAPIE - Model Agnostic Prediction Interval Estimator",
+      "url": "https://mapie.readthedocs.io",
+      "source_type": "documentation",
+      "authors": [
+        "Mapie Developers"
+      ],
+      "publication_date": "2021",
+      "citationKey": "mapiedevelopersMAPIEModelAgnostic2021"
+    },
+    {
+      "title": "MAPIE",
+      "url": "https://github.com/scikit-learn-contrib/MAPIE",
+      "source_type": "software_package",
+      "publication_date": "2021-03-30",
+      "citationKey": "scikit-learn-contribMAPIE2021",
+      "abstract": "A scikit-learn-compatible library for estimating prediction intervals and controlling risks, based on conformal predictions."
+    },
     {
       "title": "A tutorial on conformal prediction",
       "url": "http://arxiv.org/abs/0706.3188v1",
@@ -71,43 +89,34 @@
       "abstract": "Conformal prediction uses past experience to determine precise levels of confidence in new predictions. Given an error probability $ε$, together with a method that makes a prediction $\\hat{y}$ of a label $y$, it produces a set of labels, typically containing $\\hat{y}$, that also contains $y$ with probability $1-ε$. Conformal prediction can be applied to any method for producing $\\hat{y}$: a nearest-neighbor method, a support-vector machine, ridge regression, etc.   Conformal prediction is designed for an on-line setting in which labels are predicted successively, each one being revealed before the next is predicted. The most novel and valuable feature of conformal prediction is that if the successive examples are sampled independently from the same distribution, then the successive predictions will be right $1-ε$ of the time, even though they are based on an accumulating dataset rather than on independent datasets.   In addition to the model under which successive examples are sampled independently, other on-line compression models can also use conformal prediction. The widely used Gaussian linear model is one of these.   This tutorial presents a self-contained account of the theory of conformal prediction and works through several numerical examples. A more comprehensive treatment of the topic is provided in \"Algorithmic Learning in a Random World\", by Vladimir Vovk, Alex Gammerman, and Glenn Shafer (Springer, 2005)."
     },
     {
-      "title": "awesome-conformal-prediction",
-      "url": "https://github.com/valeman/awesome-conformal-prediction",
-      "source_type": "software_package",
-      "publication_date": "2021-12-10",
-      "citationKey": "valemanAwesomeconformalprediction2021",
-      "abstract": "A professionally curated list of awesome Conformal Prediction videos, tutorials, books, papers, PhD and MSc theses, articles and open-source libraries."
+      "title": "Plot prediction sets - MAPIE",
+      "url": "https://mapie.readthedocs.io/en/stable/generated/classification/1-quickstart/plot_quickstart_classification/",
+      "source_type": "tutorial",
+      "citationKey": "PlotPredictionSets",
+      "abstract": "Model Agnostic Prediction Interval Estimator — Conformal Prediction for Python"
     },
     {
-      "title": "MAPIE",
-      "url": "https://github.com/scikit-learn-contrib/MAPIE",
-      "source_type": "software_package",
-      "publication_date": "2021-03-30",
-      "citationKey": "scikit-learn-contribMAPIE2021",
-      "abstract": "A scikit-learn-compatible library for estimating prediction intervals and controlling risks, based on conformal predictions."
-    },
-    {
-      "title": "Tutorial for classification — MAPIE 0.8.6 documentation",
-      "url": "https://mapie.readthedocs.io/en/v0.8.6/examples_classification/4-tutorials/plot_main-tutorial-classification.html",
-      "source_type": "documentation",
+      "title": "Estimating diagnostic uncertainty in artificial intelligence assisted pathology using conformal prediction",
+      "url": "https://doi.org/10.1038/s41467-022-34945-8",
+      "source_type": "application_paper",
       "authors": [
-        "Mapie Developers"
+        "Henrik Olsson",
+        "Kimmo Kartasalo",
+        "Nita Mulliqi",
+        "Marco Capuccini",
+        "Pekka Ruusuvuori",
+        "Hemamali Samaratunga",
+        "Brett Delahunt",
+        "Cecilia Lindskog",
+        "Emiel A. M. Janssen",
+        "Anders Blilie",
+        "Lars Egevad",
+        "Ola Spjuth",
+        "Martin Eklund"
       ],
-      "publication_date": "2021",
-      "citationKey": "mapiedevelopersTutorialClassificationMAPIE2021"
-    },
-    {
-      "title": "Conformal Prediction: a Unified Review of Theory and New Challenges",
-      "url": "http://arxiv.org/abs/2005.07972v2",
-      "source_type": "technical_paper",
-      "authors": [
-        "Matteo Fontana",
-        "Gianluca Zeni",
-        "Simone Vantini"
-      ],
-      "publication_date": "2020-05-16",
-      "citationKey": "fontanaConformalPredictionUnified2020",
-      "abstract": "In this work we provide a review of basic ideas and novel developments about Conformal Prediction -- an innovative distribution-free, non-parametric forecasting method, based on minimal assumptions -- that is able to yield in a very straightforward way predictions sets that are valid in a statistical sense also in in the finite sample case. The in-depth discussion provided in the paper covers the theoretical underpinnings of Conformal Prediction, and then proceeds to list the more advanced developments and adaptations of the original idea."
+      "publication_date": "2022-12-15",
+      "citationKey": "olssonEstimatingDiagnosticUncertainty2022",
+      "abstract": "Unreliable predictions can occur when an artificial intelligence (AI) system is presented with data it has not been exposed to during training. We demonstrate the use of conformal prediction to detect unreliable predictions, using histopathological diagnosis and grading of prostate biopsies as example. We digitized 7788 prostate biopsies from 1192 men in the STHLM3 diagnostic study, used for training, and 3059 biopsies from 676 men used for testing. With conformal prediction, 1 in 794 (0.1%) predictions is incorrect for cancer diagnosis (compared to 14 errors [2%] without conformal prediction) while 175 (22%) of the predictions are flagged as unreliable when the AI-system is presented with new data from the same lab and scanner that it was trained on. Conformal prediction could with small samples ( N = 49 for external scanner, N = 10 for external lab and scanner, and N = 12 for external lab, scanner and pathology assessment) detect systematic differences in external data leading to worse predictive performance. The AI-system with conformal prediction commits 3 (2%) errors for cancer detection in cases of atypical prostate tissue compared to 44 (25%) without conformal prediction, while the system flags 143 (80%) unreliable predictions. We conclude that conformal prediction can increase patient safety of AI-systems."
     }
   ],
   "complexity_rating": 4,
@@ -119,29 +128,29 @@
   ],
   "sample_claims": [
     {
-      "text": "The diagnostic system's prediction sets contain the correct outcome with a guaranteed minimum coverage rate across all patient presentations",
+      "assuranceGoal": "reliability",
       "domain": "healthcare",
-      "assuranceGoal": "reliability"
+      "text": "On a held-out test set from the same patient population as the calibration data, the 95% prediction sets contained the true diagnosis in at least 95% of cases, within sampling error."
     },
     {
-      "text": "The system's uncertainty estimates maintain their specified validity guarantees regardless of the underlying data distribution",
+      "assuranceGoal": "reliability",
       "domain": "general",
-      "assuranceGoal": "reliability"
+      "text": "Prediction-set coverage on the latest quarter of live data stays within the agreed margin of its nominal level, so there is no sign that the exchangeability assumption has broken down in deployment."
     },
     {
-      "text": "The model communicates uncertainty by providing a set of plausible outcomes rather than a single point prediction",
-      "domain": "finance",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The prediction sets achieve equivalent coverage rates across demographic groups without requiring distributional assumptions",
-      "domain": "public sector",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The autonomous system's safety-critical predictions are accompanied by statistically guaranteed confidence bounds",
+      "assuranceGoal": "reliability",
       "domain": "autonomous systems",
-      "assuranceGoal": "reliability"
+      "text": "For the perception model, the 95% prediction sets contained the true object class in at least 95% of held-out frames, and frames whose set holds more than one class trigger the cautious fallback behaviour."
+    },
+    {
+      "assuranceGoal": "transparency",
+      "domain": "finance",
+      "text": "Every credit-limit recommendation is shown with a set of plausible limit bands at 90% coverage, and any case whose set holds more than one band is routed to a human underwriter."
+    },
+    {
+      "assuranceGoal": "fairness",
+      "domain": "public sector",
+      "text": "The 90% prediction sets are calibrated separately within each demographic group, and on held-out cases their coverage is within three percentage points of 90% in every group, with each group's number of calibration and test cases reported."
     }
   ]
 }
