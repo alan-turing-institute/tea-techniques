@@ -3,15 +3,26 @@
  */
 
 import Fuse from 'fuse.js';
+import { buildCorpus, corpusHash } from '../embedding/corpus.js';
 import {
   EMBEDDING_DIMENSIONS,
   embedQuery,
   getEmbeddingModel,
   MODEL_ID,
 } from '../embedding/model.js';
-import { computeRRFScores, rankBySimilarity } from '../embedding/search.js';
-import type { EmbeddingsIndex } from '../embedding/types.js';
-import { ClefRanker, RANKING_MODEL, type Ranker } from '../ranking/clef.js';
+import {
+  computeRRFScores,
+  prepareQueryEmbedding,
+  type QueryEmbeddingInput,
+  rankBySimilarity,
+} from '../embedding/search.js';
+import type { EmbeddingProbe, EmbeddingsIndex } from '../embedding/types.js';
+import {
+  ClefRanker,
+  RANKING_MODEL,
+  type Ranker,
+  summarise,
+} from '../ranking/clef.js';
 import { buildGraphIndex } from './indexes.js';
 import type {
   GoalNode,
@@ -106,6 +117,12 @@ function logRetrievalDiagnostics(
   console.error(
     `[retrieval] candidates=${values.length} min=${Math.min(...values).toFixed(3)} median=${median(values).toFixed(3)} max=${Math.max(...values).toFixed(3)} weakMatchCutoff=${weakMatchCutoff()} dropped=${dropped.length}${dropped.length > 0 ? ` (${dropped.join(', ')})` : ''}`
   );
+}
+
+/** One line per rejected query vector: the reason, never the values. */
+function logQueryEmbeddingIgnored(reason: string): void {
+  // biome-ignore lint/suspicious/noConsole: diagnostics to stderr
+  console.error(`queryEmbedding ignored, keyword retrieval only: ${reason}`);
 }
 
 // --- Concept-to-tag mapping for claim-based suggestions ---
@@ -432,33 +449,59 @@ export interface ClaimContext {
 }
 export interface ClaimSuggestions {
   rankingAvailable: boolean;
-  embeddingModel: string;
+  /** Model of the loaded vectors, or null when none are loaded. */
+  embeddingModel: string | null;
   rankingModel: string;
+  /** True when the semantic leg returned results and was fused with the keyword leg. */
+  semanticUsed: boolean;
   results: Array<{
     slug: string;
     name: string;
+    /** First sentence of the description, at most 200 characters. */
+    summary: string;
     score: number;
     retrievalScore: number;
     /** True when `score` is a Clef probability; false when it is the retrieval score. */
     ranked: boolean;
     goals: string[];
+    tags: string[];
     url: string;
   }>;
+}
+
+export interface KnowledgeGraphOptions {
+  /**
+   * Whether a claim without a supplied vector may be embedded by the in-process
+   * model. The HTTP service turns this off so that it never loads a model.
+   */
+  inProcessEmbedding?: boolean;
+}
+
+export interface EmbeddingSpec {
+  modelId: string;
+  dimensions: number;
+  queryPrefix: string;
+  documentFormat: string;
+  probes: EmbeddingProbe[];
 }
 
 export class KnowledgeGraph {
   private index: GraphIndex;
   private claimsFuse: Fuse<ClaimEntry>;
   private embeddings: EmbeddingsIndex | null;
+  private inProcessEmbedding: boolean;
 
   private ranker: Ranker;
 
   constructor(
     graphData: JsonLdGraph,
     embeddings?: EmbeddingsIndex | null,
-    ranker: Ranker = new ClefRanker()
+    ranker: Ranker = new ClefRanker(),
+    options: KnowledgeGraphOptions = {}
   ) {
+    const inProcessEmbedding = options.inProcessEmbedding ?? true;
     if (
+      inProcessEmbedding &&
       embeddings &&
       (embeddings.modelId !== MODEL_ID ||
         embeddings.dimensions !== EMBEDDING_DIMENSIONS)
@@ -466,6 +509,7 @@ export class KnowledgeGraph {
       throw new Error('Embedding index does not match the query model');
     }
     this.ranker = ranker;
+    this.inProcessEmbedding = inProcessEmbedding;
     this.index = buildGraphIndex(graphData['@graph']);
     this.embeddings = embeddings ?? null;
 
@@ -693,9 +737,52 @@ export class KnowledgeGraph {
     return this.ranker.lastRankingSucceeded?.();
   }
 
+  /** Id of the model that made the loaded catalogue vectors, or null when none are loaded. */
+  embeddingModelId(): string | null {
+    return this.embeddings?.modelId ?? null;
+  }
+
+  /** SHA-256 of the corpus the loaded vectors were made from, if the file recorded one. */
+  embeddingsCorpusHash(): string | null {
+    return this.embeddings?.corpusSha256 ?? null;
+  }
+
+  /** SHA-256 of the corpus this graph's techniques produce (see `corpusHash`). */
+  corpusHash(): string {
+    return corpusHash(buildCorpus(this.getAllTechniques()));
+  }
+
+  /**
+   * What a client needs to embed questions compatibly with the loaded vectors,
+   * with the build-time probe vectors to check itself against. Null when no
+   * vectors are loaded or the file carries no probes or prefixes.
+   */
+  embeddingSpec(): EmbeddingSpec | null {
+    const embeddings = this.embeddings;
+    if (!embeddings?.probes?.length) {
+      return null;
+    }
+    const { queryPrefix, documentFormat, probes } = embeddings;
+    if (queryPrefix === undefined || documentFormat === undefined) {
+      return null;
+    }
+    return {
+      modelId: embeddings.modelId,
+      dimensions: embeddings.dimensions,
+      queryPrefix,
+      documentFormat,
+      probes,
+    };
+  }
+
   async suggestForClaim(
     claimText: string,
-    options: ClaimContext & { limit?: number; context?: ClaimContext } = {}
+    options: ClaimContext & {
+      limit?: number;
+      context?: ClaimContext;
+      /** A question vector made by the catalogue's model; used instead of the in-process model. */
+      queryEmbedding?: QueryEmbeddingInput;
+    } = {}
   ): Promise<ClaimSuggestions> {
     const context = options.context ?? options;
     const limit = Math.min(20, Math.max(1, Math.trunc(options.limit ?? 10)));
@@ -734,7 +821,11 @@ export class KnowledgeGraph {
     }
 
     // Stage 2c: Embedding search + RRF merge (or keyword-only fallback)
-    const embedSlugs = await this.embeddingSearch(claimText, 20);
+    const embedSlugs = await this.embeddingSearch(
+      claimText,
+      20,
+      options.queryEmbedding
+    );
     const fused = computeRRFScores(
       embedSlugs.length > 0 ? [keywordSlugs, embedSlugs] : [keywordSlugs],
       60,
@@ -758,28 +849,40 @@ export class KnowledgeGraph {
     const ranked = await this.ranker.rank(claimText, candidates);
     return {
       rankingAvailable: ranked.rankingAvailable,
-      embeddingModel: MODEL_ID,
+      embeddingModel: this.embeddings?.modelId ?? null,
       rankingModel: RANKING_MODEL,
+      semanticUsed: embedSlugs.length > 0,
       results: ranked.candidates
         .slice(0, limit)
         .map(({ technique: t, score, retrievalScore, ranked: isRanked }) => ({
           slug: t.slug,
           name: t.name,
+          summary: summarise(t.description),
           score,
           retrievalScore,
           ranked: isRanked,
           goals: t.goals,
+          tags: t.tags,
           url: `https://alan-turing-institute.github.io/tea-techniques/techniques/${t.slug}`,
         })),
     };
   }
 
-  /** Embedding-based similarity search. Returns ranked slugs or empty on failure. */
+  /**
+   * Embedding-based similarity search. Returns ranked slugs, or empty when the
+   * semantic leg cannot run. A supplied query vector is used instead of the
+   * in-process model; if it fails its checks the semantic leg is skipped and the
+   * reason (never the vector) is logged.
+   */
   private async embeddingSearch(
     claimText: string,
-    topK: number
+    topK: number,
+    queryEmbedding?: QueryEmbeddingInput
   ): Promise<string[]> {
-    if (!this.embeddings) {
+    if (queryEmbedding) {
+      return this.searchWithSuppliedVector(queryEmbedding, topK);
+    }
+    if (!(this.embeddings && this.inProcessEmbedding)) {
       return [];
     }
     const model = await getEmbeddingModel();
@@ -791,6 +894,22 @@ export class KnowledgeGraph {
       return [];
     }
     return rankBySimilarity(queryVec, this.embeddings, topK);
+  }
+
+  private searchWithSuppliedVector(
+    queryEmbedding: QueryEmbeddingInput,
+    topK: number
+  ): string[] {
+    if (!this.embeddings) {
+      logQueryEmbeddingIgnored('no embeddings are loaded');
+      return [];
+    }
+    const prepared = prepareQueryEmbedding(queryEmbedding, this.embeddings);
+    if (!prepared.ok) {
+      logQueryEmbeddingIgnored(prepared.reason);
+      return [];
+    }
+    return rankBySimilarity(prepared.vector, this.embeddings, topK);
   }
 
   /** Search the flattened claims index across all techniques. */

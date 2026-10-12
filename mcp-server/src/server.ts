@@ -271,7 +271,7 @@ export function createServer(graph: KnowledgeGraph): McpServer {
     {
       title: 'Suggest Techniques for Claim',
       description:
-        'Given an assurance claim (e.g. "the model treats all groups fairly"), suggest relevant techniques. Optionally provide system context to narrow results.',
+        'Given an assurance claim (e.g. "the model treats all groups fairly"), suggest relevant techniques. Optionally provide system context to narrow results, and a question vector for semantic matching.',
       inputSchema: {
         claim: z
           .string()
@@ -302,6 +302,25 @@ export function createServer(graph: KnowledgeGraph): McpServer {
           .describe(
             'Exclude techniques for these model architectures (e.g. neural-networks)'
           ),
+        queryEmbedding: z
+          .object({
+            model: z
+              .string()
+              .describe(
+                "The id of the model that made the vector; it must equal the catalogue's (the HTTP service reports that id at GET /embedding-spec)"
+              ),
+            // Elements are checked by the service, which answers a bad vector with
+            // keyword results; a schema error would fail the whole call instead.
+            vector: z
+              .array(z.unknown())
+              .describe(
+                'The claim embedded with the catalogue model and its query prefix: one finite number per dimension, at most 4096'
+              ),
+          })
+          .optional()
+          .describe(
+            'A question vector for the semantic search. Used only when the model id and length match the catalogue vectors and every value is finite; otherwise the search is keyword-only and semanticUsed is false.'
+          ),
       },
     },
     async ({
@@ -310,12 +329,14 @@ export function createServer(graph: KnowledgeGraph): McpServer {
       dataType,
       lifecycleStage,
       excludeModelTypes,
+      queryEmbedding,
     }) => {
       const results = await graph.suggestForClaim(claim, {
         modelType,
         dataType,
         lifecycleStage,
         excludeModelTypes,
+        queryEmbedding,
       });
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(results) }],

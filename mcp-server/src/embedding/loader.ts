@@ -8,16 +8,13 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {
-  DOCUMENT_FORMAT,
-  EMBEDDING_DIMENSIONS,
-  EMBEDDING_PRECISION,
-  MODEL_ID,
-  MODEL_REVISION,
-  QUERY_PREFIX,
-} from './model.js';
-import type { EmbeddingsFile, EmbeddingsIndex } from './types.js';
-import { EmbeddingsFileSchema } from './types.js';
+import { type EmbeddingModelSpec, IN_PROCESS_MODEL } from './specs.js';
+import type {
+  EmbeddingProbe,
+  EmbeddingsFile,
+  EmbeddingsIndex,
+} from './types.js';
+import { EmbeddingsFileSchema, readStoredVector } from './types.js';
 
 const REMOTE_URL =
   'https://alan-turing-institute.github.io/tea-techniques/data/ld/embeddings.json';
@@ -32,30 +29,50 @@ const CACHE_DIR = path.join(os.homedir(), '.cache', 'tea-techniques-mcp');
 const CACHE_FILE = path.join(CACHE_DIR, 'embeddings.json');
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-function toIndex(file: EmbeddingsFile): EmbeddingsIndex {
+/** Reads a validated file as an index, refusing a file made by a model other than `expect`. */
+function toIndex(
+  file: EmbeddingsFile,
+  expect: EmbeddingModelSpec
+): EmbeddingsIndex {
   if (
-    file.modelId !== MODEL_ID ||
-    file.dimensions !== EMBEDDING_DIMENSIONS ||
-    file.modelRevision !== MODEL_REVISION ||
-    file.dtype !== EMBEDDING_PRECISION ||
-    file.queryPrefix !== QUERY_PREFIX ||
-    file.documentFormat !== DOCUMENT_FORMAT
+    file.modelId !== expect.modelId ||
+    file.dimensions !== expect.dimensions ||
+    file.modelRevision !== expect.revision ||
+    file.dtype !== expect.dtype ||
+    file.queryPrefix !== expect.queryPrefix ||
+    file.documentFormat !== expect.documentFormat
   ) {
     throw new Error(
-      `Embedding model mismatch: file ${file.modelId}/${file.dimensions}, query ${MODEL_ID}/${EMBEDDING_DIMENSIONS}`
+      `Embedding model mismatch: file ${file.modelId}/${file.dimensions}, expected ${expect.modelId}/${expect.dimensions}`
     );
   }
   const slugs: string[] = [];
   const vectors: Float32Array[] = [];
   for (const entry of file.entries) {
+    const vector = readStoredVector(entry.vector, file.dimensions);
+    if (!vector) {
+      throw new Error('Embedding vector invalid');
+    }
     slugs.push(entry.slug);
-    vectors.push(new Float32Array(entry.vector));
+    vectors.push(vector);
+  }
+  const probes: EmbeddingProbe[] = [];
+  for (const probe of file.probes ?? []) {
+    const vector = readStoredVector(probe.vector, file.dimensions);
+    if (!vector) {
+      throw new Error('Embedding probe vector invalid');
+    }
+    probes.push({ text: probe.text, vector: Array.from(vector) });
   }
   return {
     modelId: file.modelId,
     dimensions: file.dimensions,
     slugs,
     vectors,
+    queryPrefix: file.queryPrefix,
+    documentFormat: file.documentFormat,
+    ...(file.corpusSha256 ? { corpusSha256: file.corpusSha256 } : {}),
+    ...(probes.length ? { probes } : {}),
   };
 }
 
@@ -114,11 +131,47 @@ async function loadFromLocal(dataDir: string): Promise<EmbeddingsFile> {
   return EmbeddingsFileSchema.parse(JSON.parse(content)) as EmbeddingsFile;
 }
 
-/** Load embeddings, returning null on failure (graceful degradation). */
+/**
+ * The cached vectors as an index, or null when there is no usable cache: none,
+ * older than a day, unreadable, or made by another model (such as the metadata-less
+ * file an earlier release cached), in which case the caller fetches a fresh copy.
+ */
+async function loadFromCache(
+  expect: EmbeddingModelSpec
+): Promise<EmbeddingsIndex | null> {
+  if (!(await isCacheValid())) {
+    return null;
+  }
+  const cached = await readCache();
+  if (!cached) {
+    return null;
+  }
+  try {
+    const index = toIndex(cached, expect);
+    // biome-ignore lint/suspicious/noConsole: startup logging to stderr
+    console.error(
+      `Loaded embeddings from cache: ${CACHE_FILE} (${cached.corpusSize} entries)`
+    );
+    return index;
+  } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: startup logging to stderr
+    console.error(
+      `Cached embeddings unusable (${error instanceof Error ? error.message : 'invalid file'}), will re-fetch`
+    );
+    return null;
+  }
+}
+
+/**
+ * Load embeddings, returning null on failure (graceful degradation). The file
+ * must have been made by `expect`, which defaults to the in-process model.
+ */
 export async function loadEmbeddings(options: {
   local?: boolean;
   dataDir?: string;
+  expect?: EmbeddingModelSpec;
 }): Promise<EmbeddingsIndex | null> {
+  const expect = options.expect ?? IN_PROCESS_MODEL;
   try {
     if (
       process.env.TEA_OFFLINE === '1' &&
@@ -134,26 +187,20 @@ export async function loadEmbeddings(options: {
       console.error(
         `Loaded embeddings from local: ${options.dataDir}/ld/embeddings.json (${file.corpusSize} entries)`
       );
-      return toIndex(file);
+      return toIndex(file, expect);
     }
 
     // Remote mode: check cache first
-    if (await isCacheValid()) {
-      const cached = await readCache();
-      if (cached) {
-        // biome-ignore lint/suspicious/noConsole: startup logging to stderr
-        console.error(
-          `Loaded embeddings from cache: ${CACHE_FILE} (${cached.corpusSize} entries)`
-        );
-        return toIndex(cached);
-      }
+    const cachedIndex = await loadFromCache(expect);
+    if (cachedIndex) {
+      return cachedIndex;
     }
 
     // Fetch from remote
     // biome-ignore lint/suspicious/noConsole: startup logging to stderr
     console.error(`Fetching embeddings from: ${REMOTE_URL}`);
     file = await fetchRemote();
-    const index = toIndex(file);
+    const index = toIndex(file, expect);
     await writeCache(file);
     // biome-ignore lint/suspicious/noConsole: startup logging to stderr
     console.error(

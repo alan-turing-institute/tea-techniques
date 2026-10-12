@@ -17,7 +17,7 @@ export const frontmatter = {
     { label: 'MCP Server', href: '/docs/knowledge-graph/mcp-server' },
   ],
   publishedAt: '2025-02-04',
-  updatedAt: '2025-02-05',
+  updatedAt: '2026-10-12',
 };
 
 export const dynamic = 'force-static';
@@ -97,8 +97,10 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 After configuring, restart Claude. You should see 10 tools prefixed with `mcp__tea-techniques__`.
 
 <Callout variant="info" title="First-use setup">
-  On first run, the server fetches the knowledge graph from GitHub Pages and caches it locally for 24 hours.
-  Semantic search also downloads a lightweight ONNX model (~30MB) on first use.
+  On first run, the server fetches the knowledge graph and its precomputed vectors from GitHub Pages and caches them locally for 24 hours.
+  Semantic search also downloads the MiniLM-L12 embedding model (about 130 MB) from Hugging Face the first time you
+  ask for techniques for a claim. The model needs the package's optional dependencies (`@huggingface/transformers` and
+  `onnxruntime-node`, installed by default); without them, or if the download fails, the server falls back to keyword search.
 </Callout>
 
 <details>
@@ -287,6 +289,14 @@ Given an assurance claim, suggest relevant techniques using embedding-based sema
 | `modelType` | string | Model type context (e.g. `neural-network`) |
 | `dataType` | string | Data type context (e.g. `tabular`) |
 | `lifecycleStage` | string | Lifecycle stage (e.g. `model-development`) |
+| `excludeModelTypes` | string[] | Exclude techniques for these model architectures |
+| `queryEmbedding` | object | Optional. `model` (the catalogue's model id) and `vector` (the claim embedded as a query by that model), for the semantic search |
+
+Each result has the technique's `slug`, `name`, a one-sentence `summary` (at most 200 characters), its `goals` and `tags`, a `score` and a `url`. The response also has `semanticUsed`, which is `true` when the semantic search contributed to the ranking and `false` when the result comes from keyword matching alone.
+
+**Where the question vector comes from.** The stdio server embeds the claim itself with MiniLM-L12 and compares it with the published MiniLM vectors, so you do not need `queryEmbedding`. A caller that has its own embeddings can send one: it is used instead of the built-in model, but only if `model` equals the model id of the loaded vectors, the vector has the right number of values (at most 4096), every value is a finite number, and the vector is not all zeros. Otherwise the search falls back to keywords and `semanticUsed` is `false`.
+
+**The HTTP service.** The [offline HTTP image](https://github.com/alan-turing-institute/tea-techniques/tree/main/mcp-server#offline-http-image) runs no embedding model. It holds vectors made by Qwen3-Embedding-4B, which is too large to run in the stdio server, and expects the caller to send `queryEmbedding`. `GET /embedding-spec` returns the model id, dimensions, query prefix and document format, with four probe sentences and their vectors, so a caller can embed the same sentences with its own copy of the model and confirm that its vectors match before it sends any.
 
 ---
 

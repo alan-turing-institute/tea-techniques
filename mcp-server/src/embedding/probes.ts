@@ -1,0 +1,13 @@
+/**
+ * Fixed sentences embedded as queries at build time and published with the
+ * catalogue vectors. A client that embeds the same text, with the query prefix,
+ * and gets nearly the same vector is using the catalogue's model. Three are
+ * short assurance claims; the last is close to the 2,000-character claim limit,
+ * to exercise a host's handling of long inputs.
+ */
+export const PROBE_TEXTS: readonly string[] = [
+  "The model's predictions are equally accurate for patients of every age group.",
+  'The system keeps producing stable outputs when its inputs are slightly perturbed.',
+  'Every automated decision can be explained to the person it affects.',
+  'The clinical risk model deployed on the cardiology ward estimates the probability of readmission within thirty days of discharge, and the assurance case for it rests on several properties that must all hold at once. First, the estimates must be well calibrated: among patients who receive a predicted risk of twenty percent, about one in five must in fact be readmitted, and this must hold across the age bands, sexes, ethnic groups and deprivation quintiles represented in the local population, not only on average. Second, the model must be robust to the ordinary variation in how data are recorded, so that small differences in measurement units, missing laboratory values, or the timing of observations do not move a patient across the threshold that triggers a follow-up call. Third, clinicians who rely on the score must be able to see which inputs drove a particular prediction, in terms they recognise, and must be able to tell when the model is operating outside the range of patients it was developed on, so that they can set the score aside when it should not be trusted. Fourth, the developers must document the training data, its provenance and known gaps, the intended use, and the conditions under which performance was validated, and must keep that documentation current as the model is retrained. Fifth, the hospital must monitor the model after deployment, detecting drift in the input data and in the observed outcomes, and must be able to withdraw the model quickly if its performance degrades, reporting every incident and every change to the model to the clinical governance committee. Finally, the evidence offered for each of these properties must be independent of the team that built the model, reproducible by a reviewer with access to the same data, open to challenge by the clinicians and patients it affects, and sufficient to justify the confidence placed in the conclusion that the model is acceptably safe and fair for the purpose for which it is used.',
+];

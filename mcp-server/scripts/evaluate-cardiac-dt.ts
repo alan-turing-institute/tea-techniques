@@ -4,6 +4,11 @@
  * Runs 5 evidence-gap claims from a cardiac digital twin assurance case
  * through suggestForClaim() and grades results against a hand-curated rubric.
  * Writes JSON report to data/claims/.cardiac-dt-evaluation.json.
+ *
+ * By default the claims are embedded in-process with the stdio server's model.
+ * With `--model=qwen3 --queries=openrouter` they are embedded the way the HTTP
+ * service's callers do it: through OpenRouter, with the catalogue's query prefix,
+ * and sent as `queryEmbedding` against the Qwen3 vectors in `<data-dir>/ld/embeddings.json`.
  */
 
 import fs from 'node:fs/promises';
@@ -12,7 +17,9 @@ import { fileURLToPath } from 'node:url';
 import { loadGraphData } from '../src/data/loader.js';
 import { loadEmbeddings } from '../src/embedding/loader.js';
 import { embedQuery, getEmbeddingModel } from '../src/embedding/model.js';
+import { CATALOGUE_MODEL, IN_PROCESS_MODEL } from '../src/embedding/specs.js';
 import { KnowledgeGraph } from '../src/graph/index.js';
+import { embedWithOpenRouter } from './embed-hosts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
@@ -20,6 +27,8 @@ const args = process.argv.slice(2);
 const arg = (key: string, fallback: string) =>
   args.find((a) => a.startsWith(`--${key}=`))?.slice(key.length + 3) ??
   fallback;
+const USE_CATALOGUE_MODEL = arg('model', 'minilm') === 'qwen3';
+const OPENROUTER_QUERIES = arg('queries', '') === 'openrouter';
 const DATA_DIR = path.resolve(
   arg('data-dir', path.join(PROJECT_ROOT, 'public/data'))
 );
@@ -234,6 +243,7 @@ interface ClaimEvaluation {
   id: string;
   text: string;
   rankingAvailable: boolean;
+  semanticUsed: boolean;
   elapsedMs: number;
   returnedSlugs: string[];
   scores: Array<{ slug: string; score: 1 | 0 | -1 }>;
@@ -287,7 +297,7 @@ function printReport(
 
   for (const claim of claims) {
     log(
-      `${claim.id}: ${claim.grade}  (score: ${claim.totalScore}, ${claim.elapsedMs} ms, ranked: ${claim.rankingAvailable})`
+      `${claim.id}: ${claim.grade}  (score: ${claim.totalScore}, ${claim.elapsedMs} ms, ranked: ${claim.rankingAvailable}, semantic: ${claim.semanticUsed})`
     );
     log(`  "${claim.text.slice(0, 80)}..."`);
     log('  Top 10 results:');
@@ -310,29 +320,47 @@ function printReport(
 // --- Main ---
 
 async function main(): Promise<void> {
+  const spec = USE_CATALOGUE_MODEL ? CATALOGUE_MODEL : IN_PROCESS_MODEL;
   const [graphData, embeddings] = await Promise.all([
     loadGraphData({ local: true, dataDir: DATA_DIR }),
-    loadEmbeddings({ local: true, dataDir: DATA_DIR }),
+    loadEmbeddings({ local: true, dataDir: DATA_DIR, expect: spec }),
   ]);
   if (!embeddings) {
     throw new Error(
       'Evaluation requires compatible embeddings; keyword fallback is not an embedding quality run'
     );
   }
-  const model = await getEmbeddingModel();
-  if (!(model && (await embedQuery(model, RUBRIC[0].text)))) {
-    throw new Error(
-      'Query model unavailable; cannot evaluate semantic retrieval'
+  let queryVectors: number[][] | null = null;
+  if (OPENROUTER_QUERIES) {
+    const embedded = await embedWithOpenRouter(
+      arg('openrouter-model', 'qwen/qwen3-embedding-4b'),
+      RUBRIC.map((r) => `${spec.queryPrefix}${r.text}`)
     );
+    queryVectors = embedded.vectors;
+    // biome-ignore lint/suspicious/noConsole: CLI script output
+    console.log(`OpenRouter query embeddings cost ${embedded.cost} credits`);
+  } else {
+    const model = await getEmbeddingModel();
+    if (!(model && (await embedQuery(model, RUBRIC[0].text)))) {
+      throw new Error(
+        'Query model unavailable; cannot evaluate semantic retrieval'
+      );
+    }
   }
-  const graph = new KnowledgeGraph(graphData, embeddings);
+  const graph = new KnowledgeGraph(graphData, embeddings, undefined, {
+    inProcessEmbedding: !queryVectors,
+  });
 
   const claims: ClaimEvaluation[] = [];
 
-  for (const rubric of RUBRIC) {
+  for (const [i, rubric] of RUBRIC.entries()) {
     const started = performance.now();
     // biome-ignore lint/nursery/noAwaitInLoop: sequential evaluation intentional
-    const results = await graph.suggestForClaim(rubric.text);
+    const results = await graph.suggestForClaim(rubric.text, {
+      queryEmbedding: queryVectors
+        ? { model: embeddings.modelId, vector: queryVectors[i] }
+        : undefined,
+    });
     const elapsedMs = Math.round(performance.now() - started);
     const returnedSlugs = results.results.map((t) => t.slug);
 
@@ -347,6 +375,7 @@ async function main(): Promise<void> {
       id: rubric.id,
       text: rubric.text,
       rankingAvailable: results.rankingAvailable,
+      semanticUsed: results.semanticUsed,
       elapsedMs,
       returnedSlugs,
       scores,

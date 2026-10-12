@@ -1,4 +1,5 @@
 // Resolve DATA_REF once, then download only graph.jsonld from that exact commit.
+// A full 40-character commit SHA is used as given, without asking the GitHub API.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -8,20 +9,30 @@ if (!ref) {
   throw new Error('DATA_REF is required');
 }
 const repo = 'alan-turing-institute/tea-techniques';
-const response = await fetch(
-  `https://api.github.com/repos/${repo}/commits/${encodeURIComponent(ref)}`,
-  {
-    headers: { Accept: 'application/vnd.github+json' },
-    signal: AbortSignal.timeout(30_000),
+const FULL_SHA = /^[0-9a-f]{40}$/;
+
+async function resolveCommit(name) {
+  if (FULL_SHA.test(name)) {
+    return name;
   }
-);
-if (!response.ok) {
-  throw new Error(`Resolve DATA_REF: HTTP ${response.status}`);
+  const response = await fetch(
+    `https://api.github.com/repos/${repo}/commits/${encodeURIComponent(name)}`,
+    {
+      headers: { Accept: 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(30_000),
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`Resolve DATA_REF: HTTP ${response.status}`);
+  }
+  const { sha: resolved } = await response.json();
+  if (!FULL_SHA.test(resolved)) {
+    throw new Error('Invalid data commit');
+  }
+  return resolved;
 }
-const { sha } = await response.json();
-if (!/^[0-9a-f]{40}$/.test(sha)) {
-  throw new Error('Invalid data commit');
-}
+
+const sha = await resolveCommit(ref);
 const graph = await fetch(
   `https://raw.githubusercontent.com/${repo}/${sha}/public/data/ld/graph.jsonld`,
   { signal: AbortSignal.timeout(30_000) }
