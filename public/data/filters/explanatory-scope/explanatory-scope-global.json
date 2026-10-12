@@ -2,7 +2,7 @@
   "tag": {
     "name": "explanatory-scope/global",
     "slug": "explanatory-scope-global",
-    "count": 27,
+    "count": 26,
     "category": "explanatory-scope"
   },
   "techniques": [
@@ -719,7 +719,7 @@
         "permutation-importance",
         "shapley-additive-explanations",
         "partial-dependence-plots",
-        "fairness-testing"
+        "causal-discrimination-testing"
       ],
       "sample_claims": [
         {
@@ -1189,7 +1189,7 @@
     {
       "slug": "attention-weight-analysis",
       "name": "Attention Weight Analysis",
-      "description": "Attention weight analysis inspects the weights an attention-based neural network computes for an input, to see which input positions the model draws on as it builds each part of its output. In recurrent encoder-decoder models, such as early neural machine translation, the weights for each output step form an alignment matrix over the source tokens, which is plotted as a heatmap and read as a soft alignment between source and target. In transformers, each attention head (one of several parallel attention units in a layer) produces its own matrix of how strongly every token attends to every other token; the analyst extracts these matrices from the model, for example by asking a Hugging Face model to return its attentions, and views them per head and layer or aggregates them over many inputs to characterise what individual heads do. The output is a set of heatmaps and head-level summaries showing how information is routed inside the model; on its own it does not measure how much each input contributed to the prediction.",
+      "description": "Attention weight analysis reads the weights an attention-based neural network assigns to the parts of its input, to see which positions it draws on at each step. The weights come from an ordinary forward pass and are plotted as heatmaps, one row per output step or token. In recurrent encoder-decoder models, such as early neural machine translation or image captioning, each output step has a row over the source words or image regions, read as a soft alignment in which weight is shared across several source positions. In transformers, each attention head (one of several parallel attention units in a layer) has its own matrix at every layer; the analyst views these per head and layer, or averages them over many inputs to profile a head, for example by how much attention it gives each kind of token, or how often its strongest attention lands on a labelled relation such as a verb and its object. The heatmaps show where each step looks; on their own they do not measure how much each input contributed to the prediction, because the weights leave out what is done with the attended values and information mixes between layers.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -1217,15 +1217,15 @@
       ],
       "example_use_cases": [
         {
-          "description": "A localisation team validating an in-house neural translation model for equipment manuals plots the encoder-decoder attention matrix for a sample of sentences and checks that each translated term attends to its source counterpart, sending sentences whose attention collapses onto punctuation or end-of-sentence tokens for human review.",
+          "description": "A localisation team validating an in-house recurrent encoder-decoder translation model for equipment manuals plots the attention matrix for sample sentences and checks that each technical term draws most of its weight from its source counterpart. Sentences whose weight falls mainly on punctuation or the end-of-sentence marker go to a translator; the team first tests this screen on sentences with known errors, and does not treat a clean alignment as proof of a correct translation.",
           "goal": "Explainability"
         },
         {
-          "description": "A team assessing an image-captioning model for an alt-text service overlays each generated word's attention weights on the image to check that words such as 'wheelchair' or 'crossing' fall on the matching objects, and records captions whose nouns attend mainly to background regions.",
+          "description": "A team assessing an image-captioning model for an alt-text service overlays each generated word's attention weights on the image to check that nouns such as 'wheelchair' or 'crossing' fall on the matching objects. Captions whose nouns attend mainly to background regions are sent for manual review before release, as a screen only: a match does not show that the object produced the word.",
           "goal": "Explainability"
         },
         {
-          "description": "A clinical NLP team reviewing a transformer that extracts medication details from discharge letters uses head and model views on a sample of letters to find heads that link each drug name to its dose and frequency, then checks whether those heads behave the same way on letters from a second hospital before describing them in the model documentation.",
+          "description": "A clinical NLP team reviewing a transformer that extracts medication details from discharge letters uses head and model views on a sample of letters to find heads whose attention links each drug name to its dose and frequency, then checks whether those heads behave the same way on letters from a second hospital before describing in the model documentation where those heads look, without claiming that the extraction depends on them.",
           "goal": "Explainability"
         },
         {
@@ -1235,16 +1235,19 @@
       ],
       "limitations": [
         {
-          "description": "Attention weights are not a measure of feature importance. Across several text tasks, attention weights often disagreed with gradient-based importance, and quite different attention distributions produced the same prediction; a reply showed the verdict depends on the test used. Treat a heatmap as a hypothesis to confirm with attribution or ablation, not as the reason for a decision."
+          "description": "A bright cell in a heatmap does not show that the input behind it caused the output. In recurrent text classifiers, attention often disagreed with other measures of which words mattered, and very different patterns gave the same prediction (Jain and Wallace 2019). Wiegreffe and Pinter (2019) reply that attention can be a believable account without being a faithful one. Neither tested transformers. Confirm any reading by masking the highlighted inputs and checking that the output changes."
         },
         {
-          "description": "In transformers, residual connections and stacked layers mix information from different tokens, so one layer's weights do not show which input tokens a later representation depends on. Raw attention agreed less well with ablation and gradient importance than aggregates across layers such as attention rollout, which are themselves approximations."
+          "description": "In transformers each layer mixes information between tokens, so one layer's weights do not show which inputs a later representation depends on. In a small six-layer transformer, the classification token's weights agreed with deletion-based importance only in the first layer; rollout, which combines weights across layers, agreed better later (Abnar and Zuidema 2020). For a fine-tuned DistilBERT model the gain was small: rollout improves on raw weights but does not fix them."
         },
         {
-          "description": "A transformer produces one matrix per head per layer for every input, often well over a hundred, and many heads attend mostly to delimiter tokens such as the separator. Saying what a head does requires aggregating over many inputs, and a few hand-picked examples can suggest patterns that do not hold across the data."
+          "description": "Each input gives one matrix per head per layer (144 in BERT-base), and the most visible pattern is often uninformative. In BERT, over half the attention in layers 6 to 10 falls on the separator token, which Clark et al. (2019) suggest acts as a 'do nothing' option; Kobayashi et al. (2020) found these weights carry little information once vector size is counted. Profiling a head needs averaging over many inputs, since a few hand-picked examples can mislead."
         },
         {
-          "description": "Applies only to models that compute attention explicitly, and the meaning of the weights depends on the mechanism: an encoder-decoder alignment over source words is not the same object as self-attention among tokens of one sequence. Head roles found in one model or domain do not carry over to another, so the analysis must be repeated for each model assessed."
+          "description": "The weights mean different things in different architectures. In recurrent translation models source attention reads as a word alignment (Bahdanau et al. 2015). In transformer translation models, averaging source attention over all layers gave poor alignments; better ones needed a chosen layer or a measure that counts vector size (Garg et al. 2019; Kobayashi et al. 2020). Check any alignment reading against reference alignments for the model being assessed."
+        },
+        {
+          "description": "Attention can be trained to look harmless while the model still uses what it hides. Pruthi et al. (2020) trained occupation classifiers to put almost no attention on gender words with little loss of accuracy; the models still used gender, yet reviewers shown the manipulated highlights judged no predictions gender-influenced, against 66% with the original attention. A heatmap showing no weight on a sensitive input is weak evidence; test by changing the input."
         }
       ],
       "resources": [
@@ -1320,12 +1323,12 @@
       "related_techniques": [],
       "sample_claims": [
         {
-          "text": "For the sampled sentences, the translation model's encoder-decoder attention aligns each translated technical term with its source term, and sentences where it does not were reviewed by a translator",
+          "text": "For a sample of equipment-manual sentences, the recurrent translation model's source attention put its largest weight on the source counterpart of each translated technical term, and sentences where it did not were reviewed by a translator.",
           "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The captioning model's attention for each generated object noun falls on the corresponding object in the image for the reviewed sample of alt-text outputs",
+          "text": "In the reviewed sample of alt-text captions, the share of generated object nouns whose attention fell on the matching object in the image met the release threshold, and captions that fell short were checked by hand before release.",
           "domain": "public sector",
           "assuranceGoal": "explainability"
         },
@@ -2757,131 +2760,6 @@
       ]
     },
     {
-      "slug": "bootstrapping",
-      "name": "Bootstrap Ensembles",
-      "description": "Bootstrap ensembles estimate how much a model's predictions depend on the particular sample of data it was trained on. The training set is resampled with replacement many times, each resample (a bootstrap replicate) holding as many cases as the original so that some cases are repeated and others left out; one model is trained on each replicate with the same settings, and every new input is passed through all of the models. The spread of the models' predictions for an input, reported as a standard deviation or as a range between percentiles, estimates the uncertainty in the model's prediction for that input, and inputs where the models disagree are those the training data constrain least. The spread covers uncertainty in the fitted model only, not the random variation in individual outcomes, so an interval meant to contain a case's actual outcome must add an estimate of that noise, for example from the models' errors on held-out data.",
-      "assurance_goals": [
-        "Reliability",
-        "Transparency",
-        "Fairness"
-      ],
-      "tags": [
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/black-box",
-        "data-requirements/access-to-training-data",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/uncertainty-quantification",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/confidence-and-limits",
-        "data-type/any",
-        "evidence-type/prediction-interval",
-        "evidence-type/quantitative-metric",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "explanatory-scope/global",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation",
-        "technique-type/algorithmic"
-      ],
-      "example_use_cases": [
-        {
-          "description": "An electricity network operator forecasting next-day demand at each substation trains 100 gradient-boosted models on bootstrap replicates of three years of meter readings. Planners hold extra reserve at substations where the models' forecasts spread widely, because those are the sites whose forecasts the historical data settle least.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "A hospital's readmission-risk tool shows clinicians, beside each patient's predicted risk, the range of risks given by models trained on bootstrap replicates of the training cohort, so that a clinician can see when an estimate rests on few comparable past patients and give it less weight in discharge planning.",
-          "goal": "Transparency"
-        },
-        {
-          "description": "A local authority reviewing a housing-need scoring model compares the average spread of bootstrap-ensemble scores across applicant groups and finds it widest for a group with few past applications, which shows that the model's scores for that group are least settled by the data; it collects more cases before letting the scores inform priority for that group.",
-          "goal": "Fairness"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Every member of the ensemble is a full training run, and every prediction must be made by every member, so training cost, storage and prediction time all grow in proportion to the number of replicates. For large neural networks this usually limits the ensemble to a handful of members, too few for stable percentiles of the spread."
-        },
-        {
-          "description": "The spread measures uncertainty in the fitted model, not the noise in outcomes. Presented as the range within which a case's actual outcome will fall, it understates the uncertainty, most of all where outcomes are noisy and training data plentiful, so the outcome noise has to be estimated separately, for example from held-out errors, and added."
-        },
-        {
-          "description": "It captures only variation from which cases happened to be in the training set, assuming they were drawn independently from the population the model will meet. Choices held fixed across replicates, such as the features and architecture, add no spread, and on inputs unlike any in the training data the members can agree closely, so a small spread there is not evidence of a reliable prediction."
-        },
-        {
-          "description": "Each replicate contains on average only about 63 per cent of the distinct training cases, so each member learns from less information than a model trained on all the data. With small datasets or rare classes, some replicates may contain almost none of a rare class or subgroup, which inflates the spread for those cases and can leave individual members unusable."
-        },
-        {
-          "description": "Resampling single cases assumes they are independent. With repeated measurements of the same person, time series or other grouped data, case resampling spreads related cases across replicates and understates the uncertainty, unless whole groups or time blocks are resampled instead."
-        }
-      ],
-      "resources": [
-        {
-          "title": "scipy.stats.bootstrap",
-          "url": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html",
-          "source_type": "documentation",
-          "publication_date": "2008",
-          "citationKey": "Scipystatsbootstrap2008"
-        },
-        {
-          "title": "scipy/scipy: SciPy library main repository",
-          "url": "https://github.com/scipy/scipy",
-          "source_type": "software_package",
-          "publication_date": "2026-10-09T01:20:17Z",
-          "citationKey": "ScipyScipySciPy2026",
-          "abstract": "SciPy library main repository"
-        },
-        {
-          "title": "Bootstrap Methods: Another Look at the Jackknife",
-          "url": "https://doi.org/10.1214/aos/1176344552",
-          "source_type": "technical_paper",
-          "authors": [
-            "B. Efron"
-          ],
-          "publication_date": "1979-1-1",
-          "citationKey": "efronBootstrapMethodsAnother1979",
-          "abstract": "We discuss the following problem: given a random sample X = (X1, X2, …, Xn) from an unknown probability distribution F, estimate the sampling distribution of some prespecified random variable R(X, F), on the basis of the observed data x. (Standard jackknife theory gives an approximate mean and variance in the case R(X, F) = θ(F̂) − θ(F), θ some parameter of interest.) A general method, called the \"bootstrap,\" is introduced, and shown to work satisfactorily on a variety of estimation problems. The jackknife is shown to be a linear approximation method for the bootstrap. The exposition proceeds by a series of examples: variance of the sample median, error rates in a linear discriminant analysis, ratio estimation, estimating regression parameters, etc."
-        },
-        {
-          "title": "Resampling and Monte Carlo Methods",
-          "url": "https://docs.scipy.org/doc/scipy/tutorial/stats/resampling.html",
-          "source_type": "tutorial",
-          "citationKey": "ResamplingMonteCarlo"
-        }
-      ],
-      "complexity_rating": 3,
-      "computational_cost_rating": 4,
-      "related_techniques": [
-        "jackknife-resampling",
-        "conformal-prediction",
-        "cross-validation"
-      ],
-      "sample_claims": [
-        {
-          "text": "For each substation's next-day demand forecast, the spread across models trained on bootstrap replicates of the historical data is reported, and forecasts whose spread exceeds the planning tolerance are flagged.",
-          "assuranceGoal": "reliability",
-          "domain": "energy"
-        },
-        {
-          "text": "The flood model's uncertainty for each river gauge reflects how much its predictions change when it is retrained on resampled versions of the gauge records.",
-          "assuranceGoal": "reliability",
-          "domain": "environmental"
-        },
-        {
-          "text": "Each readmission-risk score shown to clinicians is accompanied by the range of scores produced by models trained on resampled versions of the training cohort.",
-          "assuranceGoal": "transparency",
-          "domain": "healthcare"
-        },
-        {
-          "text": "The spread of the housing-need model's scores across bootstrap-trained models has been compared between applicant groups and is reported for each group.",
-          "assuranceGoal": "fairness",
-          "domain": "public sector"
-        }
-      ]
-    },
-    {
       "slug": "model-distillation",
       "name": "Model Distillation",
       "description": "Model distillation transfers knowledge from a large, complex model (teacher) to a smaller, more efficient model (student) by training the student to mimic the teacher's behaviour. The student learns from the teacher's soft predictions and intermediate representations rather than just hard labels, capturing nuanced decision boundaries and uncertainty. This produces models that are faster, require less memory, and are often more interpretable whilst maintaining much of the original performance. Beyond compression, distillation can improve model reliability by regularising training and enable deployment in resource-constrained environments.",
@@ -4282,5 +4160,5 @@
       ]
     }
   ],
-  "count": 27
+  "count": 26
 }

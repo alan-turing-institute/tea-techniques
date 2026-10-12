@@ -906,7 +906,7 @@
         "permutation-importance",
         "shapley-additive-explanations",
         "partial-dependence-plots",
-        "fairness-testing"
+        "causal-discrimination-testing"
       ],
       "sample_claims": [
         {
@@ -2076,7 +2076,7 @@
     {
       "slug": "attention-weight-analysis",
       "name": "Attention Weight Analysis",
-      "description": "Attention weight analysis inspects the weights an attention-based neural network computes for an input, to see which input positions the model draws on as it builds each part of its output. In recurrent encoder-decoder models, such as early neural machine translation, the weights for each output step form an alignment matrix over the source tokens, which is plotted as a heatmap and read as a soft alignment between source and target. In transformers, each attention head (one of several parallel attention units in a layer) produces its own matrix of how strongly every token attends to every other token; the analyst extracts these matrices from the model, for example by asking a Hugging Face model to return its attentions, and views them per head and layer or aggregates them over many inputs to characterise what individual heads do. The output is a set of heatmaps and head-level summaries showing how information is routed inside the model; on its own it does not measure how much each input contributed to the prediction.",
+      "description": "Attention weight analysis reads the weights an attention-based neural network assigns to the parts of its input, to see which positions it draws on at each step. The weights come from an ordinary forward pass and are plotted as heatmaps, one row per output step or token. In recurrent encoder-decoder models, such as early neural machine translation or image captioning, each output step has a row over the source words or image regions, read as a soft alignment in which weight is shared across several source positions. In transformers, each attention head (one of several parallel attention units in a layer) has its own matrix at every layer; the analyst views these per head and layer, or averages them over many inputs to profile a head, for example by how much attention it gives each kind of token, or how often its strongest attention lands on a labelled relation such as a verb and its object. The heatmaps show where each step looks; on their own they do not measure how much each input contributed to the prediction, because the weights leave out what is done with the attended values and information mixes between layers.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -2104,15 +2104,15 @@
       ],
       "example_use_cases": [
         {
-          "description": "A localisation team validating an in-house neural translation model for equipment manuals plots the encoder-decoder attention matrix for a sample of sentences and checks that each translated term attends to its source counterpart, sending sentences whose attention collapses onto punctuation or end-of-sentence tokens for human review.",
+          "description": "A localisation team validating an in-house recurrent encoder-decoder translation model for equipment manuals plots the attention matrix for sample sentences and checks that each technical term draws most of its weight from its source counterpart. Sentences whose weight falls mainly on punctuation or the end-of-sentence marker go to a translator; the team first tests this screen on sentences with known errors, and does not treat a clean alignment as proof of a correct translation.",
           "goal": "Explainability"
         },
         {
-          "description": "A team assessing an image-captioning model for an alt-text service overlays each generated word's attention weights on the image to check that words such as 'wheelchair' or 'crossing' fall on the matching objects, and records captions whose nouns attend mainly to background regions.",
+          "description": "A team assessing an image-captioning model for an alt-text service overlays each generated word's attention weights on the image to check that nouns such as 'wheelchair' or 'crossing' fall on the matching objects. Captions whose nouns attend mainly to background regions are sent for manual review before release, as a screen only: a match does not show that the object produced the word.",
           "goal": "Explainability"
         },
         {
-          "description": "A clinical NLP team reviewing a transformer that extracts medication details from discharge letters uses head and model views on a sample of letters to find heads that link each drug name to its dose and frequency, then checks whether those heads behave the same way on letters from a second hospital before describing them in the model documentation.",
+          "description": "A clinical NLP team reviewing a transformer that extracts medication details from discharge letters uses head and model views on a sample of letters to find heads whose attention links each drug name to its dose and frequency, then checks whether those heads behave the same way on letters from a second hospital before describing in the model documentation where those heads look, without claiming that the extraction depends on them.",
           "goal": "Explainability"
         },
         {
@@ -2122,16 +2122,19 @@
       ],
       "limitations": [
         {
-          "description": "Attention weights are not a measure of feature importance. Across several text tasks, attention weights often disagreed with gradient-based importance, and quite different attention distributions produced the same prediction; a reply showed the verdict depends on the test used. Treat a heatmap as a hypothesis to confirm with attribution or ablation, not as the reason for a decision."
+          "description": "A bright cell in a heatmap does not show that the input behind it caused the output. In recurrent text classifiers, attention often disagreed with other measures of which words mattered, and very different patterns gave the same prediction (Jain and Wallace 2019). Wiegreffe and Pinter (2019) reply that attention can be a believable account without being a faithful one. Neither tested transformers. Confirm any reading by masking the highlighted inputs and checking that the output changes."
         },
         {
-          "description": "In transformers, residual connections and stacked layers mix information from different tokens, so one layer's weights do not show which input tokens a later representation depends on. Raw attention agreed less well with ablation and gradient importance than aggregates across layers such as attention rollout, which are themselves approximations."
+          "description": "In transformers each layer mixes information between tokens, so one layer's weights do not show which inputs a later representation depends on. In a small six-layer transformer, the classification token's weights agreed with deletion-based importance only in the first layer; rollout, which combines weights across layers, agreed better later (Abnar and Zuidema 2020). For a fine-tuned DistilBERT model the gain was small: rollout improves on raw weights but does not fix them."
         },
         {
-          "description": "A transformer produces one matrix per head per layer for every input, often well over a hundred, and many heads attend mostly to delimiter tokens such as the separator. Saying what a head does requires aggregating over many inputs, and a few hand-picked examples can suggest patterns that do not hold across the data."
+          "description": "Each input gives one matrix per head per layer (144 in BERT-base), and the most visible pattern is often uninformative. In BERT, over half the attention in layers 6 to 10 falls on the separator token, which Clark et al. (2019) suggest acts as a 'do nothing' option; Kobayashi et al. (2020) found these weights carry little information once vector size is counted. Profiling a head needs averaging over many inputs, since a few hand-picked examples can mislead."
         },
         {
-          "description": "Applies only to models that compute attention explicitly, and the meaning of the weights depends on the mechanism: an encoder-decoder alignment over source words is not the same object as self-attention among tokens of one sequence. Head roles found in one model or domain do not carry over to another, so the analysis must be repeated for each model assessed."
+          "description": "The weights mean different things in different architectures. In recurrent translation models source attention reads as a word alignment (Bahdanau et al. 2015). In transformer translation models, averaging source attention over all layers gave poor alignments; better ones needed a chosen layer or a measure that counts vector size (Garg et al. 2019; Kobayashi et al. 2020). Check any alignment reading against reference alignments for the model being assessed."
+        },
+        {
+          "description": "Attention can be trained to look harmless while the model still uses what it hides. Pruthi et al. (2020) trained occupation classifiers to put almost no attention on gender words with little loss of accuracy; the models still used gender, yet reviewers shown the manipulated highlights judged no predictions gender-influenced, against 66% with the original attention. A heatmap showing no weight on a sensitive input is weak evidence; test by changing the input."
         }
       ],
       "resources": [
@@ -2207,12 +2210,12 @@
       "related_techniques": [],
       "sample_claims": [
         {
-          "text": "For the sampled sentences, the translation model's encoder-decoder attention aligns each translated technical term with its source term, and sentences where it does not were reviewed by a translator",
+          "text": "For a sample of equipment-manual sentences, the recurrent translation model's source attention put its largest weight on the source counterpart of each translated technical term, and sentences where it did not were reviewed by a translator.",
           "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The captioning model's attention for each generated object noun falls on the corresponding object in the image for the reviewed sample of alt-text outputs",
+          "text": "In the reviewed sample of alt-text captions, the share of generated object nouns whose attention fell on the matching object in the image met the release threshold, and captions that fell short were checked by hand before release.",
           "domain": "public sector",
           "assuranceGoal": "explainability"
         },
@@ -6719,7 +6722,7 @@
     {
       "slug": "cross-modal-consistency-scoring",
       "name": "Cross-Modal Consistency Scoring",
-      "description": "Cross-modal consistency scoring checks whether content in one modality matches content in another, such as an image and its caption, a generated image and the prompt that produced it, or an audio clip and its description. It uses a contrastively trained model, CLIP for images and text or CLAP for audio and text, which has learned from large collections of paired examples to turn each item into an embedding (a numerical vector describing its content) and to place matching pairs close together. The score for a pair is the cosine similarity of its two embeddings; in the standard image form, CLIPScore, negative similarities are set to zero and the result is rescaled, and no human-written reference is needed. A practitioner scores every pair in an evaluation set or in production, sets a threshold against a sample of human judgements, and then compares average scores between systems or sends pairs below the threshold for review. The score shows whether two items are about the same things, not whether every detail of a description is correct.",
+      "description": "Cross-modal consistency scoring checks whether content in one modality matches content in another, such as an image and its caption, a generated image and the prompt that produced it, or an audio clip and its description. It uses a contrastively trained model, one that has learned from large collections of paired examples to turn each item into an embedding (a numerical vector describing its content) and to place matching pairs close together: CLIP, trained on image-caption pairs, for images and text, or CLAP, its audio-and-text counterpart, for audio and text. The score for a pair is the cosine similarity of its two embeddings; in the standard image form, CLIPScore, negative similarities are set to zero and the result is rescaled, and no human-written reference is needed. A practitioner scores every pair in an evaluation set or in production, sets a threshold against a sample of human judgements, and then compares average scores between systems or sends pairs below the threshold for review. The score shows whether two items are about the same things, not whether every detail of a description is correct.",
       "assurance_goals": [
         "Reliability"
       ],
@@ -6744,7 +6747,7 @@
       ],
       "example_use_cases": [
         {
-          "description": "A public library deploying an automatic alt-text generator for its digitised photograph collection scores every generated description against its image and routes those below a threshold, set on a sample rated by staff, to a cataloguer, so that visitors using screen readers are not given descriptions of the wrong content.",
+          "description": "A public library deploying an automatic alt-text generator for its digitised photograph collection scores every generated description against its image and routes those below a threshold, set on a sample rated by staff, to a cataloguer, so that descriptions of the wrong subject are caught before visitors using screen readers meet them; names, dates and places in the descriptions are checked separately.",
           "goal": "Reliability"
         },
         {
@@ -6771,20 +6774,13 @@
           "description": "Scores inherit the encoder's training data, which is mostly web alt-text, and its biases. An audit of CLIP-based filtering found that data associated with LGBTQ+ people, older women and younger men was excluded at higher rates, so a single threshold can be stricter for some subjects than others and needs checking by group."
         },
         {
-          "description": "Scores have no absolute meaning: they depend on the encoder checkpoint, are not comparable across checkpoints, and the default CLIP text encoder reads at most 77 tokens, so longer descriptions are judged on their opening only. Thresholds must be set and reported for the specific model and settings used."
+          "description": "Scores have no absolute meaning: they depend on the encoder checkpoint and on the tool's scaling (the original CLIPScore multiplies the cosine similarity by 2.5, torchmetrics by 100), so values are not comparable across checkpoints or tools. The default CLIP text encoder also reads at most 77 tokens, so longer descriptions are judged on their opening only. Thresholds must be set and reported for the specific model and settings used."
         },
         {
           "description": "The audio form is weaker still: CLAP-based scores have been found to correlate only weakly with human ratings of how well audio matches its text, so for audio the score is a coarse screen to prioritise human checks rather than evidence of consistency on its own."
         }
       ],
       "resources": [
-        {
-          "title": "CLIP",
-          "url": "https://huggingface.co/docs/transformers/en/model_doc/clip",
-          "source_type": "documentation",
-          "publication_date": "2021",
-          "citationKey": "CLIP2021"
-        },
         {
           "title": "CLIP Score — TorchMetrics documentation",
           "url": "https://lightning.ai/docs/torchmetrics/stable/multimodal/clip_score.html",
@@ -6860,6 +6856,21 @@
           "publication_date": "2024-10-29",
           "citationKey": "hongWhosWhosOut2024",
           "abstract": "As training datasets become increasingly drawn from unstructured, uncontrolled environments such as the web, researchers and industry practitioners have increasingly relied upon data filtering techniques to “filter out the noise” of web-scraped data. While datasets have been widely shown to reflect the biases and values of their creators, in this paper we contribute to an emerging body of research that assesses the filters used to create these datasets. We show that image-text data filtering also has biases and is value-laden, encoding specific notions of what is counted as “high-quality” data. In our work, we audit a standard approach of image-text CLIP-filtering on the academic benchmark DataComp’s CommonPool by analyzing discrepancies of filtering through various annotation techniques across multiple modalities of image, text, and website source. We find that data relating to several imputed demographic groups — such as LGBTQ+ people, older women, and younger men — are associated with higher rates of exclusion. We also find prevalence of Western bias, where the CLIP filter is more likely to include data related to Western countries compared to that of non-Western countries. Moreover, we demonstrate cases of exclusion amplification: not only are certain marginalized groups already underrepresented in the unfiltered data, but CLIP-filtering excludes data from these groups at higher rates. The data-filtering step in the machine learning pipeline can therefore exacerbate representation disparities already present in the data-gathering step, especially when existing filters are designed to optimize a specifically-chosen downstream performance metric like zero-shot image classification accuracy. Finally, we show that the NSFW filter fails to remove sexually-explicit content from CommonPool, and that CLIP-filtering includes several categories of copyrighted content at high rates. Our conclusions point to a need for fundamental changes in dataset creation and filtering practices. Content warning: This paper discusses societal stereotypes and sexually-explicit material that may be disturbing, distressing, and/or offensive to the reader."
+        },
+        {
+          "title": "RELATE: Subjective evaluation dataset for automatic evaluation of relevance between text and audio",
+          "url": "https://doi.org/10.21437/interspeech.2025-1830",
+          "source_type": "technical_paper",
+          "authors": [
+            "Yusuke Kanamori",
+            "Yuki Okamoto",
+            "Taisei Takano",
+            "Shinnosuke Takamichi",
+            "Yuki Saito",
+            "Hiroshi Saruwatari"
+          ],
+          "publication_date": "2025-8-17",
+          "citationKey": "kanamoriRELATESubjectiveEvaluation2025"
         }
       ],
       "related_techniques": [

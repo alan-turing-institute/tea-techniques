@@ -919,7 +919,7 @@
   {
     "slug": "attention-weight-analysis",
     "name": "Attention Weight Analysis",
-    "description": "Attention weight analysis inspects the weights an attention-based neural network computes for an input, to see which input positions the model draws on as it builds each part of its output. In recurrent encoder-decoder models, such as early neural machine translation, the weights for each output step form an alignment matrix over the source tokens, which is plotted as a heatmap and read as a soft alignment between source and target. In transformers, each attention head (one of several parallel attention units in a layer) produces its own matrix of how strongly every token attends to every other token; the analyst extracts these matrices from the model, for example by asking a Hugging Face model to return its attentions, and views them per head and layer or aggregates them over many inputs to characterise what individual heads do. The output is a set of heatmaps and head-level summaries showing how information is routed inside the model; on its own it does not measure how much each input contributed to the prediction.",
+    "description": "Attention weight analysis reads the weights an attention-based neural network assigns to the parts of its input, to see which positions it draws on at each step. The weights come from an ordinary forward pass and are plotted as heatmaps, one row per output step or token. In recurrent encoder-decoder models, such as early neural machine translation or image captioning, each output step has a row over the source words or image regions, read as a soft alignment in which weight is shared across several source positions. In transformers, each attention head (one of several parallel attention units in a layer) has its own matrix at every layer; the analyst views these per head and layer, or averages them over many inputs to profile a head, for example by how much attention it gives each kind of token, or how often its strongest attention lands on a labelled relation such as a verb and its object. The heatmaps show where each step looks; on their own they do not measure how much each input contributed to the prediction, because the weights leave out what is done with the attended values and information mixes between layers.",
     "assurance_goals": [
       "Explainability"
     ],
@@ -947,12 +947,12 @@
     ],
     "sample_claims": [
       {
-        "text": "For the sampled sentences, the translation model's encoder-decoder attention aligns each translated technical term with its source term, and sentences where it does not were reviewed by a translator",
+        "text": "For a sample of equipment-manual sentences, the recurrent translation model's source attention put its largest weight on the source counterpart of each translated technical term, and sentences where it did not were reviewed by a translator.",
         "domain": "general",
         "assuranceGoal": "explainability"
       },
       {
-        "text": "The captioning model's attention for each generated object noun falls on the corresponding object in the image for the reviewed sample of alt-text outputs",
+        "text": "In the reviewed sample of alt-text captions, the share of generated object nouns whose attention fell on the matching object in the image met the release threshold, and captions that fell short were checked by hand before release.",
         "domain": "public sector",
         "assuranceGoal": "explainability"
       },
@@ -1817,9 +1817,9 @@
     ]
   },
   {
-    "slug": "fairness-testing",
-    "name": "Fairness Testing",
-    "description": "Fairness testing checks whether a model treats otherwise identical inputs differently because of a protected attribute, by changing only that attribute, or a name, term or other proxy that signals it, and measuring how often or how much the output changes. In the form introduced by Galhotra, Brun and Meliou (2017), a tester generates inputs from a description of the valid input fields, makes copies of each that differ only in the protected attribute (for example, recorded sex), runs them all through the system as a black box, and reports the causal discrimination score: the share of inputs whose decision changes, sampled until it is known within a chosen margin of error and confidence level. For text, the same test substitutes identity terms or names in otherwise unchanged sentences, such as one religion or ethnicity for another, and reports the average change in the model's score across the substitutions, which Garg et al. (2019) call the counterfactual token fairness gap. Because every other part of the input is held fixed, the test needs no model of how the attribute influences other variables: it measures whether the system itself responds to the attribute, or to the chosen proxy, and the output is a score per attribute with the input pairs that failed.",
+    "slug": "causal-discrimination-testing",
+    "name": "Causal Discrimination Testing",
+    "description": "Causal discrimination testing checks whether a system gives different outputs to otherwise identical inputs because of a protected attribute, by changing only that attribute, or a name, term or other proxy that signals it, and measuring how often or how much the output changes. Galhotra, Brun and Meliou (2017), who called the approach fairness testing, generate inputs from a description of the valid input fields, make copies of each that differ only in the protected attribute (for example, recorded sex), run them all through the system as a black box, and report the causal discrimination score: the share of inputs whose decision changes, sampled until it is known within a chosen margin of error and confidence level. For text, the same test substitutes identity terms or names in otherwise unchanged sentences, such as one religion or ethnicity for another, and reports the average change in the model's score across the substitutions, which Garg et al. (2019) call the counterfactual token fairness gap. Because every other part of the input is held fixed, the test needs no model of how the attribute influences other variables: it measures whether the system itself responds to the attribute, or to the chosen proxy. The output is a score per attribute and, if the tester logs them, the input pairs whose outputs differed.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -1842,7 +1842,7 @@
     ],
     "sample_claims": [
       {
-        "text": "Changing only an applicant's recorded sex changes the credit model's decision for fewer than 0.5% of last year's applications, at 95% confidence.",
+        "text": "Changing only an applicant's recorded sex changes the credit model's decision for fewer than 0.5% of last year's applications (upper limit of a 95% confidence interval from a random sample of them).",
         "domain": "finance",
         "assuranceGoal": "fairness"
       },
@@ -1852,12 +1852,12 @@
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The CV-ranking service returns the same shortlist when names associated with different ethnicities and genders are swapped on otherwise identical CVs.",
+        "text": "Swapping names associated with different ethnicities and genders on otherwise identical CVs changes a CV's shortlisting outcome in fewer than 1% of the pairs tested.",
         "domain": "general",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The triage assistant's urgency rating does not change when a patient's stated ethnicity is changed in vignettes that clinicians judged should be unaffected by it.",
+        "text": "The triage assistant's urgency rating changes in fewer than 1% of the vignette pairs that clinicians judged should be unaffected by the patient's stated ethnicity.",
         "domain": "healthcare",
         "assuranceGoal": "fairness"
       }
@@ -1962,7 +1962,7 @@
   {
     "slug": "sequential-cart-synthesis",
     "name": "Sequential CART Synthesis",
-    "description": "Sequential CART synthesis creates an artificial copy of a confidential microdata set (records about individual people or organisations) that can be released in place of the real data. Variables are synthesised one at a time in a chosen order: the first is generated by sampling with replacement from its observed values, and for each later variable a classification or regression tree (CART) is fitted on the real data to predict it from the variables earlier in the order. Each synthetic record is passed down that tree using its already-synthesised values, and the new value is copied from a randomly chosen real record in the leaf it reaches, so the joint distribution of the data is rebuilt as a chain of conditional distributions. Disclosure risk is limited by setting a minimum leaf size, smoothing synthesised continuous values and removing synthetic records that reproduce unique real ones, and several synthetic copies can be released so that analysts can allow for the extra uncertainty that synthesis adds.",
+    "description": "Sequential CART synthesis creates an artificial copy of a confidential microdata set (records about individual people or organisations) that can be released in place of the real data, in the form used by the synthpop package for R. Variables are synthesised one at a time in a chosen order: the first is generated by sampling with replacement from its observed values, and for each later variable a classification or regression tree (CART) is fitted on the real data to predict it from the variables earlier in the order. Each synthetic record is passed down that tree using its already-synthesised values, and the new value is copied from a randomly chosen real record in the leaf it reaches, so the joint distribution of the data is rebuilt as a chain of conditional distributions. Disclosure risk is limited by setting a minimum leaf size, smoothing synthesised continuous values and removing synthetic records that reproduce unique real ones, and several synthetic copies can be released so that analysts can allow for the extra uncertainty that synthesis adds.",
     "assurance_goals": [
       "Privacy"
     ],
@@ -2271,11 +2271,10 @@
   {
     "slug": "platt-scaling",
     "name": "Platt Scaling",
-    "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score or log loss before and after.",
+    "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve (how well the scores separate the two classes) are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed before and after with a reliability diagram (predicted probability plotted against observed frequency) and with the Brier score or log loss (two measures of how far predicted probabilities fall from what happened).",
     "assurance_goals": [
       "Reliability",
-      "Transparency",
-      "Fairness"
+      "Transparency"
     ],
     "tags": [
       "applicable-models/architecture/model-agnostic",
@@ -2285,8 +2284,6 @@
       "assurance-goal-category/reliability/calibration",
       "assurance-goal-category/transparency",
       "assurance-goal-category/transparency/confidence-and-limits",
-      "assurance-goal-category/fairness",
-      "assurance-goal-category/fairness/performance-by-group",
       "data-requirements/calibration-set",
       "data-type/any",
       "evidence-type/model-artefact",
@@ -2305,19 +2302,14 @@
         "domain": "finance"
       },
       {
-        "text": "Recalibrating the defect classifier with Platt scaling left its ranking of parts, measured by the area under the ROC curve on the test set, unchanged while reducing its log loss.",
+        "text": "After Platt scaling, the defect classifier's log loss on the held-out test set is lower than before, and its reliability diagram shows predicted defect rates within the tolerance set in the quality plan.",
         "assuranceGoal": "reliability",
         "domain": "manufacturing"
       },
       {
-        "text": "The probability shown to caseworkers for each flagged claim is calibrated against held-out review outcomes, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
+        "text": "Each flagged claim is shown to caseworkers with a probability calibrated against held-out review outcomes, and the calibration curve and its meaning are published in the caseworker guidance, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
         "assuranceGoal": "transparency",
         "domain": "public sector"
-      },
-      {
-        "text": "After recalibration, the malnutrition-risk model's calibration intercept and slope do not differ materially between patients grouped by race or by sex.",
-        "assuranceGoal": "fairness",
-        "domain": "healthcare"
       }
     ]
   },
@@ -2430,7 +2422,7 @@
   {
     "slug": "bootstrapping",
     "name": "Bootstrap Ensembles",
-    "description": "Bootstrap ensembles estimate how much a model's predictions depend on the particular sample of data it was trained on. The training set is resampled with replacement many times, each resample (a bootstrap replicate) holding as many cases as the original so that some cases are repeated and others left out; one model is trained on each replicate with the same settings, and every new input is passed through all of the models. The spread of the models' predictions for an input, reported as a standard deviation or as a range between percentiles, estimates the uncertainty in the model's prediction for that input, and inputs where the models disagree are those the training data constrain least. The spread covers uncertainty in the fitted model only, not the random variation in individual outcomes, so an interval meant to contain a case's actual outcome must add an estimate of that noise, for example from the models' errors on held-out data.",
+    "description": "Bootstrap ensembles estimate how much a model's predictions depend on the particular sample of data it was trained on. The training set is resampled with replacement many times, each resample (a bootstrap replicate) holding as many cases as the original so that some cases are repeated and others left out; one model is trained on each replicate with the same settings, and every new input is passed through all of the models. The spread of the models' predictions for an input, reported as a standard deviation or as a range between percentiles, estimates the uncertainty in the model's prediction for that input, and inputs where the models disagree are those the training data constrain least. The spread covers uncertainty in the fitted model only, not the random variation in individual outcomes, so an interval meant to contain a case's actual outcome must add an estimate of that noise, for example from the models' errors on held-out data. Putting a confidence interval around a measured performance score is a different procedure, which resamples the evaluation set and retrains nothing; see Bootstrap Confidence Intervals for Evaluation Metrics.",
     "assurance_goals": [
       "Reliability",
       "Transparency",
@@ -2452,19 +2444,18 @@
       "evidence-type/quantitative-metric",
       "expertise-needed/ml-engineering",
       "expertise-needed/statistics",
-      "explanatory-scope/global",
       "lifecycle-stage/model-development",
       "lifecycle-stage/model-development/model-testing-and-validation",
       "technique-type/algorithmic"
     ],
     "sample_claims": [
       {
-        "text": "For each substation's next-day demand forecast, the spread across models trained on bootstrap replicates of the historical data is reported, and forecasts whose spread exceeds the planning tolerance are flagged.",
+        "text": "For each substation's next-day demand forecast, the spread across models trained on bootstrap replicates of the historical data, resampled in whole-week blocks, is reported, and forecasts whose spread exceeds the planning tolerance are flagged.",
         "assuranceGoal": "reliability",
         "domain": "energy"
       },
       {
-        "text": "The flood model's uncertainty for each river gauge reflects how much its predictions change when it is retrained on resampled versions of the gauge records.",
+        "text": "The flood model's uncertainty for each river gauge reflects how much its predictions change when it is retrained on versions of the gauge records resampled in blocks of consecutive days.",
         "assuranceGoal": "reliability",
         "domain": "environmental"
       },
@@ -4156,7 +4147,7 @@
   {
     "slug": "learning-adversarially-fair-and-transferable-representations",
     "name": "Learning Adversarially Fair and Transferable Representations",
-    "description": "Learning Adversarially Fair and Transferable Representations (LAFTR) trains an encoder that turns each record into a representation, a vector of learned features, from which a protected attribute is hard to recover, so that models later built on that representation by other parties, including for prediction tasks not known in advance, also treat groups fairly. It was designed for a data owner who shares encoded data with downstream model builders and cannot control how they train. During training, the encoder, a decoder that reconstructs the input and a classifier for the original task play against an adversary network that tries to predict the protected attribute from the representation; the encoder is updated to defeat the adversary while keeping the information the other two need. The adversary's objective is matched to demographic parity, equalised odds or equal opportunity, and the authors prove that an optimal adversary's objective bounds that unfairness measure for any classifier trained on the representation (for the two error-rate measures, with respect to the labels used in training). The output is a frozen encoder, delivered with the accuracy and fairness of classifiers trained on top of it.",
+    "description": "Learning Adversarially Fair and Transferable Representations (LAFTR) trains an encoder that turns each record into a representation, a vector of learned features, from which a protected attribute is hard to recover, so that models later built on that representation by other parties, including for prediction tasks not known in advance, also treat groups fairly. It was designed for a data owner who shares encoded data with downstream model builders and cannot control how they train. During training, the encoder, a decoder that reconstructs the input and a classifier for the original task play against an adversary network that tries to predict the protected attribute from the representation; the encoder is updated to defeat the adversary while keeping the information the other two need. The adversary's objective is matched to demographic parity, equalised odds or equal opportunity, and the authors prove that an optimal adversary's objective bounds that unfairness measure for any classifier trained on the representation (for the two error-rate measures the adversary also sees the labels used in training, so the attribute is hidden given the label, and the bound is with respect to those labels). The output is a frozen encoder, delivered with the accuracy and fairness of classifiers trained on top of it.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -4189,7 +4180,7 @@
         "domain": "general"
       },
       {
-        "text": "A classifier trained to recover the protected attribute from the released representation does no better than always predicting the majority group.",
+        "text": "A classifier trained to recover the protected attribute from the representation released under the demographic parity objective does no better than always predicting the majority group, within an agreed margin.",
         "assuranceGoal": "fairness",
         "domain": "general"
       },
@@ -4575,7 +4566,7 @@
   {
     "slug": "fair-bayesian-optimisation",
     "name": "Fair Bayesian Optimisation",
-    "description": "Fair Bayesian Optimisation (FairBO) tunes a model's hyperparameters, the settings fixed before training such as tree depth or regularisation strength, to find the most accurate model that also meets a fairness threshold chosen in advance, for example a difference in positive-prediction rates between two groups of at most 0.05. Because it only changes hyperparameters and retrains, it treats the model and its training pipeline as a black box, so it works with any model class and any group fairness metric, can enforce several metrics at once, and leaves a model that needs no protected attribute at prediction time. Each step trains a model with a candidate configuration and measures its validation accuracy and fairness, and two Gaussian processes (statistical models that predict a value together with its uncertainty) are fitted to the results of the configurations tried so far. The next configuration is the one with the highest expected improvement in accuracy weighted by the predicted probability of meeting the fairness constraint; until a fair configuration has been found, the search maximises that probability alone. The output is the best configuration that met the constraint, with its accuracy and fairness measurements.",
+    "description": "Fair Bayesian Optimisation (FairBO) tunes a model's hyperparameters, the settings fixed before training such as tree depth or regularisation strength, to find the most accurate model that also meets a fairness threshold chosen in advance, for example a difference in positive-prediction rates between two groups of at most 0.05. Because it only changes hyperparameters and retrains, it treats the model and its training pipeline as a black box, so it works with any model class and any group fairness metric, can enforce several metrics at once, and returns a model that need not use the protected attribute at prediction time (the attribute is still needed to measure fairness during the search). Each step trains a model with a candidate configuration and measures its validation accuracy and fairness, and two Gaussian processes (statistical models that predict a value together with its uncertainty) are fitted to the results of the configurations tried so far. The next configuration is the one with the highest expected improvement in accuracy weighted by the predicted probability of meeting the fairness constraint; until a fair configuration has been found, the search maximises that probability alone. The output is the best configuration that met the constraint, with its accuracy and fairness measurements.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -5465,7 +5456,7 @@
   {
     "slug": "cross-modal-consistency-scoring",
     "name": "Cross-Modal Consistency Scoring",
-    "description": "Cross-modal consistency scoring checks whether content in one modality matches content in another, such as an image and its caption, a generated image and the prompt that produced it, or an audio clip and its description. It uses a contrastively trained model, CLIP for images and text or CLAP for audio and text, which has learned from large collections of paired examples to turn each item into an embedding (a numerical vector describing its content) and to place matching pairs close together. The score for a pair is the cosine similarity of its two embeddings; in the standard image form, CLIPScore, negative similarities are set to zero and the result is rescaled, and no human-written reference is needed. A practitioner scores every pair in an evaluation set or in production, sets a threshold against a sample of human judgements, and then compares average scores between systems or sends pairs below the threshold for review. The score shows whether two items are about the same things, not whether every detail of a description is correct.",
+    "description": "Cross-modal consistency scoring checks whether content in one modality matches content in another, such as an image and its caption, a generated image and the prompt that produced it, or an audio clip and its description. It uses a contrastively trained model, one that has learned from large collections of paired examples to turn each item into an embedding (a numerical vector describing its content) and to place matching pairs close together: CLIP, trained on image-caption pairs, for images and text, or CLAP, its audio-and-text counterpart, for audio and text. The score for a pair is the cosine similarity of its two embeddings; in the standard image form, CLIPScore, negative similarities are set to zero and the result is rescaled, and no human-written reference is needed. A practitioner scores every pair in an evaluation set or in production, sets a threshold against a sample of human judgements, and then compares average scores between systems or sends pairs below the threshold for review. The score shows whether two items are about the same things, not whether every detail of a description is correct.",
     "assurance_goals": [
       "Reliability"
     ],
@@ -5509,10 +5500,9 @@
   {
     "slug": "trigger-set-model-watermarking",
     "name": "Trigger-Set Model Watermarking",
-    "description": "Trigger-set model watermarking lets the owner of a trained classifier show later that a suspect model was copied from theirs, by planting a secret behaviour that only the owner can demonstrate. Before release, the owner chooses a small secret trigger set (in the originating scheme, 100 abstract images), gives each input a label the model would not otherwise predict, and trains or fine-tunes the model to return those labels while keeping its accuracy on the real task. In the originating scheme the owner also records cryptographic commitments to the trigger inputs and their labels, which fix the watermark at release so that a trigger set cannot be invented once a dispute has begun. To verify, the owner, or an arbiter shown the opened commitments, sends the trigger inputs to the suspect model through its ordinary prediction interface and counts how many return the assigned labels; an independently trained model matches them at about chance level, so a match rate above a preset threshold is evidence of copying. The technique produces the watermarked model, the commitments and, for each verification, the suspect model's trigger-set accuracy against the threshold.",
+    "description": "Trigger-set model watermarking lets the owner of a trained classifier show later that a suspect model was copied from theirs, by planting a secret behaviour that only the owner can demonstrate. Before release, the owner chooses a small secret trigger set (in the originating scheme, 100 abstract images), gives each input an arbitrary label unrelated to its content, and trains or fine-tunes the model to return those labels while keeping its accuracy on the real task. In the originating scheme the owner also records cryptographic commitments to the trigger inputs and their labels, which fix the watermark at release so that a trigger set cannot be invented once a dispute has begun. To verify, the owner, or an arbiter shown the opened commitments, sends the trigger inputs to the suspect model through its ordinary prediction interface and counts how many return the assigned labels; an independently trained model matches them at about chance level, so a match rate above a preset threshold is evidence of copying. The technique produces the watermarked model, the commitments and, for each verification, the suspect model's trigger-set accuracy against the threshold.",
     "assurance_goals": [
-      "Security",
-      "Transparency"
+      "Security"
     ],
     "tags": [
       "applicable-models/architecture/neural-networks",
@@ -5520,8 +5510,6 @@
       "applicable-models/requirements/black-box",
       "assurance-goal-category/security",
       "assurance-goal-category/security/protection",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/confidential-verification",
       "data-requirements/access-to-training-data",
       "data-type/image",
       "technique-type/algorithmic",
@@ -5558,7 +5546,7 @@
       {
         "text": "Ownership of the licensed model can be demonstrated to an independent arbiter through prediction queries alone, without disclosing either party's model weights",
         "domain": "public sector",
-        "assuranceGoal": "transparency"
+        "assuranceGoal": "security"
       }
     ]
   },
@@ -5904,7 +5892,7 @@
   {
     "slug": "isotonic-regression-calibration",
     "name": "Isotonic Regression Calibration",
-    "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score before and after.",
+    "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score (a measure of how far predicted probabilities fall from what happened) before and after.",
     "assurance_goals": [
       "Reliability",
       "Transparency"
@@ -5935,12 +5923,12 @@
         "domain": "healthcare"
       },
       {
-        "text": "Within each band of predicted claim probability, the average prediction equals the observed claim rate on the calibration data, so no band of policyholders systematically subsidises another.",
+        "text": "Within each band of predicted claim probability, the average prediction on a later, held-out year of policies is within the tolerance in the pricing policy of the observed claim rate, so no band of policyholders systematically subsidises another.",
         "assuranceGoal": "reliability",
         "domain": "finance"
       },
       {
-        "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases, and the reliability diagram is published alongside the review tool.",
+        "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases and agree with observed fraud rates on held-out cases, and the reliability diagram is published alongside the review tool.",
         "assuranceGoal": "transparency",
         "domain": "e-commerce"
       }
@@ -5949,7 +5937,7 @@
   {
     "slug": "scenario-based-simulation-testing",
     "name": "Scenario-Based Simulation Testing",
-    "description": "Scenario-based simulation testing checks an automated system, most often an automated driving system, by running it through a planned set of situations in a simulator and judging each run against criteria fixed in advance. Scenarios are written at three levels of detail: a functional scenario describes a situation in words (a car cuts in ahead on a motorway), a logical scenario turns it into parameters with ranges (speeds, gaps, road friction), and a concrete scenario fixes one value for every parameter so that the run can be reproduced exactly. Functional scenarios are derived from hazard analysis and from the operational design domain (the conditions the system is designed to work in), and concrete scenarios are sampled from the logical ranges, either to cover the whole range or to seek out rare, critical combinations. Each concrete scenario is executed with the system under test in the loop, and pass or fail is decided against its expected behaviour, such as no collision, or by criticality measures such as time-to-collision, giving a record of which situations the system handles and which it does not. ISO 34502 sets out this process as a safety evaluation framework for automated driving systems.",
+    "description": "Scenario-based simulation testing checks an automated system, most often an automated driving system, by running it through a planned set of situations in a simulator and judging each run against criteria fixed in advance. Scenarios are written at three levels of detail: a functional scenario describes a situation in words (a car cuts in ahead on a motorway), a logical scenario turns it into parameters with ranges (speeds, gaps, road friction), and a concrete scenario fixes one value for every parameter so that the run can be reproduced exactly. Functional scenarios are derived from hazard analysis and from the operational design domain (the conditions the system is designed to work in), and concrete scenarios are sampled from the logical ranges, either to cover the whole range or to seek out rare, critical combinations, or are reconstructed from recorded incidents. Each concrete scenario is executed with the system under test in the loop, and pass or fail is decided against its expected behaviour, such as no collision, or by criticality measures such as time-to-collision, giving a record of which situations the system handles and which it does not. ISO 34502 gives a scenario-based safety evaluation framework of this kind for automated driving systems on limited-access highways.",
     "assurance_goals": [
       "Safety"
     ],
@@ -5978,7 +5966,7 @@
         "domain": "autonomous systems"
       },
       {
-        "text": "In simulated reconstructions of the fatal crashes recorded in its operating area, the driving system avoided every crash in which it replaced the driver who initiated the conflict.",
+        "text": "In simulated reconstructions of the fatal crashes recorded in its operating area, the driving system avoided every crash in which it replaced the driver who initiated the conflict, and the crashes it did not avoid when replacing the responding driver are reported with their causes.",
         "assuranceGoal": "safety",
         "domain": "transport"
       },
@@ -6018,7 +6006,7 @@
     ],
     "sample_claims": [
       {
-        "text": "The upper bound of the 95 per cent bootstrap confidence interval for the vessel detector's false-positive rate on this quarter's labelled patches is below the 2 per cent limit.",
+        "text": "The upper bound of the 95 per cent bootstrap confidence interval for the vessel detector's false-positive rate on this quarter's labelled patches is below the 2 per cent limit, and the number of false positives it rests on is reported with it.",
         "assuranceGoal": "reliability",
         "domain": "environmental"
       },
@@ -6079,7 +6067,7 @@
         "domain": "finance"
       },
       {
-        "text": "At the alert threshold in clinical use, the sepsis model's sensitivity, specificity and positive predictive value on a year of local admissions are reported together with the share of admissions it would alert on.",
+        "text": "At the alert threshold in clinical use, the sepsis model's sensitivity and specificity on a year of local admissions meet the limits agreed with the clinical team, and the share of admissions that trigger an alert stays within the agreed alert load.",
         "assuranceGoal": "reliability",
         "domain": "healthcare"
       },

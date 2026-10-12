@@ -9,11 +9,10 @@
     {
       "slug": "platt-scaling",
       "name": "Platt Scaling",
-      "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score or log loss before and after.",
+      "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve (how well the scores separate the two classes) are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed before and after with a reliability diagram (predicted probability plotted against observed frequency) and with the Brier score or log loss (two measures of how far predicted probabilities fall from what happened).",
       "assurance_goals": [
         "Reliability",
-        "Transparency",
-        "Fairness"
+        "Transparency"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -23,8 +22,6 @@
         "assurance-goal-category/reliability/calibration",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/confidence-and-limits",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "data-requirements/calibration-set",
         "data-type/any",
         "evidence-type/model-artefact",
@@ -44,10 +41,6 @@
         {
           "description": "A benefits agency uses a linear support vector machine to flag claims for manual review, but its margin scores mean nothing to caseworkers. The team applies Platt scaling so the review screen can show the probability that a claim needs correcting, publishes the calibration curve in the caseworker guidance, and explains that the figure is a rate across similar claims rather than a verdict on the individual.",
           "goal": "Transparency"
-        },
-        {
-          "description": "A hospital network recalibrates a deployed malnutrition-risk model by fitting a two-parameter logistic map to the model's log-odds on recent admissions, then compares calibration intercept and slope separately for Black and White patients and for men and women, to check that the same risk score means the same likelihood of malnutrition in each group before the scores guide dietitian referrals.",
-          "goal": "Fairness"
         }
       ],
       "limitations": [
@@ -55,16 +48,16 @@
           "description": "The sigmoid shape is an assumption. It corrects the S-shaped distortion typical of support vector machines and boosted trees, whose probabilities bunch towards the middle, but not the reverse distortion of overconfident models such as naive Bayes, whose probabilities pile up near 0 and 1. Where the reliability diagram shows that pattern, a flexible method such as isotonic regression is needed."
         },
         {
-          "description": "It works best when the classifier's scores for the two classes are spread in a similar way (roughly normal with equal variance). In highly imbalanced problems this often fails, and a two-parameter fit can leave the rare class poorly calibrated, which an overall score such as the Brier score can hide."
+          "description": "It works best when the classifier's scores for the two classes are spread in a similar way (roughly normal with equal variance). In highly imbalanced problems the scores of the two classes do not have equal spread, so the sigmoid can be a poor match for the data."
         },
         {
-          "description": "The curve must be fitted on labelled cases that played no part in training. The classifier separates its own training data better than new data, so a curve fitted to training scores overstates confidence in use; the cost is a held-out calibration set taken from scarce labelled data, or cross-validation with several model fits."
+          "description": "The curve should be fitted on labelled cases that played no part in training. The classifier separates its own training data better than new data, so a curve fitted to training scores overstates confidence in use; the cost is a held-out calibration set taken from scarce labelled data, or cross-validation with several model fits."
         },
         {
-          "description": "A single curve fitted across the whole population does not guarantee calibration within each subgroup. Fitting a separate curve per group needs group membership at prediction time, which may be unavailable or unlawful to use, and enough labelled cases in every group to estimate two parameters reliably."
+          "description": "A single curve fitted across the whole population does not make the model calibrated within each subgroup. In a deployed malnutrition-risk model, recalibration improved calibration within each race and sex group, yet intercepts and slopes still differed significantly between Black and White patients. Fitting a curve per group needs group membership at prediction time, which may be unavailable or unlawful to use, and enough labelled cases in every group."
         },
         {
-          "description": "It is defined for two classes. For multiclass problems each class is calibrated against the rest and the resulting probabilities are renormalised to sum to one, adding two parameters per class; for multiclass neural networks, temperature scaling, which fits one parameter shared by all classes, is the simpler alternative."
+          "description": "Recalibration changes every probability, so a decision threshold chosen on the raw scores no longer flags the same cases. After logistic recalibration of a deployed malnutrition-risk model, specificity rose from 0.74 to 0.93 and sensitivity fell from 0.75 to 0.35, so the cut-off has to be reset against the cost of each kind of error and the downstream process checked again."
         }
       ],
       "resources": [
@@ -131,19 +124,14 @@
           "domain": "finance"
         },
         {
-          "text": "Recalibrating the defect classifier with Platt scaling left its ranking of parts, measured by the area under the ROC curve on the test set, unchanged while reducing its log loss.",
+          "text": "After Platt scaling, the defect classifier's log loss on the held-out test set is lower than before, and its reliability diagram shows predicted defect rates within the tolerance set in the quality plan.",
           "assuranceGoal": "reliability",
           "domain": "manufacturing"
         },
         {
-          "text": "The probability shown to caseworkers for each flagged claim is calibrated against held-out review outcomes, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
+          "text": "Each flagged claim is shown to caseworkers with a probability calibrated against held-out review outcomes, and the calibration curve and its meaning are published in the caseworker guidance, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
           "assuranceGoal": "transparency",
           "domain": "public sector"
-        },
-        {
-          "text": "After recalibration, the malnutrition-risk model's calibration intercept and slope do not differ materially between patients grouped by race or by sex.",
-          "assuranceGoal": "fairness",
-          "domain": "healthcare"
         }
       ]
     },
@@ -326,7 +314,7 @@
     {
       "slug": "isotonic-regression-calibration",
       "name": "Isotonic Regression Calibration",
-      "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score before and after.",
+      "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score (a measure of how far predicted probabilities fall from what happened) before and after.",
       "assurance_goals": [
         "Reliability",
         "Transparency"
@@ -356,7 +344,7 @@
           "goal": "Reliability"
         },
         {
-          "description": "An insurer's pricing team applies isotonic recalibration to the output of its claim-probability model, fitted on a large portfolio, so that within each band of predicted risk the average prediction equals the observed claim rate on the calibration data and no group of policyholders systematically subsidises another.",
+          "description": "An insurer's pricing team applies isotonic recalibration to the output of its claim-probability model, fitted on a large portfolio and checked on a later year of policies, so that within each band of predicted risk the average prediction matches the observed claim rate and no price band systematically subsidises another.",
           "goal": "Reliability"
         },
         {
@@ -366,7 +354,7 @@
       ],
       "limitations": [
         {
-          "description": "It needs plenty of calibration data. With fewer than about a thousand labelled cases the step function follows noise in the calibration set, and the two-parameter curve of Platt scaling usually does as well or better; isotonic regression pays off when calibration data are plentiful."
+          "description": "It needs plenty of calibration data. With fewer than about a thousand labelled cases the step function follows noise in the calibration set. Because each step matches the observed rate exactly on the cases it was fitted to, calibration checked on those same cases looks perfect whatever its true quality, so it must be checked on separate cases. The two-parameter curve of Platt scaling usually does as well or better on small sets; isotonic regression pays off when calibration data are plentiful."
         },
         {
           "description": "The output is a step function, so many different scores receive exactly the same probability. These ties discard distinctions the model made within a step, can change ranking measures such as the area under the ROC curve after calibration, and matter when a decision threshold falls inside a wide step."
@@ -436,12 +424,12 @@
           "domain": "healthcare"
         },
         {
-          "text": "Within each band of predicted claim probability, the average prediction equals the observed claim rate on the calibration data, so no band of policyholders systematically subsidises another.",
+          "text": "Within each band of predicted claim probability, the average prediction on a later, held-out year of policies is within the tolerance in the pricing policy of the observed claim rate, so no band of policyholders systematically subsidises another.",
           "assuranceGoal": "reliability",
           "domain": "finance"
         },
         {
-          "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases, and the reliability diagram is published alongside the review tool.",
+          "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases and agree with observed fraud rates on held-out cases, and the reliability diagram is published alongside the review tool.",
           "assuranceGoal": "transparency",
           "domain": "e-commerce"
         }

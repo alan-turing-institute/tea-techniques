@@ -433,7 +433,7 @@
         "permutation-importance",
         "shapley-additive-explanations",
         "partial-dependence-plots",
-        "fairness-testing"
+        "causal-discrimination-testing"
       ],
       "sample_claims": [
         {
@@ -2831,7 +2831,7 @@
       "complexity_rating": 5,
       "computational_cost_rating": 3,
       "related_techniques": [
-        "fairness-testing",
+        "causal-discrimination-testing",
         "path-specific-counterfactual-fairness-assessment",
         "demographic-parity-assessment"
       ],
@@ -2854,9 +2854,9 @@
       ]
     },
     {
-      "slug": "fairness-testing",
-      "name": "Fairness Testing",
-      "description": "Fairness testing checks whether a model treats otherwise identical inputs differently because of a protected attribute, by changing only that attribute, or a name, term or other proxy that signals it, and measuring how often or how much the output changes. In the form introduced by Galhotra, Brun and Meliou (2017), a tester generates inputs from a description of the valid input fields, makes copies of each that differ only in the protected attribute (for example, recorded sex), runs them all through the system as a black box, and reports the causal discrimination score: the share of inputs whose decision changes, sampled until it is known within a chosen margin of error and confidence level. For text, the same test substitutes identity terms or names in otherwise unchanged sentences, such as one religion or ethnicity for another, and reports the average change in the model's score across the substitutions, which Garg et al. (2019) call the counterfactual token fairness gap. Because every other part of the input is held fixed, the test needs no model of how the attribute influences other variables: it measures whether the system itself responds to the attribute, or to the chosen proxy, and the output is a score per attribute with the input pairs that failed.",
+      "slug": "causal-discrimination-testing",
+      "name": "Causal Discrimination Testing",
+      "description": "Causal discrimination testing checks whether a system gives different outputs to otherwise identical inputs because of a protected attribute, by changing only that attribute, or a name, term or other proxy that signals it, and measuring how often or how much the output changes. Galhotra, Brun and Meliou (2017), who called the approach fairness testing, generate inputs from a description of the valid input fields, make copies of each that differ only in the protected attribute (for example, recorded sex), run them all through the system as a black box, and report the causal discrimination score: the share of inputs whose decision changes, sampled until it is known within a chosen margin of error and confidence level. For text, the same test substitutes identity terms or names in otherwise unchanged sentences, such as one religion or ethnicity for another, and reports the average change in the model's score across the substitutions, which Garg et al. (2019) call the counterfactual token fairness gap. Because every other part of the input is held fixed, the test needs no model of how the attribute influences other variables: it measures whether the system itself responds to the attribute, or to the chosen proxy. The output is a score per attribute and, if the tester logs them, the input pairs whose outputs differed.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -2897,19 +2897,19 @@
       ],
       "limitations": [
         {
-          "description": "Holding every other input fixed measures only the system's direct response to the attribute or proxy. It does not follow through the effects the attribute has on other inputs, such as career breaks on an employment history, which Garg et al. note makes token substitution narrower than counterfactual fairness defined on a causal model. Where those downstream effects matter, a clean result does not show that individuals were treated fairly."
+          "description": "Holding every other input fixed measures only the system's direct response to the attribute or proxy. It does not follow through the effects the attribute has on other inputs, such as career breaks on an employment history. Garg et al. note that token substitution is more limited than counterfactual fairness defined on a causal model. Where those downstream effects matter, a clean result does not show that individuals were treated fairly."
         },
         {
-          "description": "The test covers only what is perturbed. Discrimination through unlisted identity terms, unperturbed proxies, or references to a group that span several words goes undetected; Garg et al. found that mitigation which closed the gap for the listed terms generalised much less to held-out terms. A pass is a pass for the perturbations tried, and the list needs domain review."
+          "description": "The test covers only what is perturbed. Unlisted identity terms, unperturbed proxies and multi-word references go undetected, as does discrimination that appears only when attributes change together: Galhotra et al. measured 11.2% for gender alone but 77.2% for gender, marital status and race together. Garg et al. found mitigation for listed terms generalised much less to held-out terms. A pass covers only the perturbations tried, and the list needs domain review."
         },
         {
-          "description": "Generated inputs may be unrealistic. Themis draws inputs uniformly from the input schema, so the score covers combinations that never occur in practice; restricting the test to real inputs or an existing test suite makes the score only as representative as that set, which Galhotra et al. note cannot be given a confidence level."
+          "description": "Generated inputs may be unrealistic. Themis draws inputs uniformly from the input schema, so the score covers combinations that never occur in practice. Testing real inputs or an existing test suite avoids that, but the score is then only as representative as that set. Galhotra et al. note that Themis computes no confidence level for it, and an interval from a random sample of real cases covers sampling error only."
         },
         {
           "description": "Not every substitution should leave the output unchanged. Garg et al. give 'That's so gay' versus 'That's so straight' as a pair a toxicity model may rightly score differently, and clinical risk can legitimately depend on sex. Without a judgement about which pairs must match, the test raises false alarms or, if such pairs are excluded wholesale, hides real failures."
         },
         {
-          "description": "A model can pass and still produce very different outcome or error rates across groups, because the test asks only whether changing the attribute changes the output, not whether outcomes are equal. Galhotra et al. distinguish this causal discrimination from group discrimination, and Garg et al. found that reducing the token fairness gap could worsen the true positive rate, so it does not replace group metrics."
+          "description": "A model can pass and still produce very different outcome or error rates across groups, because the test asks only whether changing the attribute changes the output, not whether outcomes are equal. Galhotra et al. distinguish this causal discrimination from group discrimination, and Garg et al. note that a text classifier can satisfy counterfactual fairness while completely failing equality of odds, so it does not replace group metrics."
         }
       ],
       "resources": [
@@ -2933,12 +2933,6 @@
           "publication_date": "2017-8-21",
           "citationKey": "galhotraFairnessTestingTesting2017",
           "abstract": "This paper defines software fairness and discrimination and develops a testing-based method for measuring if and how much software discriminates, focusing on causality in discriminatory behavior. Evidence of software discrimination has been found in modern software systems that recommend criminal sentences, grant access to financial products, and determine who is allowed to participate in promotions. Our approach, Themis, generates efficient test suites to measure discrimination. Given a schema describing valid system inputs, Themis generates discrimination tests automatically and does not require an oracle. We evaluate Themis on 20 software systems, 12 of which come from prior work with explicit focus on avoiding discrimination. We find that (1) Themis is effective at discovering software discrimination, (2) state-of-the-art techniques for removing discrimination from algorithms fail in many situations, at times discriminating against as much as 98% of an input subdomain, (3) Themis optimizations are effective at producing efficient test suites for measuring discrimination, and (4) Themis is more efficient on systems that exhibit more discrimination. We thus demonstrate that fairness testing is a critical aspect of the software development cycle in domains with possible discrimination and provide initial tools for measuring software discrimination."
-        },
-        {
-          "title": "What-If Tool: features overview tutorial",
-          "url": "https://pair-code.github.io/what-if-tool/learn/tutorials/features-overview/",
-          "source_type": "tutorial",
-          "citationKey": "WhatIfToolFeatures"
         },
         {
           "title": "BiasFinder: Metamorphic Test Generation to Uncover Bias for Sentiment Analysis Systems",
@@ -2990,6 +2984,12 @@
           "publication_date": "2024-10-16",
           "citationKey": "wilsonGenderRaceIntersectional2024",
           "abstract": "Artificial intelligence (AI) hiring tools have revolutionized resume screening, and large language models (LLMs) have the potential to do the same. However, given the biases which are embedded within LLMs, it is unclear whether they can be used in this scenario without disadvantaging groups based on their protected attributes. In this work, we investigate the possibilities of using LLMs in a resume screening setting via a document retrieval framework that simulates job candidate selection. Using that framework, we then perform a resume audit study to determine whether a selection of Massive Text Embedding (MTE) models are biased in resume screening scenarios. We simulate this for nine occupations, using a collection of over 500 publicly available resumes and 500 job descriptions. We find that the MTEs are biased, significantly favoring White-associated names in 85.1% of cases and female-associated names in only 11.1% of cases, with a minority of cases showing no statistically significant differences. Further analyses show that Black males are disadvantaged in up to 100% of cases, replicating real-world patterns of bias in employment settings, and validate three hypotheses of intersectionality. We also find an impact of document length as well as the corpus frequency of names in the selection of resumes. These findings have implications for widely used AI tools that are automating employment, fairness, and tech policy."
+        },
+        {
+          "title": "How To: Edit A Datapoint — What-If Tool",
+          "url": "https://pair-code.github.io/what-if-tool/learn/tutorials/edit-datapoint",
+          "source_type": "tutorial",
+          "citationKey": "HowEditDatapoint"
         }
       ],
       "complexity_rating": 3,
@@ -2997,7 +2997,7 @@
       "related_techniques": [],
       "sample_claims": [
         {
-          "text": "Changing only an applicant's recorded sex changes the credit model's decision for fewer than 0.5% of last year's applications, at 95% confidence.",
+          "text": "Changing only an applicant's recorded sex changes the credit model's decision for fewer than 0.5% of last year's applications (upper limit of a 95% confidence interval from a random sample of them).",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
@@ -3007,12 +3007,12 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The CV-ranking service returns the same shortlist when names associated with different ethnicities and genders are swapped on otherwise identical CVs.",
+          "text": "Swapping names associated with different ethnicities and genders on otherwise identical CVs changes a CV's shortlisting outcome in fewer than 1% of the pairs tested.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The triage assistant's urgency rating does not change when a patient's stated ethnicity is changed in vignettes that clinicians judged should be unaffected by it.",
+          "text": "The triage assistant's urgency rating changes in fewer than 1% of the vignette pairs that clinicians judged should be unaffected by the patient's stated ethnicity.",
           "domain": "healthcare",
           "assuranceGoal": "fairness"
         }
@@ -3179,7 +3179,7 @@
     {
       "slug": "sequential-cart-synthesis",
       "name": "Sequential CART Synthesis",
-      "description": "Sequential CART synthesis creates an artificial copy of a confidential microdata set (records about individual people or organisations) that can be released in place of the real data. Variables are synthesised one at a time in a chosen order: the first is generated by sampling with replacement from its observed values, and for each later variable a classification or regression tree (CART) is fitted on the real data to predict it from the variables earlier in the order. Each synthetic record is passed down that tree using its already-synthesised values, and the new value is copied from a randomly chosen real record in the leaf it reaches, so the joint distribution of the data is rebuilt as a chain of conditional distributions. Disclosure risk is limited by setting a minimum leaf size, smoothing synthesised continuous values and removing synthetic records that reproduce unique real ones, and several synthetic copies can be released so that analysts can allow for the extra uncertainty that synthesis adds.",
+      "description": "Sequential CART synthesis creates an artificial copy of a confidential microdata set (records about individual people or organisations) that can be released in place of the real data, in the form used by the synthpop package for R. Variables are synthesised one at a time in a chosen order: the first is generated by sampling with replacement from its observed values, and for each later variable a classification or regression tree (CART) is fitted on the real data to predict it from the variables earlier in the order. Each synthetic record is passed down that tree using its already-synthesised values, and the new value is copied from a randomly chosen real record in the leaf it reaches, so the joint distribution of the data is rebuilt as a chain of conditional distributions. Disclosure risk is limited by setting a minimum leaf size, smoothing synthesised continuous values and removing synthetic records that reproduce unique real ones, and several synthetic copies can be released so that analysts can allow for the extra uncertainty that synthesis adds.",
       "assurance_goals": [
         "Privacy"
       ],
@@ -3202,7 +3202,7 @@
       ],
       "example_use_cases": [
         {
-          "description": "A national longitudinal study that links census, health and education records for a sample of the population cannot let approved researchers take the data off site. Its support team runs CART synthesis to produce a bespoke synthetic extract for each project, so researchers can explore the data and write and test their analysis code at their own institution before the final model is run on the real data in the secure setting.",
+          "description": "A national longitudinal study that links census returns to administrative records such as births, deaths and cancer registrations for a sample of the population cannot let approved researchers take the data off site. Its support team runs CART synthesis to produce a bespoke synthetic extract for each project, so researchers can explore the data and write and test their analysis code at their own institution before the final model is run on the real data in the secure setting.",
           "goal": "Privacy"
         },
         {
@@ -3232,7 +3232,7 @@
         {
           "title": "synthpop: Bespoke Creation of Synthetic Data in R",
           "url": "https://doi.org/10.18637/jss.v074.i11",
-          "source_type": "documentation",
+          "source_type": "technical_paper",
           "authors": [
             "Beata Nowok",
             "Gillian M. Raab",
@@ -3280,6 +3280,13 @@
           "publication_date": "2017-8-21",
           "citationKey": "nowokProvidingBespokeSynthetic2017",
           "abstract": "Synthetic data methods were designed to address the conflicting demands placed on data holders to unlock the research and policy potential of microdata while at the same time preserving the confidentiality of individuals.Recently, these methods have become more widely recognized in the UK and the provision of bespoke synthetic data has been approved to expand the use of one of the UK Longitudinal Studies.The process of producing useful synthetic data involves, however, a substantial investment of research time, as it always requires some customising for the characteristics of an individual data set.At the same time, a substantial part of it can be automated and this is essential when the process has to be conducted rapidly and on a regular basis.This paper describes the application of synthetic data to the UK Longitudinal Studies, details implementation process for the Scottish Longitudinal Study and presents methods used in an R package synthpop that has been developed to facilitate production of non-disclosive entirely synthetic data.A reproducible example using open data is given to illustrate the synthesising procedure and to provide insights into quality of synthetic data generated using different automated approaches."
+        },
+        {
+          "title": "synthpop: Generating synthetic versions of sensitive microdata for statistical disclosure control",
+          "url": "https://www.synthpop.org.uk/",
+          "source_type": "documentation",
+          "citationKey": "SynthpopGeneratingSynthetic",
+          "abstract": "What is synthpop? An R package for generating synthetic versions of sensitive microdata. A tool to create synthetic data and evaluate their utility."
         }
       ],
       "complexity_rating": 3,
@@ -3816,11 +3823,10 @@
     {
       "slug": "platt-scaling",
       "name": "Platt Scaling",
-      "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score or log loss before and after.",
+      "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve (how well the scores separate the two classes) are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed before and after with a reliability diagram (predicted probability plotted against observed frequency) and with the Brier score or log loss (two measures of how far predicted probabilities fall from what happened).",
       "assurance_goals": [
         "Reliability",
-        "Transparency",
-        "Fairness"
+        "Transparency"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -3830,8 +3836,6 @@
         "assurance-goal-category/reliability/calibration",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/confidence-and-limits",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "data-requirements/calibration-set",
         "data-type/any",
         "evidence-type/model-artefact",
@@ -3851,10 +3855,6 @@
         {
           "description": "A benefits agency uses a linear support vector machine to flag claims for manual review, but its margin scores mean nothing to caseworkers. The team applies Platt scaling so the review screen can show the probability that a claim needs correcting, publishes the calibration curve in the caseworker guidance, and explains that the figure is a rate across similar claims rather than a verdict on the individual.",
           "goal": "Transparency"
-        },
-        {
-          "description": "A hospital network recalibrates a deployed malnutrition-risk model by fitting a two-parameter logistic map to the model's log-odds on recent admissions, then compares calibration intercept and slope separately for Black and White patients and for men and women, to check that the same risk score means the same likelihood of malnutrition in each group before the scores guide dietitian referrals.",
-          "goal": "Fairness"
         }
       ],
       "limitations": [
@@ -3862,16 +3862,16 @@
           "description": "The sigmoid shape is an assumption. It corrects the S-shaped distortion typical of support vector machines and boosted trees, whose probabilities bunch towards the middle, but not the reverse distortion of overconfident models such as naive Bayes, whose probabilities pile up near 0 and 1. Where the reliability diagram shows that pattern, a flexible method such as isotonic regression is needed."
         },
         {
-          "description": "It works best when the classifier's scores for the two classes are spread in a similar way (roughly normal with equal variance). In highly imbalanced problems this often fails, and a two-parameter fit can leave the rare class poorly calibrated, which an overall score such as the Brier score can hide."
+          "description": "It works best when the classifier's scores for the two classes are spread in a similar way (roughly normal with equal variance). In highly imbalanced problems the scores of the two classes do not have equal spread, so the sigmoid can be a poor match for the data."
         },
         {
-          "description": "The curve must be fitted on labelled cases that played no part in training. The classifier separates its own training data better than new data, so a curve fitted to training scores overstates confidence in use; the cost is a held-out calibration set taken from scarce labelled data, or cross-validation with several model fits."
+          "description": "The curve should be fitted on labelled cases that played no part in training. The classifier separates its own training data better than new data, so a curve fitted to training scores overstates confidence in use; the cost is a held-out calibration set taken from scarce labelled data, or cross-validation with several model fits."
         },
         {
-          "description": "A single curve fitted across the whole population does not guarantee calibration within each subgroup. Fitting a separate curve per group needs group membership at prediction time, which may be unavailable or unlawful to use, and enough labelled cases in every group to estimate two parameters reliably."
+          "description": "A single curve fitted across the whole population does not make the model calibrated within each subgroup. In a deployed malnutrition-risk model, recalibration improved calibration within each race and sex group, yet intercepts and slopes still differed significantly between Black and White patients. Fitting a curve per group needs group membership at prediction time, which may be unavailable or unlawful to use, and enough labelled cases in every group."
         },
         {
-          "description": "It is defined for two classes. For multiclass problems each class is calibrated against the rest and the resulting probabilities are renormalised to sum to one, adding two parameters per class; for multiclass neural networks, temperature scaling, which fits one parameter shared by all classes, is the simpler alternative."
+          "description": "Recalibration changes every probability, so a decision threshold chosen on the raw scores no longer flags the same cases. After logistic recalibration of a deployed malnutrition-risk model, specificity rose from 0.74 to 0.93 and sensitivity fell from 0.75 to 0.35, so the cut-off has to be reset against the cost of each kind of error and the downstream process checked again."
         }
       ],
       "resources": [
@@ -3938,26 +3938,21 @@
           "domain": "finance"
         },
         {
-          "text": "Recalibrating the defect classifier with Platt scaling left its ranking of parts, measured by the area under the ROC curve on the test set, unchanged while reducing its log loss.",
+          "text": "After Platt scaling, the defect classifier's log loss on the held-out test set is lower than before, and its reliability diagram shows predicted defect rates within the tolerance set in the quality plan.",
           "assuranceGoal": "reliability",
           "domain": "manufacturing"
         },
         {
-          "text": "The probability shown to caseworkers for each flagged claim is calibrated against held-out review outcomes, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
+          "text": "Each flagged claim is shown to caseworkers with a probability calibrated against held-out review outcomes, and the calibration curve and its meaning are published in the caseworker guidance, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
           "assuranceGoal": "transparency",
           "domain": "public sector"
-        },
-        {
-          "text": "After recalibration, the malnutrition-risk model's calibration intercept and slope do not differ materially between patients grouped by race or by sex.",
-          "assuranceGoal": "fairness",
-          "domain": "healthcare"
         }
       ]
     },
     {
       "slug": "bootstrapping",
       "name": "Bootstrap Ensembles",
-      "description": "Bootstrap ensembles estimate how much a model's predictions depend on the particular sample of data it was trained on. The training set is resampled with replacement many times, each resample (a bootstrap replicate) holding as many cases as the original so that some cases are repeated and others left out; one model is trained on each replicate with the same settings, and every new input is passed through all of the models. The spread of the models' predictions for an input, reported as a standard deviation or as a range between percentiles, estimates the uncertainty in the model's prediction for that input, and inputs where the models disagree are those the training data constrain least. The spread covers uncertainty in the fitted model only, not the random variation in individual outcomes, so an interval meant to contain a case's actual outcome must add an estimate of that noise, for example from the models' errors on held-out data.",
+      "description": "Bootstrap ensembles estimate how much a model's predictions depend on the particular sample of data it was trained on. The training set is resampled with replacement many times, each resample (a bootstrap replicate) holding as many cases as the original so that some cases are repeated and others left out; one model is trained on each replicate with the same settings, and every new input is passed through all of the models. The spread of the models' predictions for an input, reported as a standard deviation or as a range between percentiles, estimates the uncertainty in the model's prediction for that input, and inputs where the models disagree are those the training data constrain least. The spread covers uncertainty in the fitted model only, not the random variation in individual outcomes, so an interval meant to contain a case's actual outcome must add an estimate of that noise, for example from the models' errors on held-out data. Putting a confidence interval around a measured performance score is a different procedure, which resamples the evaluation set and retrains nothing; see Bootstrap Confidence Intervals for Evaluation Metrics.",
       "assurance_goals": [
         "Reliability",
         "Transparency",
@@ -3979,18 +3974,17 @@
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
         "expertise-needed/statistics",
-        "explanatory-scope/global",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/model-testing-and-validation",
         "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "An electricity network operator forecasting next-day demand at each substation trains 100 gradient-boosted models on bootstrap replicates of three years of meter readings. Planners hold extra reserve at substations where the models' forecasts spread widely, because those are the sites whose forecasts the historical data settle least.",
+          "description": "An electricity network operator forecasting next-day demand at each substation trains 100 gradient-boosted models on bootstrap replicates of three years of meter readings, resampled in whole-week blocks because consecutive readings are correlated. Planners hold extra reserve at substations where the models' forecasts spread widely, because those are the sites whose forecasts the historical data settle least.",
           "goal": "Reliability"
         },
         {
-          "description": "A hospital's readmission-risk tool shows clinicians, beside each patient's predicted risk, the range of risks given by models trained on bootstrap replicates of the training cohort, so that a clinician can see when an estimate rests on few comparable past patients and give it less weight in discharge planning.",
+          "description": "A hospital's readmission-risk tool shows clinicians, beside each patient's predicted risk, the range of risks given by models trained on bootstrap replicates of the training cohort, resampling patients rather than admissions so that one patient's admissions stay together, so that a clinician can see when an estimate rests on few comparable past patients and give it less weight in discharge planning.",
           "goal": "Transparency"
         },
         {
@@ -4006,7 +4000,7 @@
           "description": "The spread measures uncertainty in the fitted model, not the noise in outcomes. Presented as the range within which a case's actual outcome will fall, it understates the uncertainty, most of all where outcomes are noisy and training data plentiful, so the outcome noise has to be estimated separately, for example from held-out errors, and added."
         },
         {
-          "description": "It captures only variation from which cases happened to be in the training set, assuming they were drawn independently from the population the model will meet. Choices held fixed across replicates, such as the features and architecture, add no spread, and on inputs unlike any in the training data the members can agree closely, so a small spread there is not evidence of a reliable prediction."
+          "description": "The spread reflects only what the procedure lets vary: which cases are in each training set and, for models trained from a random start such as neural networks, each member's starting point. Fixed choices such as features, architecture and training settings add no spread. A model consistently wrong for a group the data under-represent can show little spread there, and members can agree closely on inputs unlike the training data, so a small spread is not evidence of reliability."
         },
         {
           "description": "Each replicate contains on average only about 63 per cent of the distinct training cases, so each member learns from less information than a model trained on all the data. With small datasets or rare classes, some replicates may contain almost none of a rare class or subgroup, which inflates the spread for those cases and can leave individual members unusable."
@@ -4016,21 +4010,6 @@
         }
       ],
       "resources": [
-        {
-          "title": "scipy.stats.bootstrap",
-          "url": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html",
-          "source_type": "documentation",
-          "publication_date": "2008",
-          "citationKey": "Scipystatsbootstrap2008"
-        },
-        {
-          "title": "scipy/scipy: SciPy library main repository",
-          "url": "https://github.com/scipy/scipy",
-          "source_type": "software_package",
-          "publication_date": "2026-10-09T01:20:17Z",
-          "citationKey": "ScipyScipySciPy2026",
-          "abstract": "SciPy library main repository"
-        },
         {
           "title": "Bootstrap Methods: Another Look at the Jackknife",
           "url": "https://doi.org/10.1214/aos/1176344552",
@@ -4043,10 +4022,29 @@
           "abstract": "We discuss the following problem: given a random sample X = (X1, X2, …, Xn) from an unknown probability distribution F, estimate the sampling distribution of some prespecified random variable R(X, F), on the basis of the observed data x. (Standard jackknife theory gives an approximate mean and variance in the case R(X, F) = θ(F̂) − θ(F), θ some parameter of interest.) A general method, called the \"bootstrap,\" is introduced, and shown to work satisfactorily on a variety of estimation problems. The jackknife is shown to be a linear approximation method for the bootstrap. The exposition proceeds by a series of examples: variance of the sample median, error rates in a linear discriminant analysis, ratio estimation, estimating regression parameters, etc."
         },
         {
-          "title": "Resampling and Monte Carlo Methods",
-          "url": "https://docs.scipy.org/doc/scipy/tutorial/stats/resampling.html",
-          "source_type": "tutorial",
-          "citationKey": "ResamplingMonteCarlo"
+          "title": "BaggingRegressor — scikit-learn documentation",
+          "url": "https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingRegressor.html",
+          "source_type": "documentation",
+          "citationKey": "BaggingRegressorScikitlearnDocumentation",
+          "abstract": "Gallery examples: Single estimator versus bagging: bias-variance decomposition"
+        },
+        {
+          "title": "scikit-learn",
+          "url": "https://github.com/scikit-learn/scikit-learn",
+          "source_type": "software_package",
+          "citationKey": "Scikitlearn",
+          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
+        },
+        {
+          "title": "Practical Confidence and Prediction Intervals",
+          "url": "https://proceedings.neurips.cc/paper/1996/hash/7940ab47468396569a906f75ff3f20ef-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tom Heskes"
+          ],
+          "publication_date": "1996",
+          "citationKey": "heskesPracticalConfidencePrediction1996",
+          "abstract": "We  propose  a  new  method to compute prediction intervals.  Espe(cid:173) cially for small data sets the width of a prediction interval does not  only depend on the variance of the target distribution, but also on  the accuracy of our estimator of the mean of the target, i.e., on the  width  of the  confidence  interval.  The  confidence  interval  follows  from the variation in an ensemble of neural networks,  each of them  trained and stopped on bootstrap replicates of the original data set.  A second improvement is the use of the residuals on validation pat(cid:173) terns  instead of on training patterns for  estimation of the variance  of the  target  distribution.  As  illustrated  on  a  synthetic  example,  our method is  better than existing methods with regard to extrap(cid:173) olation and interpolation in data regimes with a limited amount of  data, and yields prediction intervals which  actual confidence  levels  are closer  to the desired  confidence  levels."
         }
       ],
       "complexity_rating": 3,
@@ -4058,12 +4056,12 @@
       ],
       "sample_claims": [
         {
-          "text": "For each substation's next-day demand forecast, the spread across models trained on bootstrap replicates of the historical data is reported, and forecasts whose spread exceeds the planning tolerance are flagged.",
+          "text": "For each substation's next-day demand forecast, the spread across models trained on bootstrap replicates of the historical data, resampled in whole-week blocks, is reported, and forecasts whose spread exceeds the planning tolerance are flagged.",
           "assuranceGoal": "reliability",
           "domain": "energy"
         },
         {
-          "text": "The flood model's uncertainty for each river gauge reflects how much its predictions change when it is retrained on resampled versions of the gauge records.",
+          "text": "The flood model's uncertainty for each river gauge reflects how much its predictions change when it is retrained on versions of the gauge records resampled in blocks of consecutive days.",
           "assuranceGoal": "reliability",
           "domain": "environmental"
         },
@@ -6972,7 +6970,7 @@
       "computational_cost_rating": 1,
       "related_techniques": [
         "fair-bayesian-optimisation",
-        "fairness-testing",
+        "causal-discrimination-testing",
         "reweighing"
       ],
       "sample_claims": [
@@ -8482,7 +8480,7 @@
       "computational_cost_rating": 4,
       "related_techniques": [
         "counterfactual-fairness-assessment",
-        "fairness-testing"
+        "causal-discrimination-testing"
       ],
       "sample_claims": [
         {
@@ -8510,7 +8508,7 @@
     {
       "slug": "fair-bayesian-optimisation",
       "name": "Fair Bayesian Optimisation",
-      "description": "Fair Bayesian Optimisation (FairBO) tunes a model's hyperparameters, the settings fixed before training such as tree depth or regularisation strength, to find the most accurate model that also meets a fairness threshold chosen in advance, for example a difference in positive-prediction rates between two groups of at most 0.05. Because it only changes hyperparameters and retrains, it treats the model and its training pipeline as a black box, so it works with any model class and any group fairness metric, can enforce several metrics at once, and leaves a model that needs no protected attribute at prediction time. Each step trains a model with a candidate configuration and measures its validation accuracy and fairness, and two Gaussian processes (statistical models that predict a value together with its uncertainty) are fitted to the results of the configurations tried so far. The next configuration is the one with the highest expected improvement in accuracy weighted by the predicted probability of meeting the fairness constraint; until a fair configuration has been found, the search maximises that probability alone. The output is the best configuration that met the constraint, with its accuracy and fairness measurements.",
+      "description": "Fair Bayesian Optimisation (FairBO) tunes a model's hyperparameters, the settings fixed before training such as tree depth or regularisation strength, to find the most accurate model that also meets a fairness threshold chosen in advance, for example a difference in positive-prediction rates between two groups of at most 0.05. Because it only changes hyperparameters and retrains, it treats the model and its training pipeline as a black box, so it works with any model class and any group fairness metric, can enforce several metrics at once, and returns a model that need not use the protected attribute at prediction time (the attribute is still needed to measure fairness during the search). Each step trains a model with a candidate configuration and measures its validation accuracy and fairness, and two Gaussian processes (statistical models that predict a value together with its uncertainty) are fitted to the results of the configurations tried so far. The next configuration is the one with the highest expected improvement in accuracy weighted by the predicted probability of meeting the fairness constraint; until a fair configuration has been found, the search maximises that probability alone. The output is the best configuration that met the constraint, with its accuracy and fairness measurements.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -8551,19 +8549,19 @@
       ],
       "limitations": [
         {
-          "description": "It can only reach fairness that some hyperparameter setting already provides. If no configuration in the search space meets the threshold, it returns no fair model. The originating paper found that regularisation hyperparameters (tree depth, weight penalties, learning rate) drive most of the effect, so a search space without them leaves far fewer fair options."
+          "description": "It can only reach fairness that some hyperparameter setting already provides. If no configuration in the search space meets the threshold, it returns no fair model. The originating paper found that regularisation hyperparameters (tree depth, weight penalties, learning rate) have the largest effect on fairness, so a search space without them leaves fewer fair options."
         },
         {
           "description": "The fairness metric and its threshold must be fixed before the search, and the result says nothing about metrics that were not constrained. Choosing them is a normative decision the method does not make. If decision-makers need to see the whole accuracy-fairness trade-off before picking a threshold, a multi-objective search is needed, which the paper found slower to reach a model meeting a given threshold."
         },
         {
-          "description": "A constraint can be met by a model that barely distinguishes between anyone. The paper shows that as regularisation grows, predictions approach a constant and satisfy every group fairness metric, and on its benchmarks random search found fair models only at the accuracy of always predicting the majority class. Check accuracy and error rates within each group, not only the fairness gap, before accepting the result."
+          "description": "A constraint can be met by a model that barely distinguishes between anyone. The paper argues that as regularisation grows, predictions approach a constant and satisfy every group fairness metric, and in its example run on the Adult dataset (random forest, parity gap at most 0.05) random search found fair models only at the accuracy of always predicting the majority class. Check accuracy and error rates within each group, not only the fairness gap, before accepting the result."
         },
         {
           "description": "Every step trains a full model, so the cost is the training cost multiplied by the number of evaluations (the paper used up to 100), which is expensive for large models. The fairness value guiding the search is estimated on the validation split used during tuning, so it carries sampling error that is large when a group is small; confirm the gap on held-out data before relying on it."
         },
         {
-          "description": "No maintained implementation exists. The authors released it in AutoGluon 0.3.1 (2021), which dropped it from version 0.4.0; it later lived in Syne Tune until version 0.13.0 (2024), and later Syne Tune releases removed the constrained searcher although the current documentation still describes it. Using it today means pinning an old release or rebuilding the method on a general constrained Bayesian optimisation library."
+          "description": "It has little evidence behind it and no maintained implementation. The paper tests only binary classification with a binary protected attribute on three tabular datasets, leaving regression, image and language tasks to future work. The code shipped in AutoGluon 0.3.1 (2021) and was dropped in 0.4.0; Syne Tune moved it to a legacy folder in 0.14 and removed it in 0.15 (December 2025), though its documentation still describes it. Use means pinning an old release or rebuilding it."
         }
       ],
       "resources": [
@@ -10350,7 +10348,7 @@
     {
       "slug": "cross-modal-consistency-scoring",
       "name": "Cross-Modal Consistency Scoring",
-      "description": "Cross-modal consistency scoring checks whether content in one modality matches content in another, such as an image and its caption, a generated image and the prompt that produced it, or an audio clip and its description. It uses a contrastively trained model, CLIP for images and text or CLAP for audio and text, which has learned from large collections of paired examples to turn each item into an embedding (a numerical vector describing its content) and to place matching pairs close together. The score for a pair is the cosine similarity of its two embeddings; in the standard image form, CLIPScore, negative similarities are set to zero and the result is rescaled, and no human-written reference is needed. A practitioner scores every pair in an evaluation set or in production, sets a threshold against a sample of human judgements, and then compares average scores between systems or sends pairs below the threshold for review. The score shows whether two items are about the same things, not whether every detail of a description is correct.",
+      "description": "Cross-modal consistency scoring checks whether content in one modality matches content in another, such as an image and its caption, a generated image and the prompt that produced it, or an audio clip and its description. It uses a contrastively trained model, one that has learned from large collections of paired examples to turn each item into an embedding (a numerical vector describing its content) and to place matching pairs close together: CLIP, trained on image-caption pairs, for images and text, or CLAP, its audio-and-text counterpart, for audio and text. The score for a pair is the cosine similarity of its two embeddings; in the standard image form, CLIPScore, negative similarities are set to zero and the result is rescaled, and no human-written reference is needed. A practitioner scores every pair in an evaluation set or in production, sets a threshold against a sample of human judgements, and then compares average scores between systems or sends pairs below the threshold for review. The score shows whether two items are about the same things, not whether every detail of a description is correct.",
       "assurance_goals": [
         "Reliability"
       ],
@@ -10375,7 +10373,7 @@
       ],
       "example_use_cases": [
         {
-          "description": "A public library deploying an automatic alt-text generator for its digitised photograph collection scores every generated description against its image and routes those below a threshold, set on a sample rated by staff, to a cataloguer, so that visitors using screen readers are not given descriptions of the wrong content.",
+          "description": "A public library deploying an automatic alt-text generator for its digitised photograph collection scores every generated description against its image and routes those below a threshold, set on a sample rated by staff, to a cataloguer, so that descriptions of the wrong subject are caught before visitors using screen readers meet them; names, dates and places in the descriptions are checked separately.",
           "goal": "Reliability"
         },
         {
@@ -10402,20 +10400,13 @@
           "description": "Scores inherit the encoder's training data, which is mostly web alt-text, and its biases. An audit of CLIP-based filtering found that data associated with LGBTQ+ people, older women and younger men was excluded at higher rates, so a single threshold can be stricter for some subjects than others and needs checking by group."
         },
         {
-          "description": "Scores have no absolute meaning: they depend on the encoder checkpoint, are not comparable across checkpoints, and the default CLIP text encoder reads at most 77 tokens, so longer descriptions are judged on their opening only. Thresholds must be set and reported for the specific model and settings used."
+          "description": "Scores have no absolute meaning: they depend on the encoder checkpoint and on the tool's scaling (the original CLIPScore multiplies the cosine similarity by 2.5, torchmetrics by 100), so values are not comparable across checkpoints or tools. The default CLIP text encoder also reads at most 77 tokens, so longer descriptions are judged on their opening only. Thresholds must be set and reported for the specific model and settings used."
         },
         {
           "description": "The audio form is weaker still: CLAP-based scores have been found to correlate only weakly with human ratings of how well audio matches its text, so for audio the score is a coarse screen to prioritise human checks rather than evidence of consistency on its own."
         }
       ],
       "resources": [
-        {
-          "title": "CLIP",
-          "url": "https://huggingface.co/docs/transformers/en/model_doc/clip",
-          "source_type": "documentation",
-          "publication_date": "2021",
-          "citationKey": "CLIP2021"
-        },
         {
           "title": "CLIP Score — TorchMetrics documentation",
           "url": "https://lightning.ai/docs/torchmetrics/stable/multimodal/clip_score.html",
@@ -10491,6 +10482,21 @@
           "publication_date": "2024-10-29",
           "citationKey": "hongWhosWhosOut2024",
           "abstract": "As training datasets become increasingly drawn from unstructured, uncontrolled environments such as the web, researchers and industry practitioners have increasingly relied upon data filtering techniques to “filter out the noise” of web-scraped data. While datasets have been widely shown to reflect the biases and values of their creators, in this paper we contribute to an emerging body of research that assesses the filters used to create these datasets. We show that image-text data filtering also has biases and is value-laden, encoding specific notions of what is counted as “high-quality” data. In our work, we audit a standard approach of image-text CLIP-filtering on the academic benchmark DataComp’s CommonPool by analyzing discrepancies of filtering through various annotation techniques across multiple modalities of image, text, and website source. We find that data relating to several imputed demographic groups — such as LGBTQ+ people, older women, and younger men — are associated with higher rates of exclusion. We also find prevalence of Western bias, where the CLIP filter is more likely to include data related to Western countries compared to that of non-Western countries. Moreover, we demonstrate cases of exclusion amplification: not only are certain marginalized groups already underrepresented in the unfiltered data, but CLIP-filtering excludes data from these groups at higher rates. The data-filtering step in the machine learning pipeline can therefore exacerbate representation disparities already present in the data-gathering step, especially when existing filters are designed to optimize a specifically-chosen downstream performance metric like zero-shot image classification accuracy. Finally, we show that the NSFW filter fails to remove sexually-explicit content from CommonPool, and that CLIP-filtering includes several categories of copyrighted content at high rates. Our conclusions point to a need for fundamental changes in dataset creation and filtering practices. Content warning: This paper discusses societal stereotypes and sexually-explicit material that may be disturbing, distressing, and/or offensive to the reader."
+        },
+        {
+          "title": "RELATE: Subjective evaluation dataset for automatic evaluation of relevance between text and audio",
+          "url": "https://doi.org/10.21437/interspeech.2025-1830",
+          "source_type": "technical_paper",
+          "authors": [
+            "Yusuke Kanamori",
+            "Yuki Okamoto",
+            "Taisei Takano",
+            "Shinnosuke Takamichi",
+            "Yuki Saito",
+            "Hiroshi Saruwatari"
+          ],
+          "publication_date": "2025-8-17",
+          "citationKey": "kanamoriRELATESubjectiveEvaluation2025"
         }
       ],
       "related_techniques": [
@@ -11164,7 +11170,7 @@
     {
       "slug": "isotonic-regression-calibration",
       "name": "Isotonic Regression Calibration",
-      "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score before and after.",
+      "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score (a measure of how far predicted probabilities fall from what happened) before and after.",
       "assurance_goals": [
         "Reliability",
         "Transparency"
@@ -11194,7 +11200,7 @@
           "goal": "Reliability"
         },
         {
-          "description": "An insurer's pricing team applies isotonic recalibration to the output of its claim-probability model, fitted on a large portfolio, so that within each band of predicted risk the average prediction equals the observed claim rate on the calibration data and no group of policyholders systematically subsidises another.",
+          "description": "An insurer's pricing team applies isotonic recalibration to the output of its claim-probability model, fitted on a large portfolio and checked on a later year of policies, so that within each band of predicted risk the average prediction matches the observed claim rate and no price band systematically subsidises another.",
           "goal": "Reliability"
         },
         {
@@ -11204,7 +11210,7 @@
       ],
       "limitations": [
         {
-          "description": "It needs plenty of calibration data. With fewer than about a thousand labelled cases the step function follows noise in the calibration set, and the two-parameter curve of Platt scaling usually does as well or better; isotonic regression pays off when calibration data are plentiful."
+          "description": "It needs plenty of calibration data. With fewer than about a thousand labelled cases the step function follows noise in the calibration set. Because each step matches the observed rate exactly on the cases it was fitted to, calibration checked on those same cases looks perfect whatever its true quality, so it must be checked on separate cases. The two-parameter curve of Platt scaling usually does as well or better on small sets; isotonic regression pays off when calibration data are plentiful."
         },
         {
           "description": "The output is a step function, so many different scores receive exactly the same probability. These ties discard distinctions the model made within a step, can change ranking measures such as the area under the ROC curve after calibration, and matter when a decision threshold falls inside a wide step."
@@ -11274,12 +11280,12 @@
           "domain": "healthcare"
         },
         {
-          "text": "Within each band of predicted claim probability, the average prediction equals the observed claim rate on the calibration data, so no band of policyholders systematically subsidises another.",
+          "text": "Within each band of predicted claim probability, the average prediction on a later, held-out year of policies is within the tolerance in the pricing policy of the observed claim rate, so no band of policyholders systematically subsidises another.",
           "assuranceGoal": "reliability",
           "domain": "finance"
         },
         {
-          "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases, and the reliability diagram is published alongside the review tool.",
+          "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases and agree with observed fraud rates on held-out cases, and the reliability diagram is published alongside the review tool.",
           "assuranceGoal": "transparency",
           "domain": "e-commerce"
         }
@@ -11288,7 +11294,7 @@
     {
       "slug": "scenario-based-simulation-testing",
       "name": "Scenario-Based Simulation Testing",
-      "description": "Scenario-based simulation testing checks an automated system, most often an automated driving system, by running it through a planned set of situations in a simulator and judging each run against criteria fixed in advance. Scenarios are written at three levels of detail: a functional scenario describes a situation in words (a car cuts in ahead on a motorway), a logical scenario turns it into parameters with ranges (speeds, gaps, road friction), and a concrete scenario fixes one value for every parameter so that the run can be reproduced exactly. Functional scenarios are derived from hazard analysis and from the operational design domain (the conditions the system is designed to work in), and concrete scenarios are sampled from the logical ranges, either to cover the whole range or to seek out rare, critical combinations. Each concrete scenario is executed with the system under test in the loop, and pass or fail is decided against its expected behaviour, such as no collision, or by criticality measures such as time-to-collision, giving a record of which situations the system handles and which it does not. ISO 34502 sets out this process as a safety evaluation framework for automated driving systems.",
+      "description": "Scenario-based simulation testing checks an automated system, most often an automated driving system, by running it through a planned set of situations in a simulator and judging each run against criteria fixed in advance. Scenarios are written at three levels of detail: a functional scenario describes a situation in words (a car cuts in ahead on a motorway), a logical scenario turns it into parameters with ranges (speeds, gaps, road friction), and a concrete scenario fixes one value for every parameter so that the run can be reproduced exactly. Functional scenarios are derived from hazard analysis and from the operational design domain (the conditions the system is designed to work in), and concrete scenarios are sampled from the logical ranges, either to cover the whole range or to seek out rare, critical combinations, or are reconstructed from recorded incidents. Each concrete scenario is executed with the system under test in the loop, and pass or fail is decided against its expected behaviour, such as no collision, or by criticality measures such as time-to-collision, giving a record of which situations the system handles and which it does not. ISO 34502 gives a scenario-based safety evaluation framework of this kind for automated driving systems on limited-access highways.",
       "assurance_goals": [
         "Safety"
       ],
@@ -11338,14 +11344,15 @@
           "description": "Pass criteria encode a judgement about acceptable behaviour. 'No collision' misses near misses and lucky escapes, while criticality measures such as time-to-collision need thresholds that the developer must choose and justify, and the verdicts change with them."
         },
         {
-          "description": "Building scenario catalogues, simulation environments and behaviour models for other road users takes specialist effort and substantial computing, and ISO 34502 covers automated driving on limited-access highways only, so other road types and other domains must adapt the framework themselves."
+          "description": "Building scenario catalogues, simulation environments and behaviour models for other road users takes specialist effort and substantial computing. ISO 34502 applies only to limited-access highways, so for urban roads, ships and other domains the scenario structure, pass criteria and coverage argument have to be built without the standard's support."
         }
       ],
       "resources": [
         {
-          "title": "Road vehicles � Test scenarios for automated driving systems � Scenario based safety evaluation framework",
+          "title": "Road vehicles — Test scenarios for automated driving systems — Scenario based safety evaluation framework",
           "url": "https://doi.org/10.3403/30405434",
           "source_type": "documentation",
+          "publication_date": "2022",
           "citationKey": "RoadVehiclesTesta"
         },
         {
@@ -11402,7 +11409,7 @@
           "domain": "autonomous systems"
         },
         {
-          "text": "In simulated reconstructions of the fatal crashes recorded in its operating area, the driving system avoided every crash in which it replaced the driver who initiated the conflict.",
+          "text": "In simulated reconstructions of the fatal crashes recorded in its operating area, the driving system avoided every crash in which it replaced the driver who initiated the conflict, and the crashes it did not avoid when replacing the responding driver are reported with their causes.",
           "assuranceGoal": "safety",
           "domain": "transport"
         },
@@ -11450,7 +11457,7 @@
           "goal": "Reliability"
         },
         {
-          "description": "A fisheries agency whose vessel-detection model must keep false alarms below 2 per cent of non-vessel image patches re-measures the false-positive rate each quarter on several thousand newly labelled patches, puts a bootstrap interval on it, and states compliance against the interval's upper bound, so a quarter whose labelled sample is too small to show compliance is visible as such.",
+          "description": "A fisheries agency whose vessel-detection model must keep false alarms below 2 per cent of non-vessel image patches re-measures the false-positive rate each quarter on several thousand newly labelled patches, puts a bootstrap interval on it, and states compliance against the interval's upper bound. In a quarter where the labelled sample yields only a handful of false positives, the agency uses an exact binomial interval instead, because the bootstrap interval is too narrow at that count.",
           "goal": "Reliability"
         },
         {
@@ -11460,19 +11467,19 @@
       ],
       "limitations": [
         {
-          "description": "For a rate built from rare errors, such as a low false-positive rate, the interval is too narrow when the test set holds only a handful of errors. With 200 negative cases and a true rate of 0.5 per cent, about a third of test sets contain no false positives, and the interval is then [0, 0], excluding the true rate. For a single proportion the exact binomial (Clopper-Pearson) interval avoids this without resampling; the bootstrap earns its place on metrics with no simple formula."
+          "description": "For a rate built from rare errors, such as a low false-positive rate, the interval is too narrow when the test set holds only a handful of errors. With 200 negatives and a true rate of 0.5 per cent, about a third of test sets have no false positives; the percentile interval is then [0, 0] and BCa may return no value. For a single proportion the exact binomial (Clopper-Pearson) interval avoids this; the bootstrap earns its place on metrics with no simple formula."
         },
         {
-          "description": "Resampling single cases assumes they are independent. When several test cases come from one patient, vessel, user or time window, their errors are correlated, and resampling cases treats them as separate evidence, giving intervals that can be much too narrow. Resampling whole clusters (patients, days) instead restores the right width, which needs the cluster of each case to be recorded in the test set."
+          "description": "Resampling single cases assumes they are independent. When several test cases come from one patient, vessel, user or time window, their errors are correlated, and resampling cases treats them as separate evidence, giving intervals that can be much too narrow. Resampling whole clusters (patients, days) instead restores the right width when there are enough clusters, which needs the cluster of each case to be recorded in the test set; with few clusters the interval is again too narrow."
         },
         {
-          "description": "The interval reflects only which cases happened to be in the test set. It says nothing about variation from retraining the model on other data or with another random seed, nor about whether the test set represents the deployment population, so a narrow interval on an unrepresentative test set is precise and still wrong."
+          "description": "The interval reflects only which cases happened to be in the test set. It says nothing about variation from retraining the model on other data or with another random seed, nor about whether the test set represents the deployment population, so a narrow interval on an unrepresentative test set is precise and still wrong. Uncertainty in a single prediction, from retraining on resampled training data, is a different procedure; see Bootstrap Ensembles."
         },
         {
-          "description": "If the decision threshold, the model or the metric was chosen by looking at the same test set, resampling that set without repeating the choice inside each resample centres the interval on an optimistic estimate, because the selection effect is not reproduced. The choice has to be made on separate data, or repeated within every resample at a matching increase in computation."
+          "description": "If the decision threshold, the model or the metric was chosen by looking at the same test set, resampling that set leaves the interval centred on an optimistic estimate, because the selection effect is not reproduced in the resamples. The choice has to be made on data separate from the set that is resampled."
         },
         {
-          "description": "Coverage is approximate and improves with test-set size. Percentile intervals can be off for skewed metrics on small test sets; the BCa interval corrects for this but needs an extra leave-one-out pass over the test set, which is slow for large sets or costly metrics, and it returns no interval when every resample gives the same value."
+          "description": "Coverage is approximate and improves with test-set size. Percentile intervals can be too narrow on small test sets, and more so for skewed metrics; the BCa interval corrects for bias and skew but not for the narrowness that comes from a small test set, so small test sets stay a problem. BCa also needs an extra leave-one-out pass over the test set, which is slow for large sets or costly metrics, and it returns no interval when every resample gives the same value."
         }
       ],
       "resources": [
@@ -11535,7 +11542,7 @@
       "related_techniques": [],
       "sample_claims": [
         {
-          "text": "The upper bound of the 95 per cent bootstrap confidence interval for the vessel detector's false-positive rate on this quarter's labelled patches is below the 2 per cent limit.",
+          "text": "The upper bound of the 95 per cent bootstrap confidence interval for the vessel detector's false-positive rate on this quarter's labelled patches is below the 2 per cent limit, and the number of false positives it rests on is reported with it.",
           "assuranceGoal": "reliability",
           "domain": "environmental"
         },
@@ -11590,7 +11597,7 @@
           "goal": "Reliability"
         },
         {
-          "description": "A card-payments company re-runs the analysis every month on transactions its fraud analysts have labelled, confirms that the false-positive rate at the live threshold is still under the limit agreed with its customer-service team, and reopens the threshold choice on the latest ROC curve whenever the rate has drifted above that limit.",
+          "description": "A card-payments company re-runs the analysis every month on transactions its fraud analysts have labelled, confirms that the false-positive rate at the live threshold is still under the limit agreed with its customer-service team, and, whenever the rate has drifted above that limit, reopens the threshold choice on the latest ROC curve and confirms the new threshold on the following month's labelled sample.",
           "goal": "Reliability"
         },
         {
@@ -11610,10 +11617,10 @@
           "description": "False-positive and true-positive rates do not change with how common the positive class is, but the share of alerts that are correct does. A false-positive rate within its limit can still mean most alerts are false when the condition is rare: at 90 per cent sensitivity and a 5 per cent false-positive rate, only about 15 per cent of alerts are correct when 1 case in 100 is positive. Claims about alert burden need the positive predictive value at the deployment prevalence as well."
         },
         {
-          "description": "A rate measured on a finite test set is an estimate, and with few negative cases or few false positives it can fall well below the true rate by chance. A claim that a rate is within a limit therefore needs a confidence interval on the rate (see Bootstrap Confidence Intervals for Evaluation Metrics) and a test set large enough for that interval to be narrower than the margin to the limit."
+          "description": "A rate from a finite test set is an estimate, and with few negatives or few errors it can fall well below the true rate by chance. A claim that a rate is within a limit needs a confidence interval (exact binomial for a single rate; see Bootstrap Confidence Intervals for Evaluation Metrics for other metrics) narrower than the margin to the limit. With no misses, about 3,000 positives show a miss rate below 1 in 1,000, and 30,000 below 1 in 10,000, at 95 per cent confidence."
         },
         {
-          "description": "The threshold is a fixed score value, so the rates hold only while the scores the model gives each class stay as they were in the test set. A new scanner, a new fraud pattern or a change in patient mix shifts the scores and moves the false-positive rate at the same threshold with no change to the model. Showing that a rate remains within bounds means repeating the analysis on labelled operational samples, which can be slow or costly to obtain."
+          "description": "The threshold is a fixed score, so the rates hold only while the scores for each class stay as in the test set. A new scanner, fraud pattern or patient mix shifts the scores and moves the false-positive rate with no change to the model, so the analysis must be repeated on labelled operational samples, which can be slow or costly. Labels matter too: where only flagged cases are reviewed, the rate for unflagged cases is unknown unless a random sample of them is labelled."
         },
         {
           "description": "A single rate averages over the whole test set. It can meet its limit overall while exceeding it for a group of people or an operating condition (night-time images, one hospital site) that is rare in the test data. Rates need reporting for each group and condition the claim covers, each with enough cases to be informative, which can multiply the labelled data required."
@@ -11699,7 +11706,7 @@
           "domain": "finance"
         },
         {
-          "text": "At the alert threshold in clinical use, the sepsis model's sensitivity, specificity and positive predictive value on a year of local admissions are reported together with the share of admissions it would alert on.",
+          "text": "At the alert threshold in clinical use, the sepsis model's sensitivity and specificity on a year of local admissions meet the limits agreed with the clinical team, and the share of admissions that trigger an alert stays within the agreed alert load.",
           "assuranceGoal": "reliability",
           "domain": "healthcare"
         },

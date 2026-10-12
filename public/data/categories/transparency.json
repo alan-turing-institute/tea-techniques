@@ -2,7 +2,7 @@
   "goal": {
     "name": "Transparency",
     "slug": "transparency",
-    "count": 69,
+    "count": 68,
     "description": "Making AI systems and their decision-making processes open and understandable."
   },
   "techniques": [
@@ -2244,11 +2244,10 @@
     {
       "slug": "platt-scaling",
       "name": "Platt Scaling",
-      "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score or log loss before and after.",
+      "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve (how well the scores separate the two classes) are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed before and after with a reliability diagram (predicted probability plotted against observed frequency) and with the Brier score or log loss (two measures of how far predicted probabilities fall from what happened).",
       "assurance_goals": [
         "Reliability",
-        "Transparency",
-        "Fairness"
+        "Transparency"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -2258,8 +2257,6 @@
         "assurance-goal-category/reliability/calibration",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/confidence-and-limits",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "data-requirements/calibration-set",
         "data-type/any",
         "evidence-type/model-artefact",
@@ -2279,10 +2276,6 @@
         {
           "description": "A benefits agency uses a linear support vector machine to flag claims for manual review, but its margin scores mean nothing to caseworkers. The team applies Platt scaling so the review screen can show the probability that a claim needs correcting, publishes the calibration curve in the caseworker guidance, and explains that the figure is a rate across similar claims rather than a verdict on the individual.",
           "goal": "Transparency"
-        },
-        {
-          "description": "A hospital network recalibrates a deployed malnutrition-risk model by fitting a two-parameter logistic map to the model's log-odds on recent admissions, then compares calibration intercept and slope separately for Black and White patients and for men and women, to check that the same risk score means the same likelihood of malnutrition in each group before the scores guide dietitian referrals.",
-          "goal": "Fairness"
         }
       ],
       "limitations": [
@@ -2290,16 +2283,16 @@
           "description": "The sigmoid shape is an assumption. It corrects the S-shaped distortion typical of support vector machines and boosted trees, whose probabilities bunch towards the middle, but not the reverse distortion of overconfident models such as naive Bayes, whose probabilities pile up near 0 and 1. Where the reliability diagram shows that pattern, a flexible method such as isotonic regression is needed."
         },
         {
-          "description": "It works best when the classifier's scores for the two classes are spread in a similar way (roughly normal with equal variance). In highly imbalanced problems this often fails, and a two-parameter fit can leave the rare class poorly calibrated, which an overall score such as the Brier score can hide."
+          "description": "It works best when the classifier's scores for the two classes are spread in a similar way (roughly normal with equal variance). In highly imbalanced problems the scores of the two classes do not have equal spread, so the sigmoid can be a poor match for the data."
         },
         {
-          "description": "The curve must be fitted on labelled cases that played no part in training. The classifier separates its own training data better than new data, so a curve fitted to training scores overstates confidence in use; the cost is a held-out calibration set taken from scarce labelled data, or cross-validation with several model fits."
+          "description": "The curve should be fitted on labelled cases that played no part in training. The classifier separates its own training data better than new data, so a curve fitted to training scores overstates confidence in use; the cost is a held-out calibration set taken from scarce labelled data, or cross-validation with several model fits."
         },
         {
-          "description": "A single curve fitted across the whole population does not guarantee calibration within each subgroup. Fitting a separate curve per group needs group membership at prediction time, which may be unavailable or unlawful to use, and enough labelled cases in every group to estimate two parameters reliably."
+          "description": "A single curve fitted across the whole population does not make the model calibrated within each subgroup. In a deployed malnutrition-risk model, recalibration improved calibration within each race and sex group, yet intercepts and slopes still differed significantly between Black and White patients. Fitting a curve per group needs group membership at prediction time, which may be unavailable or unlawful to use, and enough labelled cases in every group."
         },
         {
-          "description": "It is defined for two classes. For multiclass problems each class is calibrated against the rest and the resulting probabilities are renormalised to sum to one, adding two parameters per class; for multiclass neural networks, temperature scaling, which fits one parameter shared by all classes, is the simpler alternative."
+          "description": "Recalibration changes every probability, so a decision threshold chosen on the raw scores no longer flags the same cases. After logistic recalibration of a deployed malnutrition-risk model, specificity rose from 0.74 to 0.93 and sensitivity fell from 0.75 to 0.35, so the cut-off has to be reset against the cost of each kind of error and the downstream process checked again."
         }
       ],
       "resources": [
@@ -2366,19 +2359,14 @@
           "domain": "finance"
         },
         {
-          "text": "Recalibrating the defect classifier with Platt scaling left its ranking of parts, measured by the area under the ROC curve on the test set, unchanged while reducing its log loss.",
+          "text": "After Platt scaling, the defect classifier's log loss on the held-out test set is lower than before, and its reliability diagram shows predicted defect rates within the tolerance set in the quality plan.",
           "assuranceGoal": "reliability",
           "domain": "manufacturing"
         },
         {
-          "text": "The probability shown to caseworkers for each flagged claim is calibrated against held-out review outcomes, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
+          "text": "Each flagged claim is shown to caseworkers with a probability calibrated against held-out review outcomes, and the calibration curve and its meaning are published in the caseworker guidance, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
           "assuranceGoal": "transparency",
           "domain": "public sector"
-        },
-        {
-          "text": "After recalibration, the malnutrition-risk model's calibration intercept and slope do not differ materially between patients grouped by race or by sex.",
-          "assuranceGoal": "fairness",
-          "domain": "healthcare"
         }
       ]
     },
@@ -2647,7 +2635,7 @@
     {
       "slug": "bootstrapping",
       "name": "Bootstrap Ensembles",
-      "description": "Bootstrap ensembles estimate how much a model's predictions depend on the particular sample of data it was trained on. The training set is resampled with replacement many times, each resample (a bootstrap replicate) holding as many cases as the original so that some cases are repeated and others left out; one model is trained on each replicate with the same settings, and every new input is passed through all of the models. The spread of the models' predictions for an input, reported as a standard deviation or as a range between percentiles, estimates the uncertainty in the model's prediction for that input, and inputs where the models disagree are those the training data constrain least. The spread covers uncertainty in the fitted model only, not the random variation in individual outcomes, so an interval meant to contain a case's actual outcome must add an estimate of that noise, for example from the models' errors on held-out data.",
+      "description": "Bootstrap ensembles estimate how much a model's predictions depend on the particular sample of data it was trained on. The training set is resampled with replacement many times, each resample (a bootstrap replicate) holding as many cases as the original so that some cases are repeated and others left out; one model is trained on each replicate with the same settings, and every new input is passed through all of the models. The spread of the models' predictions for an input, reported as a standard deviation or as a range between percentiles, estimates the uncertainty in the model's prediction for that input, and inputs where the models disagree are those the training data constrain least. The spread covers uncertainty in the fitted model only, not the random variation in individual outcomes, so an interval meant to contain a case's actual outcome must add an estimate of that noise, for example from the models' errors on held-out data. Putting a confidence interval around a measured performance score is a different procedure, which resamples the evaluation set and retrains nothing; see Bootstrap Confidence Intervals for Evaluation Metrics.",
       "assurance_goals": [
         "Reliability",
         "Transparency",
@@ -2669,18 +2657,17 @@
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
         "expertise-needed/statistics",
-        "explanatory-scope/global",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/model-testing-and-validation",
         "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "An electricity network operator forecasting next-day demand at each substation trains 100 gradient-boosted models on bootstrap replicates of three years of meter readings. Planners hold extra reserve at substations where the models' forecasts spread widely, because those are the sites whose forecasts the historical data settle least.",
+          "description": "An electricity network operator forecasting next-day demand at each substation trains 100 gradient-boosted models on bootstrap replicates of three years of meter readings, resampled in whole-week blocks because consecutive readings are correlated. Planners hold extra reserve at substations where the models' forecasts spread widely, because those are the sites whose forecasts the historical data settle least.",
           "goal": "Reliability"
         },
         {
-          "description": "A hospital's readmission-risk tool shows clinicians, beside each patient's predicted risk, the range of risks given by models trained on bootstrap replicates of the training cohort, so that a clinician can see when an estimate rests on few comparable past patients and give it less weight in discharge planning.",
+          "description": "A hospital's readmission-risk tool shows clinicians, beside each patient's predicted risk, the range of risks given by models trained on bootstrap replicates of the training cohort, resampling patients rather than admissions so that one patient's admissions stay together, so that a clinician can see when an estimate rests on few comparable past patients and give it less weight in discharge planning.",
           "goal": "Transparency"
         },
         {
@@ -2696,7 +2683,7 @@
           "description": "The spread measures uncertainty in the fitted model, not the noise in outcomes. Presented as the range within which a case's actual outcome will fall, it understates the uncertainty, most of all where outcomes are noisy and training data plentiful, so the outcome noise has to be estimated separately, for example from held-out errors, and added."
         },
         {
-          "description": "It captures only variation from which cases happened to be in the training set, assuming they were drawn independently from the population the model will meet. Choices held fixed across replicates, such as the features and architecture, add no spread, and on inputs unlike any in the training data the members can agree closely, so a small spread there is not evidence of a reliable prediction."
+          "description": "The spread reflects only what the procedure lets vary: which cases are in each training set and, for models trained from a random start such as neural networks, each member's starting point. Fixed choices such as features, architecture and training settings add no spread. A model consistently wrong for a group the data under-represent can show little spread there, and members can agree closely on inputs unlike the training data, so a small spread is not evidence of reliability."
         },
         {
           "description": "Each replicate contains on average only about 63 per cent of the distinct training cases, so each member learns from less information than a model trained on all the data. With small datasets or rare classes, some replicates may contain almost none of a rare class or subgroup, which inflates the spread for those cases and can leave individual members unusable."
@@ -2706,21 +2693,6 @@
         }
       ],
       "resources": [
-        {
-          "title": "scipy.stats.bootstrap",
-          "url": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.bootstrap.html",
-          "source_type": "documentation",
-          "publication_date": "2008",
-          "citationKey": "Scipystatsbootstrap2008"
-        },
-        {
-          "title": "scipy/scipy: SciPy library main repository",
-          "url": "https://github.com/scipy/scipy",
-          "source_type": "software_package",
-          "publication_date": "2026-10-09T01:20:17Z",
-          "citationKey": "ScipyScipySciPy2026",
-          "abstract": "SciPy library main repository"
-        },
         {
           "title": "Bootstrap Methods: Another Look at the Jackknife",
           "url": "https://doi.org/10.1214/aos/1176344552",
@@ -2733,10 +2705,29 @@
           "abstract": "We discuss the following problem: given a random sample X = (X1, X2, …, Xn) from an unknown probability distribution F, estimate the sampling distribution of some prespecified random variable R(X, F), on the basis of the observed data x. (Standard jackknife theory gives an approximate mean and variance in the case R(X, F) = θ(F̂) − θ(F), θ some parameter of interest.) A general method, called the \"bootstrap,\" is introduced, and shown to work satisfactorily on a variety of estimation problems. The jackknife is shown to be a linear approximation method for the bootstrap. The exposition proceeds by a series of examples: variance of the sample median, error rates in a linear discriminant analysis, ratio estimation, estimating regression parameters, etc."
         },
         {
-          "title": "Resampling and Monte Carlo Methods",
-          "url": "https://docs.scipy.org/doc/scipy/tutorial/stats/resampling.html",
-          "source_type": "tutorial",
-          "citationKey": "ResamplingMonteCarlo"
+          "title": "BaggingRegressor — scikit-learn documentation",
+          "url": "https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.BaggingRegressor.html",
+          "source_type": "documentation",
+          "citationKey": "BaggingRegressorScikitlearnDocumentation",
+          "abstract": "Gallery examples: Single estimator versus bagging: bias-variance decomposition"
+        },
+        {
+          "title": "scikit-learn",
+          "url": "https://github.com/scikit-learn/scikit-learn",
+          "source_type": "software_package",
+          "citationKey": "Scikitlearn",
+          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
+        },
+        {
+          "title": "Practical Confidence and Prediction Intervals",
+          "url": "https://proceedings.neurips.cc/paper/1996/hash/7940ab47468396569a906f75ff3f20ef-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tom Heskes"
+          ],
+          "publication_date": "1996",
+          "citationKey": "heskesPracticalConfidencePrediction1996",
+          "abstract": "We  propose  a  new  method to compute prediction intervals.  Espe(cid:173) cially for small data sets the width of a prediction interval does not  only depend on the variance of the target distribution, but also on  the accuracy of our estimator of the mean of the target, i.e., on the  width  of the  confidence  interval.  The  confidence  interval  follows  from the variation in an ensemble of neural networks,  each of them  trained and stopped on bootstrap replicates of the original data set.  A second improvement is the use of the residuals on validation pat(cid:173) terns  instead of on training patterns for  estimation of the variance  of the  target  distribution.  As  illustrated  on  a  synthetic  example,  our method is  better than existing methods with regard to extrap(cid:173) olation and interpolation in data regimes with a limited amount of  data, and yields prediction intervals which  actual confidence  levels  are closer  to the desired  confidence  levels."
         }
       ],
       "complexity_rating": 3,
@@ -2748,12 +2739,12 @@
       ],
       "sample_claims": [
         {
-          "text": "For each substation's next-day demand forecast, the spread across models trained on bootstrap replicates of the historical data is reported, and forecasts whose spread exceeds the planning tolerance are flagged.",
+          "text": "For each substation's next-day demand forecast, the spread across models trained on bootstrap replicates of the historical data, resampled in whole-week blocks, is reported, and forecasts whose spread exceeds the planning tolerance are flagged.",
           "assuranceGoal": "reliability",
           "domain": "energy"
         },
         {
-          "text": "The flood model's uncertainty for each river gauge reflects how much its predictions change when it is retrained on resampled versions of the gauge records.",
+          "text": "The flood model's uncertainty for each river gauge reflects how much its predictions change when it is retrained on versions of the gauge records resampled in blocks of consecutive days.",
           "assuranceGoal": "reliability",
           "domain": "environmental"
         },
@@ -6058,7 +6049,7 @@
       "computational_cost_rating": 1,
       "related_techniques": [
         "fair-bayesian-optimisation",
-        "fairness-testing",
+        "causal-discrimination-testing",
         "reweighing"
       ],
       "sample_claims": [
@@ -7441,7 +7432,7 @@
       "computational_cost_rating": 4,
       "related_techniques": [
         "counterfactual-fairness-assessment",
-        "fairness-testing"
+        "causal-discrimination-testing"
       ],
       "sample_claims": [
         {
@@ -8586,7 +8577,7 @@
       "related_techniques": [
         "prompt-robustness-testing",
         "toxicity-detection",
-        "fairness-testing",
+        "causal-discrimination-testing",
         "embedding-bias-analysis"
       ],
       "sample_claims": [
@@ -9301,168 +9292,6 @@
       ]
     },
     {
-      "slug": "trigger-set-model-watermarking",
-      "name": "Trigger-Set Model Watermarking",
-      "description": "Trigger-set model watermarking lets the owner of a trained classifier show later that a suspect model was copied from theirs, by planting a secret behaviour that only the owner can demonstrate. Before release, the owner chooses a small secret trigger set (in the originating scheme, 100 abstract images), gives each input a label the model would not otherwise predict, and trains or fine-tunes the model to return those labels while keeping its accuracy on the real task. In the originating scheme the owner also records cryptographic commitments to the trigger inputs and their labels, which fix the watermark at release so that a trigger set cannot be invented once a dispute has begun. To verify, the owner, or an arbiter shown the opened commitments, sends the trigger inputs to the suspect model through its ordinary prediction interface and counts how many return the assigned labels; an independently trained model matches them at about chance level, so a match rate above a preset threshold is evidence of copying. The technique produces the watermarked model, the commitments and, for each verification, the suspect model's trigger-set accuracy against the threshold.",
-      "assurance_goals": [
-        "Security",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/black-box",
-        "assurance-goal-category/security",
-        "assurance-goal-category/security/protection",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/confidential-verification",
-        "data-requirements/access-to-training-data",
-        "data-type/image",
-        "technique-type/algorithmic",
-        "evidence-type/quantitative-metric",
-        "evidence-type/model-artefact",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/security",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-selection-and-training",
-        "lifecycle-stage/system-deployment",
-        "lifecycle-stage/system-deployment/system-use-and-monitoring"
-      ],
-      "example_use_cases": [
-        {
-          "description": "A medical-imaging company that licenses a chest X-ray classifier for installation on hospital servers, where the weights leave its control, embeds a trigger set before each release and keeps the commitments. When a near-identical model appears in a rival's product, it queries that product with the trigger images to decide whether there is enough evidence to pursue a licence breach.",
-          "goal": "Security"
-        },
-        {
-          "description": "Before relying on the watermark in its licence terms, the security team of a retailer that sells access to a visual product-search model runs the fine-tuning and pruning attacks in its threat model against the watermarked model, and reports the trigger-set accuracy that survives each, to set the verification threshold and state what the watermark can and cannot evidence.",
-          "goal": "Security"
-        },
-        {
-          "description": "In a licensing dispute over a satellite-imagery land-use classifier used by a local authority, the developer opens its pre-release commitments to an independent expert, who queries the disputed model's prediction service with the trigger images and reports the match rate against a threshold agreed in advance, without either party handing over model weights.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Removal attacks defeat it in practice. A systematic evaluation of published schemes, trigger-set schemes among them, found none robust against adaptive removal attacks or known ways of deriving a surrogate model, and in the originating paper re-training all layers sharply reduced trigger-set accuracy in models watermarked by fine-tuning. A failed verification does not show a model was not copied, and a robustness claim holds only for the attacks tested."
-        },
-        {
-          "description": "It evidences copying of the model, not theft through its prediction interface. A copy built by querying the deployed model and training a new one on its answers (model extraction or distillation) need never see the trigger inputs, and the systematic evaluation found these schemes fail against such surrogate-derivation methods, so extraction needs other defences."
-        },
-        {
-          "description": "Verification reveals the secret. Sending trigger inputs to a suspect's interface, or showing them to an arbiter, exposes them; an adversary who learns them can fine-tune them away or filter those queries, so verification is in effect single-use unless several trigger sets were embedded or a zero-knowledge protocol is used, both of which the originating paper describes and both of which add work."
-        },
-        {
-          "description": "Without commitments lodged before release the evidence is weak: whoever holds a copy can embed a second trigger set of their own and claim ownership, which the originating paper shows is possible while the first watermark survives. A claim stands only if the owner can show its commitments existed before the disputed model did."
-        },
-        {
-          "description": "The scheme and its evaluations cover image classifiers that the owner can train or fine-tune with access to the training data. Generative and language models need different designs, and the threshold must reflect the number of classes: an unwatermarked model matched 7.0% of trigger labels on 10-class CIFAR-10 but 1.0% on 100-class CIFAR-100, so chance agreement is far higher with few classes."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Protecting Intellectual Property of Deep Neural Networks with Watermarking",
-          "url": "https://doi.org/10.1145/3196494.3196550",
-          "source_type": "technical_paper",
-          "authors": [
-            "Jialong Zhang",
-            "Zhongshu Gu",
-            "Jiyong Jang",
-            "Hui Wu",
-            "M. Stoecklin",
-            "Heqing Huang",
-            "Ian Molloy"
-          ],
-          "publication_date": "2018",
-          "citationKey": "zhangProtectingIntellectualProperty2018",
-          "abstract": "Deep learning technologies, which are the key components of state-of-the-art Artificial Intelligence (AI) services, have shown great success in providing human-level capabilities for a variety of tasks, such as visual analysis, speech recognition, and natural language processing and etc. Building a production-level deep learning model is a non-trivial task, which requires a large amount of training data, powerful computing resources, and human expertises. Therefore, illegitimate reproducing, distribution, and the derivation of proprietary deep learning models can lead to copyright infringement and economic harm to model creators. Therefore, it is essential to devise a technique to protect the intellectual property of deep learning models and enable external verification of the model ownership. In this paper, we generalize the \"digital watermarking'' concept from multimedia ownership verification to deep neural network (DNNs) models. We investigate three DNN-applicable watermark generation algorithms, propose a watermark implanting approach to infuse watermark into deep learning models, and design a remote verification mechanism to determine the model ownership. By extending the intrinsic generalization and memorization capabilities of deep neural networks, we enable the models to learn specially crafted watermarks at training and activate with pre-specified predictions when observing the watermark patterns at inference. We evaluate our approach with two image recognition benchmark datasets. Our framework accurately (100%) and quickly verifies the ownership of all the remotely deployed deep learning models without affecting the model accuracy for normal input data. In addition, the embedded watermarks in DNN models are robust and resilient to different counter-watermark mechanisms, such as fine-tuning, parameter pruning, and model inversion attacks."
-        },
-        {
-          "title": "Watermark-Robustness-Toolbox",
-          "url": "https://github.com/dnn-security/Watermark-Robustness-Toolbox",
-          "source_type": "software_package",
-          "publication_date": "2021-08-09",
-          "citationKey": "dnn-securityWatermarkRobustnessToolbox2021",
-          "abstract": "The official implementation of the IEEE S&P`22 paper \"SoK: How Robust is Deep Neural Network Image Classification Watermarking\"."
-        },
-        {
-          "title": "Turning Your Weakness Into a Strength: Watermarking Deep Neural Networks by Backdooring",
-          "url": "https://www.usenix.org/conference/usenixsecurity18/presentation/adi",
-          "source_type": "technical_paper",
-          "authors": [
-            "Yossi Adi",
-            "Carsten Baum",
-            "Moustapha Cisse",
-            "Benny Pinkas",
-            "Joseph Keshet"
-          ],
-          "publication_date": "2018",
-          "citationKey": "adiTurningYourWeakness2018"
-        },
-        {
-          "title": "WatermarkNN (PyTorch implementation of Adi et al. 2018)",
-          "url": "https://github.com/adiyoss/WatermarkNN",
-          "source_type": "software_package",
-          "publication_date": "2026-09-16T15:01:21Z",
-          "citationKey": "adiWatermarkNNPyTorchImplementation2026",
-          "abstract": "Watermarking Deep Neural Networks (USENIX 2018)"
-        },
-        {
-          "title": "Neural Network Watermarking (MPAI-NNW)",
-          "url": "https://mpai.community/standards/mpai-nnw/",
-          "source_type": "documentation",
-          "citationKey": "NeuralNetworkWatermarking",
-          "abstract": "Technical Specification: Neural Network Watermarking (MPAI-NNW) – Technologies (NNW-TEC) V1.0 (html, pdf) Technical Specification: Neural Network Watermarking (MPAI-NNW) – Neural Network Traceability (NNW-NNT) V1.1 (html, pdf) MPAI-NNW Reference Software V1.2 Reference Software code Introduction to NNW-TEC V1.0 What MPAI-NNW is about Description of MPAI-NNW Neural Network Watermarking (MPAI-NNW) is an MPAI project developing Technical Specifications […]"
-        },
-        {
-          "title": "SoK: How Robust is Image Classification Deep Neural Network Watermarking?",
-          "url": "https://doi.org/10.1109/sp46214.2022.9833693",
-          "source_type": "application_paper",
-          "authors": [
-            "Nils Lukas",
-            "Edward Jiang",
-            "Xinda Li",
-            "Florian Kerschbaum"
-          ],
-          "publication_date": "2022-5",
-          "citationKey": "lukasSoKHowRobust2022",
-          "abstract": "Deep Neural Network (DNN) watermarking is a method for provenance verification of DNN models. Watermarking should be robust against watermark removal attacks that derive a surrogate model that evades provenance verification. Many watermarking schemes that claim robustness have been proposed, but their robustness is only validated in isolation against a relatively small set of attacks. There is no systematic, empirical evaluation of these claims against a common, comprehensive set of removal attacks. This uncertainty about a watermarking scheme’s robustness causes difficulty to trust their deployment in practice. In this paper, we evaluate whether recently proposed watermarking schemes that claim robustness are robust against a large set of removal attacks. We survey methods from the literature that (i) are known removal attacks, (ii) derive surrogate models but have not been evaluated as removal attacks, and (iii) novel removal attacks. Weight shifting and smooth retraining are novel removal attacks adapted to the DNN watermarking schemes surveyed in this paper. We propose taxonomies for watermarking schemes and removal attacks. Our empirical evaluation includes an ablation study over sets of parameters for each attack and watermarking scheme on the image classification datasets CIFAR-10 and ImageNet. Surprisingly, our study shows that none of the surveyed watermarking schemes is robust in practice. We find that schemes fail to withstand adaptive attacks and known methods for deriving surrogate models that have not been evaluated as removal attacks. This points to intrinsic flaws in how robustness is currently evaluated. Our evaluation includes a discussion of the runtime of each attack to underpin their practical relevance. While none of the schemes is robust against all attacks, none of the attacks removes all watermarks. We show that attacks can be combined and find combined attacks that remove all watermarks. We show that watermarking schemes need to be evaluated against a more extensive set of removal attacks with a more realistic adversary model. Our source code and a complete dataset of evaluation results are publicly available, which allows to independently verify our conclusions."
-        }
-      ],
-      "related_techniques": [
-        "data-poisoning-detection",
-        "model-extraction-defence-testing",
-        "membership-inference-attack-testing"
-      ],
-      "sample_claims": [
-        {
-          "text": "The released model carries a trigger-set watermark whose trigger inputs and labels were committed to, and the commitments lodged, before release",
-          "domain": "general",
-          "assuranceGoal": "security"
-        },
-        {
-          "text": "Embedding the watermark reduced the diagnostic model's test accuracy by no more than the tolerance agreed with the clinical safety team",
-          "domain": "healthcare",
-          "assuranceGoal": "security"
-        },
-        {
-          "text": "The watermark remained verifiable above the decision threshold after each fine-tuning and pruning attack in the stated threat model",
-          "domain": "general",
-          "assuranceGoal": "security"
-        },
-        {
-          "text": "Models trained independently on the same task matched the trigger labels at no more than chance level, giving the verification threshold a measured margin against false ownership claims",
-          "domain": "general",
-          "assuranceGoal": "security"
-        },
-        {
-          "text": "Ownership of the licensed model can be demonstrated to an independent arbiter through prediction queries alone, without disclosing either party's model weights",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        }
-      ]
-    },
-    {
       "slug": "out-of-domain-detection",
       "name": "Out-of-Domain Detection",
       "description": "Out-of-domain (OOD) detection identifies user inputs that fall outside an AI system's intended domain or capabilities, enabling graceful handling rather than generating unreliable responses. This technique trains classifiers or uses embedding-based methods to recognise when queries require knowledge or capabilities the system doesn't possess. OOD detection enables systems to explicitly decline, redirect, or request clarification rather than hallucinating answers or applying inappropriate reasoning to unfamiliar domains.",
@@ -9983,7 +9812,7 @@
     {
       "slug": "isotonic-regression-calibration",
       "name": "Isotonic Regression Calibration",
-      "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score before and after.",
+      "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score (a measure of how far predicted probabilities fall from what happened) before and after.",
       "assurance_goals": [
         "Reliability",
         "Transparency"
@@ -10013,7 +9842,7 @@
           "goal": "Reliability"
         },
         {
-          "description": "An insurer's pricing team applies isotonic recalibration to the output of its claim-probability model, fitted on a large portfolio, so that within each band of predicted risk the average prediction equals the observed claim rate on the calibration data and no group of policyholders systematically subsidises another.",
+          "description": "An insurer's pricing team applies isotonic recalibration to the output of its claim-probability model, fitted on a large portfolio and checked on a later year of policies, so that within each band of predicted risk the average prediction matches the observed claim rate and no price band systematically subsidises another.",
           "goal": "Reliability"
         },
         {
@@ -10023,7 +9852,7 @@
       ],
       "limitations": [
         {
-          "description": "It needs plenty of calibration data. With fewer than about a thousand labelled cases the step function follows noise in the calibration set, and the two-parameter curve of Platt scaling usually does as well or better; isotonic regression pays off when calibration data are plentiful."
+          "description": "It needs plenty of calibration data. With fewer than about a thousand labelled cases the step function follows noise in the calibration set. Because each step matches the observed rate exactly on the cases it was fitted to, calibration checked on those same cases looks perfect whatever its true quality, so it must be checked on separate cases. The two-parameter curve of Platt scaling usually does as well or better on small sets; isotonic regression pays off when calibration data are plentiful."
         },
         {
           "description": "The output is a step function, so many different scores receive exactly the same probability. These ties discard distinctions the model made within a step, can change ranking measures such as the area under the ROC curve after calibration, and matter when a decision threshold falls inside a wide step."
@@ -10093,17 +9922,17 @@
           "domain": "healthcare"
         },
         {
-          "text": "Within each band of predicted claim probability, the average prediction equals the observed claim rate on the calibration data, so no band of policyholders systematically subsidises another.",
+          "text": "Within each band of predicted claim probability, the average prediction on a later, held-out year of policies is within the tolerance in the pricing policy of the observed claim rate, so no band of policyholders systematically subsidises another.",
           "assuranceGoal": "reliability",
           "domain": "finance"
         },
         {
-          "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases, and the reliability diagram is published alongside the review tool.",
+          "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases and agree with observed fraud rates on held-out cases, and the reliability diagram is published alongside the review tool.",
           "assuranceGoal": "transparency",
           "domain": "e-commerce"
         }
       ]
     }
   ],
-  "count": 61
+  "count": 60
 }
