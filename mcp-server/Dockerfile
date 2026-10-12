@@ -24,7 +24,7 @@ FROM node:22-bookworm-slim AS production-dependencies
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod --no-optional
+RUN pnpm install --frozen-lockfile --prod --no-optional --ignore-scripts
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
