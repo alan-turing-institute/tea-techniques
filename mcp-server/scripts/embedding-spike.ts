@@ -897,7 +897,7 @@ async function main(): Promise<void> {
     const results = await graph.suggestForClaim(rubric.text);
     currentResults.set(
       rubric.id,
-      results.map((t) => t.slug)
+      results.results.map((t) => t.slug)
     );
   }
 

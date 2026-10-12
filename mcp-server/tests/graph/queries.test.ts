@@ -97,7 +97,9 @@ describe('KnowledgeGraph', () => {
       expect(filtered.length).toBeLessThan(all.length);
       for (const t of filtered) {
         expect(
-          t.tags.some((tag) => tag.toLowerCase().includes('tree-based'))
+          graph
+            .getTechnique(t.slug)
+            ?.tags.some((tag) => tag.toLowerCase().includes('tree-based'))
         ).toBe(false);
       }
     });
@@ -112,7 +114,9 @@ describe('KnowledgeGraph', () => {
           t.tags.some((tag) => tag.toLowerCase().includes('model-agnostic'))
         ).toBe(true);
         expect(
-          t.tags.some((tag) => tag.toLowerCase().includes('tree-based'))
+          graph
+            .getTechnique(t.slug)
+            ?.tags.some((tag) => tag.toLowerCase().includes('tree-based'))
         ).toBe(false);
       }
     });
@@ -159,33 +163,37 @@ describe('KnowledgeGraph', () => {
 
   describe('suggestForClaim', () => {
     it('suggests techniques for an explainability claim', async () => {
-      const results = await graph.suggestForClaim('explain model predictions');
+      const { results } = await graph.suggestForClaim(
+        'explain model predictions'
+      );
       expect(results.length).toBeGreaterThanOrEqual(1);
     });
 
     it('returns results for broad claim', async () => {
-      const results = await graph.suggestForClaim('understand the model');
+      const { results } = await graph.suggestForClaim('understand the model');
       expect(results.length).toBeGreaterThanOrEqual(0);
     });
 
     it('no longer passes claim text as query (does not return empty)', async () => {
       // Long claim sentences previously returned 0 results with AND-all-terms
-      const results = await graph.suggestForClaim(
+      const { results } = await graph.suggestForClaim(
         'The model reliably quantifies uncertainty in its predictions'
       );
       expect(results.length).toBeGreaterThanOrEqual(1);
     });
 
     it('uses concept-tag mapping for calibration claims', async () => {
-      const results = await graph.suggestForClaim(
+      const { results } = await graph.suggestForClaim(
         'The model is well calibrated and reliable'
       );
       expect(results.length).toBeGreaterThanOrEqual(1);
     });
 
     it('excludes model types when specified', async () => {
-      const withAll = await graph.suggestForClaim('explain model predictions');
-      const withExclude = await graph.suggestForClaim(
+      const { results: withAll } = await graph.suggestForClaim(
+        'explain model predictions'
+      );
+      const { results: withExclude } = await graph.suggestForClaim(
         'explain model predictions',
         {
           excludeModelTypes: ['tree-based'],
@@ -194,7 +202,9 @@ describe('KnowledgeGraph', () => {
       // Exclusion should remove tree-based techniques
       for (const t of withExclude) {
         expect(
-          t.tags.some((tag) => tag.toLowerCase().includes('tree-based'))
+          graph
+            .getTechnique(t.slug)
+            ?.tags.some((tag) => tag.toLowerCase().includes('tree-based'))
         ).toBe(false);
       }
       // Should have fewer or equal results
@@ -203,7 +213,7 @@ describe('KnowledgeGraph', () => {
 
     it('finds technique via claims search when claim text matches sample claim', async () => {
       // SHAP has a sample claim about "decomposed into quantified contributions"
-      const results = await graph.suggestForClaim(
+      const { results } = await graph.suggestForClaim(
         'predictions decomposed into quantified contributions from each input feature'
       );
       const slugs = results.map((t) => t.slug);
@@ -212,13 +222,15 @@ describe('KnowledgeGraph', () => {
 
     it('claims search does not break when techniques have no claims', async () => {
       // Permutation Importance and MDI have empty sampleClaims
-      const results = await graph.suggestForClaim('feature importance ranking');
+      const { results } = await graph.suggestForClaim(
+        'feature importance ranking'
+      );
       expect(results.length).toBeGreaterThanOrEqual(1);
     });
 
     it('deduplicates results from claims and concept-tag paths', async () => {
       // SHAP should appear at most once even if both paths find it
-      const results = await graph.suggestForClaim(
+      const { results } = await graph.suggestForClaim(
         'explain the contributions from each feature'
       );
       const slugs = results.map((t) => t.slug);

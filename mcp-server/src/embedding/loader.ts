@@ -8,6 +8,14 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {
+  DOCUMENT_FORMAT,
+  EMBEDDING_DIMENSIONS,
+  EMBEDDING_PRECISION,
+  MODEL_ID,
+  MODEL_REVISION,
+  QUERY_PREFIX,
+} from './model.js';
 import type { EmbeddingsFile, EmbeddingsIndex } from './types.js';
 import { EmbeddingsFileSchema } from './types.js';
 
@@ -25,6 +33,18 @@ const CACHE_FILE = path.join(CACHE_DIR, 'embeddings.json');
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 function toIndex(file: EmbeddingsFile): EmbeddingsIndex {
+  if (
+    file.modelId !== MODEL_ID ||
+    file.dimensions !== EMBEDDING_DIMENSIONS ||
+    file.modelRevision !== MODEL_REVISION ||
+    file.dtype !== EMBEDDING_PRECISION ||
+    file.queryPrefix !== QUERY_PREFIX ||
+    file.documentFormat !== DOCUMENT_FORMAT
+  ) {
+    throw new Error(
+      `Embedding model mismatch: file ${file.modelId}/${file.dimensions}, query ${MODEL_ID}/${EMBEDDING_DIMENSIONS}`
+    );
+  }
   const slugs: string[] = [];
   const vectors: Float32Array[] = [];
   for (const entry of file.entries) {
@@ -100,6 +120,12 @@ export async function loadEmbeddings(options: {
   dataDir?: string;
 }): Promise<EmbeddingsIndex | null> {
   try {
+    if (
+      process.env.TEA_OFFLINE === '1' &&
+      !(options.local && options.dataDir)
+    ) {
+      throw new Error('Offline mode requires local embeddings');
+    }
     let file: EmbeddingsFile;
 
     if (options.local && options.dataDir) {
@@ -127,16 +153,17 @@ export async function loadEmbeddings(options: {
     // biome-ignore lint/suspicious/noConsole: startup logging to stderr
     console.error(`Fetching embeddings from: ${REMOTE_URL}`);
     file = await fetchRemote();
+    const index = toIndex(file);
     await writeCache(file);
     // biome-ignore lint/suspicious/noConsole: startup logging to stderr
     console.error(
       `Cached embeddings to: ${CACHE_FILE} (${file.corpusSize} entries)`
     );
-    return toIndex(file);
-  } catch {
+    return index;
+  } catch (error) {
     // biome-ignore lint/suspicious/noConsole: startup logging to stderr
     console.error(
-      'Embeddings unavailable — falling back to keyword-only pipeline'
+      `Embeddings unavailable — falling back to keyword-only pipeline: ${error instanceof Error ? error.message : 'invalid file'}`
     );
     return null;
   }

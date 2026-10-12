@@ -3,9 +3,15 @@
  */
 
 import Fuse from 'fuse.js';
-import { embedQuery, getEmbeddingModel } from '../embedding/model.js';
-import { computeRRF, rankBySimilarity } from '../embedding/search.js';
+import {
+  EMBEDDING_DIMENSIONS,
+  embedQuery,
+  getEmbeddingModel,
+  MODEL_ID,
+} from '../embedding/model.js';
+import { computeRRFScores, rankBySimilarity } from '../embedding/search.js';
 import type { EmbeddingsIndex } from '../embedding/types.js';
+import { ClefRanker, RANKING_MODEL, type Ranker } from '../ranking/clef.js';
 import { buildGraphIndex } from './indexes.js';
 import type {
   GoalNode,
@@ -69,6 +75,39 @@ function multiTermFuseSearch<T>(fuse: Fuse<T>, query: string): T[] {
     .map(([item]) => item);
 }
 
+// --- Retrieval tuning (defaults reproduce the untuned behaviour) ---
+
+function envNumber(name: string, fallback: number): number {
+  const value = Number.parseFloat(process.env[name] ?? '');
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
+/** Fuse.js score above which a claims-index match is discarded (lower = better). */
+function weakMatchCutoff(): number {
+  return envNumber('WEAK_MATCH_CUTOFF', 0.6);
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/** With `RANKING_DEBUG=1`, writes a summary of the fused retrieval scores to stderr. */
+function logRetrievalDiagnostics(
+  fused: { slug: string; score: number }[],
+  dropped: string[]
+): void {
+  if (process.env.RANKING_DEBUG !== '1' || fused.length === 0) {
+    return;
+  }
+  const values = fused.map((r) => r.score);
+  // biome-ignore lint/suspicious/noConsole: opt-in diagnostics to stderr
+  console.error(
+    `[retrieval] candidates=${values.length} min=${Math.min(...values).toFixed(3)} median=${median(values).toFixed(3)} max=${Math.max(...values).toFixed(3)} weakMatchCutoff=${weakMatchCutoff()} dropped=${dropped.length}${dropped.length > 0 ? ` (${dropped.join(', ')})` : ''}`
+  );
+}
+
 // --- Concept-to-tag mapping for claim-based suggestions ---
 
 const CONCEPT_TAGS: Record<string, string[]> = {
@@ -83,11 +122,16 @@ const CONCEPT_TAGS: Record<string, string[]> = {
   'out-of-distribution': ['monitoring'],
   anomal: ['monitoring'],
   // Governance & process (process is technique-type, human-oversight is under safety)
-  interpret: ['process', 'human-oversight'],
-  clinician: ['process', 'human-oversight', 'documentation'],
-  stakeholder: ['process', 'human-oversight'],
-  actionable: ['process', 'documentation'],
-  governance: ['process', 'governance-disclosure'],
+  interpret: ['process', 'system-implementation', 'human-oversight'],
+  clinician: [
+    'process',
+    'system-implementation',
+    'human-oversight',
+    'documentation',
+  ],
+  stakeholder: ['process', 'system-implementation', 'human-oversight'],
+  actionable: ['process', 'system-implementation', 'documentation'],
+  governance: ['process', 'system-implementation', 'governance-disclosure'],
   // Explainability methods (attribution is a real tag path under explainability)
   explain: ['attribution', 'feature-importance'],
   'feature importance': ['attribution', 'feature-importance'],
@@ -96,11 +140,11 @@ const CONCEPT_TAGS: Record<string, string[]> = {
   audit: ['documentation', 'governance-disclosure'],
   // Sensitivity & fidelity (sensitivity-testing is a real tag path)
   sensitiv: ['sensitivity-testing'],
-  fidelity: ['sensitivity-testing', 'model-evaluation'],
+  fidelity: ['sensitivity-testing', 'model-testing-and-validation'],
   // Validation, verification & testing
-  validat: ['model-evaluation'],
-  verif: ['model-evaluation', 'testing'],
-  endpoint: ['model-evaluation'],
+  validat: ['model-testing-and-validation'],
+  verif: ['model-testing-and-validation', 'testing'],
+  endpoint: ['model-testing-and-validation'],
   // Robustness
   perturb: ['testing', 'sensitivity-testing'],
 };
@@ -380,12 +424,48 @@ interface ClaimEntry {
   techniqueId: string;
 }
 
+export interface ClaimContext {
+  modelType?: string;
+  dataType?: string;
+  lifecycleStage?: string;
+  excludeModelTypes?: string[];
+}
+export interface ClaimSuggestions {
+  rankingAvailable: boolean;
+  embeddingModel: string;
+  rankingModel: string;
+  results: Array<{
+    slug: string;
+    name: string;
+    score: number;
+    retrievalScore: number;
+    /** True when `score` is a Clef probability; false when it is the retrieval score. */
+    ranked: boolean;
+    goals: string[];
+    url: string;
+  }>;
+}
+
 export class KnowledgeGraph {
   private index: GraphIndex;
   private claimsFuse: Fuse<ClaimEntry>;
   private embeddings: EmbeddingsIndex | null;
 
-  constructor(graphData: JsonLdGraph, embeddings?: EmbeddingsIndex | null) {
+  private ranker: Ranker;
+
+  constructor(
+    graphData: JsonLdGraph,
+    embeddings?: EmbeddingsIndex | null,
+    ranker: Ranker = new ClefRanker()
+  ) {
+    if (
+      embeddings &&
+      (embeddings.modelId !== MODEL_ID ||
+        embeddings.dimensions !== EMBEDDING_DIMENSIONS)
+    ) {
+      throw new Error('Embedding index does not match the query model');
+    }
+    this.ranker = ranker;
     this.index = buildGraphIndex(graphData['@graph']);
     this.embeddings = embeddings ?? null;
 
@@ -605,15 +685,20 @@ export class KnowledgeGraph {
     return results;
   }
 
+  rankingAvailable(): Promise<boolean> {
+    return this.ranker.isAvailable();
+  }
+
+  lastRankingSucceeded(): boolean | undefined {
+    return this.ranker.lastRankingSucceeded?.();
+  }
+
   async suggestForClaim(
     claimText: string,
-    context?: {
-      modelType?: string;
-      dataType?: string;
-      lifecycleStage?: string;
-      excludeModelTypes?: string[];
-    }
-  ): Promise<TechniqueNode[]> {
+    options: ClaimContext & { limit?: number; context?: ClaimContext } = {}
+  ): Promise<ClaimSuggestions> {
+    const context = options.context ?? options;
+    const limit = Math.min(20, Math.max(1, Math.trunc(options.limit ?? 10)));
     const matchedGoals = inferGoals(claimText);
     const exclusions = context?.excludeModelTypes ?? [];
 
@@ -627,7 +712,8 @@ export class KnowledgeGraph {
     const narrowed = this.narrowByConceptTags(goalFiltered, claimText);
 
     // Stage 2b: Claims search (unconstrained across all techniques)
-    const claimsMatched = this.searchClaims(claimText, 10);
+    const dropped: string[] = [];
+    const claimsMatched = this.searchClaims(claimText, 10, dropped);
 
     // Build keyword pipeline ranking (concept-tag results first, then claims)
     const keywordIds = new Set<string>();
@@ -649,24 +735,43 @@ export class KnowledgeGraph {
 
     // Stage 2c: Embedding search + RRF merge (or keyword-only fallback)
     const embedSlugs = await this.embeddingSearch(claimText, 20);
-    const mergedSlugs =
-      embedSlugs.length > 0
-        ? computeRRF([keywordSlugs, embedSlugs])
-        : keywordSlugs.slice(0, 10);
-
-    // Resolve slugs back to TechniqueNode[]
-    let results: TechniqueNode[] = [];
-    for (const slug of mergedSlugs) {
-      const t = this.getTechnique(slug);
-      if (t) {
-        results.push(t);
-      }
-    }
-
-    // Stage 3: Apply context filters (include)
-    results = this.applyClaimContextFilters(results, context);
-
-    return results.slice(0, 10);
+    const fused = computeRRFScores(
+      embedSlugs.length > 0 ? [keywordSlugs, embedSlugs] : [keywordSlugs],
+      60,
+      [envNumber('RRF_KEYWORD_WEIGHT', 1), envNumber('RRF_SEMANTIC_WEIGHT', 1)]
+    );
+    logRetrievalDiagnostics(fused, dropped);
+    const scores = new Map(fused.map((r) => [r.slug, r.score]));
+    let techniques = fused
+      .map((r) => this.getTechnique(r.slug))
+      .filter((t): t is TechniqueNode => !!t);
+    // Apply exclusions to every retrieval source, before selecting the top 20.
+    techniques = applyExcludeTags(techniques, exclusions);
+    techniques = this.applyClaimContextFilters(techniques, context).slice(
+      0,
+      20
+    );
+    const candidates = techniques.map((technique) => ({
+      technique,
+      retrievalScore: scores.get(technique.slug) ?? 0,
+    }));
+    const ranked = await this.ranker.rank(claimText, candidates);
+    return {
+      rankingAvailable: ranked.rankingAvailable,
+      embeddingModel: MODEL_ID,
+      rankingModel: RANKING_MODEL,
+      results: ranked.candidates
+        .slice(0, limit)
+        .map(({ technique: t, score, retrievalScore, ranked: isRanked }) => ({
+          slug: t.slug,
+          name: t.name,
+          score,
+          retrievalScore,
+          ranked: isRanked,
+          goals: t.goals,
+          url: `https://alan-turing-institute.github.io/tea-techniques/techniques/${t.slug}`,
+        })),
+    };
   }
 
   /** Embedding-based similarity search. Returns ranked slugs or empty on failure. */
@@ -689,14 +794,20 @@ export class KnowledgeGraph {
   }
 
   /** Search the flattened claims index across all techniques. */
-  private searchClaims(claimText: string, limit: number): TechniqueNode[] {
+  private searchClaims(
+    claimText: string,
+    limit: number,
+    dropped: string[] = []
+  ): TechniqueNode[] {
     const results = this.claimsFuse.search(claimText);
+    const cutoff = weakMatchCutoff();
     const seen = new Set<string>();
     const techniques: TechniqueNode[] = [];
     for (const r of results) {
       // Discard weak matches — Fuse.js scores where lower = better.
       // Scores above 0.6 indicate near-garbage fuzzy matches on common words.
-      if (r.score !== undefined && r.score > 0.6) {
+      if (r.score !== undefined && r.score > cutoff) {
+        dropped.push(`${r.item.techniqueId}@${r.score.toFixed(2)}`);
         continue;
       }
       const id = r.item.techniqueId;

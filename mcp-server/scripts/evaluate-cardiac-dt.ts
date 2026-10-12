@@ -11,13 +11,24 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadGraphData } from '../src/data/loader.js';
 import { loadEmbeddings } from '../src/embedding/loader.js';
+import { embedQuery, getEmbeddingModel } from '../src/embedding/model.js';
 import { KnowledgeGraph } from '../src/graph/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
-const CLAIMS_DIR = path.join(PROJECT_ROOT, 'data', 'claims');
-const DATA_DIR = path.join(PROJECT_ROOT, 'public', 'data');
-const REPORT_PATH = path.join(CLAIMS_DIR, '.cardiac-dt-evaluation.json');
+const args = process.argv.slice(2);
+const arg = (key: string, fallback: string) =>
+  args.find((a) => a.startsWith(`--${key}=`))?.slice(key.length + 3) ??
+  fallback;
+const DATA_DIR = path.resolve(
+  arg('data-dir', path.join(PROJECT_ROOT, 'public/data'))
+);
+const REPORT_PATH = path.resolve(
+  arg(
+    'output',
+    path.join(PROJECT_ROOT, 'mcp-server/generated/cardiac-dt-evaluation.json')
+  )
+);
 
 // --- Rubric ---
 
@@ -222,6 +233,8 @@ function scoreTechnique(slug: string, rubric: ClaimRubric): 1 | 0 | -1 {
 interface ClaimEvaluation {
   id: string;
   text: string;
+  rankingAvailable: boolean;
+  elapsedMs: number;
   returnedSlugs: string[];
   scores: Array<{ slug: string; score: 1 | 0 | -1 }>;
   totalScore: number;
@@ -230,6 +243,9 @@ interface ClaimEvaluation {
 
 interface EvaluationReport {
   timestamp: string;
+  embeddingModel: string;
+  rankingEnabled: boolean;
+  embeddingsLoaded: boolean;
   claims: ClaimEvaluation[];
   summary: {
     averageScore: number;
@@ -270,7 +286,9 @@ function printReport(
   log('');
 
   for (const claim of claims) {
-    log(`${claim.id}: ${claim.grade}  (score: ${claim.totalScore})`);
+    log(
+      `${claim.id}: ${claim.grade}  (score: ${claim.totalScore}, ${claim.elapsedMs} ms, ranked: ${claim.rankingAvailable})`
+    );
     log(`  "${claim.text.slice(0, 80)}..."`);
     log('  Top 10 results:');
     for (const s of claim.scores) {
@@ -296,14 +314,27 @@ async function main(): Promise<void> {
     loadGraphData({ local: true, dataDir: DATA_DIR }),
     loadEmbeddings({ local: true, dataDir: DATA_DIR }),
   ]);
+  if (!embeddings) {
+    throw new Error(
+      'Evaluation requires compatible embeddings; keyword fallback is not an embedding quality run'
+    );
+  }
+  const model = await getEmbeddingModel();
+  if (!(model && (await embedQuery(model, RUBRIC[0].text)))) {
+    throw new Error(
+      'Query model unavailable; cannot evaluate semantic retrieval'
+    );
+  }
   const graph = new KnowledgeGraph(graphData, embeddings);
 
   const claims: ClaimEvaluation[] = [];
 
   for (const rubric of RUBRIC) {
+    const started = performance.now();
     // biome-ignore lint/nursery/noAwaitInLoop: sequential evaluation intentional
     const results = await graph.suggestForClaim(rubric.text);
-    const returnedSlugs = results.map((t) => t.slug);
+    const elapsedMs = Math.round(performance.now() - started);
+    const returnedSlugs = results.results.map((t) => t.slug);
 
     const scores = returnedSlugs.map((slug) => ({
       slug,
@@ -315,6 +346,8 @@ async function main(): Promise<void> {
     claims.push({
       id: rubric.id,
       text: rubric.text,
+      rankingAvailable: results.rankingAvailable,
+      elapsedMs,
       returnedSlugs,
       scores,
       totalScore,
@@ -331,6 +364,9 @@ async function main(): Promise<void> {
 
   const report: EvaluationReport = {
     timestamp: new Date().toISOString(),
+    embeddingModel: embeddings?.modelId ?? 'unavailable',
+    rankingEnabled: process.env.RANKING_ENABLED !== 'false',
+    embeddingsLoaded: !!embeddings,
     claims,
     summary: {
       averageScore: scoreSum / claims.length,
@@ -338,7 +374,7 @@ async function main(): Promise<void> {
     },
   };
 
-  await fs.mkdir(CLAIMS_DIR, { recursive: true });
+  await fs.mkdir(path.dirname(REPORT_PATH), { recursive: true });
   await fs.writeFile(REPORT_PATH, JSON.stringify(report, null, 2));
   printReport(claims, grades, scoreSum);
 }
