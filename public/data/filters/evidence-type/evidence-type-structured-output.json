@@ -2,7 +2,7 @@
   "tag": {
     "name": "evidence-type/structured-output",
     "slug": "evidence-type-structured-output",
-    "count": 9,
+    "count": 13,
     "category": "evidence-type"
   },
   "techniques": [
@@ -1306,7 +1306,534 @@
           "domain": "autonomous systems"
         }
       ]
+    },
+    {
+      "slug": "diverse-counterfactual-explanations",
+      "name": "Diverse Counterfactual Explanations",
+      "description": "Diverse Counterfactual Explanations (DiCE) explains one decision of a classifier by generating several altered versions of the input, called counterfactuals, each changed just enough that the model would have given the other outcome, and chosen to differ from one another so that a person sees several distinct ways the result could have been different. Where the contrastive explanation method returns, for one input, a minimal set of features that must be present and a minimal set that must stay absent, DiCE returns several complete alternative inputs at once, within limits the user sets on which features may change and over what range. In the original method all the counterfactuals are optimised together by gradient descent on a loss with three parts: a hinge loss that pushes each across the model's decision threshold, a distance term (each continuous feature's change divided by its median absolute deviation in the training data, plus the share of categorical features changed) that keeps each close to the original, and a diversity term, the determinant of a similarity matrix between them, that rewards them for differing. Afterwards, small changes are reset to their original values for as long as the counterfactual still gets the other outcome, to make it sparser, and counterfactuals that break causal rules supplied by the user, such as gaining a degree without growing older, can be filtered out. The method as published needs a differentiable model such as a neural network; the reference library adds random-sampling, genetic-algorithm and nearest-training-example searches that need only the model's predictions.",
+      "assurance_goals": [
+        "Explainability",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/instance-based/counterfactual",
+        "assurance-goal-category/explainability/explains/decision-boundaries",
+        "assurance-goal-category/explainability/property/counterfactual-validity",
+        "assurance-goal-category/explainability/property/sparsity",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/notice-and-recourse",
+        "data-requirements/no-special-requirements",
+        "data-type/tabular",
+        "evidence-type/structured-output",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A credit-risk validation team at a lender generates five counterfactuals for each of 500 sampled refused applications with every feature free to change, to see what the model treats as enough for approval. Counterfactuals that reach approval by changing only the postcode, or another likely proxy for a protected characteristic, are logged as findings and passed to the fairness testing team.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A hospital team piloting a classifier that places patients with chronic obstructive pulmonary disease in low, moderate or high cardiovascular risk generates counterfactuals restricted to modifiable factors such as blood pressure, cholesterol and smoking. Clinicians check whether the changes the model links to a lower risk category agree with clinical knowledge before the tool is shown to patients.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A consumer lender puts up to three counterfactuals in each refusal letter, generated against the model version that made the decision and limited to features the applicant can change (income, balances, loan amount and term), each shown as an application that would have been approved. Before rollout it tests a draft letter with applicants, checking that they can name a change that would have worked and understand that the options are not a promise of approval if they reapply.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A counterfactual is only valid for the model version that produced it. The method assumes the model does not change, and after retraining a previously suggested change can stop flipping the decision, so a person who acts on it may still be refused. Counterfactuals shown to people should be dated, tied to a model version and re-checked whenever the model is updated."
+        },
+        {
+          "description": "Feasibility depends on constraints the user supplies. Without them, counterfactuals can change attributes a person cannot change, such as race or sex, or propose impossible combinations: in the original experiments over a third of the counterfactuals that changed education were infeasible, most raising the degree without raising age. Causal rules can only be applied afterwards, as a filter."
+        },
+        {
+          "description": "The set returned is not unique. It depends on the weights on distance and diversity, per-feature weights, the number requested and random starting points, and with the library's random-sampling method a different seed gives a different set. The authors note that showing people counterfactuals produced with different settings is a problem, so fix and record settings and seeds."
+        },
+        {
+          "description": "Distance is measured feature by feature (scaled change for numbers, changed or not for categories), so it ignores how features move together, treats every category change as equally hard, and can place counterfactuals where there is little real data. In a study of 9,613 patient records, DiCE's counterfactuals were closer and sparser but less plausible than those of a sampling-based alternative."
+        },
+        {
+          "description": "The original paper tests no people. Its stand-in for understanding, a nearest-neighbour model trained on the counterfactuals, is in the authors' words a best case of rational extrapolation, and they leave a behavioural study and the cost of choosing among more options to future work. A counterfactual also does not say which features must stay as they are, so a person who raises income by changing job may still be refused. Test the wording with recipients before relying on it."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Diverse Counterfactual Explanations (DiCE) for ML: DiCE documentation",
+          "url": "https://interpret.ml/DiCE/",
+          "source_type": "documentation",
+          "citationKey": "DiverseCounterfactualExplanations"
+        },
+        {
+          "title": "DiCE (interpretml/DiCE)",
+          "url": "https://github.com/interpretml/DiCE",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T17:49:07Z",
+          "citationKey": "DiCEInterpretmlDiCE2026",
+          "abstract": "Generate Diverse Counterfactual Explanations for any machine learning model."
+        },
+        {
+          "title": "Explaining machine learning classifiers through diverse counterfactual explanations",
+          "url": "https://doi.org/10.1145/3351095.3372850",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ramaravind K. Mothilal",
+            "Amit Sharma",
+            "Chenhao Tan"
+          ],
+          "publication_date": "2020-1-27",
+          "citationKey": "mothilalExplainingMachineLearning2020"
+        },
+        {
+          "title": "Quick introduction to generating counterfactual explanations using DiCE",
+          "url": "https://interpret.ml/DiCE/notebooks/DiCE_getting_started.html",
+          "source_type": "tutorial",
+          "citationKey": "QuickIntroductionGenerating"
+        },
+        {
+          "title": "Estimation and Conformity Evaluation of Multi-Class Counterfactual Explanations for Chronic Disease Prevention",
+          "url": "https://doi.org/10.1109/jbhi.2024.3492730",
+          "source_type": "application_paper",
+          "authors": [
+            "Marta Lenatti",
+            "Alberto Carlevaro",
+            "Aziz Guergachi",
+            "Karim Keshavjee",
+            "Maurizio Mongelli",
+            "Alessia Paglialonga"
+          ],
+          "publication_date": "2025-9",
+          "citationKey": "lenattiEstimationConformityEvaluation2025"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "acronym": "DiCE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For 500 sampled refused applications, no counterfactual reached approval by changing only the postcode or another field on the agreed list of proxies for protected characteristics.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Every refusal letter issued since the model release contains at least two counterfactuals that change only features on the agreed list of applicant-changeable features, each re-scored against the model version in use on the day the letter was sent and confirmed to reach approval.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "For 100 sampled patients, clinicians found no case in which the cardiovascular-risk classifier's counterfactuals, restricted to modifiable risk factors, reached a lower risk category through a change contrary to clinical guidance.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Re-running counterfactual generation with the recorded settings and seed reproduces the counterfactual sets given to applicants for all audited cases.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "In a comprehension test of the draft refusal letter with 50 recent applicants, at least 80% named a change that would have led to approval, and at least 80% correctly said that the options do not guarantee approval if they reapply.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "gnnexplainer",
+      "name": "GNNExplainer",
+      "description": "GNNExplainer explains one prediction of a graph neural network, a model that passes information along the edges of a graph such as a molecule, a payment network or a mesh of weather grid points, by finding a small subgraph and a small set of input features that most support that prediction. Explanation methods for flat inputs, such as SHAP and LIME, give each input feature its own score and have no built-in notion of a connection between two nodes; this method scores the connections themselves, restricted to the part of the graph the model actually reads for the prediction (its computation graph, the neighbourhood within as many hops as the model has message-passing layers). It learns a mask with a value between 0 and 1 for each edge of that computation graph and for each node-feature dimension by gradient descent: the masked graph is fed to the model, and the masks are adjusted to keep the predicted label as likely as possible while penalties keep the total mask small and push values towards 0 or 1. Edges and features whose mask values fall below a threshold are then dropped, leaving a compact subgraph and feature subset that can be drawn over the input graph; the same procedure explains node labels, predicted links and whole-graph labels, and the original paper also aligns the explanations of many nodes of one class into a summary pattern. It needs gradient access to the model, and each explanation is a separate optimisation.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/gradient-access",
+        "applicable-models/requirements/differentiable",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/property/sparsity",
+        "data-requirements/no-special-requirements",
+        "evidence-type/structured-output",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/domain-expertise",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "data-type/graph",
+        "applicable-models/architecture/neural-networks/graph"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A pharmaceutical company's computational toxicology team uses a graph neural network to flag candidate molecules as likely mutagenic. For each flagged compound it reviews the substructure and atom features GNNExplainer selects and checks them against known structural alerts such as nitro groups, to decide whether a flag rests on chemistry the team recognises before the compound is deprioritised.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A bank's financial-crime unit scores accounts with a graph neural network over its payment network to flag likely money-mule accounts. Investigators receive with each flag the explanation subgraph of counterparties and transfers and the account features it selected, and use them to decide whether to escalate; model validators sample explanations to check that flags do not rest mainly on features such as branch or account-opening channel.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A weather service's model evaluation team runs the regression mode of the PyTorch Geometric implementation on a small set of high-impact forecasts from a graph-based forecasting model, such as the predicted rainfall total at one location. Forecasters check whether the connections and input variables selected, for example humidity upwind, are physically plausible, and the team deletes the selected connections to confirm the forecast changes, before such forecasts feed a warning service.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Each explanation is a separate optimisation, run for a set number of steps (100 by default in the PyTorch Geometric implementation), so explaining many nodes or graphs is slow and explanations of similar cases are not required to agree. A view of the model as a whole needs an extra step, such as the class-level summary in the original paper, or a method that trains one explainer for all instances."
+        },
+        {
+          "description": "The masks are soft during optimisation, so the model is run on graphs whose edges and features are scaled by fractions it never saw in training, and these values can add meaning or noise of their own. The objective is not convex and the masks start at random: in a 2024 benchmark, the ten-edge explanations from runs with different seeds overlapped by a Jaccard index of only 0.18 to 0.80 across six datasets. The final subgraph also depends on the threshold used to cut the mask."
+        },
+        {
+          "description": "The size of the explanation is set by the user, not found. The original experiments fixed it at the known size of the planted pattern on synthetic graphs and at 10 edges and 5 features on real ones, and the PyTorch Geometric implementation advises tuning the size penalty to the graph's average degree. A compact explanation can therefore leave out structure the model uses."
+        },
+        {
+          "description": "Most evidence that it finds the right structure comes from synthetic graphs with planted patterns, and a trained model need not use the planted edges, so agreement with them can mislead. A 2023 benchmark found graph explainers, this one included, less faithful when linked nodes tend to differ and when the deciding structure is large. Check fidelity on your own model, for example by deleting the explanation and measuring the change."
+        },
+        {
+          "description": "It assumes the computation graph is small. The computation graph grows with every message-passing layer, so in a mesh-based forecasting model that passes messages many times along long-range edges (GraphCast uses 16 such layers) it probably spans most of the mesh: the mask then covers most edges and compactness comes from the size penalty, not the model. This has not been tested. PyTorch Geometric applies the mask inside its own message-passing layers, so the model must use them or be adapted."
+        }
+      ],
+      "resources": [
+        {
+          "title": "torch_geometric.explain.algorithm.GNNExplainer (PyG documentation)",
+          "url": "https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.explain.algorithm.GNNExplainer.html",
+          "source_type": "documentation",
+          "citationKey": "Torch_geometricexplainalgorithmGNNExplainerPyGDocumentation"
+        },
+        {
+          "title": "PyTorch Geometric (pyg-team/pytorch_geometric)",
+          "url": "https://github.com/pyg-team/pytorch_geometric",
+          "source_type": "software_package",
+          "publication_date": "2025",
+          "citationKey": "feyPyTorchGeometricPygteam2025",
+          "abstract": "Graph Neural Network Library for PyTorch"
+        },
+        {
+          "title": "GNNExplainer: Generating Explanations for Graph Neural Networks",
+          "url": "https://proceedings.neurips.cc/paper/2019/hash/d80b7040b773199015de6d3b4293c8ff-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Zhitao Ying",
+            "Dylan Bourgeois",
+            "Jiaxuan You",
+            "Marinka Zitnik",
+            "Jure Leskovec"
+          ],
+          "publication_date": "2019",
+          "citationKey": "yingGNNExplainerGeneratingExplanations2019",
+          "abstract": "Graph Neural Networks (GNNs) are a powerful tool for machine learning on graphs.GNNs combine node feature information with the graph structure by \nrecursively passing neural messages along edges of the input graph. However, incorporating both graph structure and feature information leads to complex models,\nand explaining predictions made by GNNs remains unsolved. Here\nwe propose GNNExplainer, the first general, model-agnostic approach for providing interpretable explanations for predictions of any GNN-based model on any graph-based machine learning task. Given an instance, GNNExplainer identifies a compact subgraph structure and a small subset of node features that have a crucial role in GNN's prediction. \nFurther, GNNExplainer  can generate consistent and concise explanations for an entire class of instances.\nWe formulate GNNExplainer as an optimization task that maximizes the mutual information between a GNN's prediction and distribution of possible subgraph structures. Experiments on synthetic and real-world graphs show that our approach can identify important graph structures as well as node features, and outperforms baselines by 17.1% on average. GNNExplainer  provides a variety of benefits, from the ability to visualize semantically relevant structures to interpretability, to giving insights into errors of faulty GNNs."
+        },
+        {
+          "title": "Explaining Graph Neural Networks (PyG tutorial)",
+          "url": "https://pytorch-geometric.readthedocs.io/en/latest/tutorial/explain.html",
+          "source_type": "tutorial",
+          "citationKey": "ExplainingGraphNeural"
+        },
+        {
+          "title": "Investigating Brain Connectivity with Graph Neural Networks and GNNExplainer",
+          "url": "https://doi.org/10.1109/icpr56361.2022.9956201",
+          "source_type": "application_paper",
+          "authors": [
+            "Maksim Zhdanov",
+            "Saskia Steinmann",
+            "Nico Hoffmann"
+          ],
+          "publication_date": "2022-8-21",
+          "citationKey": "zhdanovInvestigatingBrainConnectivity2022"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For at least 90% of the validation molecules the toxicity model flags as mutagenic, the explanation subgraph contains a recognised structural alert, and deleting the explanation subgraph removes the flag for at least 80% of them.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Across 300 sampled money-mule flags, branch and account-opening channel are never among the three node features with the highest mask values in the explanation.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "For each of the 20 high-impact rainfall forecasts reviewed, forecasters judged the selected connections and input variables physically plausible, and removing the selected connections changed the forecast total by more than the agreed tolerance.",
+          "assuranceGoal": "explainability",
+          "domain": "environmental"
+        },
+        {
+          "text": "Repeating each reviewed explanation from five random starting masks gives ten highest-weighted edge sets whose pairwise Jaccard index is at least 0.8.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "rich-subgroup-fairness-auditing",
+      "name": "Rich Subgroup Fairness Auditing",
+      "description": "Rich subgroup fairness auditing checks whether a binary classifier treats any subgroup much better or much worse than the population as a whole, where the subgroups are not a short list chosen in advance but every group that rules of a chosen kind over several protected attributes can describe, such as everyone for whom a weighted sum of age, sex and ethnicity indicators exceeds a threshold. Kearns, Neel, Roth and Wu (2018) proposed it to detect what they call fairness gerrymandering: a classifier can have equal false positive rates for men and for women, and for each ethnic group, yet very unequal rates for particular combinations, such as women of one ethnicity. For a chosen rate (the false positive or false negative rate, or in the paper also the rate of positive decisions), each subgroup is scored by the gap between its rate and the overall rate multiplied by the share of all records that are in the subgroup and count towards that rate (for the false positive rate, those with a negative true outcome), so a gap counts for more the larger the group, and the audit searches for the subgroup with the highest score. Exact search is computationally hard in the worst case, so it is posed as a weighted (cost-sensitive) classification problem over the protected attributes and solved approximately: the reference implementation fits two linear regressions that propose a candidate worst subgroup as a linear threshold rule, using only those attributes, the true outcomes and the classifier's decisions, not the model itself. The output is that rule with the subgroup's size, rate and weighted gap (called gamma), compared with a limit set beforehand; unlike reporting metrics for groups listed in advance, the audit finds subgroups nobody listed, and unlike multiaccuracy boosting, which checks a score's average error in each subgroup and then corrects the model, it compares a decision rate with the overall rate and changes nothing.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/fairness-metric",
+        "evidence-type/structured-output",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A lender's model risk team validating a credit-risk model before release audits its decisions on a held-out sample of past applicants whose repayment is known, and records that these are only applicants the old policy approved. It searches subgroups over age, sex, ethnicity and disability status for the worst false positive rate gap (good payers flagged as high risk), compares it with a limit agreed with the risk committee, and sends the rule for any subgroup over it to the developers.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A hospital's clinical AI team has confirmed that a sepsis early-warning model misses cases at similar rates for men and women and for each recorded ethnic group. Before rollout it audits the false negative rate over subgroups combining age, sex and ethnicity and, because the search is approximate, also scores a grid of rules over two of the attributes by brute force, as the method's authors did, to check the search did not miss a larger gap.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A local authority's internal audit team re-audits a model that flags housing benefit claims for fraud review each quarter, using a random sample of claims reviewed whether or not they were flagged. It records the worst subgroup by false positive rate (legitimate claims flagged) over age, sex, ethnicity and disability, with its size and gap, and escalates to the system owner when the weighted gap exceeds the agreed limit.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Finding the worst subgroup exactly is hard in the worst case, even for conjunctions or linear thresholds of attributes (Kearns et al. 2018, Theorem 3.3), so practical audits use a heuristic search. A subgroup it reports does have the measured gap on the audit data, but a clean result is only a lower bound: the authors note their auditor could miss a larger disparity and checked it by brute force on two attributes (Kearns et al. 2019). 'Nothing found' is a search result, not a proof."
+        },
+        {
+          "description": "Gaps are weighted by subgroup size, which the authors require for reliable estimates and which lets small groups pass with large gaps: a subgroup holding 2% of the records whose false positive rate is 20 percentage points above the overall rate scores at most 0.004, under the 0.005 limit used in the AIF360 demonstration. The audit cannot support a claim about a small named group; report that group's own rate, with an interval, instead."
+        },
+        {
+          "description": "Only subgroups that the rule class can describe, over the attributes designated as protected, are searched; the reference implementation uses linear threshold rules. The class has to be limited because, as the authors note, any imperfect classifier could be accused of unfairness to the set of people it misclassifies. A protected attribute that is not recorded or not designated is invisible, so the attributes used and their encoding must be stated with the finding."
+        },
+        {
+          "description": "Error-rate audits need the protected attributes and the true outcome for every audited record, which a deployed system may not supply, for example when outcomes are seen only for approved applications. Reliable estimates need more data the richer the subgroup class, the authors' experiments report in-sample results, and the tools give no confidence interval, so audit on held-out data and repeat on fresh data before relying on a worst-case figure."
+        },
+        {
+          "description": "It tests parity of one rate at a time for binary decisions, each subgroup's rate against the overall rate. A pass on false positives says nothing about false negatives, the AIF360 auditor implements only those two error rates, and other criteria, such as whether scores mean the same in every subgroup (calibration), need a different test. The rate must be chosen to match the fairness claim before the audit."
+        }
+      ],
+      "resources": [
+        {
+          "title": "aif360.metrics.BinaryLabelDatasetMetric (AIF360 documentation)",
+          "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.metrics.BinaryLabelDatasetMetric.html",
+          "source_type": "documentation",
+          "citationKey": "Aif360metricsBinaryLabelDatasetMetricAIF360Documentation"
+        },
+        {
+          "title": "AIF360",
+          "url": "https://github.com/Trusted-AI/AIF360",
+          "source_type": "software_package",
+          "publication_date": "2018-08-22",
+          "citationKey": "trusted-aiAIF3602018",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
+        },
+        {
+          "title": "Preventing Fairness Gerrymandering: Auditing and Learning for Subgroup Fairness",
+          "url": "https://proceedings.mlr.press/v80/kearns18a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Michael Kearns",
+            "Seth Neel",
+            "Aaron Roth",
+            "Zhiwei Steven Wu"
+          ],
+          "publication_date": "2018-07-03",
+          "citationKey": "kearnsPreventingFairnessGerrymandering2018",
+          "abstract": "The most prevalent notions of fairness in machine learning fix a small collection of pre-defined groups (such as race or gender), and then ask for approximate parity of some statistic of the classifier (such as false positive rate) across these groups. Constraints of this form are susceptible to fairness gerrymandering, in which a classifier is fair on each individual group, but badly violates the fairness constraint on structured subgroups, such as certain combinations of protected attribute values. We thus consider fairness across exponentially or infinitely many subgroups, defined by a structured class of functions over the protected attributes. We first prove that the problem of auditing subgroup fairness for both equality of false positive rates and statistical parity is computationally equivalent to the problem of weak agnostic learning — which means it is hard in the worst case, even for simple structured subclasses. However, it also suggests that common heuristics for learning can be applied to successfully solve the auditing problem in practice. We then derive an algorithm that provably converges in a polynomial number of steps to the best subgroup-fair distribution over classifiers, given access to an oracle which can solve the agnostic learning problem. The algorithm is based on a formulation of subgroup fairness as a zero-sum game between a Learner (the primal player) and an Auditor (the dual player). We implement a variant of this algorithm using heuristic oracles, and show that we can effectively both audit and learn fair classifiers on a real dataset."
+        },
+        {
+          "title": "AIF360 demo: GerryFair rich subgroup fairness (notebook)",
+          "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/demo_gerryfair.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AIF360DemoGerryFair",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models. - Trusted-AI/AIF360"
+        },
+        {
+          "title": "An Empirical Study of Rich Subgroup Fairness for Machine Learning",
+          "url": "https://doi.org/10.1145/3287560.3287592",
+          "source_type": "application_paper",
+          "authors": [
+            "Michael Kearns",
+            "Seth Neel",
+            "Aaron Roth",
+            "Zhiwei Steven Wu"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "kearnsEmpiricalStudyRich2019"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On a held-out sample of 40,000 previously approved applicants with known repayment, the rich subgroup audit over age, sex, ethnicity and disability status found no subgroup whose size-weighted false positive rate gap exceeded the 0.005 limit agreed with the risk committee.",
+          "assuranceGoal": "fairness",
+          "domain": "finance"
+        },
+        {
+          "text": "Before rollout, neither the heuristic audit over age, sex and ethnicity nor a brute-force grid over age and ethnicity found a subgroup whose size-weighted gap in the rate of missed sepsis cases exceeded 0.003.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
+        },
+        {
+          "text": "In each of the last four quarterly re-audits, on a random sample of claims reviewed whether or not they were flagged, the worst subgroup found had a size-weighted false positive rate gap below the agreed limit, and its description and size were recorded.",
+          "assuranceGoal": "fairness",
+          "domain": "public sector"
+        }
+      ]
+    },
+    {
+      "slug": "actionable-recourse-audit",
+      "name": "Actionable Recourse Audit",
+      "description": "An actionable recourse audit checks whether the people a linear classifier refuses, for example for a loan, a job interview or a public service, could change that decision through actions open to them, and how much they would have to change. The auditor first writes an action set saying which features can change and how: immutable features such as age stay fixed, features such as education level can only rise, and each changeable feature gets bounds and a grid of realistic values. Then, for each refused person in a sample drawn from the population the model will serve, an integer programming solver (optimisation software that searches discrete choices exactly) looks through the permitted actions for the cheapest change that flips the decision, measuring cost as the largest shift, in population percentiles, that the change makes to any one feature, and either returns that action or proves that none exists, which a search that simply fails to find a counterfactual cannot do. The audit reports the share of refused people who have recourse and the distribution of its cost, which can be compared across candidate models or broken down by group, and the same solver can list a refused person's cheapest alternative changes (a 'flipset') for a decision notice. Unlike the Contrastive Explanation Method, which explains one prediction through features that must be present or absent, or Diverse Counterfactual Explanations (DiCE), which searches any model for several alternative inputs that would change one decision, the audit works only on linear models but certifies whether any permitted action exists and summarises the answer across a population.",
+      "assurance_goals": [
+        "Transparency",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/linear-models",
+        "applicable-models/architecture/linear-models/logistic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/notice-and-recourse",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/reference-dataset",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "evidence-type/fairness-metric",
+        "evidence-type/structured-output",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before launching a linear model that ranks applications to a housing support scheme, a local authority's analytics team audits recourse on last year's applicants, with age and household size fixed. Its report to the scheme's oversight board gives the share of refused applicants who could qualify through changes the scheme expects, such as completing a tenancy course, and how large those changes are, so the board can decide whether to approve the model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A credit card issuer generates a flipset for each applicant its linear scorecard declines and puts the two cheapest items in the decline letter, for example reducing current debt to a stated amount, together with the other scored features the applicant should keep unchanged, so that following the stated actions would change the decision under the current model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A lender's model risk committee is shown recourse audits for candidate credit models of almost equal accuracy. It rejects the most accurate, under which some refused applicants had no feasible action because of an 'ever defaulted' feature, adopts a variant that uses recent defaults only, and has the audit re-run each quarter on new applicants, watching younger applicants, who were scarce in the training data.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An employer's analytics team audits its linear screening model for interview invitations and compares the cost of recourse for refused women and men with similar predicted scores. Sex is not a model input, but the cost can still differ by sex. Refused candidates' true suitability is never observed, so the team cannot also match on outcome as the originating study did, and reports any gap with that caveat to its fairness review panel, which decides whether the features need revising.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The proof that no action exists depends on the model being linear, such as logistic regression, a linear support vector machine or a rule set that can be written in linear form. For tree ensembles or neural networks, a local linear approximation can still suggest actions, which then have to be checked on the real model, but a failure to find one proves nothing, so the share of refused people without recourse is no longer a certified figure."
+        },
+        {
+          "description": "Every conclusion rests on the action set and cost the auditor chooses. Bounds that are too tight make people appear to lack recourse; loose bounds let a model 'provide' recourse only through drastic changes, which shows only as high cost; and the default cost treats a one-percentile change as equally hard in every feature unless someone who knows the domain sets how much harder some changes are."
+        },
+        {
+          "description": "The search treats features as changing independently unless the auditor adds constraints. Real actions have knock-on effects: raising income can also raise savings, so a listed action may cost more than needed, or may not change the decision once its effects on other features are counted, as Karimi, Schölkopf and Valera showed for recourse methods that ignore causal relations between features."
+        },
+        {
+          "description": "Recourse is defined for a fixed model. After retraining, an action given in an earlier notice may no longer change the decision, so the audit has to be re-run after each update. An action that changes the prediction need not change the real outcome either: showing a refused applicant how to be approved can lead them into credit they cannot repay."
+        },
+        {
+          "description": "A flipset lists only the features to change, so a person who also changes an undisclosed feature may still be refused unless the notice says what must stay the same. The originating paper builds flipsets from public credit datasets and does not test whether refused people understand them or can act on them. Owners may also resist publishing flipsets, because many of them together can let others reconstruct the model."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Actionable Recourse in Linear Classification",
+          "url": "https://doi.org/10.1145/3287560.3287566",
+          "source_type": "technical_paper",
+          "authors": [
+            "Berk Ustun",
+            "Alexander Spangher",
+            "Yang Liu"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "ustunActionableRecourseLinear2019"
+        },
+        {
+          "title": "actionable-recourse",
+          "url": "https://github.com/ustunb/actionable-recourse",
+          "source_type": "software_package",
+          "publication_date": "2026-07-11T02:55:36Z",
+          "citationKey": "ustunActionablerecourse2026",
+          "abstract": "python tools to check recourse in linear classification"
+        },
+        {
+          "title": "actionable-recourse example: Auditing Recourse",
+          "url": "https://github.com/ustunb/actionable-recourse/blob/master/examples/ex_02_audit_model-effects-of-recourse-demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ActionablerecourseExampleAuditing",
+          "abstract": "python tools to check recourse in linear classification - ustunb/actionable-recourse"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every refused applicant in the audit sample, drawn from last year's applications to the scheme, has at least one action under the agreed action set that would make them eligible under the deployed model.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Under the agreed action set, at least half of the declined applicants in the audit sample have an action that would bring approval while moving no feature by more than 25 percentiles of the applicant population.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "Among candidates refused by the screening model with similar predicted scores, the median cost of recourse for women is within five percentile points of that for men.",
+          "assuranceGoal": "fairness",
+          "domain": "employment"
+        },
+        {
+          "text": "Each decline letter lists at least one action that would change the decision under the current scorecard, together with the scored features the applicant must keep unchanged.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        }
+      ]
     }
   ],
-  "count": 9
+  "count": 13
 }

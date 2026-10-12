@@ -1,0 +1,135 @@
+{
+  "slug": "gnnexplainer",
+  "name": "GNNExplainer",
+  "description": "GNNExplainer explains one prediction of a graph neural network, a model that passes information along the edges of a graph such as a molecule, a payment network or a mesh of weather grid points, by finding a small subgraph and a small set of input features that most support that prediction. Explanation methods for flat inputs, such as SHAP and LIME, give each input feature its own score and have no built-in notion of a connection between two nodes; this method scores the connections themselves, restricted to the part of the graph the model actually reads for the prediction (its computation graph, the neighbourhood within as many hops as the model has message-passing layers). It learns a mask with a value between 0 and 1 for each edge of that computation graph and for each node-feature dimension by gradient descent: the masked graph is fed to the model, and the masks are adjusted to keep the predicted label as likely as possible while penalties keep the total mask small and push values towards 0 or 1. Edges and features whose mask values fall below a threshold are then dropped, leaving a compact subgraph and feature subset that can be drawn over the input graph; the same procedure explains node labels, predicted links and whole-graph labels, and the original paper also aligns the explanations of many nodes of one class into a summary pattern. It needs gradient access to the model, and each explanation is a separate optimisation.",
+  "assurance_goals": [
+    "Explainability"
+  ],
+  "tags": [
+    "applicable-models/architecture/neural-networks",
+    "applicable-models/requirements/gradient-access",
+    "applicable-models/requirements/differentiable",
+    "assurance-goal-category/explainability",
+    "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+    "assurance-goal-category/explainability/explains/feature-importance",
+    "assurance-goal-category/explainability/property/sparsity",
+    "data-requirements/no-special-requirements",
+    "evidence-type/structured-output",
+    "evidence-type/visualisation",
+    "expertise-needed/deep-learning",
+    "expertise-needed/domain-expertise",
+    "explanatory-scope/local",
+    "technique-type/algorithmic",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring",
+    "data-type/graph",
+    "applicable-models/architecture/neural-networks/graph"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A pharmaceutical company's computational toxicology team uses a graph neural network to flag candidate molecules as likely mutagenic. For each flagged compound it reviews the substructure and atom features GNNExplainer selects and checks them against known structural alerts such as nitro groups, to decide whether a flag rests on chemistry the team recognises before the compound is deprioritised.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "A bank's financial-crime unit scores accounts with a graph neural network over its payment network to flag likely money-mule accounts. Investigators receive with each flag the explanation subgraph of counterparties and transfers and the account features it selected, and use them to decide whether to escalate; model validators sample explanations to check that flags do not rest mainly on features such as branch or account-opening channel.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "A weather service's model evaluation team runs the regression mode of the PyTorch Geometric implementation on a small set of high-impact forecasts from a graph-based forecasting model, such as the predicted rainfall total at one location. Forecasters check whether the connections and input variables selected, for example humidity upwind, are physically plausible, and the team deletes the selected connections to confirm the forecast changes, before such forecasts feed a warning service.",
+      "goal": "Explainability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "Each explanation is a separate optimisation, run for a set number of steps (100 by default in the PyTorch Geometric implementation), so explaining many nodes or graphs is slow and explanations of similar cases are not required to agree. A view of the model as a whole needs an extra step, such as the class-level summary in the original paper, or a method that trains one explainer for all instances."
+    },
+    {
+      "description": "The masks are soft during optimisation, so the model is run on graphs whose edges and features are scaled by fractions it never saw in training, and these values can add meaning or noise of their own. The objective is not convex and the masks start at random: in a 2024 benchmark, the ten-edge explanations from runs with different seeds overlapped by a Jaccard index of only 0.18 to 0.80 across six datasets. The final subgraph also depends on the threshold used to cut the mask."
+    },
+    {
+      "description": "The size of the explanation is set by the user, not found. The original experiments fixed it at the known size of the planted pattern on synthetic graphs and at 10 edges and 5 features on real ones, and the PyTorch Geometric implementation advises tuning the size penalty to the graph's average degree. A compact explanation can therefore leave out structure the model uses."
+    },
+    {
+      "description": "Most evidence that it finds the right structure comes from synthetic graphs with planted patterns, and a trained model need not use the planted edges, so agreement with them can mislead. A 2023 benchmark found graph explainers, this one included, less faithful when linked nodes tend to differ and when the deciding structure is large. Check fidelity on your own model, for example by deleting the explanation and measuring the change."
+    },
+    {
+      "description": "It assumes the computation graph is small. The computation graph grows with every message-passing layer, so in a mesh-based forecasting model that passes messages many times along long-range edges (GraphCast uses 16 such layers) it probably spans most of the mesh: the mask then covers most edges and compactness comes from the size penalty, not the model. This has not been tested. PyTorch Geometric applies the mask inside its own message-passing layers, so the model must use them or be adapted."
+    }
+  ],
+  "resources": [
+    {
+      "title": "torch_geometric.explain.algorithm.GNNExplainer (PyG documentation)",
+      "url": "https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.explain.algorithm.GNNExplainer.html",
+      "source_type": "documentation",
+      "citationKey": "Torch_geometricexplainalgorithmGNNExplainerPyGDocumentation"
+    },
+    {
+      "title": "PyTorch Geometric (pyg-team/pytorch_geometric)",
+      "url": "https://github.com/pyg-team/pytorch_geometric",
+      "source_type": "software_package",
+      "publication_date": "2025",
+      "citationKey": "feyPyTorchGeometricPygteam2025",
+      "abstract": "Graph Neural Network Library for PyTorch"
+    },
+    {
+      "title": "GNNExplainer: Generating Explanations for Graph Neural Networks",
+      "url": "https://proceedings.neurips.cc/paper/2019/hash/d80b7040b773199015de6d3b4293c8ff-Abstract.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Zhitao Ying",
+        "Dylan Bourgeois",
+        "Jiaxuan You",
+        "Marinka Zitnik",
+        "Jure Leskovec"
+      ],
+      "publication_date": "2019",
+      "citationKey": "yingGNNExplainerGeneratingExplanations2019",
+      "abstract": "Graph Neural Networks (GNNs) are a powerful tool for machine learning on graphs.GNNs combine node feature information with the graph structure by \nrecursively passing neural messages along edges of the input graph. However, incorporating both graph structure and feature information leads to complex models,\nand explaining predictions made by GNNs remains unsolved. Here\nwe propose GNNExplainer, the first general, model-agnostic approach for providing interpretable explanations for predictions of any GNN-based model on any graph-based machine learning task. Given an instance, GNNExplainer identifies a compact subgraph structure and a small subset of node features that have a crucial role in GNN's prediction. \nFurther, GNNExplainer  can generate consistent and concise explanations for an entire class of instances.\nWe formulate GNNExplainer as an optimization task that maximizes the mutual information between a GNN's prediction and distribution of possible subgraph structures. Experiments on synthetic and real-world graphs show that our approach can identify important graph structures as well as node features, and outperforms baselines by 17.1% on average. GNNExplainer  provides a variety of benefits, from the ability to visualize semantically relevant structures to interpretability, to giving insights into errors of faulty GNNs."
+    },
+    {
+      "title": "Explaining Graph Neural Networks (PyG tutorial)",
+      "url": "https://pytorch-geometric.readthedocs.io/en/latest/tutorial/explain.html",
+      "source_type": "tutorial",
+      "citationKey": "ExplainingGraphNeural"
+    },
+    {
+      "title": "Investigating Brain Connectivity with Graph Neural Networks and GNNExplainer",
+      "url": "https://doi.org/10.1109/icpr56361.2022.9956201",
+      "source_type": "application_paper",
+      "authors": [
+        "Maksim Zhdanov",
+        "Saskia Steinmann",
+        "Nico Hoffmann"
+      ],
+      "publication_date": "2022-8-21",
+      "citationKey": "zhdanovInvestigatingBrainConnectivity2022"
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 3,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "For at least 90% of the validation molecules the toxicity model flags as mutagenic, the explanation subgraph contains a recognised structural alert, and deleting the explanation subgraph removes the flag for at least 80% of them.",
+      "assuranceGoal": "explainability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "Across 300 sampled money-mule flags, branch and account-opening channel are never among the three node features with the highest mask values in the explanation.",
+      "assuranceGoal": "explainability",
+      "domain": "finance"
+    },
+    {
+      "text": "For each of the 20 high-impact rainfall forecasts reviewed, forecasters judged the selected connections and input variables physically plausible, and removing the selected connections changed the forecast total by more than the agreed tolerance.",
+      "assuranceGoal": "explainability",
+      "domain": "environmental"
+    },
+    {
+      "text": "Repeating each reviewed explanation from five random starting masks gives ten highest-weighted edge sets whose pairwise Jaccard index is at least 0.8.",
+      "assuranceGoal": "explainability",
+      "domain": "general"
+    }
+  ]
+}

@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/explainability/property/sparsity",
     "slug": "assurance-goal-category-explainability-property-sparsity",
-    "count": 7,
+    "count": 10,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -3172,7 +3172,426 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "diverse-counterfactual-explanations",
+      "name": "Diverse Counterfactual Explanations",
+      "description": "Diverse Counterfactual Explanations (DiCE) explains one decision of a classifier by generating several altered versions of the input, called counterfactuals, each changed just enough that the model would have given the other outcome, and chosen to differ from one another so that a person sees several distinct ways the result could have been different. Where the contrastive explanation method returns, for one input, a minimal set of features that must be present and a minimal set that must stay absent, DiCE returns several complete alternative inputs at once, within limits the user sets on which features may change and over what range. In the original method all the counterfactuals are optimised together by gradient descent on a loss with three parts: a hinge loss that pushes each across the model's decision threshold, a distance term (each continuous feature's change divided by its median absolute deviation in the training data, plus the share of categorical features changed) that keeps each close to the original, and a diversity term, the determinant of a similarity matrix between them, that rewards them for differing. Afterwards, small changes are reset to their original values for as long as the counterfactual still gets the other outcome, to make it sparser, and counterfactuals that break causal rules supplied by the user, such as gaining a degree without growing older, can be filtered out. The method as published needs a differentiable model such as a neural network; the reference library adds random-sampling, genetic-algorithm and nearest-training-example searches that need only the model's predictions.",
+      "assurance_goals": [
+        "Explainability",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/instance-based/counterfactual",
+        "assurance-goal-category/explainability/explains/decision-boundaries",
+        "assurance-goal-category/explainability/property/counterfactual-validity",
+        "assurance-goal-category/explainability/property/sparsity",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/notice-and-recourse",
+        "data-requirements/no-special-requirements",
+        "data-type/tabular",
+        "evidence-type/structured-output",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A credit-risk validation team at a lender generates five counterfactuals for each of 500 sampled refused applications with every feature free to change, to see what the model treats as enough for approval. Counterfactuals that reach approval by changing only the postcode, or another likely proxy for a protected characteristic, are logged as findings and passed to the fairness testing team.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A hospital team piloting a classifier that places patients with chronic obstructive pulmonary disease in low, moderate or high cardiovascular risk generates counterfactuals restricted to modifiable factors such as blood pressure, cholesterol and smoking. Clinicians check whether the changes the model links to a lower risk category agree with clinical knowledge before the tool is shown to patients.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A consumer lender puts up to three counterfactuals in each refusal letter, generated against the model version that made the decision and limited to features the applicant can change (income, balances, loan amount and term), each shown as an application that would have been approved. Before rollout it tests a draft letter with applicants, checking that they can name a change that would have worked and understand that the options are not a promise of approval if they reapply.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A counterfactual is only valid for the model version that produced it. The method assumes the model does not change, and after retraining a previously suggested change can stop flipping the decision, so a person who acts on it may still be refused. Counterfactuals shown to people should be dated, tied to a model version and re-checked whenever the model is updated."
+        },
+        {
+          "description": "Feasibility depends on constraints the user supplies. Without them, counterfactuals can change attributes a person cannot change, such as race or sex, or propose impossible combinations: in the original experiments over a third of the counterfactuals that changed education were infeasible, most raising the degree without raising age. Causal rules can only be applied afterwards, as a filter."
+        },
+        {
+          "description": "The set returned is not unique. It depends on the weights on distance and diversity, per-feature weights, the number requested and random starting points, and with the library's random-sampling method a different seed gives a different set. The authors note that showing people counterfactuals produced with different settings is a problem, so fix and record settings and seeds."
+        },
+        {
+          "description": "Distance is measured feature by feature (scaled change for numbers, changed or not for categories), so it ignores how features move together, treats every category change as equally hard, and can place counterfactuals where there is little real data. In a study of 9,613 patient records, DiCE's counterfactuals were closer and sparser but less plausible than those of a sampling-based alternative."
+        },
+        {
+          "description": "The original paper tests no people. Its stand-in for understanding, a nearest-neighbour model trained on the counterfactuals, is in the authors' words a best case of rational extrapolation, and they leave a behavioural study and the cost of choosing among more options to future work. A counterfactual also does not say which features must stay as they are, so a person who raises income by changing job may still be refused. Test the wording with recipients before relying on it."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Diverse Counterfactual Explanations (DiCE) for ML: DiCE documentation",
+          "url": "https://interpret.ml/DiCE/",
+          "source_type": "documentation",
+          "citationKey": "DiverseCounterfactualExplanations"
+        },
+        {
+          "title": "DiCE (interpretml/DiCE)",
+          "url": "https://github.com/interpretml/DiCE",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T17:49:07Z",
+          "citationKey": "DiCEInterpretmlDiCE2026",
+          "abstract": "Generate Diverse Counterfactual Explanations for any machine learning model."
+        },
+        {
+          "title": "Explaining machine learning classifiers through diverse counterfactual explanations",
+          "url": "https://doi.org/10.1145/3351095.3372850",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ramaravind K. Mothilal",
+            "Amit Sharma",
+            "Chenhao Tan"
+          ],
+          "publication_date": "2020-1-27",
+          "citationKey": "mothilalExplainingMachineLearning2020"
+        },
+        {
+          "title": "Quick introduction to generating counterfactual explanations using DiCE",
+          "url": "https://interpret.ml/DiCE/notebooks/DiCE_getting_started.html",
+          "source_type": "tutorial",
+          "citationKey": "QuickIntroductionGenerating"
+        },
+        {
+          "title": "Estimation and Conformity Evaluation of Multi-Class Counterfactual Explanations for Chronic Disease Prevention",
+          "url": "https://doi.org/10.1109/jbhi.2024.3492730",
+          "source_type": "application_paper",
+          "authors": [
+            "Marta Lenatti",
+            "Alberto Carlevaro",
+            "Aziz Guergachi",
+            "Karim Keshavjee",
+            "Maurizio Mongelli",
+            "Alessia Paglialonga"
+          ],
+          "publication_date": "2025-9",
+          "citationKey": "lenattiEstimationConformityEvaluation2025"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "acronym": "DiCE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For 500 sampled refused applications, no counterfactual reached approval by changing only the postcode or another field on the agreed list of proxies for protected characteristics.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Every refusal letter issued since the model release contains at least two counterfactuals that change only features on the agreed list of applicant-changeable features, each re-scored against the model version in use on the day the letter was sent and confirmed to reach approval.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "For 100 sampled patients, clinicians found no case in which the cardiovascular-risk classifier's counterfactuals, restricted to modifiable risk factors, reached a lower risk category through a change contrary to clinical guidance.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Re-running counterfactual generation with the recorded settings and seed reproduces the counterfactual sets given to applicants for all audited cases.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "In a comprehension test of the draft refusal letter with 50 recent applicants, at least 80% named a change that would have led to approval, and at least 80% correctly said that the options do not guarantee approval if they reapply.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "gnnexplainer",
+      "name": "GNNExplainer",
+      "description": "GNNExplainer explains one prediction of a graph neural network, a model that passes information along the edges of a graph such as a molecule, a payment network or a mesh of weather grid points, by finding a small subgraph and a small set of input features that most support that prediction. Explanation methods for flat inputs, such as SHAP and LIME, give each input feature its own score and have no built-in notion of a connection between two nodes; this method scores the connections themselves, restricted to the part of the graph the model actually reads for the prediction (its computation graph, the neighbourhood within as many hops as the model has message-passing layers). It learns a mask with a value between 0 and 1 for each edge of that computation graph and for each node-feature dimension by gradient descent: the masked graph is fed to the model, and the masks are adjusted to keep the predicted label as likely as possible while penalties keep the total mask small and push values towards 0 or 1. Edges and features whose mask values fall below a threshold are then dropped, leaving a compact subgraph and feature subset that can be drawn over the input graph; the same procedure explains node labels, predicted links and whole-graph labels, and the original paper also aligns the explanations of many nodes of one class into a summary pattern. It needs gradient access to the model, and each explanation is a separate optimisation.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/gradient-access",
+        "applicable-models/requirements/differentiable",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/property/sparsity",
+        "data-requirements/no-special-requirements",
+        "evidence-type/structured-output",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/domain-expertise",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "data-type/graph",
+        "applicable-models/architecture/neural-networks/graph"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A pharmaceutical company's computational toxicology team uses a graph neural network to flag candidate molecules as likely mutagenic. For each flagged compound it reviews the substructure and atom features GNNExplainer selects and checks them against known structural alerts such as nitro groups, to decide whether a flag rests on chemistry the team recognises before the compound is deprioritised.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A bank's financial-crime unit scores accounts with a graph neural network over its payment network to flag likely money-mule accounts. Investigators receive with each flag the explanation subgraph of counterparties and transfers and the account features it selected, and use them to decide whether to escalate; model validators sample explanations to check that flags do not rest mainly on features such as branch or account-opening channel.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A weather service's model evaluation team runs the regression mode of the PyTorch Geometric implementation on a small set of high-impact forecasts from a graph-based forecasting model, such as the predicted rainfall total at one location. Forecasters check whether the connections and input variables selected, for example humidity upwind, are physically plausible, and the team deletes the selected connections to confirm the forecast changes, before such forecasts feed a warning service.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Each explanation is a separate optimisation, run for a set number of steps (100 by default in the PyTorch Geometric implementation), so explaining many nodes or graphs is slow and explanations of similar cases are not required to agree. A view of the model as a whole needs an extra step, such as the class-level summary in the original paper, or a method that trains one explainer for all instances."
+        },
+        {
+          "description": "The masks are soft during optimisation, so the model is run on graphs whose edges and features are scaled by fractions it never saw in training, and these values can add meaning or noise of their own. The objective is not convex and the masks start at random: in a 2024 benchmark, the ten-edge explanations from runs with different seeds overlapped by a Jaccard index of only 0.18 to 0.80 across six datasets. The final subgraph also depends on the threshold used to cut the mask."
+        },
+        {
+          "description": "The size of the explanation is set by the user, not found. The original experiments fixed it at the known size of the planted pattern on synthetic graphs and at 10 edges and 5 features on real ones, and the PyTorch Geometric implementation advises tuning the size penalty to the graph's average degree. A compact explanation can therefore leave out structure the model uses."
+        },
+        {
+          "description": "Most evidence that it finds the right structure comes from synthetic graphs with planted patterns, and a trained model need not use the planted edges, so agreement with them can mislead. A 2023 benchmark found graph explainers, this one included, less faithful when linked nodes tend to differ and when the deciding structure is large. Check fidelity on your own model, for example by deleting the explanation and measuring the change."
+        },
+        {
+          "description": "It assumes the computation graph is small. The computation graph grows with every message-passing layer, so in a mesh-based forecasting model that passes messages many times along long-range edges (GraphCast uses 16 such layers) it probably spans most of the mesh: the mask then covers most edges and compactness comes from the size penalty, not the model. This has not been tested. PyTorch Geometric applies the mask inside its own message-passing layers, so the model must use them or be adapted."
+        }
+      ],
+      "resources": [
+        {
+          "title": "torch_geometric.explain.algorithm.GNNExplainer (PyG documentation)",
+          "url": "https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.explain.algorithm.GNNExplainer.html",
+          "source_type": "documentation",
+          "citationKey": "Torch_geometricexplainalgorithmGNNExplainerPyGDocumentation"
+        },
+        {
+          "title": "PyTorch Geometric (pyg-team/pytorch_geometric)",
+          "url": "https://github.com/pyg-team/pytorch_geometric",
+          "source_type": "software_package",
+          "publication_date": "2025",
+          "citationKey": "feyPyTorchGeometricPygteam2025",
+          "abstract": "Graph Neural Network Library for PyTorch"
+        },
+        {
+          "title": "GNNExplainer: Generating Explanations for Graph Neural Networks",
+          "url": "https://proceedings.neurips.cc/paper/2019/hash/d80b7040b773199015de6d3b4293c8ff-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Zhitao Ying",
+            "Dylan Bourgeois",
+            "Jiaxuan You",
+            "Marinka Zitnik",
+            "Jure Leskovec"
+          ],
+          "publication_date": "2019",
+          "citationKey": "yingGNNExplainerGeneratingExplanations2019",
+          "abstract": "Graph Neural Networks (GNNs) are a powerful tool for machine learning on graphs.GNNs combine node feature information with the graph structure by \nrecursively passing neural messages along edges of the input graph. However, incorporating both graph structure and feature information leads to complex models,\nand explaining predictions made by GNNs remains unsolved. Here\nwe propose GNNExplainer, the first general, model-agnostic approach for providing interpretable explanations for predictions of any GNN-based model on any graph-based machine learning task. Given an instance, GNNExplainer identifies a compact subgraph structure and a small subset of node features that have a crucial role in GNN's prediction. \nFurther, GNNExplainer  can generate consistent and concise explanations for an entire class of instances.\nWe formulate GNNExplainer as an optimization task that maximizes the mutual information between a GNN's prediction and distribution of possible subgraph structures. Experiments on synthetic and real-world graphs show that our approach can identify important graph structures as well as node features, and outperforms baselines by 17.1% on average. GNNExplainer  provides a variety of benefits, from the ability to visualize semantically relevant structures to interpretability, to giving insights into errors of faulty GNNs."
+        },
+        {
+          "title": "Explaining Graph Neural Networks (PyG tutorial)",
+          "url": "https://pytorch-geometric.readthedocs.io/en/latest/tutorial/explain.html",
+          "source_type": "tutorial",
+          "citationKey": "ExplainingGraphNeural"
+        },
+        {
+          "title": "Investigating Brain Connectivity with Graph Neural Networks and GNNExplainer",
+          "url": "https://doi.org/10.1109/icpr56361.2022.9956201",
+          "source_type": "application_paper",
+          "authors": [
+            "Maksim Zhdanov",
+            "Saskia Steinmann",
+            "Nico Hoffmann"
+          ],
+          "publication_date": "2022-8-21",
+          "citationKey": "zhdanovInvestigatingBrainConnectivity2022"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For at least 90% of the validation molecules the toxicity model flags as mutagenic, the explanation subgraph contains a recognised structural alert, and deleting the explanation subgraph removes the flag for at least 80% of them.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Across 300 sampled money-mule flags, branch and account-opening channel are never among the three node features with the highest mask values in the explanation.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "For each of the 20 high-impact rainfall forecasts reviewed, forecasters judged the selected connections and input variables physically plausible, and removing the selected connections changed the forecast total by more than the agreed tolerance.",
+          "assuranceGoal": "explainability",
+          "domain": "environmental"
+        },
+        {
+          "text": "Repeating each reviewed explanation from five random starting masks gives ten highest-weighted edge sets whose pairwise Jaccard index is at least 0.8.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "sparse-autoencoder-feature-analysis",
+      "name": "Sparse Autoencoder Feature Analysis",
+      "description": "Sparse autoencoder feature analysis looks for human-interpretable units inside a neural network, usually a language model, by learning from the activations at one layer a large dictionary of directions, called features, such that each activation vector can be rebuilt from only a few of them. Unlike neuron activation analysis it does not take the network's own neurons as the units, since single neurons often respond to several unrelated things, and unlike concept activation vectors it needs no labelled examples of a concept chosen in advance, because the features are found without supervision. The analyst records activations at the chosen layer over a large body of ordinary text and trains an autoencoder, a network with one hidden layer usually several times wider than the layer studied, to reconstruct them while a sparsity penalty keeps most hidden units at zero; the decoder weights of each hidden unit then give one feature direction. Each feature is labelled from the inputs on which it fires most strongly, by a person or by a language model that writes a description, which is then scored on how well it predicts the feature's activations on other text, and the label is tested by removing or amplifying the feature inside the running model and checking the change in output. The output is a catalogue of labelled features with example activations, interpretability scores and measured effects, plus a reconstruction score saying how much of the layer's behaviour the dictionary accounts for; the features can then serve as units for causal mediation analysis, which traces pathways, while this method finds and checks the units themselves.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/model-internals",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/representation-analysis/concept-identification",
+        "assurance-goal-category/explainability/explains/internal-mechanisms",
+        "assurance-goal-category/explainability/property/comprehensibility",
+        "assurance-goal-category/explainability/property/sparsity",
+        "data-requirements/no-special-requirements",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "evidence-type/qualitative-report",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/global",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before deploying an open-weights language model as a customer-service assistant, a bank's AI assurance team uses sparse autoencoders published for that model to find features active on prompts where the assistant should refuse to give investment advice. It tests each candidate by suppressing it and measuring the change in refusal rate, and records which labelled features the refusal behaviour depends on in the model's assurance file.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A bioinformatics group using a protein language model to annotate newly sequenced proteins trains sparse autoencoders on its embeddings and compares the features with database annotations of binding sites, structural motifs and domains. Features that match known biology are used to propose candidate annotations for curators to verify, features that fire widely with no clear meaning are flagged for review, and the model's own annotation accuracy is still tested on held-out proteins.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A team that fine-tuned a language model to triage clinical referral letters lists the sparse autoencoder features that most change the 'urgent' score on a validation set, and checks whether they describe clinical content or properties of the letter, such as the referring practice's template. A template feature among the leading drivers is recorded as a finding and leads to retraining on reformatted letters.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The dictionary does not capture everything the layer carries, and what it misses cannot be inspected. In the originating study, replacing one layer of a small language model with its reconstruction raised perplexity from 25 to 40; a concurrent study recovered 79% of a layer's contribution to the loss in its main run. Not finding a feature for a concept does not show that the model lacks it."
+        },
+        {
+          "description": "The features found are not unique. Larger dictionaries split a feature into narrower ones (one base64 feature at 512 features became three at 4,096), and for a 131,000-feature autoencoder on one layer of Llama 3 8B only about 30% of features were shared by two runs differing only in random seed. A conclusion resting on one feature should name the autoencoder used and be checked on a second run."
+        },
+        {
+          "description": "Labels are hypotheses drawn from the top-activating examples, and automated scores are modest: the first five features reported in the originating study scored between -0.11 and 0.57, and the advantage over simpler decompositions faded in later layers. Back a label with an intervention that changes the output as the label predicts before citing it as evidence."
+        },
+        {
+          "description": "It needs the model's internal activations, plus storage and compute to train an autoencoder for each layer studied (one concurrent study trained on 8 billion activation vectors from a single layer). For large models practitioners often rely on autoencoders released for particular open-weights models, so the method is not available for a model reached only through an API."
+        },
+        {
+          "description": "Being interpretable does not make the features better for a given task. In a 2025 study of detecting concepts from model activations, probes built on autoencoder features did not beat logistic regression on the raw activations on average, and the spurious correlations and data problems they exposed could also be found with simpler baselines. Where detection is the goal, compare against such baselines."
+        }
+      ],
+      "resources": [
+        {
+          "title": "SAELens documentation",
+          "url": "https://decoderesearch.github.io/SAELens/",
+          "source_type": "documentation",
+          "citationKey": "SAELensDocumentation",
+          "abstract": "Docs for Sparse Autoencoder Training and Analysis Library"
+        },
+        {
+          "title": "SAELens (decoderesearch/SAELens)",
+          "url": "https://github.com/decoderesearch/SAELens",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T09:38:04Z",
+          "citationKey": "SAELensDecoderesearchSAELens2026",
+          "abstract": "Training Sparse Autoencoders on Language Models"
+        },
+        {
+          "title": "Sparse Autoencoders Find Highly Interpretable Features in Language Models",
+          "url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/1fa1ab11f4bd5f94b2ec20e794dbfa3b-Abstract-Conference.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Robert Huben",
+            "Hoagy Cunningham",
+            "Logan Smith",
+            "Aidan Ewart",
+            "Lee Sharkey"
+          ],
+          "citationKey": "hubenSparseAutoencodersFind"
+        },
+        {
+          "title": "Towards Monosemanticity: Decomposing Language Models With Dictionary Learning",
+          "url": "https://transformer-circuits.pub/2023/monosemantic-features/index.html",
+          "source_type": "technical_paper",
+          "citationKey": "MonosemanticityDecomposingLanguage"
+        },
+        {
+          "title": "Loading and Analysing Pre-Trained Sparse Autoencoders (SAELens tutorial)",
+          "url": "https://github.com/decoderesearch/SAELens/blob/main/tutorials/basic_loading_and_analysing.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "LoadingAnalysingPreTrained",
+          "abstract": "Training Sparse Autoencoders on Language Models. Contribute to decoderesearch/SAELens development by creating an account on GitHub."
+        },
+        {
+          "title": "InterPLM: discovering interpretable features in protein language models via sparse autoencoders",
+          "url": "https://doi.org/10.1038/s41592-025-02836-7",
+          "source_type": "application_paper",
+          "authors": [
+            "Elana Simon",
+            "James Zou"
+          ],
+          "publication_date": "2025-9-29",
+          "citationKey": "simonInterPLMDiscoveringInterpretable2025"
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
+      "acronym": "SAE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Substituting the sparse autoencoder's reconstruction for the audited layer recovers at least 90% of that layer's contribution to next-token loss on the audit prompts.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        },
+        {
+          "text": "Each feature cited in the refusal analysis has a description that predicts its activations on held-out prompts with a correlation of at least 0.5, and suppressing it lowers the refusal rate on the investment-advice test set by at least 20 percentage points.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "None of the 50 features with the largest effect on the triage model's 'urgent' score on the validation set responds mainly to the referring practice's letter template.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Features in the protein model labelled as binding-site detectors activate on annotated binding-site residues of held-out proteins with a precision of at least 0.8, and the same features appear in a second autoencoder trained with a different seed.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        }
+      ]
     }
   ],
-  "count": 19
+  "count": 22
 }

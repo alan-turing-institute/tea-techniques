@@ -2,7 +2,7 @@
   "tag": {
     "name": "evidence-type/fairness-metric",
     "slug": "evidence-type-fairness-metric",
-    "count": 9,
+    "count": 15,
     "category": "evidence-type"
   },
   "techniques": [
@@ -1502,7 +1502,880 @@
           "assuranceGoal": "fairness"
         }
       ]
+    },
+    {
+      "slug": "conditional-demographic-disparity",
+      "name": "Conditional Demographic Disparity",
+      "description": "Conditional demographic disparity (CDD) measures whether members of a protected group make up a larger share of the people a system turns down than of the people it accepts, after taking into account a factor that differs between groups and that the assessor treats as a legitimate explanation of outcomes; Wachter, Mittelstadt and Russell (2021) propose it as baseline statistical evidence for assessing possible discrimination under EU non-discrimination law. Demographic disparity is the group's share of the unfavourable outcomes minus its share of the favourable ones: in the Berkeley graduate admissions data the paper revisits, women were 46 per cent of rejected applicants but 32 per cent of admitted ones, a disparity of 0.14. CDD computes the same difference separately within each stratum of the conditioning attribute (there, the department applied to) and averages the strata, weighting each by its number of people, so a gap that arises only because groups apply in different proportions to strata with different acceptance rates (an instance of Simpson's paradox) drops out, while a gap within strata remains. Conditioning on department turns the Berkeley figure to about -0.02, a slight disparity in women's favour: within departments, women were on average 40 per cent of rejected and 42 per cent of admitted applicants. The output is the disparity in each stratum and their weighted average, computed on the outcomes recorded in a dataset before training or on a model's decisions after it; the authors present it as a descriptive magnitude to support a contextual judgement, not a pass-or-fail test, and the choice of conditioning attribute is a judgement the measure does not make.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "evidence-type/fairness-metric",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "expertise-needed/regulatory-compliance",
+        "expertise-needed/domain-expertise",
+        "technique-type/metric",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-analysis",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Fairness",
+          "description": "An employer's HR analytics team audits a CV-screening model used across job families. Women make up a larger share of screened-out applicants than of shortlisted ones overall, but apply in greater numbers to the families with the fewest vacancies per applicant, so the team reports CDD conditioned on job family, with each family's own disparity, letting the recruitment board see whether a gap remains within families before it decides whether to keep using the model."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A consumer lender's compliance team computes CDD on its credit model's decisions for applicants of different ethnic origins, recorded for equality monitoring, conditioned first on the loan product applied for and then on income band. It reports both results with the per-stratum figures and a written reason for treating each factor as a legitimate explanation, as the starting point for its assessment of possible indirect discrimination."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A local authority planning to train a model on past housing allocation decisions measures CDD in those decisions, conditioned on assessed band of housing need, before any training. A positive disparity for one ethnic group within need bands, larger than chance would explain, indicates that the labels carry a pattern a model could learn, and the project board uses the finding to decide whether those decisions can serve as training labels at all."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The result depends on which attribute is conditioned on, and the measure cannot tell whether that attribute is a legitimate explanation. If the attribute is itself shaped by discrimination, for instance if one group was deterred from applying to some departments, conditioning on it removes the very disparity a claimant would point to. Wachter et al. leave the choice of factors to courts and context, so each choice needs a recorded justification that a reviewer can contest."
+        },
+        {
+          "description": "The weighted average can hide large disparities of opposite sign in different strata. In the Berkeley data the per-department disparities run from about -0.09 to +0.05 around a summary of -0.02, and Wachter et al. note that the largest swings come from the department where few women applied, which chance alone could produce. A claim should rest on the per-stratum figures, with their counts, as well as on the summary."
+        },
+        {
+          "description": "Searching many conditioning attributes or their combinations will find disparities by chance, as the authors warn, and choosing among them after seeing the results can equally make a real one disappear. The authors also offer a descriptive magnitude rather than a statistical test, and set no threshold for how much disparity is too much, so the conditioning attributes need fixing before the data are examined, and a claim that a gap is real needs an interval or test added."
+        },
+        {
+          "description": "CDD compares shares of outcomes, not rates, so the same gap in acceptance rates gives a smaller value where the group is a small part of a stratum: accepted at 20 per cent against 50 per cent for others, a group scores about 0.33 where it is half the stratum but 0.02 where it is 2 per cent. A fixed threshold therefore tolerates larger rate gaps for smaller groups. Scores and graded outcomes must also first be cut into favourable and unfavourable, and the result changes with the cut."
+        },
+        {
+          "description": "In the open-source SageMaker Clarify code, a stratum where everyone gets the same outcome is counted rather than skipped: an all-rejected stratum adds a disparity equal to the group's share of it, though no one there was treated differently, so such strata need removing first. AWS has closed Clarify to new customers. The calculation is easy to reimplement, but published applications to deployed AI systems are scarce; the paper's worked example is the 1975 Berkeley admissions study."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Conditional Demographic Disparity (CDD) (Amazon SageMaker AI Developer Guide)",
+          "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/clarify-data-bias-metric-cddl.html",
+          "source_type": "documentation",
+          "citationKey": "ConditionalDemographicDisparity",
+          "abstract": "Amazon SageMaker Clarify conditional demographic disparity data bias metric."
+        },
+        {
+          "title": "smclarify (aws/amazon-sagemaker-clarify)",
+          "url": "https://github.com/aws/amazon-sagemaker-clarify",
+          "source_type": "software_package",
+          "publication_date": "2026-05-23T16:19:14Z",
+          "citationKey": "SmclarifyAwsAmazonsagemakerclarify2026",
+          "abstract": "Fairness Aware Machine Learning. Bias detection and mitigation for datasets and models."
+        },
+        {
+          "title": "Why fairness cannot be automated: Bridging the gap between EU non-discrimination law and AI",
+          "url": "https://doi.org/10.1016/j.clsr.2021.105567",
+          "source_type": "technical_paper",
+          "authors": [
+            "Sandra Wachter",
+            "Brent Mittelstadt",
+            "Chris Russell"
+          ],
+          "publication_date": "2021-7",
+          "citationKey": "wachterWhyFairnessCannot2021"
+        },
+        {
+          "title": "SMclarify bias metrics example usage (example notebook)",
+          "url": "https://github.com/aws/amazon-sagemaker-clarify/blob/master/examples/Bias_metrics_usage.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "SMclarifyBiasMetrics",
+          "abstract": "Fairness Aware Machine Learning. Bias detection and mitigation for datasets and models. - aws/amazon-sagemaker-clarify"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "acronym": "CDD",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "assuranceGoal": "fairness",
+          "domain": "employment",
+          "text": "Conditioned on job family, the CV-screening model's conditional demographic disparity for women in the last hiring round is below 0.02, and no job family with at least 100 applicants shows a disparity above 0.05."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "finance",
+          "text": "The conditioning factors for the credit model's disparity analysis were fixed, with written reasons, before the decision data were examined, and the disparity in each stratum is reported with its count alongside the weighted summary."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "public sector",
+          "text": "In the historical housing allocation decisions proposed as training labels, each ethnic group's share of refused applicants exceeds its share of successful applicants by no more than 0.03 within any band of assessed housing need, and each group's acceptance rate in each band is reported beside the disparity."
+        }
+      ]
+    },
+    {
+      "slug": "disaggregated-evaluation",
+      "name": "Disaggregated Evaluation",
+      "description": "Disaggregated evaluation assesses and reports a system's performance separately for each group of people a claim covers, and for combinations of groups (intersectional groups, such as darker-skinned women), so that a good overall score cannot hide a group for whom the system works badly. Following Barocas et al. (2021), the evaluator first fixes the design choices that change what the evaluation can show: which groups and combinations to report; how other factors that affect performance, such as lighting or recording conditions, are handled (held constant, varied deliberately, or left as they occur); which metrics to use, for a classifier often false positive and false negative rates reported separately, because each can harm different people; and whether the evaluation is exploratory, or confirmatory, meaning that it tests hypotheses stated in advance on data built to hold enough cases in every group. Each metric is then computed on a labelled evaluation set for every group and combination, together with the number of cases behind it and an interval showing how far the estimate could move through sampling alone, obtained for example by resampling the evaluation set. Groups are compared by absolute and by relative gaps, which can tell different stories: false negative rates of 1 and 10 per cent differ by nine points but tenfold. The output is a table or chart of per-group and per-combination results with their case counts and intervals, and a record of the design choices needed to interpret them; it is this design, more than any one metric or interval method, that decides which comparisons the evaluation can support and how conclusive each is.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/performance-by-group",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/fairness-metric",
+        "expertise-needed/statistics",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Fairness",
+          "description": "Before a hospital trust adopts a supplier's skin-lesion classifier, its clinical safety team reports sensitivity and specificity on locally labelled images for each skin-tone group, sex and age band, and for skin tone crossed with sex. Cells holding fewer melanoma cases than the evaluation protocol requires are marked as too small to estimate rather than reported, and the trust collects more images for them before deciding whether the tool may be used for all patients."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A consumer organisation evaluating the speech-to-text services behind automated phone lines has speakers from several regional and ethnic groups, matched on age and gender, read identical scripted passages, and reports word error rate per group with intervals. Because everyone says the same words, a gap can be attributed to how each service recognises speech rather than to what was said, the evidence the organisation needs for a complaint to the providers."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A bank's model risk team runs a confirmatory evaluation of its fraud model each quarter. The groups (age band, sex and their combinations), the metrics (false positive rate, which drives blocked legitimate payments, and false negative rate), the sample and the largest acceptable gap are fixed in a protocol before the data are drawn, and the model stays in service only if every interval for a gap lies inside that margin."
+        },
+        {
+          "goal": "Fairness",
+          "description": "An exam board piloting an automated essay-scoring model runs an exploratory evaluation of its agreement with human markers, split by first language, school type and their combinations. It finds one weak cell, candidates with English as an additional language at small schools, too small to be conclusive, and commissions a confirmatory study with a sample built to fill that cell before deciding whether the scores can count towards grades."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Each attribute added multiplies the number of cells and shrinks each one, so combinations of attributes soon hold too few cases for a stable estimate, and where a cell holds only a few errors, intervals from resampling come out too narrow. Comparing many cells also throws up some large gaps by chance. A confirmatory claim needs enough cases in every cell, which Barocas et al. note existing datasets rarely provide, so the data available limit which comparisons can be tested."
+        },
+        {
+          "description": "A gap between groups shows that performance differs, not why. Another factor that affects performance may differ between the groups, as with the time between paired images that NIST suggested could explain a higher false negative rate for Asian people in face recognition. Holding such a factor constant hides gaps at its other values, varying it needs the factor labelled for every case, and strongly correlated factors are hard to separate, or impossible when they always occur together."
+        },
+        {
+          "description": "The result is only as good as two sets of labels. Where ground-truth outcomes are wrong, or recorded differently for different groups, and the extent of the error cannot be identified, Barocas et al. note the results are meaningless however careful the design. Group membership is often ascribed by an institution or inferred from appearance, adding errors and possible harm to those labelled, and datasets may hold few of some groups (darker-skinned women were 4.4 per cent of one benchmark)."
+        },
+        {
+          "description": "It measures differences in performance and nothing else. Equal error rates say nothing about whether outputs stereotype or demean people, or whether favourable decisions are shared in proportion, and narrowing a gap under one metric can open a gap under another. A clean result supports a claim about the performance gaps measured, for the groups and conditions tested, and no wider fairness claim."
+        },
+        {
+          "description": "Results on a laboratory dataset may not carry over to the system in use, where lighting, recording conditions and operators' decisions differ, and Barocas et al. note that a component's performance alone may say little about the whole system around it. Evaluating in the setting of use captures this but is costly, and is often impossible for an outside evaluator, who usually sees the system only as a black box."
+        }
+      ],
+      "resources": [
+        {
+          "title": "fairlearn.metrics.MetricFrame (Fairlearn API reference)",
+          "url": "https://fairlearn.org/main/api_reference/generated/fairlearn.metrics.MetricFrame.html",
+          "source_type": "documentation",
+          "citationKey": "FairlearnmetricsMetricFrameFairlearnAPI"
+        },
+        {
+          "title": "fairlearn",
+          "url": "https://github.com/fairlearn/fairlearn",
+          "source_type": "software_package",
+          "publication_date": "2018-05-15",
+          "citationKey": "fairlearnFairlearn2018",
+          "abstract": "A Python package to assess and improve fairness of machine learning models."
+        },
+        {
+          "title": "Designing Disaggregated Evaluations of AI Systems: Choices, Considerations, and Tradeoffs",
+          "url": "https://doi.org/10.1145/3461702.3462610",
+          "source_type": "technical_paper",
+          "authors": [
+            "Solon Barocas",
+            "Anhong Guo",
+            "Ece Kamar",
+            "Jacquelyn Krones",
+            "Meredith Ringel Morris",
+            "Jennifer Wortman Vaughan",
+            "W. Duncan Wadsworth",
+            "Hanna Wallach"
+          ],
+          "publication_date": "2021-7-21",
+          "citationKey": "barocasDesigningDisaggregatedEvaluations2021"
+        },
+        {
+          "title": "Performing a Fairness Assessment (Fairlearn user guide)",
+          "url": "https://fairlearn.org/main/user_guide/assessment/perform_fairness_assessment.html",
+          "source_type": "tutorial",
+          "citationKey": "PerformingFairnessAssessment"
+        },
+        {
+          "title": "Gender Shades: Intersectional Accuracy Disparities in Commercial Gender Classification",
+          "url": "https://proceedings.mlr.press/v81/buolamwini18a.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Joy Buolamwini",
+            "Timnit Gebru"
+          ],
+          "publication_date": "2018-01-21",
+          "citationKey": "buolamwiniGenderShadesIntersectional2018",
+          "abstract": "Recent studies demonstrate that machine learning algorithms can discriminate based on classes like race and gender. In this work, we present an approach to evaluate bias present in automated facial analysis algorithms and datasets with respect to phenotypic subgroups. Using the dermatologist  approved Fitzpatrick Skin Type classification system, we characterize the gender and skin type distribution of two facial analysis benchmarks, IJB-A and Adience. We find that these datasets are overwhelmingly composed of lighter-skinned subjects (79.6% for IJB-A and 86.2% for Adience) and introduce a new facial analysis dataset which is balanced by gender and skin type. We evaluate 3 commercial gender classification systems using our dataset and show that darker-skinned females are the most misclassified group (with error rates of up to 34.7%). The maximum error rate for lighter-skinned males is 0.8%. The substantial disparities in the accuracy of classifying darker females, lighter females, darker males, and lighter males in gender classification systems require urgent attention if commercial companies are to build genuinely fair, transparent and accountable facial analysis algorithms."
+        },
+        {
+          "title": "Racial disparities in automated speech recognition",
+          "url": "https://doi.org/10.1073/pnas.1915768117",
+          "source_type": "application_paper",
+          "authors": [
+            "Allison Koenecke",
+            "Andrew Nam",
+            "Emily Lake",
+            "Joe Nudell",
+            "Minnie Quartey",
+            "Zion Mengesha",
+            "Connor Toups",
+            "John R. Rickford",
+            "Dan Jurafsky",
+            "Sharad Goel"
+          ],
+          "publication_date": "2020-3-23",
+          "citationKey": "koeneckeRacialDisparitiesAutomated2020"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "assuranceGoal": "fairness",
+          "domain": "healthcare",
+          "text": "On the trust's locally labelled images, the skin-lesion classifier's sensitivity for each skin-tone group, and for skin tone crossed with sex, is within 5 percentage points of its overall sensitivity, with the 95 per cent interval for each gap and the number of melanoma cases in each cell reported."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "general",
+          "text": "The groups, combinations, metrics and acceptable gaps for the fairness evaluation were fixed in a protocol before the evaluation data were drawn, and every cell with too few cases to estimate its gap to the agreed precision is reported as untested rather than as passed."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "finance",
+          "text": "In each of the last four quarters, the upper bound of the 95 per cent interval for the difference in false positive rate between each age-and-sex group and the best-served group was below the 1 percentage point margin set in the model risk policy."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "telecommunications",
+          "text": "On identical scripted passages read by speakers matched on age and gender, the upper bound of the 95 per cent interval for each speaker group's gap in word error rate to the best-served group is below the agreed margin."
+        }
+      ]
+    },
+    {
+      "slug": "predictive-parity-and-calibration-within-groups",
+      "name": "Predictive Parity and Calibration Within Groups",
+      "description": "This test checks whether a model's output means the same for every group: among people who receive the same score or the same decision, the share who turn out to have the outcome (or its average, for an outcome such as a cost or a count of illnesses) should not depend on their group, a requirement the fairness literature calls sufficiency. For a model that outputs a risk score, cases with known outcomes are grouped into score bins and, for each group, the observed outcome rate in each bin is plotted against the score, giving one calibration curve per group (a score is calibrated when, of the cases scored 0.3, about 30 per cent have the outcome); calibration within groups (Kleinberg, Mullainathan and Raghavan) holds when each group's curve matches the scores, and the weaker condition that the curves coincide holds when a given score corresponds to the same outcome rate in every group. For a yes/no decision the same comparison is made in the two cells of the decision: predictive parity (Chouldechova) holds when the positive predictive value, the share of people flagged positive who turn out positive, is equal across groups, and the negative predictive value can be compared in the same way for those not flagged. The two read-outs can disagree, because a score that means the same for every group can still give unequal positive predictive values at a threshold when the groups' scores are spread differently above it, so the test reports the read-out matching the output on which decisions are taken, with intervals and the gaps between groups. Where comparisons of error rates condition on the true outcome and ask whether people who turn out the same are treated the same, this test conditions on the model's output and asks whether people treated the same turn out the same; when the outcome is more common in one group, the two cannot both hold except in special cases.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "evidence-type/fairness-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/metric",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Fairness",
+          "description": "A hospital's clinical informatics team checks a deterioration-risk score before it is shown to ward staff. On a year of admissions with recorded outcomes it plots a calibration curve, with intervals, for each ethnic group and each sex, and approves the score for use with every patient only if, across the scores that trigger escalation, each group's curve stays within a band agreed with clinicians."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A lender's model validation team compares the repayment rate among approved applicants across age bands, using two years of outcomes, to check whether approval means the same for each band. Because a difference among the approved can come from how scores are spread above the cut-off rather than from a different bar for one band, it also compares the calibration curves of the underlying score before raising any finding with the credit risk committee."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A probation service assessing a supplier's reoffending-risk tool is shown evidence that its positive predictive value is equal across ethnic groups. Its analysts reproduce the figures on local data and set them beside the groups' false positive and false negative rates, which differ because reconviction rates differ, so that the oversight board chooses which criterion the tool will be held to with both sets of figures in front of it."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A health insurer auditing a score that selects members for a care-management programme checks twice whether the score means the same for every racial group: against next year's costs, the label the model was trained on, and against a measure of illness such as the number of active chronic conditions. A score calibrated for cost but not for illness, with one group sicker than another at the same score, would lead the insurer to retrain on a different label."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "When the outcome is more common in one group, a score or decision that satisfies predictive parity cannot also give the groups both equal false positive and equal false negative rates, and calibration within groups cannot coexist with equal average scores for each group's positives and negatives except with perfect prediction or equal base rates (Chouldechova; Kleinberg et al.). Passing this test therefore means accepting unequal error rates, a choice the test informs but cannot make."
+        },
+        {
+          "description": "Passing says little about how accurately the model predicts for each group. A well-fitted model usually comes close to calibration within groups without any fairness intervention when group membership can be inferred from its inputs, and a model that predicts accurately for one group while giving everyone in another group that group's average rate is still perfectly calibrated (Barocas, Hardt and Narayanan). The result needs pairing with performance measured for each group."
+        },
+        {
+          "description": "The test uses recorded outcomes, so it inherits any difference between groups in how the outcome is recorded. Rearrest stands in for reoffending, and a care-management score was calibrated by race for health costs while, at the 97th percentile of the score, Black patients had 26 per cent more chronic illnesses than white patients (Obermeyer et al.). A model can pass while scoring one group's need too low, so the outcome tested must be the one the claim is about."
+        },
+        {
+          "description": "A gap in positive predictive value is not by itself evidence that the score treats groups differently: the value averages over everyone above the threshold, so it depends on how each group's scores are spread there and moves when the threshold moves. Chouldechova notes that well-calibrated scores can fail predictive parity, and the converse also holds. Where scores are available the calibration curves should be reported, and the threshold stated."
+        },
+        {
+          "description": "Per-group calibration curves need labelled cases across the score range in every group; in a small group the high-score bins may hold a handful of people, so their rates swing widely, and the choice of bin widths changes the picture. An outside auditor who sees only decisions, not scores, can test predictive parity but not calibration, so access determines which claim the evidence can support."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Aequitas documentation",
+          "url": "https://dssg.github.io/aequitas/",
+          "source_type": "documentation",
+          "citationKey": "AequitasDocumentation"
+        },
+        {
+          "title": "Aequitas (dssg/aequitas)",
+          "url": "https://github.com/dssg/aequitas",
+          "source_type": "software_package",
+          "publication_date": "2026-10-06T08:52:07Z",
+          "citationKey": "AequitasDssgAequitas2026",
+          "abstract": "Bias Auditing & Fair ML Toolkit"
+        },
+        {
+          "title": "Fair Prediction with Disparate Impact: A Study of Bias in Recidivism Prediction Instruments",
+          "url": "https://doi.org/10.1089/big.2016.0047",
+          "source_type": "technical_paper",
+          "authors": [
+            "Alexandra Chouldechova"
+          ],
+          "publication_date": "2017-6",
+          "citationKey": "chouldechovaFairPredictionDisparate2017"
+        },
+        {
+          "title": "Inherent Trade-Offs in the Fair Determination of Risk Scores",
+          "url": "https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITCS.2017.43",
+          "source_type": "technical_paper",
+          "authors": [
+            "Jon Kleinberg",
+            "Sendhil Mullainathan",
+            "Manish Raghavan"
+          ],
+          "publication_date": "2017",
+          "citationKey": "kleinbergInherentTradeOffsFair2017"
+        },
+        {
+          "title": "COMPAS Analysis using Aequitas (example notebook)",
+          "url": "https://github.com/dssg/aequitas/blob/notebooks/compas_demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "COMPASAnalysisUsing"
+        },
+        {
+          "title": "Dissecting racial bias in an algorithm used to manage the health of populations",
+          "url": "https://doi.org/10.1126/science.aax2342",
+          "source_type": "application_paper",
+          "authors": [
+            "Ziad Obermeyer",
+            "Brian Powers",
+            "Christine Vogeli",
+            "Sendhil Mullainathan"
+          ],
+          "publication_date": "2019-10-25",
+          "citationKey": "obermeyerDissectingRacialBias2019"
+        },
+        {
+          "title": "Assessing calibration and bias of a deployed machine learning malnutrition prediction model within a large healthcare system",
+          "url": "https://doi.org/10.1038/s41746-024-01141-5",
+          "source_type": "application_paper",
+          "authors": [
+            "Lathan Liou",
+            "Erick Scott",
+            "Prathamesh Parchure",
+            "Yuxia Ouyang",
+            "Natalia Egorova",
+            "Robert Freeman",
+            "Ira S. Hofer",
+            "Girish N. Nadkarni",
+            "Prem Timsina",
+            "Arash Kia",
+            "Matthew A. Levin"
+          ],
+          "publication_date": "2024-6-6",
+          "citationKey": "liouAssessingCalibrationBias2024",
+          "abstract": "Malnutrition is a frequently underdiagnosed condition leading to increased morbidity, mortality, and healthcare costs. The Mount Sinai Health System (MSHS) deployed a machine learning model (MUST-Plus) to detect malnutrition upon hospital admission. However, in diverse patient groups, a poorly calibrated model may lead to misdiagnosis, exacerbating health care disparities. We explored the model’s calibration across different variables and methods to improve calibration. Data from adult patients admitted to five MSHS hospitals from January 1, 2021 - December 31, 2022, were analyzed. We compared MUST-Plus prediction to the registered dietitian’s formal assessment. Hierarchical calibration was assessed and compared between the recalibration sample (N = 49,562) of patients admitted between January 1, 2021 - December 31, 2022, and the hold-out sample (N = 17,278) of patients admitted between January 1, 2023 - September 30, 2023. Statistical differences in calibration metrics were tested using bootstrapping with replacement. Before recalibration, the overall model calibration intercept was −1.17 (95% CI: −1.20, −1.14), slope was 1.37 (95% CI: 1.34, 1.40), and Brier score was 0.26 (95% CI: 0.25, 0.26). Both weak and moderate measures of calibration were significantly different between White and Black patients and between male and female patients. Logistic recalibration significantly improved calibration of the model across race and gender in the hold-out sample. The original MUST-Plus model showed significant differences in calibration between White vs. Black patients. It also overestimated malnutrition in females compared to males. Logistic recalibration effectively reduced miscalibration across all patient subgroups. Continual monitoring and timely recalibration can improve model accuracy."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "assuranceGoal": "fairness",
+          "domain": "healthcare",
+          "text": "Across the deterioration-risk scores that trigger escalation, each ethnic group's observed deterioration rate lies within 3 percentage points of the rate for all patients with the same score, with the 95 per cent interval for each gap inside that band, on twelve months of admissions held out from model development."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "finance",
+          "text": "Among applicants approved by the credit model in the evaluation period, the repayment rate for each age band is within 2 percentage points of the rate for all approved applicants, and the calibration curves of the underlying score for each band are reported alongside."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "public sector",
+          "text": "At the deployed threshold, the reoffending-risk tool's positive predictive value differs between ethnic groups by less than 5 percentage points on local data, and the corresponding differences in false positive and false negative rates are reported with it."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "healthcare",
+          "text": "At each decile of the care-management score, the mean number of active chronic conditions differs between racial groups by less than the tolerance agreed with the clinical lead, so the score indicates the same level of illness in every group, not only the same expected cost."
+        }
+      ]
+    },
+    {
+      "slug": "bias-benchmark-for-question-answering",
+      "name": "Bias Benchmark for Question Answering",
+      "description": "The Bias Benchmark for Question Answering (BBQ) is a fixed set of about 58,500 multiple-choice reading questions that tests whether a language model's answers rely on social stereotypes, across nine social dimensions (age, disability status, gender identity, nationality, physical appearance, race and ethnicity, religion, socio-economic status and sexual orientation) and two combinations of them, using stereotypes documented as harmful in US English-speaking contexts (Parrish et al., 2022). Each item describes two people from different groups and asks a question that points at a stereotype, such as who is bad at maths, with three answers to choose from: either person, or an answer such as 'cannot be determined'; in the ambiguous version the passage does not say which person the question is about, so 'cannot be determined' is correct, and in the disambiguated version an added sentence settles it. Items come in balanced sets that swap the two groups and their order and pair each negative question with a non-negative one, so that a model which simply prefers one group whatever the question is not counted as stereotyping. From the model's chosen answers (generated, or picked by comparing the probabilities it gives the three options) the test reports accuracy in each version and a bias score per category from -100% to 100%: the share of answers naming a person that follow the stereotype, rescaled so that 0 means no consistent direction and a negative score leans against the stereotype, and in the ambiguous version multiplied by the error rate, so that stereotyped guesses weigh more when the model guesses often; it also reports how far accuracy falls when the correct answer goes against the stereotype. Unlike substituting identity terms into a deployer's own inputs, or varying the people shown in few-shot examples, BBQ is a fixed external question set that tests what a model concludes about people when the text does, and does not, support a conclusion.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/test-scenarios",
+        "data-type/text",
+        "evidence-type/fairness-metric",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/ml-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A government department choosing between three language models for a service that answers citizens' questions about benefits runs the full BBQ set on each, with the same prompt, answer extraction and scoring for all three. It compares accuracy and both bias scores category by category, rules out any model whose ambiguous-context bias score in any category is further from zero, in either direction, than a limit set before testing, and records that the result covers US stereotypes only.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A recruitment software company fine-tuning an open-weight model to answer HR helpdesk questions runs BBQ on the base model and on every fine-tuned version through the same evaluation harness, logging each answer. A release is blocked if any category's ambiguous-context bias score moves further from zero than the base model's by more than an agreed margin, or if the accuracy gap between items whose correct answer matches the stereotype and items whose correct answer goes against it widens.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "An NHS trust's digital team preparing a health-information assistant needs evidence about UK stereotypes, which BBQ was not built for. Following the procedure used to build a Korean version, it keeps templates that transfer, changes target groups where UK stereotypes differ, drops those that do not apply, writes UK-specific ones, surveys members of the UK public to confirm each stereotype and its target group, and reports results on the original and adapted sets side by side.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "BBQ's stereotypes, and most of its categories, come from US English-speaking contexts, and its authors say results should not be used as evidence about other cultures. Adapting it to Korean meant changing target groups, dropping templates and adding four categories, and a machine-translated BBQ gave different bias scores from the adapted version (Jin et al., 2024). For a UK deployment the original set says nothing about UK-specific stereotypes."
+        },
+        {
+          "description": "A low bias score is weak evidence that a model is unbiased. Each category rests on about 25 templates with very short passages and three fixed answers; the authors warn that a low score is not proof of an unbiased model, and that for a model used on very different text BBQ is unlikely to be a valid measure. It counts only stereotypes that change the chosen answer, so it misses bias that shifts the model's probabilities without changing its choice."
+        },
+        {
+          "description": "The bias score leaves out 'cannot be determined' answers and has a sign, so it must be read with accuracy and by its distance from zero. A model that always gives that answer has full accuracy and a zero bias score on ambiguous items, yet fails every disambiguated one. A negative score means answers lean against the stereotype, as HELM found for most of the models it tested (Liang et al., 2023); a one-sided limit such as 'below 5%' passes such a model."
+        },
+        {
+          "description": "Scores depend on the prompt format and on how answers are extracted or scored, so they compare only across models tested the same way. In the original study one UnifiedQA model, given the same items in two input formats, scored 2.4 and 18.6 on ambiguous gender-identity items. Results for a single template rest on few items (one reported example has 72), so they are noisy and should be combined across templates for the same stereotype."
+        },
+        {
+          "description": "It is weak evidence about bias against people with two combined identities. In the original study, results on the two intersectional categories (race by gender, race by socio-economic status) were too inconsistent for the authors to conclude that models responded to more than one aspect of identity, and the lm-evaluation-harness task notes that these categories are not really taken into account in its bias scores."
+        }
+      ],
+      "resources": [
+        {
+          "title": "BBQ: Repository for the Bias Benchmark for QA dataset (nyu-mll/BBQ)",
+          "url": "https://github.com/nyu-mll/BBQ",
+          "source_type": "documentation",
+          "publication_date": "2026-10-08T09:56:07Z",
+          "citationKey": "BBQRepositoryBias2026",
+          "abstract": "Repository for the Bias Benchmark for QA dataset."
+        },
+        {
+          "title": "Language Model Evaluation Harness (EleutherAI/lm-evaluation-harness)",
+          "url": "https://github.com/EleutherAI/lm-evaluation-harness",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T04:54:54Z",
+          "citationKey": "LanguageModelEvaluation2026",
+          "abstract": "A framework for few-shot evaluation of language models."
+        },
+        {
+          "title": "BBQ: A hand-built bias benchmark for question answering",
+          "url": "https://doi.org/10.18653/v1/2022.findings-acl.165",
+          "source_type": "technical_paper",
+          "authors": [
+            "Alicia Parrish",
+            "Angelica Chen",
+            "Nikita Nangia",
+            "Vishakh Padmakumar",
+            "Jason Phang",
+            "Jana Thompson",
+            "Phu Mon Htut",
+            "Samuel Bowman"
+          ],
+          "publication_date": "2022",
+          "citationKey": "parrishBBQHandbuiltBias2022"
+        },
+        {
+          "title": "KoBBQ: Korean Bias Benchmark for Question Answering",
+          "url": "https://doi.org/10.1162/tacl_a_00661",
+          "source_type": "application_paper",
+          "authors": [
+            "Jiho Jin",
+            "Jiseon Kim",
+            "Nayeon Lee",
+            "Haneul Yoo",
+            "Alice Oh",
+            "Hwaran Lee"
+          ],
+          "publication_date": "2024",
+          "citationKey": "jinKoBBQKoreanBias2024"
+        },
+        {
+          "title": "Holistic Evaluation of Language Models",
+          "url": "https://arxiv.org/abs/2211.09110",
+          "source_type": "application_paper",
+          "authors": [
+            "Percy Liang",
+            "Rishi Bommasani",
+            "Tony Lee",
+            "Dimitris Tsipras",
+            "Dilara Soylu",
+            "Michihiro Yasunaga",
+            "Yian Zhang",
+            "Deepak Narayanan",
+            "Yuhuai Wu",
+            "Ananya Kumar",
+            "Benjamin Newman",
+            "Binhang Yuan",
+            "Bobby Yan",
+            "Ce Zhang",
+            "Christian Cosgrove",
+            "Christopher D. Manning",
+            "Christopher Ré",
+            "Diana Acosta-Navas",
+            "Drew A. Hudson",
+            "Eric Zelikman",
+            "Esin Durmus",
+            "Faisal Ladhak",
+            "Frieda Rong",
+            "Hongyu Ren",
+            "Huaxiu Yao",
+            "Jue Wang",
+            "Keshav Santhanam",
+            "Laurel Orr",
+            "Lucia Zheng",
+            "Mert Yuksekgonul",
+            "Mirac Suzgun",
+            "Nathan Kim",
+            "Neel Guha",
+            "Niladri Chatterji",
+            "Omar Khattab",
+            "Peter Henderson",
+            "Qian Huang",
+            "Ryan Chi",
+            "Sang Michael Xie",
+            "Shibani Santurkar",
+            "Surya Ganguli",
+            "Tatsunori Hashimoto",
+            "Thomas Icard",
+            "Tianyi Zhang",
+            "Vishrav Chaudhary",
+            "William Wang",
+            "Xuechen Li",
+            "Yifan Mai",
+            "Yuhui Zhang",
+            "Yuta Koreeda"
+          ],
+          "publication_date": "2023-10-01",
+          "citationKey": "liangHolisticEvaluationLanguage2023",
+          "abstract": "Language models (LMs) are becoming the foundation for almost all major language technologies, but their capabilities, limitations, and risks are not well understood. We present Holistic Evaluation of Language Models (HELM) to improve the transparency of language models. First, we taxonomize the vast space of potential scenarios (i.e. use cases) and metrics (i.e. desiderata) that are of interest for LMs. Then we select a broad subset based on coverage and feasibility, noting what's missing or underrepresented (e.g. question answering for neglected English dialects, metrics for trustworthiness). Second, we adopt a multi-metric approach: We measure 7 metrics (accuracy, calibration, robustness, fairness, bias, toxicity, and efficiency) for each of 16 core scenarios when possible (87.5% of the time). This ensures metrics beyond accuracy don't fall to the wayside, and that trade-offs are clearly exposed. We also perform 7 targeted evaluations, based on 26 targeted scenarios, to analyze specific aspects (e.g. reasoning, disinformation). Third, we conduct a large-scale evaluation of 30 prominent language models (spanning open, limited-access, and closed models) on all 42 scenarios, 21 of which were not previously used in mainstream LM evaluation. Prior to HELM, models on average were evaluated on just 17.9% of the core HELM scenarios, with some prominent models not sharing a single scenario in common. We improve this to 96.0%: now all 30 models have been densely benchmarked on the same core scenarios and metrics under standardized conditions. Our evaluation surfaces 25 top-level findings. For full transparency, we release all raw model prompts and completions publicly for further analysis, as well as a general modular toolkit. We intend for HELM to be a living benchmark for the community, continuously updated with new scenarios, metrics, and models."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 3,
+      "acronym": "BBQ",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under the department's fixed prompt and scoring, the selected model's ambiguous-context BBQ bias score was between -5% and +5% in each of the nine categories, and its accuracy on disambiguated items differed by less than 2 percentage points between items whose correct answer matched the stereotype and items whose correct answer did not.",
+          "assuranceGoal": "fairness",
+          "domain": "public sector"
+        },
+        {
+          "text": "No fine-tuned release of the HR helpdesk model has an ambiguous-context BBQ bias score more than 2 percentage points further from zero than the base model's in any category, measured with the same harness version, prompt and scoring.",
+          "assuranceGoal": "fairness",
+          "domain": "general"
+        },
+        {
+          "text": "On a UK-adapted version of BBQ, whose stereotypes and target groups were confirmed by a survey of the UK public before use, the health-information assistant's ambiguous-context bias score was between -5% and +5% in every category and its accuracy on disambiguated items was above 90%.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "rich-subgroup-fairness-auditing",
+      "name": "Rich Subgroup Fairness Auditing",
+      "description": "Rich subgroup fairness auditing checks whether a binary classifier treats any subgroup much better or much worse than the population as a whole, where the subgroups are not a short list chosen in advance but every group that rules of a chosen kind over several protected attributes can describe, such as everyone for whom a weighted sum of age, sex and ethnicity indicators exceeds a threshold. Kearns, Neel, Roth and Wu (2018) proposed it to detect what they call fairness gerrymandering: a classifier can have equal false positive rates for men and for women, and for each ethnic group, yet very unequal rates for particular combinations, such as women of one ethnicity. For a chosen rate (the false positive or false negative rate, or in the paper also the rate of positive decisions), each subgroup is scored by the gap between its rate and the overall rate multiplied by the share of all records that are in the subgroup and count towards that rate (for the false positive rate, those with a negative true outcome), so a gap counts for more the larger the group, and the audit searches for the subgroup with the highest score. Exact search is computationally hard in the worst case, so it is posed as a weighted (cost-sensitive) classification problem over the protected attributes and solved approximately: the reference implementation fits two linear regressions that propose a candidate worst subgroup as a linear threshold rule, using only those attributes, the true outcomes and the classifier's decisions, not the model itself. The output is that rule with the subgroup's size, rate and weighted gap (called gamma), compared with a limit set beforehand; unlike reporting metrics for groups listed in advance, the audit finds subgroups nobody listed, and unlike multiaccuracy boosting, which checks a score's average error in each subgroup and then corrects the model, it compares a decision rate with the overall rate and changes nothing.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/fairness-metric",
+        "evidence-type/structured-output",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A lender's model risk team validating a credit-risk model before release audits its decisions on a held-out sample of past applicants whose repayment is known, and records that these are only applicants the old policy approved. It searches subgroups over age, sex, ethnicity and disability status for the worst false positive rate gap (good payers flagged as high risk), compares it with a limit agreed with the risk committee, and sends the rule for any subgroup over it to the developers.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A hospital's clinical AI team has confirmed that a sepsis early-warning model misses cases at similar rates for men and women and for each recorded ethnic group. Before rollout it audits the false negative rate over subgroups combining age, sex and ethnicity and, because the search is approximate, also scores a grid of rules over two of the attributes by brute force, as the method's authors did, to check the search did not miss a larger gap.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A local authority's internal audit team re-audits a model that flags housing benefit claims for fraud review each quarter, using a random sample of claims reviewed whether or not they were flagged. It records the worst subgroup by false positive rate (legitimate claims flagged) over age, sex, ethnicity and disability, with its size and gap, and escalates to the system owner when the weighted gap exceeds the agreed limit.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Finding the worst subgroup exactly is hard in the worst case, even for conjunctions or linear thresholds of attributes (Kearns et al. 2018, Theorem 3.3), so practical audits use a heuristic search. A subgroup it reports does have the measured gap on the audit data, but a clean result is only a lower bound: the authors note their auditor could miss a larger disparity and checked it by brute force on two attributes (Kearns et al. 2019). 'Nothing found' is a search result, not a proof."
+        },
+        {
+          "description": "Gaps are weighted by subgroup size, which the authors require for reliable estimates and which lets small groups pass with large gaps: a subgroup holding 2% of the records whose false positive rate is 20 percentage points above the overall rate scores at most 0.004, under the 0.005 limit used in the AIF360 demonstration. The audit cannot support a claim about a small named group; report that group's own rate, with an interval, instead."
+        },
+        {
+          "description": "Only subgroups that the rule class can describe, over the attributes designated as protected, are searched; the reference implementation uses linear threshold rules. The class has to be limited because, as the authors note, any imperfect classifier could be accused of unfairness to the set of people it misclassifies. A protected attribute that is not recorded or not designated is invisible, so the attributes used and their encoding must be stated with the finding."
+        },
+        {
+          "description": "Error-rate audits need the protected attributes and the true outcome for every audited record, which a deployed system may not supply, for example when outcomes are seen only for approved applications. Reliable estimates need more data the richer the subgroup class, the authors' experiments report in-sample results, and the tools give no confidence interval, so audit on held-out data and repeat on fresh data before relying on a worst-case figure."
+        },
+        {
+          "description": "It tests parity of one rate at a time for binary decisions, each subgroup's rate against the overall rate. A pass on false positives says nothing about false negatives, the AIF360 auditor implements only those two error rates, and other criteria, such as whether scores mean the same in every subgroup (calibration), need a different test. The rate must be chosen to match the fairness claim before the audit."
+        }
+      ],
+      "resources": [
+        {
+          "title": "aif360.metrics.BinaryLabelDatasetMetric (AIF360 documentation)",
+          "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.metrics.BinaryLabelDatasetMetric.html",
+          "source_type": "documentation",
+          "citationKey": "Aif360metricsBinaryLabelDatasetMetricAIF360Documentation"
+        },
+        {
+          "title": "AIF360",
+          "url": "https://github.com/Trusted-AI/AIF360",
+          "source_type": "software_package",
+          "publication_date": "2018-08-22",
+          "citationKey": "trusted-aiAIF3602018",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
+        },
+        {
+          "title": "Preventing Fairness Gerrymandering: Auditing and Learning for Subgroup Fairness",
+          "url": "https://proceedings.mlr.press/v80/kearns18a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Michael Kearns",
+            "Seth Neel",
+            "Aaron Roth",
+            "Zhiwei Steven Wu"
+          ],
+          "publication_date": "2018-07-03",
+          "citationKey": "kearnsPreventingFairnessGerrymandering2018",
+          "abstract": "The most prevalent notions of fairness in machine learning fix a small collection of pre-defined groups (such as race or gender), and then ask for approximate parity of some statistic of the classifier (such as false positive rate) across these groups. Constraints of this form are susceptible to fairness gerrymandering, in which a classifier is fair on each individual group, but badly violates the fairness constraint on structured subgroups, such as certain combinations of protected attribute values. We thus consider fairness across exponentially or infinitely many subgroups, defined by a structured class of functions over the protected attributes. We first prove that the problem of auditing subgroup fairness for both equality of false positive rates and statistical parity is computationally equivalent to the problem of weak agnostic learning — which means it is hard in the worst case, even for simple structured subclasses. However, it also suggests that common heuristics for learning can be applied to successfully solve the auditing problem in practice. We then derive an algorithm that provably converges in a polynomial number of steps to the best subgroup-fair distribution over classifiers, given access to an oracle which can solve the agnostic learning problem. The algorithm is based on a formulation of subgroup fairness as a zero-sum game between a Learner (the primal player) and an Auditor (the dual player). We implement a variant of this algorithm using heuristic oracles, and show that we can effectively both audit and learn fair classifiers on a real dataset."
+        },
+        {
+          "title": "AIF360 demo: GerryFair rich subgroup fairness (notebook)",
+          "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/demo_gerryfair.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AIF360DemoGerryFair",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models. - Trusted-AI/AIF360"
+        },
+        {
+          "title": "An Empirical Study of Rich Subgroup Fairness for Machine Learning",
+          "url": "https://doi.org/10.1145/3287560.3287592",
+          "source_type": "application_paper",
+          "authors": [
+            "Michael Kearns",
+            "Seth Neel",
+            "Aaron Roth",
+            "Zhiwei Steven Wu"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "kearnsEmpiricalStudyRich2019"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On a held-out sample of 40,000 previously approved applicants with known repayment, the rich subgroup audit over age, sex, ethnicity and disability status found no subgroup whose size-weighted false positive rate gap exceeded the 0.005 limit agreed with the risk committee.",
+          "assuranceGoal": "fairness",
+          "domain": "finance"
+        },
+        {
+          "text": "Before rollout, neither the heuristic audit over age, sex and ethnicity nor a brute-force grid over age and ethnicity found a subgroup whose size-weighted gap in the rate of missed sepsis cases exceeded 0.003.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
+        },
+        {
+          "text": "In each of the last four quarterly re-audits, on a random sample of claims reviewed whether or not they were flagged, the worst subgroup found had a size-weighted false positive rate gap below the agreed limit, and its description and size were recorded.",
+          "assuranceGoal": "fairness",
+          "domain": "public sector"
+        }
+      ]
+    },
+    {
+      "slug": "actionable-recourse-audit",
+      "name": "Actionable Recourse Audit",
+      "description": "An actionable recourse audit checks whether the people a linear classifier refuses, for example for a loan, a job interview or a public service, could change that decision through actions open to them, and how much they would have to change. The auditor first writes an action set saying which features can change and how: immutable features such as age stay fixed, features such as education level can only rise, and each changeable feature gets bounds and a grid of realistic values. Then, for each refused person in a sample drawn from the population the model will serve, an integer programming solver (optimisation software that searches discrete choices exactly) looks through the permitted actions for the cheapest change that flips the decision, measuring cost as the largest shift, in population percentiles, that the change makes to any one feature, and either returns that action or proves that none exists, which a search that simply fails to find a counterfactual cannot do. The audit reports the share of refused people who have recourse and the distribution of its cost, which can be compared across candidate models or broken down by group, and the same solver can list a refused person's cheapest alternative changes (a 'flipset') for a decision notice. Unlike the Contrastive Explanation Method, which explains one prediction through features that must be present or absent, or Diverse Counterfactual Explanations (DiCE), which searches any model for several alternative inputs that would change one decision, the audit works only on linear models but certifies whether any permitted action exists and summarises the answer across a population.",
+      "assurance_goals": [
+        "Transparency",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/linear-models",
+        "applicable-models/architecture/linear-models/logistic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/notice-and-recourse",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/reference-dataset",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "evidence-type/fairness-metric",
+        "evidence-type/structured-output",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before launching a linear model that ranks applications to a housing support scheme, a local authority's analytics team audits recourse on last year's applicants, with age and household size fixed. Its report to the scheme's oversight board gives the share of refused applicants who could qualify through changes the scheme expects, such as completing a tenancy course, and how large those changes are, so the board can decide whether to approve the model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A credit card issuer generates a flipset for each applicant its linear scorecard declines and puts the two cheapest items in the decline letter, for example reducing current debt to a stated amount, together with the other scored features the applicant should keep unchanged, so that following the stated actions would change the decision under the current model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A lender's model risk committee is shown recourse audits for candidate credit models of almost equal accuracy. It rejects the most accurate, under which some refused applicants had no feasible action because of an 'ever defaulted' feature, adopts a variant that uses recent defaults only, and has the audit re-run each quarter on new applicants, watching younger applicants, who were scarce in the training data.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An employer's analytics team audits its linear screening model for interview invitations and compares the cost of recourse for refused women and men with similar predicted scores. Sex is not a model input, but the cost can still differ by sex. Refused candidates' true suitability is never observed, so the team cannot also match on outcome as the originating study did, and reports any gap with that caveat to its fairness review panel, which decides whether the features need revising.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The proof that no action exists depends on the model being linear, such as logistic regression, a linear support vector machine or a rule set that can be written in linear form. For tree ensembles or neural networks, a local linear approximation can still suggest actions, which then have to be checked on the real model, but a failure to find one proves nothing, so the share of refused people without recourse is no longer a certified figure."
+        },
+        {
+          "description": "Every conclusion rests on the action set and cost the auditor chooses. Bounds that are too tight make people appear to lack recourse; loose bounds let a model 'provide' recourse only through drastic changes, which shows only as high cost; and the default cost treats a one-percentile change as equally hard in every feature unless someone who knows the domain sets how much harder some changes are."
+        },
+        {
+          "description": "The search treats features as changing independently unless the auditor adds constraints. Real actions have knock-on effects: raising income can also raise savings, so a listed action may cost more than needed, or may not change the decision once its effects on other features are counted, as Karimi, Schölkopf and Valera showed for recourse methods that ignore causal relations between features."
+        },
+        {
+          "description": "Recourse is defined for a fixed model. After retraining, an action given in an earlier notice may no longer change the decision, so the audit has to be re-run after each update. An action that changes the prediction need not change the real outcome either: showing a refused applicant how to be approved can lead them into credit they cannot repay."
+        },
+        {
+          "description": "A flipset lists only the features to change, so a person who also changes an undisclosed feature may still be refused unless the notice says what must stay the same. The originating paper builds flipsets from public credit datasets and does not test whether refused people understand them or can act on them. Owners may also resist publishing flipsets, because many of them together can let others reconstruct the model."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Actionable Recourse in Linear Classification",
+          "url": "https://doi.org/10.1145/3287560.3287566",
+          "source_type": "technical_paper",
+          "authors": [
+            "Berk Ustun",
+            "Alexander Spangher",
+            "Yang Liu"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "ustunActionableRecourseLinear2019"
+        },
+        {
+          "title": "actionable-recourse",
+          "url": "https://github.com/ustunb/actionable-recourse",
+          "source_type": "software_package",
+          "publication_date": "2026-07-11T02:55:36Z",
+          "citationKey": "ustunActionablerecourse2026",
+          "abstract": "python tools to check recourse in linear classification"
+        },
+        {
+          "title": "actionable-recourse example: Auditing Recourse",
+          "url": "https://github.com/ustunb/actionable-recourse/blob/master/examples/ex_02_audit_model-effects-of-recourse-demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ActionablerecourseExampleAuditing",
+          "abstract": "python tools to check recourse in linear classification - ustunb/actionable-recourse"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every refused applicant in the audit sample, drawn from last year's applications to the scheme, has at least one action under the agreed action set that would make them eligible under the deployed model.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Under the agreed action set, at least half of the declined applicants in the audit sample have an action that would bring approval while moving no feature by more than 25 percentiles of the applicant population.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "Among candidates refused by the screening model with similar predicted scores, the median cost of recourse for women is within five percentile points of that for men.",
+          "assuranceGoal": "fairness",
+          "domain": "employment"
+        },
+        {
+          "text": "Each decline letter lists at least one action that would change the decision under the current scorecard, together with the scored features the applicant must keep unchanged.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        }
+      ]
     }
   ],
-  "count": 9
+  "count": 15
 }

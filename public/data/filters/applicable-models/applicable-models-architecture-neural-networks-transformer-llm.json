@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/architecture/neural-networks/transformer/llm",
     "slug": "applicable-models-architecture-neural-networks-transformer-llm",
-    "count": 16,
+    "count": 18,
     "category": "applicable-models"
   },
   "techniques": [
@@ -2780,7 +2780,334 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "sparse-autoencoder-feature-analysis",
+      "name": "Sparse Autoencoder Feature Analysis",
+      "description": "Sparse autoencoder feature analysis looks for human-interpretable units inside a neural network, usually a language model, by learning from the activations at one layer a large dictionary of directions, called features, such that each activation vector can be rebuilt from only a few of them. Unlike neuron activation analysis it does not take the network's own neurons as the units, since single neurons often respond to several unrelated things, and unlike concept activation vectors it needs no labelled examples of a concept chosen in advance, because the features are found without supervision. The analyst records activations at the chosen layer over a large body of ordinary text and trains an autoencoder, a network with one hidden layer usually several times wider than the layer studied, to reconstruct them while a sparsity penalty keeps most hidden units at zero; the decoder weights of each hidden unit then give one feature direction. Each feature is labelled from the inputs on which it fires most strongly, by a person or by a language model that writes a description, which is then scored on how well it predicts the feature's activations on other text, and the label is tested by removing or amplifying the feature inside the running model and checking the change in output. The output is a catalogue of labelled features with example activations, interpretability scores and measured effects, plus a reconstruction score saying how much of the layer's behaviour the dictionary accounts for; the features can then serve as units for causal mediation analysis, which traces pathways, while this method finds and checks the units themselves.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/model-internals",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/representation-analysis/concept-identification",
+        "assurance-goal-category/explainability/explains/internal-mechanisms",
+        "assurance-goal-category/explainability/property/comprehensibility",
+        "assurance-goal-category/explainability/property/sparsity",
+        "data-requirements/no-special-requirements",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "evidence-type/qualitative-report",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/global",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before deploying an open-weights language model as a customer-service assistant, a bank's AI assurance team uses sparse autoencoders published for that model to find features active on prompts where the assistant should refuse to give investment advice. It tests each candidate by suppressing it and measuring the change in refusal rate, and records which labelled features the refusal behaviour depends on in the model's assurance file.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A bioinformatics group using a protein language model to annotate newly sequenced proteins trains sparse autoencoders on its embeddings and compares the features with database annotations of binding sites, structural motifs and domains. Features that match known biology are used to propose candidate annotations for curators to verify, features that fire widely with no clear meaning are flagged for review, and the model's own annotation accuracy is still tested on held-out proteins.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A team that fine-tuned a language model to triage clinical referral letters lists the sparse autoencoder features that most change the 'urgent' score on a validation set, and checks whether they describe clinical content or properties of the letter, such as the referring practice's template. A template feature among the leading drivers is recorded as a finding and leads to retraining on reformatted letters.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The dictionary does not capture everything the layer carries, and what it misses cannot be inspected. In the originating study, replacing one layer of a small language model with its reconstruction raised perplexity from 25 to 40; a concurrent study recovered 79% of a layer's contribution to the loss in its main run. Not finding a feature for a concept does not show that the model lacks it."
+        },
+        {
+          "description": "The features found are not unique. Larger dictionaries split a feature into narrower ones (one base64 feature at 512 features became three at 4,096), and for a 131,000-feature autoencoder on one layer of Llama 3 8B only about 30% of features were shared by two runs differing only in random seed. A conclusion resting on one feature should name the autoencoder used and be checked on a second run."
+        },
+        {
+          "description": "Labels are hypotheses drawn from the top-activating examples, and automated scores are modest: the first five features reported in the originating study scored between -0.11 and 0.57, and the advantage over simpler decompositions faded in later layers. Back a label with an intervention that changes the output as the label predicts before citing it as evidence."
+        },
+        {
+          "description": "It needs the model's internal activations, plus storage and compute to train an autoencoder for each layer studied (one concurrent study trained on 8 billion activation vectors from a single layer). For large models practitioners often rely on autoencoders released for particular open-weights models, so the method is not available for a model reached only through an API."
+        },
+        {
+          "description": "Being interpretable does not make the features better for a given task. In a 2025 study of detecting concepts from model activations, probes built on autoencoder features did not beat logistic regression on the raw activations on average, and the spurious correlations and data problems they exposed could also be found with simpler baselines. Where detection is the goal, compare against such baselines."
+        }
+      ],
+      "resources": [
+        {
+          "title": "SAELens documentation",
+          "url": "https://decoderesearch.github.io/SAELens/",
+          "source_type": "documentation",
+          "citationKey": "SAELensDocumentation",
+          "abstract": "Docs for Sparse Autoencoder Training and Analysis Library"
+        },
+        {
+          "title": "SAELens (decoderesearch/SAELens)",
+          "url": "https://github.com/decoderesearch/SAELens",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T09:38:04Z",
+          "citationKey": "SAELensDecoderesearchSAELens2026",
+          "abstract": "Training Sparse Autoencoders on Language Models"
+        },
+        {
+          "title": "Sparse Autoencoders Find Highly Interpretable Features in Language Models",
+          "url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/1fa1ab11f4bd5f94b2ec20e794dbfa3b-Abstract-Conference.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Robert Huben",
+            "Hoagy Cunningham",
+            "Logan Smith",
+            "Aidan Ewart",
+            "Lee Sharkey"
+          ],
+          "citationKey": "hubenSparseAutoencodersFind"
+        },
+        {
+          "title": "Towards Monosemanticity: Decomposing Language Models With Dictionary Learning",
+          "url": "https://transformer-circuits.pub/2023/monosemantic-features/index.html",
+          "source_type": "technical_paper",
+          "citationKey": "MonosemanticityDecomposingLanguage"
+        },
+        {
+          "title": "Loading and Analysing Pre-Trained Sparse Autoencoders (SAELens tutorial)",
+          "url": "https://github.com/decoderesearch/SAELens/blob/main/tutorials/basic_loading_and_analysing.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "LoadingAnalysingPreTrained",
+          "abstract": "Training Sparse Autoencoders on Language Models. Contribute to decoderesearch/SAELens development by creating an account on GitHub."
+        },
+        {
+          "title": "InterPLM: discovering interpretable features in protein language models via sparse autoencoders",
+          "url": "https://doi.org/10.1038/s41592-025-02836-7",
+          "source_type": "application_paper",
+          "authors": [
+            "Elana Simon",
+            "James Zou"
+          ],
+          "publication_date": "2025-9-29",
+          "citationKey": "simonInterPLMDiscoveringInterpretable2025"
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
+      "acronym": "SAE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Substituting the sparse autoencoder's reconstruction for the audited layer recovers at least 90% of that layer's contribution to next-token loss on the audit prompts.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        },
+        {
+          "text": "Each feature cited in the refusal analysis has a description that predicts its activations on held-out prompts with a correlation of at least 0.5, and suppressing it lowers the refusal rate on the investment-advice test set by at least 20 percentage points.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "None of the 50 features with the largest effect on the triage model's 'urgent' score on the validation set responds mainly to the referring practice's letter template.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Features in the protein model labelled as binding-site detectors activate on annotated binding-site residues of held-out proteins with a precision of at least 0.8, and the same features appear in a second autoencoder trained with a different seed.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "bias-benchmark-for-question-answering",
+      "name": "Bias Benchmark for Question Answering",
+      "description": "The Bias Benchmark for Question Answering (BBQ) is a fixed set of about 58,500 multiple-choice reading questions that tests whether a language model's answers rely on social stereotypes, across nine social dimensions (age, disability status, gender identity, nationality, physical appearance, race and ethnicity, religion, socio-economic status and sexual orientation) and two combinations of them, using stereotypes documented as harmful in US English-speaking contexts (Parrish et al., 2022). Each item describes two people from different groups and asks a question that points at a stereotype, such as who is bad at maths, with three answers to choose from: either person, or an answer such as 'cannot be determined'; in the ambiguous version the passage does not say which person the question is about, so 'cannot be determined' is correct, and in the disambiguated version an added sentence settles it. Items come in balanced sets that swap the two groups and their order and pair each negative question with a non-negative one, so that a model which simply prefers one group whatever the question is not counted as stereotyping. From the model's chosen answers (generated, or picked by comparing the probabilities it gives the three options) the test reports accuracy in each version and a bias score per category from -100% to 100%: the share of answers naming a person that follow the stereotype, rescaled so that 0 means no consistent direction and a negative score leans against the stereotype, and in the ambiguous version multiplied by the error rate, so that stereotyped guesses weigh more when the model guesses often; it also reports how far accuracy falls when the correct answer goes against the stereotype. Unlike substituting identity terms into a deployer's own inputs, or varying the people shown in few-shot examples, BBQ is a fixed external question set that tests what a model concludes about people when the text does, and does not, support a conclusion.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/test-scenarios",
+        "data-type/text",
+        "evidence-type/fairness-metric",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/ml-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A government department choosing between three language models for a service that answers citizens' questions about benefits runs the full BBQ set on each, with the same prompt, answer extraction and scoring for all three. It compares accuracy and both bias scores category by category, rules out any model whose ambiguous-context bias score in any category is further from zero, in either direction, than a limit set before testing, and records that the result covers US stereotypes only.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A recruitment software company fine-tuning an open-weight model to answer HR helpdesk questions runs BBQ on the base model and on every fine-tuned version through the same evaluation harness, logging each answer. A release is blocked if any category's ambiguous-context bias score moves further from zero than the base model's by more than an agreed margin, or if the accuracy gap between items whose correct answer matches the stereotype and items whose correct answer goes against it widens.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "An NHS trust's digital team preparing a health-information assistant needs evidence about UK stereotypes, which BBQ was not built for. Following the procedure used to build a Korean version, it keeps templates that transfer, changes target groups where UK stereotypes differ, drops those that do not apply, writes UK-specific ones, surveys members of the UK public to confirm each stereotype and its target group, and reports results on the original and adapted sets side by side.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "BBQ's stereotypes, and most of its categories, come from US English-speaking contexts, and its authors say results should not be used as evidence about other cultures. Adapting it to Korean meant changing target groups, dropping templates and adding four categories, and a machine-translated BBQ gave different bias scores from the adapted version (Jin et al., 2024). For a UK deployment the original set says nothing about UK-specific stereotypes."
+        },
+        {
+          "description": "A low bias score is weak evidence that a model is unbiased. Each category rests on about 25 templates with very short passages and three fixed answers; the authors warn that a low score is not proof of an unbiased model, and that for a model used on very different text BBQ is unlikely to be a valid measure. It counts only stereotypes that change the chosen answer, so it misses bias that shifts the model's probabilities without changing its choice."
+        },
+        {
+          "description": "The bias score leaves out 'cannot be determined' answers and has a sign, so it must be read with accuracy and by its distance from zero. A model that always gives that answer has full accuracy and a zero bias score on ambiguous items, yet fails every disambiguated one. A negative score means answers lean against the stereotype, as HELM found for most of the models it tested (Liang et al., 2023); a one-sided limit such as 'below 5%' passes such a model."
+        },
+        {
+          "description": "Scores depend on the prompt format and on how answers are extracted or scored, so they compare only across models tested the same way. In the original study one UnifiedQA model, given the same items in two input formats, scored 2.4 and 18.6 on ambiguous gender-identity items. Results for a single template rest on few items (one reported example has 72), so they are noisy and should be combined across templates for the same stereotype."
+        },
+        {
+          "description": "It is weak evidence about bias against people with two combined identities. In the original study, results on the two intersectional categories (race by gender, race by socio-economic status) were too inconsistent for the authors to conclude that models responded to more than one aspect of identity, and the lm-evaluation-harness task notes that these categories are not really taken into account in its bias scores."
+        }
+      ],
+      "resources": [
+        {
+          "title": "BBQ: Repository for the Bias Benchmark for QA dataset (nyu-mll/BBQ)",
+          "url": "https://github.com/nyu-mll/BBQ",
+          "source_type": "documentation",
+          "publication_date": "2026-10-08T09:56:07Z",
+          "citationKey": "BBQRepositoryBias2026",
+          "abstract": "Repository for the Bias Benchmark for QA dataset."
+        },
+        {
+          "title": "Language Model Evaluation Harness (EleutherAI/lm-evaluation-harness)",
+          "url": "https://github.com/EleutherAI/lm-evaluation-harness",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T04:54:54Z",
+          "citationKey": "LanguageModelEvaluation2026",
+          "abstract": "A framework for few-shot evaluation of language models."
+        },
+        {
+          "title": "BBQ: A hand-built bias benchmark for question answering",
+          "url": "https://doi.org/10.18653/v1/2022.findings-acl.165",
+          "source_type": "technical_paper",
+          "authors": [
+            "Alicia Parrish",
+            "Angelica Chen",
+            "Nikita Nangia",
+            "Vishakh Padmakumar",
+            "Jason Phang",
+            "Jana Thompson",
+            "Phu Mon Htut",
+            "Samuel Bowman"
+          ],
+          "publication_date": "2022",
+          "citationKey": "parrishBBQHandbuiltBias2022"
+        },
+        {
+          "title": "KoBBQ: Korean Bias Benchmark for Question Answering",
+          "url": "https://doi.org/10.1162/tacl_a_00661",
+          "source_type": "application_paper",
+          "authors": [
+            "Jiho Jin",
+            "Jiseon Kim",
+            "Nayeon Lee",
+            "Haneul Yoo",
+            "Alice Oh",
+            "Hwaran Lee"
+          ],
+          "publication_date": "2024",
+          "citationKey": "jinKoBBQKoreanBias2024"
+        },
+        {
+          "title": "Holistic Evaluation of Language Models",
+          "url": "https://arxiv.org/abs/2211.09110",
+          "source_type": "application_paper",
+          "authors": [
+            "Percy Liang",
+            "Rishi Bommasani",
+            "Tony Lee",
+            "Dimitris Tsipras",
+            "Dilara Soylu",
+            "Michihiro Yasunaga",
+            "Yian Zhang",
+            "Deepak Narayanan",
+            "Yuhuai Wu",
+            "Ananya Kumar",
+            "Benjamin Newman",
+            "Binhang Yuan",
+            "Bobby Yan",
+            "Ce Zhang",
+            "Christian Cosgrove",
+            "Christopher D. Manning",
+            "Christopher Ré",
+            "Diana Acosta-Navas",
+            "Drew A. Hudson",
+            "Eric Zelikman",
+            "Esin Durmus",
+            "Faisal Ladhak",
+            "Frieda Rong",
+            "Hongyu Ren",
+            "Huaxiu Yao",
+            "Jue Wang",
+            "Keshav Santhanam",
+            "Laurel Orr",
+            "Lucia Zheng",
+            "Mert Yuksekgonul",
+            "Mirac Suzgun",
+            "Nathan Kim",
+            "Neel Guha",
+            "Niladri Chatterji",
+            "Omar Khattab",
+            "Peter Henderson",
+            "Qian Huang",
+            "Ryan Chi",
+            "Sang Michael Xie",
+            "Shibani Santurkar",
+            "Surya Ganguli",
+            "Tatsunori Hashimoto",
+            "Thomas Icard",
+            "Tianyi Zhang",
+            "Vishrav Chaudhary",
+            "William Wang",
+            "Xuechen Li",
+            "Yifan Mai",
+            "Yuhui Zhang",
+            "Yuta Koreeda"
+          ],
+          "publication_date": "2023-10-01",
+          "citationKey": "liangHolisticEvaluationLanguage2023",
+          "abstract": "Language models (LMs) are becoming the foundation for almost all major language technologies, but their capabilities, limitations, and risks are not well understood. We present Holistic Evaluation of Language Models (HELM) to improve the transparency of language models. First, we taxonomize the vast space of potential scenarios (i.e. use cases) and metrics (i.e. desiderata) that are of interest for LMs. Then we select a broad subset based on coverage and feasibility, noting what's missing or underrepresented (e.g. question answering for neglected English dialects, metrics for trustworthiness). Second, we adopt a multi-metric approach: We measure 7 metrics (accuracy, calibration, robustness, fairness, bias, toxicity, and efficiency) for each of 16 core scenarios when possible (87.5% of the time). This ensures metrics beyond accuracy don't fall to the wayside, and that trade-offs are clearly exposed. We also perform 7 targeted evaluations, based on 26 targeted scenarios, to analyze specific aspects (e.g. reasoning, disinformation). Third, we conduct a large-scale evaluation of 30 prominent language models (spanning open, limited-access, and closed models) on all 42 scenarios, 21 of which were not previously used in mainstream LM evaluation. Prior to HELM, models on average were evaluated on just 17.9% of the core HELM scenarios, with some prominent models not sharing a single scenario in common. We improve this to 96.0%: now all 30 models have been densely benchmarked on the same core scenarios and metrics under standardized conditions. Our evaluation surfaces 25 top-level findings. For full transparency, we release all raw model prompts and completions publicly for further analysis, as well as a general modular toolkit. We intend for HELM to be a living benchmark for the community, continuously updated with new scenarios, metrics, and models."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 3,
+      "acronym": "BBQ",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under the department's fixed prompt and scoring, the selected model's ambiguous-context BBQ bias score was between -5% and +5% in each of the nine categories, and its accuracy on disambiguated items differed by less than 2 percentage points between items whose correct answer matched the stereotype and items whose correct answer did not.",
+          "assuranceGoal": "fairness",
+          "domain": "public sector"
+        },
+        {
+          "text": "No fine-tuned release of the HR helpdesk model has an ambiguous-context BBQ bias score more than 2 percentage points further from zero than the base model's in any category, measured with the same harness version, prompt and scoring.",
+          "assuranceGoal": "fairness",
+          "domain": "general"
+        },
+        {
+          "text": "On a UK-adapted version of BBQ, whose stereotypes and target groups were confirmed by a survey of the UK public before use, the health-information assistant's ambiguous-context bias score was between -5% and +5% in every category and its accuracy on disambiguated items was above 90%.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
+        }
+      ]
     }
   ],
-  "count": 16
+  "count": 18
 }

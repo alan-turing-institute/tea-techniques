@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/requirements/probabilistic-output",
     "slug": "applicable-models-requirements-probabilistic-output",
-    "count": 8,
+    "count": 10,
     "category": "applicable-models"
   },
   "techniques": [
@@ -1135,7 +1135,329 @@
           "domain": "healthcare"
         }
       ]
+    },
+    {
+      "slug": "reliability-diagram-with-expected-calibration-error",
+      "name": "Reliability Diagram with Expected Calibration Error",
+      "description": "A reliability diagram with expected calibration error (ECE) measures whether a classifier's stated confidence matches how often it is right, so that a reader can tell whether predictions given a probability of 70 per cent come true about 70 per cent of the time. Using labelled cases the model was not trained on, each prediction's confidence (the probability given to the predicted class, or to an event such as rain above a threshold) is placed in one of a fixed number of bins, commonly ten or fifteen equal-width intervals between 0 and 1, and in each bin the average confidence is compared with the observed frequency, the share of its cases in which the predicted class or event actually occurred. The reliability diagram plots observed frequency against average confidence bin by bin, so that bins below the diagonal show overconfidence and bins above it underconfidence, and is usually shown with a histogram of how many cases fall in each bin, which the diagram itself does not show; the ECE condenses the same comparison into one number, the average gap between confidence and observed frequency weighted by each bin's share of the cases, and the maximum calibration error reports the largest gap in any bin. The technique measures and changes nothing: Platt scaling, isotonic regression calibration and temperature scaling repair a model's probabilities, and this measurement, run before and after on the same held-out cases, none of them used to fit the repair, is the evidence that a repair worked.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/calibration",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/statistics",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/metric",
+        "technique-type/visualisation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A national meteorological service is deciding whether to issue a neural-network nowcast's probabilities that radar reflectivity will exceed set thresholds within the next hour. On a held-out season of radar composites, its verification team draws reliability diagrams with sample-count histograms and computes the ECE for each threshold and lead time beside those of its current extrapolation ensemble, and issues the new probabilities only for thresholds where they are at least as reliable.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital's imaging AI group receives a chest X-ray classifier whose vendor reports good calibration on public data. Before connecting it, the group computes the reliability diagram and ECE on a year of its own labelled studies, finds the model overconfident in its highest bins, fits temperature scaling on a separate validation split, and repeats the measurement on the untouched test split to show whether the gap has closed.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A law firm's knowledge team evaluating a language-model research assistant that reports a confidence with each answer asks it a held-out set of questions with verified answers, bins its self-reported confidence, and computes the reliability diagram and ECE for each practice area rather than only for the whole set. The confidence display is switched off for practice areas where the gap between stated confidence and accuracy exceeds the firm's threshold.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A card issuer's fraud team checks its transaction-risk model each month on transactions whose outcomes have arrived, using bins fixed at validation that are narrow over the high scores where alerts are raised. Because fraud is rare, nearly all cases fall in the lowest bin and dominate the ECE, so the team tracks the gap in each high-score bin as well; a gap above the limit set at model sign-off triggers an investigation of drift and a decision on recalibration.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The result depends on how predictions are binned. With equal-width bins, confident models put most cases in one or two bins, which dominate the ECE while the others rest on few cases; more bins give a finer measurement but a noisier estimate in each bin. Rankings of recalibration methods can change with the number of bins or the binning scheme, so both must be reported and held fixed in any comparison."
+        },
+        {
+          "description": "Binning distorts the estimate in both directions. Overconfident and underconfident predictions in the same bin cancel, so with plenty of data the binned ECE understates the true error. On small samples, sampling noise inflates it: with 15 equal-width bins, a simulated perfectly calibrated model showed large errors on 200 cases. ECEs from samples of different sizes, such as subgroups, are not directly comparable; equal-mass bins or a debiased estimator reduce the bias."
+        },
+        {
+          "description": "Calibration says nothing about how well the model separates cases. A model that gives every case the overall base rate, such as 0.5 on a balanced dataset, is calibrated but useless, so the ECE must be reported with accuracy, the area under the ROC curve or a proper scoring rule such as the Brier score, which combines calibration with how decisive the predictions are."
+        },
+        {
+          "description": "Weighting by bin size gives rare but important predictions almost no weight. In a precipitation nowcasting study, almost all probabilities for heavy-rain thresholds fell in the lowest bin, so the ECE barely registered the rare high-probability forecasts, and at the highest threshold it could not be compared because some bins were empty. For multi-class models the usual ECE also looks only at the top predicted class and ignores the calibration of the others."
+        },
+        {
+          "description": "The measurement holds only for the population and period it was computed on. One ECE over a whole test set can hide large differences between subgroups: in an evaluation of language models answering medical questions, ECE ranged from 0.041 to 0.141 across specialties, a spread the pooled figure masked. Calibration can also drift after deployment, so it has to be measured for the subgroups that matter and repeated on new labelled data."
+        }
+      ],
+      "resources": [
+        {
+          "title": "netcal: Uncertainty Calibration (API reference documentation)",
+          "url": "https://efs-opensource.github.io/calibration-framework/",
+          "source_type": "documentation",
+          "citationKey": "NetcalUncertaintyCalibration"
+        },
+        {
+          "title": "netcal: calibration-framework (EFS-OpenSource)",
+          "url": "https://github.com/EFS-OpenSource/calibration-framework",
+          "source_type": "software_package",
+          "publication_date": "2026-10-11T08:41:15Z",
+          "citationKey": "NetcalCalibrationframeworkEFSOpenSource2026",
+          "abstract": "The net:cal calibration framework is a Python 3 library for measuring and mitigating miscalibration of uncertainty estimates, e.g., by a neural network."
+        },
+        {
+          "title": "Obtaining Well Calibrated Probabilities Using Bayesian Binning",
+          "url": "https://doi.org/10.1609/aaai.v29i1.9602",
+          "source_type": "technical_paper",
+          "authors": [
+            "Mahdi Pakdaman Naeini",
+            "Gregory Cooper",
+            "Milos Hauskrecht"
+          ],
+          "publication_date": "2015-2-21",
+          "citationKey": "pakdamannaeiniObtainingWellCalibrated2015"
+        },
+        {
+          "title": "On Calibration of Modern Neural Networks",
+          "url": "https://arxiv.org/abs/1706.04599",
+          "source_type": "technical_paper",
+          "authors": [
+            "Chuan Guo",
+            "Geoff Pleiss",
+            "Yu Sun",
+            "Kilian Q. Weinberger"
+          ],
+          "publication_date": "2017-06-14",
+          "citationKey": "guoCalibrationModernNeural2017",
+          "abstract": "Confidence calibration -- the problem of predicting probability estimates representative of the true correctness likelihood -- is important for classification models in many applications. We discover that modern neural networks, unlike those from a decade ago, are poorly calibrated. Through extensive experiments, we observe that depth, width, weight decay, and Batch Normalization are important factors influencing calibration. We evaluate the performance of various post-processing calibration methods on state-of-the-art architectures with image and document classification datasets. Our analysis and experiments not only offer insights into neural network learning, but also provide a simple and straightforward recipe for practical settings: on most datasets, temperature scaling -- a single-parameter variant of Platt Scaling -- is surprisingly effective at calibrating predictions."
+        },
+        {
+          "title": "Probability Calibration curves — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
+          "source_type": "tutorial",
+          "citationKey": "ProbabilityCalibrationCurves",
+          "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
+        },
+        {
+          "title": "DEUCE v1.0: a neural network for probabilistic precipitation nowcasting with aleatoric and epistemic uncertainties",
+          "url": "https://doi.org/10.5194/gmd-17-3839-2024",
+          "source_type": "application_paper",
+          "authors": [
+            "Bent Harnist",
+            "Seppo Pulkkinen",
+            "Terhi Mäkinen"
+          ],
+          "publication_date": "2024-5-14",
+          "citationKey": "harnistDEUCEV10Neural2024"
+        },
+        {
+          "title": "Calibration of Self-Reported Confidence and Accuracy of Large Language Models in Medical Question Answering",
+          "url": "https://doi.org/10.1007/s10916-026-02430-0",
+          "source_type": "application_paper",
+          "authors": [
+            "Sebastian Daniel Boie",
+            "Florian Reis",
+            "Nicolas Frey",
+            "Elias Grünewald",
+            "Felix Balzer"
+          ],
+          "publication_date": "2026-6-26",
+          "citationKey": "boieCalibrationSelfReportedConfidence2026",
+          "abstract": "Objective: To evaluate the alignment between self-reported confidence of large language models (LLM) and their accuracy in answering medical multiple-choice questions. Materials and Methods: We prompted six LLMs (GPT-5, GPT-5-mini, GPT-5-nano, GPT-4o, Claude Sonnet 4.5, and Gemini 2.5) to answer MedMCQA items and report confidence scores. Based on 12,000 LLM responses, we calculated Expected Calibration Errors (ECE) by averaging absolute differences between observed accuracy and predicted confidence. Results: Mean ECE differed by model (Claude Sonnet 4.5 best: 0.06; Gpt-4o worst: 0.127) and varied across specialties (“Skin” best: 0.041; “Social & Preventive Medicine” worst: 0.141). Accuracy of examined LLMs showed analogous variation between specialties. Discussion: Our results demonstrate that high accuracy does not guarantee reliable uncertainty estimation. We identified substantial heterogeneity across medical specialties, where pooled metrics masked a threefold ECE increase between best- and worst-performing domains. Conclusion: We recommend incorporating calibration reporting into LLM evaluations, as larger models exhibit improved “self-knowledge”, but uneven overconfidence persists."
+        }
+      ],
+      "complexity_rating": 1,
+      "computational_cost_rating": 1,
+      "acronym": "ECE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On the held-out 2025 convective season, the nowcast's probabilities of exceeding 25 dBZ at 30-minute lead time have an expected calibration error below 0.01 over ten equal-width bins, no higher than that of the current extrapolation ensemble.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "After temperature scaling, the chest X-ray classifier's expected calibration error on the hospital's untouched test split is below 0.03 with 15 equal-width bins, and no bin holding more than 2 per cent of studies shows a gap above five percentage points.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For each practice area with at least 300 evaluation questions, the research assistant's self-reported confidence has an expected calibration error below 0.08 against verified answers.",
+          "assuranceGoal": "reliability",
+          "domain": "legal"
+        },
+        {
+          "text": "In every month of 2026, in each high-score bin fixed at model sign-off, the fraud model's average predicted probability was within two percentage points of the observed fraud rate among transactions with confirmed outcomes.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "continuous-ranked-probability-score",
+      "name": "Continuous Ranked Probability Score",
+      "description": "The continuous ranked probability score (CRPS) measures the quality of a probabilistic forecast of a numerical quantity, such as tomorrow's temperature or next week's demand, by scoring the whole predicted distribution, not just a single best guess, against the value later observed. For each case it compares the forecast's cumulative distribution (the predicted probability that the outcome will fall below each possible value) with a step that jumps from 0 to 1 at the observed value, squares the gap at every value and adds these up, which is the same as adding up the Brier score of the yes-or-no forecasts 'the outcome will be below this value' over every possible threshold. For a forecast given as an ensemble or a sample it can be computed as the average distance between the members and the observation minus half the average distance between pairs of members, closed forms exist for common distributions such as the Gaussian, and for a single-value forecast it reduces to the absolute error, so probabilistic and deterministic forecasts can be compared directly. The score is proper: a forecaster expects the best score by reporting the distribution they actually believe, so it cannot be improved on average by making forecasts narrower or wider than warranted, and it is lowest when the forecast distribution matches how outcomes actually vary. Scores are averaged over many cases, are in the units of the forecast quantity with lower values better, and are often reported as a skill score relative to a reference forecast such as climatology (the long-run historical distribution), giving evidence for claims about the accuracy of a forecaster's probabilities by variable, location and lead time.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/performance-assessment",
+        "data-requirements/labelled-data",
+        "data-type/time-series",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "technique-type/metric",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A national weather service deciding whether to run a machine-learning ensemble alongside its physics-based ensemble scores both against a year of station observations, computing the fair CRPS (the two ensembles differ in size) for 2-metre temperature and 10-metre wind at every station and lead time. It adopts the new system only for the variables and lead times where its CRPS skill relative to the existing ensemble is positive.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A wind-farm operator choosing between two vendors of probabilistic power forecasts for day-ahead trading receives 19 quantiles per hour from each. It approximates each forecast's CRPS by averaging the quantile scores across those levels and compares the vendors over a full winter against metered output. Because high-output hours drive balancing costs, it also compares them on a version of the score weighted towards the upper quantiles, averaged over all hours, not only those with high output.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital group's capacity team plans elective admissions with a probabilistic forecast of bed occupancy one week ahead. Each week it computes the forecast's CRPS against the occupancy that followed and its skill score against a seasonal naive forecast, and a rolling eight-week skill score below zero triggers a review of the model before it is used for the next planning cycle.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "One CRPS value combines calibration (whether outcomes behave like draws from the forecast distribution) and sharpness (how narrow the forecast is), so a better score does not show which improved, and an average over many cases can hide conditions in which forecasts are consistently too narrow or too wide. A claim about calibration needs Hersbach's decomposition of the score into reliability and resolution parts, a rank histogram or a spread-skill check as well."
+        },
+        {
+          "description": "Every threshold carries equal weight and extreme outcomes are rare, so the average score says little about how well extremes are forecast; WeatherBench 2 notes that the CRPS does not specifically focus on extreme weather. Averaging only over cases in which an extreme occurred does not repair this and can discredit skilful forecasters (Lerch et al. 2017); claims about warnings of extremes need a threshold-weighted CRPS that emphasises the tails."
+        },
+        {
+          "description": "It scores one quantity at one place and lead time at a time, so it does not test whether a forecast gets the relationships between places, times or variables right. WeatherBench 2 notes that its CRPS results ignore spatial and temporal correlation, and found models trained on each wind component separately biased in wind speed; claims about joint quantities, such as rainfall totalled over a catchment, need a multivariate score such as the energy score."
+        },
+        {
+          "description": "The score is in the units of the forecast quantity and grows with how variable that quantity is, so raw values cannot be compared or pooled across variables, locations or seasons with different variability, and averages are dominated by the most variable cases. Comparisons across these need a skill score relative to a stated reference forecast, and the choice of reference, such as climatology or persistence, changes the result."
+        },
+        {
+          "description": "For an ensemble, the usual estimate treats the members as the whole forecast distribution, which penalises small ensembles: if two systems draw members from the same distribution, the one with fewer members scores worse on average. Ferro (2014) showed the usual ensemble CRPS is unfair in this sense and gave an adjusted fair version, which libraries such as scoringrules provide; it should be used whenever ensembles of different sizes are compared."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Scoring Rules for Continuous Probability Distributions",
+          "url": "https://doi.org/10.1287/mnsc.22.10.1087",
+          "source_type": "technical_paper",
+          "authors": [
+            "James E. Matheson",
+            "Robert L. Winkler"
+          ],
+          "publication_date": "1976-6",
+          "citationKey": "mathesonScoringRulesContinuous1976"
+        },
+        {
+          "title": "Strictly Proper Scoring Rules, Prediction, and Estimation",
+          "url": "https://doi.org/10.1198/016214506000001437",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tilmann Gneiting",
+            "Adrian E Raftery"
+          ],
+          "publication_date": "2007-3",
+          "citationKey": "gneitingStrictlyProperScoring2007"
+        },
+        {
+          "title": "Ensemble forecasts (scoringrules documentation)",
+          "url": "https://scoringrules.readthedocs.io/en/latest/crps_estimators.html",
+          "source_type": "documentation",
+          "citationKey": "EnsembleForecastsScoringrules"
+        },
+        {
+          "title": "scoringrules: a python library for probabilistic forecast evaluation",
+          "url": "https://github.com/frazane/scoringrules",
+          "source_type": "software_package",
+          "publication_date": "2026-10-01T11:33:37Z",
+          "citationKey": "zanettaScoringrulesPythonLibrary2026",
+          "abstract": "Lightweight library for probabilistic forecast evaluation and optimization."
+        },
+        {
+          "title": "Evaluating Probabilistic Forecasts with                     <b>scoringRules</b>",
+          "url": "https://doi.org/10.18637/jss.v090.i12",
+          "source_type": "tutorial",
+          "authors": [
+            "Alexander Jordan",
+            "Fabian Krüger",
+            "Sebastian Lerch"
+          ],
+          "publication_date": "2019",
+          "citationKey": "jordanEvaluatingProbabilisticForecasts2019"
+        },
+        {
+          "title": "WeatherBench 2: A Benchmark for the Next Generation of Data‐Driven Global Weather Models",
+          "url": "https://doi.org/10.1029/2023ms004019",
+          "source_type": "application_paper",
+          "authors": [
+            "Stephan Rasp",
+            "Stephan Hoyer",
+            "Alexander Merose",
+            "Ian Langmore",
+            "Peter Battaglia",
+            "Tyler Russell",
+            "Alvaro Sanchez‐Gonzalez",
+            "Vivian Yang",
+            "Rob Carver",
+            "Shreya Agrawal",
+            "Matthew Chantry",
+            "Zied Ben Bouallegue",
+            "Peter Dueben",
+            "Carla Bromberg",
+            "Jared Sisk",
+            "Luke Barrington",
+            "Aaron Bell",
+            "Fei Sha"
+          ],
+          "publication_date": "2024-6",
+          "citationKey": "raspWeatherBench2Benchmark2024"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "acronym": "CRPS",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Over the 2025 verification year, the machine-learning ensemble has a lower mean fair CRPS for 2-metre temperature than the operational ensemble at every lead time from one to ten days, averaged over all stations in the service area.",
+          "assuranceGoal": "reliability",
+          "domain": "environmental"
+        },
+        {
+          "text": "The one-week-ahead bed-occupancy forecast has had a positive CRPS skill score relative to a seasonal naive forecast in every rolling eight-week window since it entered use.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Scored against metered output over the winter season, the selected vendor's probabilistic wind-power forecasts have a lower mean CRPS than the alternative vendor's, and also a lower mean when the score is weighted towards high output, with both averages taken over all hours.",
+          "assuranceGoal": "reliability",
+          "domain": "energy"
+        },
+        {
+          "text": "The comparison between the 20-member and 50-member ensemble systems used the fair version of the CRPS, so the reported difference does not reflect ensemble size.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 8
+  "count": 10
 }

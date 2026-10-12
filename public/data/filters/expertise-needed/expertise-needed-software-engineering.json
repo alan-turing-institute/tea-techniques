@@ -2,7 +2,7 @@
   "tag": {
     "name": "expertise-needed/software-engineering",
     "slug": "expertise-needed-software-engineering",
-    "count": 9,
+    "count": 12,
     "category": "expertise-needed"
   },
   "techniques": [
@@ -1795,7 +1795,442 @@
           "domain": "aviation"
         }
       ]
+    },
+    {
+      "slug": "metamorphic-testing",
+      "name": "Metamorphic Testing",
+      "description": "Metamorphic testing checks a model or AI system without needing the correct output for each test input, by checking that the outputs for related inputs stand in a relation that must hold if the system works as intended. The tester first writes metamorphic relations from knowledge of the task, each pairing a change to the input with the change it should cause in the output, or with no change: adding fog to a road image should leave a steering prediction within a set tolerance, adding a few stray sensor points outside the road area should not remove any detected obstacle, and rotating a whole flight scenario should leave its outcome unchanged. Existing test inputs (source cases) are transformed into follow-up inputs according to each relation, the system is run on both, and each pair is checked, with numeric outputs often allowed a tolerance. A violation points to a fault or unwanted behaviour without any labelled answer, unless the relation itself is wrong; the output is the violation rate for each relation with the failing pairs, and a relation that holds on every pair shows only that the outputs agree with each other, not that they are right. Prompt robustness testing and causal discrimination testing in this catalogue each apply one family of invariance relations (meaning-preserving changes to a prompt, and a change of protected attribute), and prompt robustness testing also scores the answers against known ones; metamorphic testing is the general procedure for writing and checking any such relation, including relations that say how the output should change, and needs no known answers.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/robustness",
+        "data-requirements/test-scenarios",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/software-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An air navigation service provider evaluating a machine-learning conflict-detection aid for en-route controllers has no ground truth for most replayed traffic samples. Its test team writes three relations: swapping two aircraft's call signs, shifting every timestamp by the same amount, and rotating the whole sample together with its wind field must not change which aircraft pairs are flagged. It runs them on a year of recorded traffic and holds the release until every violation is explained.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A supplier of lidar obstacle perception for driverless shuttles cannot label every frame it records. Following a relation implied by the perception specification, its test team adds a few hundred random points outside the mapped road area to recorded frames and checks that no obstacle detected in the original frame disappears, reporting the share of frames where one does, by number of points added, as a release criterion for each software build.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A weather service testing a neural network that nowcasts rainfall from radar images checks a relation expected from the way rain moves with the wind: away from the domain's edges, shifting the input radar sequence a few grid cells east should shift the forecast rain field by the same amount, within a tolerance set from the model's day-to-day error. Forecasters review the breaking cases to judge whether the model has learnt a dependence on location, such as on terrain, that it should keep.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A bank moving its credit-scoring models to a new library cannot treat every difference from the old library's outputs as a fault, since the solvers differ. Its validation team writes relations the mathematics guarantees: reordering the input columns, or adding a constant to a numeric input in training and scoring data of a logistic regression with an unpenalised intercept, must leave every predicted probability unchanged within solver tolerance. Each violation is investigated as a fault.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Passing shows that outputs are consistent, not that they are correct. A model that gives the same wrong answer for a source case and its follow-up satisfies the relation, and one that is wrong in the same way everywhere can pass every invariance relation. On its own the technique therefore does not suit systems where each output must be shown to be right, and it complements rather than replaces testing against known answers where those exist."
+        },
+        {
+          "description": "The evidence is only as good as the relations, which are written by hand from domain knowledge, with no systematic way to choose among the many possible ones. A relation the system is not bound to obey produces false alarms: in a study of the Weka library, violations by its nearest-neighbour classifier came from legitimate tie-breaking between equally likely labels, not from faults. An incomplete set of relations gives false confidence."
+        },
+        {
+          "description": "Most model outputs need a tolerance, and the result depends heavily on it. In the DeepTest study of three driving models, violations under simple image transformations fell from 23,391 when a transformed frame's squared error against the human steering label could be at most the original mean squared error to 330 when it could be five times that, and manual review still found false positives. Counts compare only between runs with the same tolerance, set from what the application can accept."
+        },
+        {
+          "description": "Follow-up inputs are synthetic and may not occur in practice: rain or fog added to an image, or points scattered into a lidar frame, approximate real conditions without reproducing them. A violation on an unrealistic input may not matter in operation, and a pass covers only the transformations tried, so the evidence is about the tested relations and transformations, not the operating conditions as a whole."
+        },
+        {
+          "description": "A model whose outputs vary between runs on the same input, through sampling, seeds or GPU arithmetic, breaks relations by chance, so runs must be made repeatable or each case repeated and judged statistically. This bites hardest for relations over the training data, such as Xie et al.'s for classifiers, which need the model retrained for every follow-up case; for models that are costly to train only prediction-time relations are practical, and they test the trained model, not its training."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ISTQB Certified Tester AI Testing (CT-AI) Syllabus v2.0, section 6.1.5 Metamorphic Testing",
+          "url": "https://istqb.org/certifications/certified-tester-ai-testing-ct-ai/",
+          "source_type": "documentation",
+          "authors": [
+            "International Software Testing Qualifications Board (ISTQB)"
+          ],
+          "publication_date": "2026-04-17",
+          "citationKey": "ISTQBCertifiedTester2024",
+          "abstract": "The CT-AI v1.0 certification will be retired: the English version will remain available until April 21, 2027, and non-English versions will remain available"
+        },
+        {
+          "title": "Metamorphic Testing: A New Approach for Generating Next Test Cases",
+          "url": "https://arxiv.org/abs/2002.12543",
+          "source_type": "technical_paper",
+          "authors": [
+            "T. Y. Chen",
+            "S. C. Cheung",
+            "S. M. Yiu"
+          ],
+          "publication_date": "2020-02-28",
+          "citationKey": "chenMetamorphicTestingNew2020",
+          "abstract": "In software testing, a set of test cases is constructed according to some predefined selection criteria. The software is then examined against these test cases. Three interesting observations have been made on the current artifacts of software testing. Firstly, an error-revealing test case is considered useful while a successful test case which does not reveal software errors is usually not further investigated. Whether these successful test cases still contain useful information for revealing software errors has not been properly studied. Secondly, no matter how extensive the testing has been conducted in the development phase, errors may still exist in the software [5]. These errors, if left undetected, may eventually cause damage to the production system. The study of techniques for uncovering software errors in the production phase is seldom addressed in the literature. Thirdly, as indicated by Weyuker in [6], the availability of test oracles is pragmatically unattainable in most situations. However, the availability of test oracles is generally assumed in conventional software testing techniques. In this paper, we propose a novel test case selection technique that derives new test cases from the successful ones. The selection aims at revealing software errors that are possibly left undetected in successful test cases which may be generated using some existing strategies. As such, the proposed technique augments the effectiveness of existing test selection strategies. The technique also helps uncover software errors in the production phase and can be used in the absence of test oracles."
+        },
+        {
+          "title": "Testing and validating machine learning classifiers by metamorphic testing",
+          "url": "https://doi.org/10.1016/j.jss.2010.11.920",
+          "source_type": "technical_paper",
+          "authors": [
+            "Xiaoyuan Xie",
+            "Joshua W.K. Ho",
+            "Christian Murphy",
+            "Gail Kaiser",
+            "Baowen Xu",
+            "Tsong Yueh Chen"
+          ],
+          "publication_date": "2011-4",
+          "citationKey": "xieTestingValidatingMachine2011"
+        },
+        {
+          "title": "Metamorphic Testing: Testing the Untestable",
+          "url": "https://doi.org/10.1109/ms.2018.2875968",
+          "source_type": "tutorial",
+          "authors": [
+            "Sergio Segura",
+            "Dave Towey",
+            "Zhi Quan Zhou",
+            "Tsong Yueh Chen"
+          ],
+          "publication_date": "2020-5",
+          "citationKey": "seguraMetamorphicTestingTesting2020"
+        },
+        {
+          "title": "DeepTest",
+          "url": "https://doi.org/10.1145/3180155.3180220",
+          "source_type": "application_paper",
+          "authors": [
+            "Yuchi Tian",
+            "Kexin Pei",
+            "Suman Jana",
+            "Baishakhi Ray"
+          ],
+          "publication_date": "2018-5-27",
+          "citationKey": "tianDeepTest2018"
+        },
+        {
+          "title": "Metamorphic testing of driverless cars",
+          "url": "https://doi.org/10.1145/3241979",
+          "source_type": "application_paper",
+          "authors": [
+            "Zhi Quan Zhou",
+            "Liqun Sun"
+          ],
+          "publication_date": "2019-2-21",
+          "citationKey": "zhouMetamorphicTestingDriverless2019"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For every replayed traffic sample in the 2025 test year, swapping aircraft call signs, shifting all timestamps by the same amount and rotating the sample with its wind field left the set of flagged conflict pairs unchanged apart from the swapped labels.",
+          "assuranceGoal": "reliability",
+          "domain": "aviation"
+        },
+        {
+          "text": "Across 3,000 recorded urban frames, adding up to 100 random lidar points outside the mapped road area removed no obstacle that the perception software detected in the original frame.",
+          "assuranceGoal": "reliability",
+          "domain": "automotive"
+        },
+        {
+          "text": "For at least 98 per cent of test cases from the 2025 season, shifting the input radar sequence by up to five grid cells within the interior of the domain shifted the nowcast rain field by the same amount, within the agreed tolerance.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "In the new library, reordering the input columns, or adding a constant to any numeric input in both training and scoring data, left every credit-scoring model's predicted probabilities on the full validation set unchanged within the solver's tolerance.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "explainer-latency-benchmarking",
+      "name": "Explainer Latency Benchmarking",
+      "description": "Explainer latency benchmarking measures how long an explanation method takes to produce an explanation for a single prediction, on the hardware, software and settings it will run with, and compares the result with the time that the decision it supports allows. The evaluator first sets the time budget, the share of the time the decision allows that is left for the explanation once the prediction is ready, then runs the explainer exactly as it will be deployed (the same model, background data, number of samples and batch size) on a representative set of real inputs, timing each explanation from request to a result ready to display, after warm-up runs and with one-off set-up costs, such as building the explainer, recorded separately. Because the time varies with the model, the data, the hardware and the load on the system, each configuration is timed many times, as machine-learning inference benchmarks such as MLPerf Inference time a model, under realistic concurrent demand where the explainer runs as a shared service, and the result is reported as a distribution: the median, high percentiles such as the 95th or 99th, the slowest case and the share of explanations over budget. Canha et al.'s benchmark framework for explanation methods, which scores methods on properties measurable without human participants, includes this property under the name speed and rates it on a five-level scale with cut-offs at 0.1, 1, 5 and 10 seconds aligned with human response-time limits; the scale suits comparisons between methods, while a claim about a deployment needs the measured percentiles set against that deployment's own budget. The output is a latency profile for each explainer configuration, recorded with its hardware, software versions and load, which shows whether explanations will arrive in time and lets a team choose between explainers and settings on speed alongside the explanation quality measured by other tests.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "assurance-goal-category/explainability/property/efficiency",
+        "explanatory-scope/local",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/software-engineering",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A card issuer shows its fraud analysts a feature attribution beside each held transaction and needs it within the two seconds before the review queue refreshes. Benchmarking on the production server at peak queue load, it finds that a sampling-based explainer misses the budget for about one explanation in twenty while an explainer specific to its tree ensemble stays well inside it, and adopts the second once its attributions pass the same faithfulness tests.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A hospital adding an explanation panel to a sepsis-risk alert in its electronic health record agrees with clinicians that the panel must load within one second of a nurse opening the alert. The informatics team times explanations on the hospital's own servers with a week of real alerts at typical volume, reports the 95th percentile and the slowest case against that limit, and repeats the measurement after each model or software update.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "An online marketplace shows each seller the main reasons its moderation model held a new listing for review, and the page must update within three seconds. Before launch, the team times the service on its production servers with a week of recorded traffic replayed at its real pace; the first request after each quiet period is far slower because the explainer and its background data load on demand. It keeps a loaded explainer running, re-measures, and reports the slowest case.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Speed and explanation quality trade off through the explainer's settings. Sampling-based explainers run faster with fewer samples or a smaller background dataset, but SHAP's documentation notes that more samples give lower-variance estimates, so a faster setting gives noisier explanations. A latency result holds only for the settings tested, and must be measured at the settings whose faithfulness and stability were checked, or a configuration may meet the budget with untested explanations."
+        },
+        {
+          "description": "Times depend on the hardware, the implementation and the load at the moment of measurement, which Canha et al. single out as the main caveat on their speed metric, so a figure from a developer's workstation does not carry over to a shared production server or an edge device. Any change to the model, the explainer version, the hardware or the traffic pattern calls for re-measurement, and the configuration must be recorded with the result for it to be checked or repeated."
+        },
+        {
+          "description": "Claims about the slowest cases need many timed explanations. MLPerf Inference, which sets tail-latency bounds for model inference in the same way, sizes its runs so that a 99th-percentile bound holds with 99 per cent confidence, which at its chosen margin takes about 263,000 queries. A few hundred timings can support a claim about the median but not about the 99th percentile, and a single timed run supports neither."
+        },
+        {
+          "description": "A fast explanation is not necessarily a good one. Latency says nothing about whether an explanation reflects what the model did or whether people can use it, and it leaves out the time a person needs to read it. It supports a claim about explanations only alongside tests of faithfulness and stability and, where people act on the explanations, a study of whether they can use them within the time available."
+        },
+        {
+          "description": "The budget has to come from the decision, not from a generic scale. Canha et al.'s cut-offs reflect general limits on human response time, which may be looser or tighter than a particular workflow allows, and a budget that leaves out the time to run the model, move the data and display the result will be met in the benchmark and missed in use; MLPerf likewise derives its server-scenario latency bounds from the user's overall time target."
+        }
+      ],
+      "resources": [
+        {
+          "title": "A Functionally-Grounded Benchmark Framework for XAI Methods: Insights and Foundations from a Systematic Literature Review",
+          "url": "https://doi.org/10.1145/3737445",
+          "source_type": "technical_paper",
+          "authors": [
+            "Dulce Canha",
+            "Sylvain Kubler",
+            "Kary Främling",
+            "Guy Fagherazzi"
+          ],
+          "publication_date": "2025-7-14",
+          "citationKey": "canhaFunctionallyGroundedBenchmarkFramework2025"
+        },
+        {
+          "title": "MLPerf Inference Benchmark",
+          "url": "https://doi.org/10.1109/isca45697.2020.00045",
+          "source_type": "technical_paper",
+          "authors": [
+            "Vijay Janapa Reddi",
+            "Christine Cheng",
+            "David Kanter",
+            "Peter Mattson",
+            "Guenther Schmuelling",
+            "Carole-Jean Wu",
+            "Brian Anderson",
+            "Maximilien Breughe",
+            "Mark Charlebois",
+            "William Chou",
+            "Ramesh Chukka",
+            "Cody Coleman",
+            "Sam Davis",
+            "Pan Deng",
+            "Greg Diamos",
+            "Jared Duke",
+            "Dave Fick",
+            "J. Scott Gardner",
+            "Itay Hubara",
+            "Sachin Idgunji",
+            "Thomas B. Jablin",
+            "Jeff Jiao",
+            "Tom St. John",
+            "Pankaj Kanwar",
+            "David Lee",
+            "Jeffery Liao",
+            "Anton Lokhmotov",
+            "Francisco Massa",
+            "Peng Meng",
+            "Paulius Micikevicius",
+            "Colin Osborne",
+            "Gennady Pekhimenko",
+            "Arun Tejusve Raghunath Rajan",
+            "Dilip Sequeira",
+            "Ashish Sirasao",
+            "Fei Sun",
+            "Hanlin Tang",
+            "Michael Thomson",
+            "Frank Wei",
+            "Ephrem Wu",
+            "Lingjie Xu",
+            "Koichi Yamada",
+            "Bing Yu",
+            "George Yuan",
+            "Aaron Zhong",
+            "Peizhao Zhang",
+            "Yuchen Zhou"
+          ],
+          "publication_date": "2020-5",
+          "citationKey": "reddiMLPerfInferenceBenchmark2020"
+        },
+        {
+          "title": "PyTorch Benchmark (PyTorch recipe)",
+          "url": "https://docs.pytorch.org/tutorials/recipes/recipes/benchmark.html",
+          "source_type": "tutorial",
+          "citationKey": "PyTorchBenchmarkPyTorch"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On the production review server at peak queue load, 99 per cent of feature attributions for held transactions were delivered within the two-second budget set by the fraud-review workflow, measured over more than 300,000 explanations.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "The explainer configuration whose latency was benchmarked, including its background data and number of samples, is the same configuration whose faithfulness and stability were evaluated.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        },
+        {
+          "text": "After the latest model update, explanation latency was re-measured on the hospital's production servers at typical alert volume, and both the 95th percentile and the slowest case remained within the one-second limit agreed with clinical users.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "On the listing-review service's production servers, with a week of recorded traffic replayed at its real pace, both the 95th-percentile and the slowest explanation times, including requests after quiet periods, were within the three-second budget.",
+          "assuranceGoal": "explainability",
+          "domain": "e-commerce"
+        }
+      ]
+    },
+    {
+      "slug": "c2pa-content-credentials",
+      "name": "C2PA Content Credentials",
+      "description": "C2PA Content Credentials attach a signed provenance record, called a manifest, to a media file, so that whoever receives the file can see who signed it and what the signer declares (which tool produced it, whether a generative AI model created or altered it and what edits followed), and can check that the record, and the parts of the file its hash covers, have not changed since signing. Under the Coalition for Content Provenance and Authenticity (C2PA) technical specification, the tool that creates or edits the file writes statements called assertions, such as a 'created' action whose source type is trainedAlgorithmicMedia (the code for AI-generated content) and links to the earlier files it was made from, adds a cryptographic hash of the file's content, and signs the bundle with an X.509 certificate, the kind of credential used to secure websites. The manifest is usually embedded in the file, and each later edit in a supporting tool adds a new manifest that refers to the previous one, so the history travels with the file. A validator recomputes the hash and checks the signature, then reports the manifest as well-formed, valid or, if the signing certificate chains to a trust list such as the C2PA Trust List, trusted, and reports a failure when the file no longer matches its hash. If the manifest is removed, nothing in the file leads back to it unless a watermark or fingerprint (a 'soft binding') was also registered so that the manifest can be looked up in a repository, and a file without credentials says nothing about its origin; unlike trigger-set model watermarking or model signing, which mark or sign a model, it records the history of an individual output.",
+      "assurance_goals": [
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/audit-trail",
+        "data-requirements/no-special-requirements",
+        "data-type/image",
+        "data-type/text",
+        "evidence-type/audit-record",
+        "expertise-needed/security",
+        "expertise-needed/software-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An image-generation service offered in the EU attaches a signed manifest to every image it returns, declaring an AI 'created' action with the service as signer, as its means of meeting the AI Act's Article 50(2) duty to mark synthetic output in a machine-readable format. Its compliance team validates a weekly sample of outputs to decide whether marking is working, and registers a watermark soft binding so that a stripped image can be matched back to its record.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A news agency's verification desk runs every image sent in by the public through a C2PA validator before publication. A trusted manifest recording capture on a named camera, with no AI-generated ingredients, lets editors publish it with a provenance label. A manifest naming a generative tool, or a hash that no longer matches, sends it to forensic review, and an image with no credentials is treated as of unknown origin, not as authentic.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An insurer's claims app lets assessors apply an AI tool that enhances and annotates photographs of vehicle damage, and records each AI edit as an action in the photograph's manifest. When a claim is disputed, a reviewing assessor or the claimant's representative can see which changes the AI tool made and check them against the retained original, which the edited photograph's manifest cites as an ingredient.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A social-media platform reads Content Credentials on upload, labels images whose trusted manifest declares a generative AI source, and shows users who signed the record. Its trust-and-safety team tracks what share of uploads carry trusted, untrusted or no credentials, to decide how far its synthetic-media policy can rely on the labels and where it still needs other detection methods.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The record is easy to lose. Anyone can remove the manifest, an attack the C2PA's own threat model expects, and the file is then an ordinary file with no link to its history unless a watermark or fingerprint soft binding was registered with a manifest repository. Because credentials are optional and removable, a file without them says nothing about its origin: the absence of a manifest cannot show that content is human-made or unaltered."
+        },
+        {
+          "description": "A valid manifest shows who signed the record and that what its hash covers is unchanged, not that its statements are true. A signer can omit an AI step, a stolen key yields manifests that validate, and a camera photographing a screen signs a genuine capture of a staged scene. Validators need not check revocation, metadata such as location may sit outside the hash, and a 2026 preprint found validators disagreeing on the same file, so a result depends on the signer, validator and trust list."
+        },
+        {
+          "description": "The history is complete only while every tool in the workflow supports C2PA. An edit made in an unsupported tool is not recorded, and if the file later passes through a supporting tool, the new signer implicitly vouches for that unrecorded change, so the chain can show fewer steps than took place. The C2PA itself says the approach depends on widespread adoption by tools and platforms."
+        },
+        {
+          "description": "Manifests can disclose more than the creator intends, such as capture time and place, device details, the edit history and, through the separate Creator Assertions Working Group identity extension, who made the content. The C2PA's threat model lists identifying creators and tracking viewers as risks. Assertions can be redacted when a file is reused as an ingredient, but people working in risky settings, such as human-rights documentation, must decide what to include before signing."
+        },
+        {
+          "description": "Support for AI-generated text is immature. Embedding a manifest in plain text, as invisible Unicode characters, entered the specification in version 2.3 and is still marked as under review; the reference SDK supports it only behind an unstable option, and any edit to the text breaks the hash. For language-model output the method is much less dependable than for images, video and audio, where embedding is established."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Content Credentials: C2PA Technical Specification, version 2.4",
+          "url": "https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html",
+          "source_type": "documentation",
+          "citationKey": "ContentCredentialsC2PA"
+        },
+        {
+          "title": "c2pa-rs: Rust SDK for the C2PA specification",
+          "url": "https://github.com/contentauth/c2pa-rs",
+          "source_type": "software_package",
+          "publication_date": "2026-10-11T10:21:29Z",
+          "citationKey": "C2parsRustSDK2026",
+          "abstract": "Rust SDK for the core C2PA (Coalition for Content Provenance and Authenticity) specification"
+        },
+        {
+          "title": "C2PA Technical Specification, version 1.0",
+          "url": "https://spec.c2pa.org/specifications/specifications/1.0/specs/C2PA_Specification.html",
+          "source_type": "technical_paper",
+          "citationKey": "C2PATechnicalSpecification"
+        },
+        {
+          "title": "Using C2PA Tool",
+          "url": "https://github.com/contentauth/c2patool/blob/main/docs/usage.md",
+          "source_type": "tutorial",
+          "citationKey": "UsingC2PATool",
+          "abstract": "Command line tool for displaying and adding C2PA manifests  - contentauth/c2patool"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "acronym": "C2PA",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every image in each weekly validation sample of the generation service's output carried a C2PA manifest, signed with a certificate that chains to the C2PA Trust List, that declares the image AI-generated.",
+          "assuranceGoal": "transparency",
+          "domain": "generative AI"
+        },
+        {
+          "text": "In the provider's stripping and re-encoding tests, generated images whose embedded manifest had been removed were matched to their original manifest through the registered watermark soft binding.",
+          "assuranceGoal": "transparency",
+          "domain": "generative AI"
+        },
+        {
+          "text": "Every reader-submitted image published with a provenance label had a trusted manifest whose hash matched the published file.",
+          "assuranceGoal": "transparency",
+          "domain": "journalism"
+        },
+        {
+          "text": "Each AI edit applied to a claims photograph is recorded as an action in the photograph's signed manifest, naming the tool that made it.",
+          "assuranceGoal": "transparency",
+          "domain": "insurance"
+        }
+      ]
     }
   ],
-  "count": 9
+  "count": 12
 }

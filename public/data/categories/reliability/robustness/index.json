@@ -2577,7 +2577,168 @@
           "domain": "robotics"
         }
       ]
+    },
+    {
+      "slug": "metamorphic-testing",
+      "name": "Metamorphic Testing",
+      "description": "Metamorphic testing checks a model or AI system without needing the correct output for each test input, by checking that the outputs for related inputs stand in a relation that must hold if the system works as intended. The tester first writes metamorphic relations from knowledge of the task, each pairing a change to the input with the change it should cause in the output, or with no change: adding fog to a road image should leave a steering prediction within a set tolerance, adding a few stray sensor points outside the road area should not remove any detected obstacle, and rotating a whole flight scenario should leave its outcome unchanged. Existing test inputs (source cases) are transformed into follow-up inputs according to each relation, the system is run on both, and each pair is checked, with numeric outputs often allowed a tolerance. A violation points to a fault or unwanted behaviour without any labelled answer, unless the relation itself is wrong; the output is the violation rate for each relation with the failing pairs, and a relation that holds on every pair shows only that the outputs agree with each other, not that they are right. Prompt robustness testing and causal discrimination testing in this catalogue each apply one family of invariance relations (meaning-preserving changes to a prompt, and a change of protected attribute), and prompt robustness testing also scores the answers against known ones; metamorphic testing is the general procedure for writing and checking any such relation, including relations that say how the output should change, and needs no known answers.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/robustness",
+        "data-requirements/test-scenarios",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/software-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An air navigation service provider evaluating a machine-learning conflict-detection aid for en-route controllers has no ground truth for most replayed traffic samples. Its test team writes three relations: swapping two aircraft's call signs, shifting every timestamp by the same amount, and rotating the whole sample together with its wind field must not change which aircraft pairs are flagged. It runs them on a year of recorded traffic and holds the release until every violation is explained.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A supplier of lidar obstacle perception for driverless shuttles cannot label every frame it records. Following a relation implied by the perception specification, its test team adds a few hundred random points outside the mapped road area to recorded frames and checks that no obstacle detected in the original frame disappears, reporting the share of frames where one does, by number of points added, as a release criterion for each software build.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A weather service testing a neural network that nowcasts rainfall from radar images checks a relation expected from the way rain moves with the wind: away from the domain's edges, shifting the input radar sequence a few grid cells east should shift the forecast rain field by the same amount, within a tolerance set from the model's day-to-day error. Forecasters review the breaking cases to judge whether the model has learnt a dependence on location, such as on terrain, that it should keep.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A bank moving its credit-scoring models to a new library cannot treat every difference from the old library's outputs as a fault, since the solvers differ. Its validation team writes relations the mathematics guarantees: reordering the input columns, or adding a constant to a numeric input in training and scoring data of a logistic regression with an unpenalised intercept, must leave every predicted probability unchanged within solver tolerance. Each violation is investigated as a fault.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Passing shows that outputs are consistent, not that they are correct. A model that gives the same wrong answer for a source case and its follow-up satisfies the relation, and one that is wrong in the same way everywhere can pass every invariance relation. On its own the technique therefore does not suit systems where each output must be shown to be right, and it complements rather than replaces testing against known answers where those exist."
+        },
+        {
+          "description": "The evidence is only as good as the relations, which are written by hand from domain knowledge, with no systematic way to choose among the many possible ones. A relation the system is not bound to obey produces false alarms: in a study of the Weka library, violations by its nearest-neighbour classifier came from legitimate tie-breaking between equally likely labels, not from faults. An incomplete set of relations gives false confidence."
+        },
+        {
+          "description": "Most model outputs need a tolerance, and the result depends heavily on it. In the DeepTest study of three driving models, violations under simple image transformations fell from 23,391 when a transformed frame's squared error against the human steering label could be at most the original mean squared error to 330 when it could be five times that, and manual review still found false positives. Counts compare only between runs with the same tolerance, set from what the application can accept."
+        },
+        {
+          "description": "Follow-up inputs are synthetic and may not occur in practice: rain or fog added to an image, or points scattered into a lidar frame, approximate real conditions without reproducing them. A violation on an unrealistic input may not matter in operation, and a pass covers only the transformations tried, so the evidence is about the tested relations and transformations, not the operating conditions as a whole."
+        },
+        {
+          "description": "A model whose outputs vary between runs on the same input, through sampling, seeds or GPU arithmetic, breaks relations by chance, so runs must be made repeatable or each case repeated and judged statistically. This bites hardest for relations over the training data, such as Xie et al.'s for classifiers, which need the model retrained for every follow-up case; for models that are costly to train only prediction-time relations are practical, and they test the trained model, not its training."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ISTQB Certified Tester AI Testing (CT-AI) Syllabus v2.0, section 6.1.5 Metamorphic Testing",
+          "url": "https://istqb.org/certifications/certified-tester-ai-testing-ct-ai/",
+          "source_type": "documentation",
+          "authors": [
+            "International Software Testing Qualifications Board (ISTQB)"
+          ],
+          "publication_date": "2026-04-17",
+          "citationKey": "ISTQBCertifiedTester2024",
+          "abstract": "The CT-AI v1.0 certification will be retired: the English version will remain available until April 21, 2027, and non-English versions will remain available"
+        },
+        {
+          "title": "Metamorphic Testing: A New Approach for Generating Next Test Cases",
+          "url": "https://arxiv.org/abs/2002.12543",
+          "source_type": "technical_paper",
+          "authors": [
+            "T. Y. Chen",
+            "S. C. Cheung",
+            "S. M. Yiu"
+          ],
+          "publication_date": "2020-02-28",
+          "citationKey": "chenMetamorphicTestingNew2020",
+          "abstract": "In software testing, a set of test cases is constructed according to some predefined selection criteria. The software is then examined against these test cases. Three interesting observations have been made on the current artifacts of software testing. Firstly, an error-revealing test case is considered useful while a successful test case which does not reveal software errors is usually not further investigated. Whether these successful test cases still contain useful information for revealing software errors has not been properly studied. Secondly, no matter how extensive the testing has been conducted in the development phase, errors may still exist in the software [5]. These errors, if left undetected, may eventually cause damage to the production system. The study of techniques for uncovering software errors in the production phase is seldom addressed in the literature. Thirdly, as indicated by Weyuker in [6], the availability of test oracles is pragmatically unattainable in most situations. However, the availability of test oracles is generally assumed in conventional software testing techniques. In this paper, we propose a novel test case selection technique that derives new test cases from the successful ones. The selection aims at revealing software errors that are possibly left undetected in successful test cases which may be generated using some existing strategies. As such, the proposed technique augments the effectiveness of existing test selection strategies. The technique also helps uncover software errors in the production phase and can be used in the absence of test oracles."
+        },
+        {
+          "title": "Testing and validating machine learning classifiers by metamorphic testing",
+          "url": "https://doi.org/10.1016/j.jss.2010.11.920",
+          "source_type": "technical_paper",
+          "authors": [
+            "Xiaoyuan Xie",
+            "Joshua W.K. Ho",
+            "Christian Murphy",
+            "Gail Kaiser",
+            "Baowen Xu",
+            "Tsong Yueh Chen"
+          ],
+          "publication_date": "2011-4",
+          "citationKey": "xieTestingValidatingMachine2011"
+        },
+        {
+          "title": "Metamorphic Testing: Testing the Untestable",
+          "url": "https://doi.org/10.1109/ms.2018.2875968",
+          "source_type": "tutorial",
+          "authors": [
+            "Sergio Segura",
+            "Dave Towey",
+            "Zhi Quan Zhou",
+            "Tsong Yueh Chen"
+          ],
+          "publication_date": "2020-5",
+          "citationKey": "seguraMetamorphicTestingTesting2020"
+        },
+        {
+          "title": "DeepTest",
+          "url": "https://doi.org/10.1145/3180155.3180220",
+          "source_type": "application_paper",
+          "authors": [
+            "Yuchi Tian",
+            "Kexin Pei",
+            "Suman Jana",
+            "Baishakhi Ray"
+          ],
+          "publication_date": "2018-5-27",
+          "citationKey": "tianDeepTest2018"
+        },
+        {
+          "title": "Metamorphic testing of driverless cars",
+          "url": "https://doi.org/10.1145/3241979",
+          "source_type": "application_paper",
+          "authors": [
+            "Zhi Quan Zhou",
+            "Liqun Sun"
+          ],
+          "publication_date": "2019-2-21",
+          "citationKey": "zhouMetamorphicTestingDriverless2019"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For every replayed traffic sample in the 2025 test year, swapping aircraft call signs, shifting all timestamps by the same amount and rotating the sample with its wind field left the set of flagged conflict pairs unchanged apart from the swapped labels.",
+          "assuranceGoal": "reliability",
+          "domain": "aviation"
+        },
+        {
+          "text": "Across 3,000 recorded urban frames, adding up to 100 random lidar points outside the mapped road area removed no obstacle that the perception software detected in the original frame.",
+          "assuranceGoal": "reliability",
+          "domain": "automotive"
+        },
+        {
+          "text": "For at least 98 per cent of test cases from the 2025 season, shifting the input radar sequence by up to five grid cells within the interior of the domain shifted the nowcast rain field by the same amount, within the agreed tolerance.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "In the new library, reordering the input columns, or adding a constant to any numeric input in both training and scoring data, left every credit-scoring model's predicted probabilities on the full validation set unchanged within the solver's tolerance.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        }
+      ]
     }
   ],
-  "count": 13
+  "count": 14
 }

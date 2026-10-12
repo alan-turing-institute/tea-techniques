@@ -1168,7 +1168,164 @@
           "assuranceGoal": "safety"
         }
       ]
+    },
+    {
+      "slug": "disaggregated-evaluation",
+      "name": "Disaggregated Evaluation",
+      "description": "Disaggregated evaluation assesses and reports a system's performance separately for each group of people a claim covers, and for combinations of groups (intersectional groups, such as darker-skinned women), so that a good overall score cannot hide a group for whom the system works badly. Following Barocas et al. (2021), the evaluator first fixes the design choices that change what the evaluation can show: which groups and combinations to report; how other factors that affect performance, such as lighting or recording conditions, are handled (held constant, varied deliberately, or left as they occur); which metrics to use, for a classifier often false positive and false negative rates reported separately, because each can harm different people; and whether the evaluation is exploratory, or confirmatory, meaning that it tests hypotheses stated in advance on data built to hold enough cases in every group. Each metric is then computed on a labelled evaluation set for every group and combination, together with the number of cases behind it and an interval showing how far the estimate could move through sampling alone, obtained for example by resampling the evaluation set. Groups are compared by absolute and by relative gaps, which can tell different stories: false negative rates of 1 and 10 per cent differ by nine points but tenfold. The output is a table or chart of per-group and per-combination results with their case counts and intervals, and a record of the design choices needed to interpret them; it is this design, more than any one metric or interval method, that decides which comparisons the evaluation can support and how conclusive each is.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/performance-by-group",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/fairness-metric",
+        "expertise-needed/statistics",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Fairness",
+          "description": "Before a hospital trust adopts a supplier's skin-lesion classifier, its clinical safety team reports sensitivity and specificity on locally labelled images for each skin-tone group, sex and age band, and for skin tone crossed with sex. Cells holding fewer melanoma cases than the evaluation protocol requires are marked as too small to estimate rather than reported, and the trust collects more images for them before deciding whether the tool may be used for all patients."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A consumer organisation evaluating the speech-to-text services behind automated phone lines has speakers from several regional and ethnic groups, matched on age and gender, read identical scripted passages, and reports word error rate per group with intervals. Because everyone says the same words, a gap can be attributed to how each service recognises speech rather than to what was said, the evidence the organisation needs for a complaint to the providers."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A bank's model risk team runs a confirmatory evaluation of its fraud model each quarter. The groups (age band, sex and their combinations), the metrics (false positive rate, which drives blocked legitimate payments, and false negative rate), the sample and the largest acceptable gap are fixed in a protocol before the data are drawn, and the model stays in service only if every interval for a gap lies inside that margin."
+        },
+        {
+          "goal": "Fairness",
+          "description": "An exam board piloting an automated essay-scoring model runs an exploratory evaluation of its agreement with human markers, split by first language, school type and their combinations. It finds one weak cell, candidates with English as an additional language at small schools, too small to be conclusive, and commissions a confirmatory study with a sample built to fill that cell before deciding whether the scores can count towards grades."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Each attribute added multiplies the number of cells and shrinks each one, so combinations of attributes soon hold too few cases for a stable estimate, and where a cell holds only a few errors, intervals from resampling come out too narrow. Comparing many cells also throws up some large gaps by chance. A confirmatory claim needs enough cases in every cell, which Barocas et al. note existing datasets rarely provide, so the data available limit which comparisons can be tested."
+        },
+        {
+          "description": "A gap between groups shows that performance differs, not why. Another factor that affects performance may differ between the groups, as with the time between paired images that NIST suggested could explain a higher false negative rate for Asian people in face recognition. Holding such a factor constant hides gaps at its other values, varying it needs the factor labelled for every case, and strongly correlated factors are hard to separate, or impossible when they always occur together."
+        },
+        {
+          "description": "The result is only as good as two sets of labels. Where ground-truth outcomes are wrong, or recorded differently for different groups, and the extent of the error cannot be identified, Barocas et al. note the results are meaningless however careful the design. Group membership is often ascribed by an institution or inferred from appearance, adding errors and possible harm to those labelled, and datasets may hold few of some groups (darker-skinned women were 4.4 per cent of one benchmark)."
+        },
+        {
+          "description": "It measures differences in performance and nothing else. Equal error rates say nothing about whether outputs stereotype or demean people, or whether favourable decisions are shared in proportion, and narrowing a gap under one metric can open a gap under another. A clean result supports a claim about the performance gaps measured, for the groups and conditions tested, and no wider fairness claim."
+        },
+        {
+          "description": "Results on a laboratory dataset may not carry over to the system in use, where lighting, recording conditions and operators' decisions differ, and Barocas et al. note that a component's performance alone may say little about the whole system around it. Evaluating in the setting of use captures this but is costly, and is often impossible for an outside evaluator, who usually sees the system only as a black box."
+        }
+      ],
+      "resources": [
+        {
+          "title": "fairlearn.metrics.MetricFrame (Fairlearn API reference)",
+          "url": "https://fairlearn.org/main/api_reference/generated/fairlearn.metrics.MetricFrame.html",
+          "source_type": "documentation",
+          "citationKey": "FairlearnmetricsMetricFrameFairlearnAPI"
+        },
+        {
+          "title": "fairlearn",
+          "url": "https://github.com/fairlearn/fairlearn",
+          "source_type": "software_package",
+          "publication_date": "2018-05-15",
+          "citationKey": "fairlearnFairlearn2018",
+          "abstract": "A Python package to assess and improve fairness of machine learning models."
+        },
+        {
+          "title": "Designing Disaggregated Evaluations of AI Systems: Choices, Considerations, and Tradeoffs",
+          "url": "https://doi.org/10.1145/3461702.3462610",
+          "source_type": "technical_paper",
+          "authors": [
+            "Solon Barocas",
+            "Anhong Guo",
+            "Ece Kamar",
+            "Jacquelyn Krones",
+            "Meredith Ringel Morris",
+            "Jennifer Wortman Vaughan",
+            "W. Duncan Wadsworth",
+            "Hanna Wallach"
+          ],
+          "publication_date": "2021-7-21",
+          "citationKey": "barocasDesigningDisaggregatedEvaluations2021"
+        },
+        {
+          "title": "Performing a Fairness Assessment (Fairlearn user guide)",
+          "url": "https://fairlearn.org/main/user_guide/assessment/perform_fairness_assessment.html",
+          "source_type": "tutorial",
+          "citationKey": "PerformingFairnessAssessment"
+        },
+        {
+          "title": "Gender Shades: Intersectional Accuracy Disparities in Commercial Gender Classification",
+          "url": "https://proceedings.mlr.press/v81/buolamwini18a.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Joy Buolamwini",
+            "Timnit Gebru"
+          ],
+          "publication_date": "2018-01-21",
+          "citationKey": "buolamwiniGenderShadesIntersectional2018",
+          "abstract": "Recent studies demonstrate that machine learning algorithms can discriminate based on classes like race and gender. In this work, we present an approach to evaluate bias present in automated facial analysis algorithms and datasets with respect to phenotypic subgroups. Using the dermatologist  approved Fitzpatrick Skin Type classification system, we characterize the gender and skin type distribution of two facial analysis benchmarks, IJB-A and Adience. We find that these datasets are overwhelmingly composed of lighter-skinned subjects (79.6% for IJB-A and 86.2% for Adience) and introduce a new facial analysis dataset which is balanced by gender and skin type. We evaluate 3 commercial gender classification systems using our dataset and show that darker-skinned females are the most misclassified group (with error rates of up to 34.7%). The maximum error rate for lighter-skinned males is 0.8%. The substantial disparities in the accuracy of classifying darker females, lighter females, darker males, and lighter males in gender classification systems require urgent attention if commercial companies are to build genuinely fair, transparent and accountable facial analysis algorithms."
+        },
+        {
+          "title": "Racial disparities in automated speech recognition",
+          "url": "https://doi.org/10.1073/pnas.1915768117",
+          "source_type": "application_paper",
+          "authors": [
+            "Allison Koenecke",
+            "Andrew Nam",
+            "Emily Lake",
+            "Joe Nudell",
+            "Minnie Quartey",
+            "Zion Mengesha",
+            "Connor Toups",
+            "John R. Rickford",
+            "Dan Jurafsky",
+            "Sharad Goel"
+          ],
+          "publication_date": "2020-3-23",
+          "citationKey": "koeneckeRacialDisparitiesAutomated2020"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "assuranceGoal": "fairness",
+          "domain": "healthcare",
+          "text": "On the trust's locally labelled images, the skin-lesion classifier's sensitivity for each skin-tone group, and for skin tone crossed with sex, is within 5 percentage points of its overall sensitivity, with the 95 per cent interval for each gap and the number of melanoma cases in each cell reported."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "general",
+          "text": "The groups, combinations, metrics and acceptable gaps for the fairness evaluation were fixed in a protocol before the evaluation data were drawn, and every cell with too few cases to estimate its gap to the agreed precision is reported as untested rather than as passed."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "finance",
+          "text": "In each of the last four quarters, the upper bound of the 95 per cent interval for the difference in false positive rate between each age-and-sex group and the best-served group was below the 1 percentage point margin set in the model risk policy."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "telecommunications",
+          "text": "On identical scripted passages read by speakers matched on age and gender, the upper bound of the 95 per cent interval for each speaker group's gap in word error rate to the best-served group is below the agreed margin."
+        }
+      ]
     }
   ],
-  "count": 8
+  "count": 9
 }

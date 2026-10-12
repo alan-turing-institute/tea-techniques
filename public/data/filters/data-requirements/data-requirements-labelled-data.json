@@ -2,7 +2,7 @@
   "tag": {
     "name": "data-requirements/labelled-data",
     "slug": "data-requirements-labelled-data",
-    "count": 37,
+    "count": 46,
     "category": "data-requirements"
   },
   "techniques": [
@@ -5949,7 +5949,1339 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "reliability-diagram-with-expected-calibration-error",
+      "name": "Reliability Diagram with Expected Calibration Error",
+      "description": "A reliability diagram with expected calibration error (ECE) measures whether a classifier's stated confidence matches how often it is right, so that a reader can tell whether predictions given a probability of 70 per cent come true about 70 per cent of the time. Using labelled cases the model was not trained on, each prediction's confidence (the probability given to the predicted class, or to an event such as rain above a threshold) is placed in one of a fixed number of bins, commonly ten or fifteen equal-width intervals between 0 and 1, and in each bin the average confidence is compared with the observed frequency, the share of its cases in which the predicted class or event actually occurred. The reliability diagram plots observed frequency against average confidence bin by bin, so that bins below the diagonal show overconfidence and bins above it underconfidence, and is usually shown with a histogram of how many cases fall in each bin, which the diagram itself does not show; the ECE condenses the same comparison into one number, the average gap between confidence and observed frequency weighted by each bin's share of the cases, and the maximum calibration error reports the largest gap in any bin. The technique measures and changes nothing: Platt scaling, isotonic regression calibration and temperature scaling repair a model's probabilities, and this measurement, run before and after on the same held-out cases, none of them used to fit the repair, is the evidence that a repair worked.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/calibration",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/statistics",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/metric",
+        "technique-type/visualisation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A national meteorological service is deciding whether to issue a neural-network nowcast's probabilities that radar reflectivity will exceed set thresholds within the next hour. On a held-out season of radar composites, its verification team draws reliability diagrams with sample-count histograms and computes the ECE for each threshold and lead time beside those of its current extrapolation ensemble, and issues the new probabilities only for thresholds where they are at least as reliable.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital's imaging AI group receives a chest X-ray classifier whose vendor reports good calibration on public data. Before connecting it, the group computes the reliability diagram and ECE on a year of its own labelled studies, finds the model overconfident in its highest bins, fits temperature scaling on a separate validation split, and repeats the measurement on the untouched test split to show whether the gap has closed.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A law firm's knowledge team evaluating a language-model research assistant that reports a confidence with each answer asks it a held-out set of questions with verified answers, bins its self-reported confidence, and computes the reliability diagram and ECE for each practice area rather than only for the whole set. The confidence display is switched off for practice areas where the gap between stated confidence and accuracy exceeds the firm's threshold.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A card issuer's fraud team checks its transaction-risk model each month on transactions whose outcomes have arrived, using bins fixed at validation that are narrow over the high scores where alerts are raised. Because fraud is rare, nearly all cases fall in the lowest bin and dominate the ECE, so the team tracks the gap in each high-score bin as well; a gap above the limit set at model sign-off triggers an investigation of drift and a decision on recalibration.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The result depends on how predictions are binned. With equal-width bins, confident models put most cases in one or two bins, which dominate the ECE while the others rest on few cases; more bins give a finer measurement but a noisier estimate in each bin. Rankings of recalibration methods can change with the number of bins or the binning scheme, so both must be reported and held fixed in any comparison."
+        },
+        {
+          "description": "Binning distorts the estimate in both directions. Overconfident and underconfident predictions in the same bin cancel, so with plenty of data the binned ECE understates the true error. On small samples, sampling noise inflates it: with 15 equal-width bins, a simulated perfectly calibrated model showed large errors on 200 cases. ECEs from samples of different sizes, such as subgroups, are not directly comparable; equal-mass bins or a debiased estimator reduce the bias."
+        },
+        {
+          "description": "Calibration says nothing about how well the model separates cases. A model that gives every case the overall base rate, such as 0.5 on a balanced dataset, is calibrated but useless, so the ECE must be reported with accuracy, the area under the ROC curve or a proper scoring rule such as the Brier score, which combines calibration with how decisive the predictions are."
+        },
+        {
+          "description": "Weighting by bin size gives rare but important predictions almost no weight. In a precipitation nowcasting study, almost all probabilities for heavy-rain thresholds fell in the lowest bin, so the ECE barely registered the rare high-probability forecasts, and at the highest threshold it could not be compared because some bins were empty. For multi-class models the usual ECE also looks only at the top predicted class and ignores the calibration of the others."
+        },
+        {
+          "description": "The measurement holds only for the population and period it was computed on. One ECE over a whole test set can hide large differences between subgroups: in an evaluation of language models answering medical questions, ECE ranged from 0.041 to 0.141 across specialties, a spread the pooled figure masked. Calibration can also drift after deployment, so it has to be measured for the subgroups that matter and repeated on new labelled data."
+        }
+      ],
+      "resources": [
+        {
+          "title": "netcal: Uncertainty Calibration (API reference documentation)",
+          "url": "https://efs-opensource.github.io/calibration-framework/",
+          "source_type": "documentation",
+          "citationKey": "NetcalUncertaintyCalibration"
+        },
+        {
+          "title": "netcal: calibration-framework (EFS-OpenSource)",
+          "url": "https://github.com/EFS-OpenSource/calibration-framework",
+          "source_type": "software_package",
+          "publication_date": "2026-10-11T08:41:15Z",
+          "citationKey": "NetcalCalibrationframeworkEFSOpenSource2026",
+          "abstract": "The net:cal calibration framework is a Python 3 library for measuring and mitigating miscalibration of uncertainty estimates, e.g., by a neural network."
+        },
+        {
+          "title": "Obtaining Well Calibrated Probabilities Using Bayesian Binning",
+          "url": "https://doi.org/10.1609/aaai.v29i1.9602",
+          "source_type": "technical_paper",
+          "authors": [
+            "Mahdi Pakdaman Naeini",
+            "Gregory Cooper",
+            "Milos Hauskrecht"
+          ],
+          "publication_date": "2015-2-21",
+          "citationKey": "pakdamannaeiniObtainingWellCalibrated2015"
+        },
+        {
+          "title": "On Calibration of Modern Neural Networks",
+          "url": "https://arxiv.org/abs/1706.04599",
+          "source_type": "technical_paper",
+          "authors": [
+            "Chuan Guo",
+            "Geoff Pleiss",
+            "Yu Sun",
+            "Kilian Q. Weinberger"
+          ],
+          "publication_date": "2017-06-14",
+          "citationKey": "guoCalibrationModernNeural2017",
+          "abstract": "Confidence calibration -- the problem of predicting probability estimates representative of the true correctness likelihood -- is important for classification models in many applications. We discover that modern neural networks, unlike those from a decade ago, are poorly calibrated. Through extensive experiments, we observe that depth, width, weight decay, and Batch Normalization are important factors influencing calibration. We evaluate the performance of various post-processing calibration methods on state-of-the-art architectures with image and document classification datasets. Our analysis and experiments not only offer insights into neural network learning, but also provide a simple and straightforward recipe for practical settings: on most datasets, temperature scaling -- a single-parameter variant of Platt Scaling -- is surprisingly effective at calibrating predictions."
+        },
+        {
+          "title": "Probability Calibration curves — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
+          "source_type": "tutorial",
+          "citationKey": "ProbabilityCalibrationCurves",
+          "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
+        },
+        {
+          "title": "DEUCE v1.0: a neural network for probabilistic precipitation nowcasting with aleatoric and epistemic uncertainties",
+          "url": "https://doi.org/10.5194/gmd-17-3839-2024",
+          "source_type": "application_paper",
+          "authors": [
+            "Bent Harnist",
+            "Seppo Pulkkinen",
+            "Terhi Mäkinen"
+          ],
+          "publication_date": "2024-5-14",
+          "citationKey": "harnistDEUCEV10Neural2024"
+        },
+        {
+          "title": "Calibration of Self-Reported Confidence and Accuracy of Large Language Models in Medical Question Answering",
+          "url": "https://doi.org/10.1007/s10916-026-02430-0",
+          "source_type": "application_paper",
+          "authors": [
+            "Sebastian Daniel Boie",
+            "Florian Reis",
+            "Nicolas Frey",
+            "Elias Grünewald",
+            "Felix Balzer"
+          ],
+          "publication_date": "2026-6-26",
+          "citationKey": "boieCalibrationSelfReportedConfidence2026",
+          "abstract": "Objective: To evaluate the alignment between self-reported confidence of large language models (LLM) and their accuracy in answering medical multiple-choice questions. Materials and Methods: We prompted six LLMs (GPT-5, GPT-5-mini, GPT-5-nano, GPT-4o, Claude Sonnet 4.5, and Gemini 2.5) to answer MedMCQA items and report confidence scores. Based on 12,000 LLM responses, we calculated Expected Calibration Errors (ECE) by averaging absolute differences between observed accuracy and predicted confidence. Results: Mean ECE differed by model (Claude Sonnet 4.5 best: 0.06; Gpt-4o worst: 0.127) and varied across specialties (“Skin” best: 0.041; “Social & Preventive Medicine” worst: 0.141). Accuracy of examined LLMs showed analogous variation between specialties. Discussion: Our results demonstrate that high accuracy does not guarantee reliable uncertainty estimation. We identified substantial heterogeneity across medical specialties, where pooled metrics masked a threefold ECE increase between best- and worst-performing domains. Conclusion: We recommend incorporating calibration reporting into LLM evaluations, as larger models exhibit improved “self-knowledge”, but uneven overconfidence persists."
+        }
+      ],
+      "complexity_rating": 1,
+      "computational_cost_rating": 1,
+      "acronym": "ECE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On the held-out 2025 convective season, the nowcast's probabilities of exceeding 25 dBZ at 30-minute lead time have an expected calibration error below 0.01 over ten equal-width bins, no higher than that of the current extrapolation ensemble.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "After temperature scaling, the chest X-ray classifier's expected calibration error on the hospital's untouched test split is below 0.03 with 15 equal-width bins, and no bin holding more than 2 per cent of studies shows a gap above five percentage points.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For each practice area with at least 300 evaluation questions, the research assistant's self-reported confidence has an expected calibration error below 0.08 against verified answers.",
+          "assuranceGoal": "reliability",
+          "domain": "legal"
+        },
+        {
+          "text": "In every month of 2026, in each high-score bin fixed at model sign-off, the fraud model's average predicted probability was within two percentage points of the observed fraud rate among transactions with confirmed outcomes.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "continuous-ranked-probability-score",
+      "name": "Continuous Ranked Probability Score",
+      "description": "The continuous ranked probability score (CRPS) measures the quality of a probabilistic forecast of a numerical quantity, such as tomorrow's temperature or next week's demand, by scoring the whole predicted distribution, not just a single best guess, against the value later observed. For each case it compares the forecast's cumulative distribution (the predicted probability that the outcome will fall below each possible value) with a step that jumps from 0 to 1 at the observed value, squares the gap at every value and adds these up, which is the same as adding up the Brier score of the yes-or-no forecasts 'the outcome will be below this value' over every possible threshold. For a forecast given as an ensemble or a sample it can be computed as the average distance between the members and the observation minus half the average distance between pairs of members, closed forms exist for common distributions such as the Gaussian, and for a single-value forecast it reduces to the absolute error, so probabilistic and deterministic forecasts can be compared directly. The score is proper: a forecaster expects the best score by reporting the distribution they actually believe, so it cannot be improved on average by making forecasts narrower or wider than warranted, and it is lowest when the forecast distribution matches how outcomes actually vary. Scores are averaged over many cases, are in the units of the forecast quantity with lower values better, and are often reported as a skill score relative to a reference forecast such as climatology (the long-run historical distribution), giving evidence for claims about the accuracy of a forecaster's probabilities by variable, location and lead time.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/performance-assessment",
+        "data-requirements/labelled-data",
+        "data-type/time-series",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "technique-type/metric",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A national weather service deciding whether to run a machine-learning ensemble alongside its physics-based ensemble scores both against a year of station observations, computing the fair CRPS (the two ensembles differ in size) for 2-metre temperature and 10-metre wind at every station and lead time. It adopts the new system only for the variables and lead times where its CRPS skill relative to the existing ensemble is positive.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A wind-farm operator choosing between two vendors of probabilistic power forecasts for day-ahead trading receives 19 quantiles per hour from each. It approximates each forecast's CRPS by averaging the quantile scores across those levels and compares the vendors over a full winter against metered output. Because high-output hours drive balancing costs, it also compares them on a version of the score weighted towards the upper quantiles, averaged over all hours, not only those with high output.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital group's capacity team plans elective admissions with a probabilistic forecast of bed occupancy one week ahead. Each week it computes the forecast's CRPS against the occupancy that followed and its skill score against a seasonal naive forecast, and a rolling eight-week skill score below zero triggers a review of the model before it is used for the next planning cycle.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "One CRPS value combines calibration (whether outcomes behave like draws from the forecast distribution) and sharpness (how narrow the forecast is), so a better score does not show which improved, and an average over many cases can hide conditions in which forecasts are consistently too narrow or too wide. A claim about calibration needs Hersbach's decomposition of the score into reliability and resolution parts, a rank histogram or a spread-skill check as well."
+        },
+        {
+          "description": "Every threshold carries equal weight and extreme outcomes are rare, so the average score says little about how well extremes are forecast; WeatherBench 2 notes that the CRPS does not specifically focus on extreme weather. Averaging only over cases in which an extreme occurred does not repair this and can discredit skilful forecasters (Lerch et al. 2017); claims about warnings of extremes need a threshold-weighted CRPS that emphasises the tails."
+        },
+        {
+          "description": "It scores one quantity at one place and lead time at a time, so it does not test whether a forecast gets the relationships between places, times or variables right. WeatherBench 2 notes that its CRPS results ignore spatial and temporal correlation, and found models trained on each wind component separately biased in wind speed; claims about joint quantities, such as rainfall totalled over a catchment, need a multivariate score such as the energy score."
+        },
+        {
+          "description": "The score is in the units of the forecast quantity and grows with how variable that quantity is, so raw values cannot be compared or pooled across variables, locations or seasons with different variability, and averages are dominated by the most variable cases. Comparisons across these need a skill score relative to a stated reference forecast, and the choice of reference, such as climatology or persistence, changes the result."
+        },
+        {
+          "description": "For an ensemble, the usual estimate treats the members as the whole forecast distribution, which penalises small ensembles: if two systems draw members from the same distribution, the one with fewer members scores worse on average. Ferro (2014) showed the usual ensemble CRPS is unfair in this sense and gave an adjusted fair version, which libraries such as scoringrules provide; it should be used whenever ensembles of different sizes are compared."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Scoring Rules for Continuous Probability Distributions",
+          "url": "https://doi.org/10.1287/mnsc.22.10.1087",
+          "source_type": "technical_paper",
+          "authors": [
+            "James E. Matheson",
+            "Robert L. Winkler"
+          ],
+          "publication_date": "1976-6",
+          "citationKey": "mathesonScoringRulesContinuous1976"
+        },
+        {
+          "title": "Strictly Proper Scoring Rules, Prediction, and Estimation",
+          "url": "https://doi.org/10.1198/016214506000001437",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tilmann Gneiting",
+            "Adrian E Raftery"
+          ],
+          "publication_date": "2007-3",
+          "citationKey": "gneitingStrictlyProperScoring2007"
+        },
+        {
+          "title": "Ensemble forecasts (scoringrules documentation)",
+          "url": "https://scoringrules.readthedocs.io/en/latest/crps_estimators.html",
+          "source_type": "documentation",
+          "citationKey": "EnsembleForecastsScoringrules"
+        },
+        {
+          "title": "scoringrules: a python library for probabilistic forecast evaluation",
+          "url": "https://github.com/frazane/scoringrules",
+          "source_type": "software_package",
+          "publication_date": "2026-10-01T11:33:37Z",
+          "citationKey": "zanettaScoringrulesPythonLibrary2026",
+          "abstract": "Lightweight library for probabilistic forecast evaluation and optimization."
+        },
+        {
+          "title": "Evaluating Probabilistic Forecasts with                     <b>scoringRules</b>",
+          "url": "https://doi.org/10.18637/jss.v090.i12",
+          "source_type": "tutorial",
+          "authors": [
+            "Alexander Jordan",
+            "Fabian Krüger",
+            "Sebastian Lerch"
+          ],
+          "publication_date": "2019",
+          "citationKey": "jordanEvaluatingProbabilisticForecasts2019"
+        },
+        {
+          "title": "WeatherBench 2: A Benchmark for the Next Generation of Data‐Driven Global Weather Models",
+          "url": "https://doi.org/10.1029/2023ms004019",
+          "source_type": "application_paper",
+          "authors": [
+            "Stephan Rasp",
+            "Stephan Hoyer",
+            "Alexander Merose",
+            "Ian Langmore",
+            "Peter Battaglia",
+            "Tyler Russell",
+            "Alvaro Sanchez‐Gonzalez",
+            "Vivian Yang",
+            "Rob Carver",
+            "Shreya Agrawal",
+            "Matthew Chantry",
+            "Zied Ben Bouallegue",
+            "Peter Dueben",
+            "Carla Bromberg",
+            "Jared Sisk",
+            "Luke Barrington",
+            "Aaron Bell",
+            "Fei Sha"
+          ],
+          "publication_date": "2024-6",
+          "citationKey": "raspWeatherBench2Benchmark2024"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "acronym": "CRPS",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Over the 2025 verification year, the machine-learning ensemble has a lower mean fair CRPS for 2-metre temperature than the operational ensemble at every lead time from one to ten days, averaged over all stations in the service area.",
+          "assuranceGoal": "reliability",
+          "domain": "environmental"
+        },
+        {
+          "text": "The one-week-ahead bed-occupancy forecast has had a positive CRPS skill score relative to a seasonal naive forecast in every rolling eight-week window since it entered use.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Scored against metered output over the winter season, the selected vendor's probabilistic wind-power forecasts have a lower mean CRPS than the alternative vendor's, and also a lower mean when the score is weighted towards high output, with both averages taken over all hours.",
+          "assuranceGoal": "reliability",
+          "domain": "energy"
+        },
+        {
+          "text": "The comparison between the 20-member and 50-member ensemble systems used the fair version of the CRPS, so the reported difference does not reflect ensemble size.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "rolling-origin-evaluation",
+      "name": "Rolling-Origin Evaluation",
+      "description": "Rolling-origin evaluation, also called time-series cross-validation or backtesting, estimates how accurately a forecasting model will predict the future by repeatedly recreating the position it will be in when used: trained only on data up to a point in time, it forecasts the period that follows. The evaluator chooses a first forecast origin (the last time point the model may see) late enough to leave adequate training data, fits the model on the data up to that origin, forecasts every step of a fixed horizon ahead, for example one to seven days, and records the error at each lead time against the values later observed. The origin then moves forward by one step or a block of steps and the process repeats, with the model either refitted at each origin on all the data so far or on a window of fixed length (recalibration, in Tashman's terms), or kept unchanged and simply given the new observations as inputs (updating), whichever matches how it will be maintained in service. Because every forecast uses only data from before its origin, the method avoids the leakage of future information that randomly shuffled cross-validation can cause on time-ordered data, and because it uses many test periods rather than the single one of a fixed train-test split, its result depends less on which period happened to be held out. The output is the forecast error, under whatever error measure suits the forecast, broken down by lead time and by origin date for each candidate model, which supports claims about expected accuracy on unseen future data over a stated horizon and shows how that accuracy varies across seasons and conditions.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/performance-assessment",
+        "data-requirements/labelled-data",
+        "data-requirements/access-to-training-data",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A regional electricity distributor deciding whether to replace its regression model for day-ahead substation demand with a gradient-boosted model evaluates both over the last two years, with an origin each day at the time forecasts are issued, a horizon of the next 48 half-hours and weekly refitting, as planned for operation. It compares error at each lead time and in each season, and switches only after finding the new model better in winter peaks as well as on average.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A national weather service's post-processing team testing a machine-learning correction for station temperature forecasts places origins every day over three years, with lead times of one to ten days, and refits the correction monthly as it would in service. Error by lead time and by month shows whether the correction still helps at the longest lead times and whether its gain in winter holds in all three winters rather than one.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital's operations analysts choosing a model to forecast emergency admissions one to fourteen days ahead for staff rotas compare a seasonal statistical model with a neural network, using weekly origins over two years that include two winter peaks. They report error at the seven-day lead time the rota planners use, and keep the simpler model because the neural network's advantage disappears at that horizon.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Refitting at every origin multiplies training cost by the number of origins: daily origins over two years means more than 700 fits. Machine-learning forecasters are often refitted only now and then and otherwise just fed new data, which Hewamalage et al. describe as common practice; that is cheaper but measures something different, so the refit schedule in the evaluation must match the one planned for deployment or the errors do not describe the deployed system."
+        },
+        {
+          "description": "The time-ordered split prevents leakage only through the split itself. Scaling, smoothing, decomposition, feature selection or tuning done on the whole series before splitting, or features summarising a period not yet over at the forecast time, still let future information in. Hewamalage et al. show a model beating the best possible forecast of a random walk only because a decomposition was fitted to the whole series; every such step must be redone within each origin."
+        },
+        {
+          "description": "Errors from neighbouring origins share most of their training data and, for multi-step horizons, overlapping test periods, so they are correlated: an average over hundreds of origins is less precise than the count suggests, and the spread across origins is not a confidence interval. Deciding whether one model beats another needs a test designed for serially correlated forecast errors, such as the Diebold-Mariano test, not a plain comparison of average errors."
+        },
+        {
+          "description": "The first origins have little training data, so their errors can overstate those of a model trained on the full history, and a short series leaves few test periods and a noisy average. For purely autoregressive models (past values as the only inputs) on stationary series, whose errors show no remaining autocorrelation, Bergmeir et al. show that standard k-fold cross-validation remains valid, and Hewamalage et al. recommend it for short series as it uses the data more efficiently."
+        },
+        {
+          "description": "It measures how the model would have performed over the history available, not how it will perform after a change that history does not contain, such as a new tariff, a replaced sensor or an abrupt structural break; Hewamalage et al. note that no evaluation design can anticipate a break that lies only in the future. Results should be stated for the periods and conditions they cover and repeated as new data arrive."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Out-of-sample tests of forecasting accuracy: an analysis and review",
+          "url": "https://doi.org/10.1016/s0169-2070(00)00065-0",
+          "source_type": "technical_paper",
+          "authors": [
+            "Leonard J. Tashman"
+          ],
+          "publication_date": "2000-10",
+          "citationKey": "tashmanOutofsampleTestsForecasting2000"
+        },
+        {
+          "title": "Forecast evaluation for data scientists: common pitfalls and best practices",
+          "url": "https://doi.org/10.1007/s10618-022-00894-5",
+          "source_type": "technical_paper",
+          "authors": [
+            "Hansika Hewamalage",
+            "Klaus Ackermann",
+            "Christoph Bergmeir"
+          ],
+          "publication_date": "2022-12-2",
+          "citationKey": "hewamalageForecastEvaluationData2022"
+        },
+        {
+          "title": "evaluate: evaluate forecaster using timeseries cross-validation (sktime documentation)",
+          "url": "https://www.sktime.net/docs/api-reference/sktimeforecastingmodel-evaluationevaluate/",
+          "source_type": "documentation",
+          "citationKey": "EvaluateEvaluateForecaster",
+          "abstract": "Evaluate forecaster using timeseries cross-validation."
+        },
+        {
+          "title": "sktime: a unified framework for machine learning with time series",
+          "url": "https://github.com/sktime/sktime",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T10:02:42Z",
+          "citationKey": "SktimeUnifiedFramework2026",
+          "abstract": "A unified framework for machine learning with time series"
+        },
+        {
+          "title": "Forecasting: Principles and Practice (3rd ed.), section 5.10: Time series cross-validation",
+          "url": "https://otexts.com/fpp3/toolbox.html#sec-tscv",
+          "source_type": "tutorial",
+          "citationKey": "ForecastingPrinciplesPractice"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Across daily forecast origins over the two most recent years, the new day-ahead demand model has a lower mean absolute error than the current model at every lead time from one to 48 half-hours, and the difference is significant under a test designed for serially correlated forecast errors.",
+          "assuranceGoal": "reliability",
+          "domain": "energy"
+        },
+        {
+          "text": "With weekly refitting matching the planned retraining schedule, the seven-day-ahead admissions forecast stayed within the agreed error limit in every month of the two-year rolling-origin evaluation, including both winters.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every scaling, feature-selection and tuning step behind the reported forecast errors used only data available before each forecast origin.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        },
+        {
+          "text": "The temperature correction reduces ten-day-ahead forecast error in each of the three winters covered by the rolling-origin evaluation, not only on average across them.",
+          "assuranceGoal": "reliability",
+          "domain": "environmental"
+        }
+      ]
+    },
+    {
+      "slug": "sanity-checks-for-saliency-maps",
+      "name": "Sanity Checks for Saliency Maps",
+      "description": "Sanity checks for saliency maps are two randomisation tests that show whether an explanation method's output depends on what a neural network has learned, or would look much the same for a network that had learned nothing. In the model parameter randomisation test, the evaluator recomputes explanations for a fixed set of inputs after replacing the trained weights with random ones, either cumulatively from the output layer down towards the input (cascading randomisation) or one layer at a time with the others left trained (independent randomisation). In the data randomisation test, the evaluator trains a copy of the same architecture on the training data with the labels shuffled, until it has memorised them, and compares its explanations with those of the model trained on the true labels. Similarity between original and randomised explanations is measured with rank correlation, with and without absolute values, and with image similarity scores such as the structural similarity index; a method whose maps stay similar fails, because its output cannot reflect the learned weights or the relationship between inputs and labels, as Guided Backpropagation and Guided GradCAM failed in the original study when the upper layers were randomised, while plain gradients and GradCAM passed. Passing is a necessary condition, not proof of a good explanation: it shows a method responds to the model, not that its explanations are faithful or useful.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/white-box",
+        "applicable-models/requirements/model-internals",
+        "assurance-goal-category/explainability/property/fidelity",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/image",
+        "data-type/tabular",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A radiology AI group considering saliency maps as a guide to where a chest-radiograph model sees a pneumothorax runs cascading randomisation on the trained network, measuring structural similarity between original and randomised maps after each block. It sets aside methods whose maps stay similar, as several common methods did in a published study of this task, unless a deletion test shows they still track the model, and uses the rest only alongside a separately validated localisation model.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "An insurer's fraud analytics team shows investigators attribution scores for each claim flagged by a neural-network model. Before rollout it runs independent layer randomisation, one layer at a time, and checks that rank correlation without absolute values falls for every layer, so that the scores investigators see depend on the trained weights throughout the network rather than mostly on the claim's raw feature values.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A wind-farm operator's reliability team uses a one-dimensional convolutional network on gearbox vibration signals and gives maintenance engineers heatmaps over each signal. It runs the data randomisation test by training the same architecture on shuffled fault labels until it fits them, and keeps only heatmap methods whose maps differ clearly between the two networks, since a map that survives shuffled labels cannot show what the network learned about faults.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Passing is easy for an explanation that carries no information. Binder et al. show that attribution maps with no correlation between neighbouring pixels score well in model randomisation tests, and that top-down randomisation tends to preserve the scale of forward-pass activations, so even a good explanation can change only so much. They argue the test should not alone decide whether a method is kept: two methods that score poorly on it beat several gradient methods in occlusion-based tests."
+        },
+        {
+          "description": "The verdict depends on how similarity is measured. In the original study, rank correlation with absolute values and structural similarity stayed high for some methods after randomisation while rank correlation without absolute values fell to near zero, because randomisation flipped signs but kept the input's outline. There is no agreed pass threshold and libraries set their own defaults, so the measure, absolute-value setting and threshold must be reported with the result."
+        },
+        {
+          "description": "The similarity measures are sensitive to noise, so a method with noisy maps looks changed by randomisation partly because of its own noise, and its score is overstated. Later work proposes repairs: averaging each explanation over noisy copies of the input before comparing (Smooth MPRT), or comparing how much more complex the explanation becomes after full randomisation (Efficient MPRT); its authors report more reliable results with both."
+        },
+        {
+          "description": "The model parameter test needs the weights and a layered network, so it cannot be run on a model reached only through an interface. The data randomisation test needs the training data and pipeline and a network able to memorise shuffled labels; the original study trained to over 95% training accuracy, which for a large model costs a full training run."
+        },
+        {
+          "description": "Most evidence for the tests comes from image classifiers. Passing says nothing about whether the highlighted regions match what matters in the domain: in a chest-radiograph study, every saliency method, including those that passed the randomisation test, localised abnormalities worse than a dedicated detection or segmentation network."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ModelRandomizationMetric — Xplique documentation",
+          "url": "https://deel-ai.github.io/xplique/latest/api/attributions/metrics/model_randomization/",
+          "source_type": "documentation",
+          "citationKey": "ModelRandomizationMetricXpliqueDocumentation"
+        },
+        {
+          "title": "Quantus (understandable-machine-intelligence-lab/Quantus)",
+          "url": "https://github.com/understandable-machine-intelligence-lab/Quantus",
+          "source_type": "software_package",
+          "citationKey": "QuantusUnderstandablemachineintelligencelabQuantus",
+          "abstract": "[JMLR 2023] Quantus is an eXplainable AI toolkit for responsible evaluation of neural network explanations - understandable-machine-intelligence-lab/Quantus"
+        },
+        {
+          "title": "Sanity Checks for Saliency Maps",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2018/hash/294a8ed24b1ad22ec2e7efea049b8737-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Julius Adebayo",
+            "Justin Gilmer",
+            "Michael Muelly",
+            "Ian Goodfellow",
+            "Moritz Hardt",
+            "Been Kim"
+          ],
+          "publication_date": "2018",
+          "citationKey": "adebayoSanityChecksSaliency2018",
+          "abstract": "Saliency methods have emerged as a popular tool to highlight features in an input\ndeemed relevant for the prediction of a learned model. Several saliency methods\nhave been proposed, often guided by visual appeal on image data. In this work, we\npropose an actionable methodology to evaluate what kinds of explanations a given\nmethod can and cannot provide. We find that reliance, solely, on visual assessment\ncan be misleading. Through extensive experiments we show that some existing\nsaliency methods are independent both of the model and of the data generating\nprocess. Consequently, methods that fail the proposed tests are inadequate for\ntasks that are sensitive to either data or model, such as, finding outliers in the data,\nexplaining the relationship between inputs and outputs that the model learned,\nand debugging the model. We interpret our findings through an analogy with\nedge detection in images, a technique that requires neither training data nor model.\nTheory in the case of a linear model and a single-layer convolutional neural network\nsupports our experimental findings."
+        },
+        {
+          "title": "Attribution Randomization Metrics (Sanity Checks) tutorial (Xplique)",
+          "url": "https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y",
+          "source_type": "tutorial",
+          "citationKey": "AttributionRandomizationMetrics"
+        },
+        {
+          "title": "Assessing the Trustworthiness of Saliency Maps for Localizing                     Abnormalities in Medical Imaging",
+          "url": "https://doi.org/10.1148/ryai.2021200267",
+          "source_type": "application_paper",
+          "authors": [
+            "Nishanth Arun",
+            "Nathan Gaw",
+            "Praveer Singh",
+            "Ken Chang",
+            "Mehak Aggarwal",
+            "Bryan Chen",
+            "Katharina Hoebel",
+            "Sharut Gupta",
+            "Jay Patel",
+            "Mishka Gidwani",
+            "Julius Adebayo",
+            "Matthew D. Li",
+            "Jayashree Kalpathy-Cramer"
+          ],
+          "publication_date": "2021-11-1",
+          "citationKey": "arunAssessingTrustworthinessSaliency2021"
+        },
+        {
+          "title": "Gradient-Based Saliency Maps Are Not Trustworthy Visual Explanations of Automated AI Musculoskeletal Diagnoses",
+          "url": "https://doi.org/10.1007/s10278-024-01136-4",
+          "source_type": "application_paper",
+          "authors": [
+            "Kesavan Venkatesh",
+            "Simukayi Mutasa",
+            "Fletcher Moore",
+            "Jeremias Sulam",
+            "Paul H. Yi"
+          ],
+          "publication_date": "2024-5-6",
+          "citationKey": "venkateshGradientBasedSaliencyMaps2024",
+          "abstract": "Saliency maps are popularly used to “explain” decisions made by modern machine learning models, including deep convolutional neural networks (DCNNs). While the resulting heatmaps purportedly indicate important image features, their “trustworthiness,” i.e., utility and robustness, has not been evaluated for musculoskeletal imaging. The purpose of this study was to systematically evaluate the trustworthiness of saliency maps used in disease diagnosis on upper extremity X-ray images. The underlying DCNNs were trained using the Stanford MURA dataset. We studied four trustworthiness criteria—(1) localization accuracy of abnormalities, (2) repeatability, (3) reproducibility, and (4) sensitivity to underlying DCNN weights—across six different gradient-based saliency methods (Grad-CAM (GCAM), gradient explanation (GRAD), integrated gradients (IG), Smoothgrad (SG), smooth IG (SIG), and XRAI). Ground-truth was defined by the consensus of three fellowship-trained musculoskeletal radiologists who each placed bounding boxes around abnormalities on a holdout saliency test set. Compared to radiologists, all saliency methods showed inferior localization (AUPRCs: 0.438 (SG)–0.590 (XRAI); average radiologist AUPRC: 0.816), repeatability (IoUs: 0.427 (SG)–0.551 (IG); average radiologist IOU: 0.613), and reproducibility (IoUs: 0.250 (SG)–0.502 (XRAI); average radiologist IOU: 0.613) on abnormalities such as fractures, orthopedic hardware insertions, and arthritis. Five methods (GCAM, GRAD, IG, SG, XRAI) passed the sensitivity test. Ultimately, no saliency method met all four trustworthiness criteria; therefore, we recommend caution and rigorous evaluation of saliency maps prior to their clinical use."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every saliency method used in the chest-radiograph review tool produced maps whose structural similarity to the original fell below the agreed threshold once the top blocks of the network were randomised, on a held-out sample of radiographs.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For the fraud model's attribution scores, rank correlation without absolute values between original and layer-randomised attributions is below the threshold set in the validation plan for every layer tested.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Heatmaps from the methods kept for the gearbox dashboard differ between the network trained on true fault labels and the same architecture trained on shuffled labels, by more than the threshold stated in the test report.",
+          "assuranceGoal": "explainability",
+          "domain": "energy"
+        }
+      ]
+    },
+    {
+      "slug": "appropriate-reliance-measurement",
+      "name": "Appropriate Reliance Measurement",
+      "description": "Appropriate reliance measurement tests whether people who receive an AI system's advice follow it when it is right and keep their own judgement when it is wrong, and whether an explanation, or another aid such as a confidence score, moves them towards that pattern. It uses a two-step decision study on a classification task, the only kind Schemmer et al. define it for: for each task item the participant first decides alone, then sees the AI's advice, with or without the explanation, and makes a final decision, on a set of items with known correct answers drawn so that the AI is wrong on a known share of them. Only items on which the first decision and the advice disagree are counted, because when they agree the final decision cannot show which source the person relied on. Schemmer et al. define two rates over these items: relative AI reliance, the share of items with a wrong first decision and correct advice on which the person switched to the advice, and relative self-reliance, the share of items with a correct first decision and wrong advice on which the person kept their own answer. Comparing the two rates between an explanation condition and a control condition shows whether the explanation reduces under-reliance (rejecting correct advice), reduces over-reliance (accepting wrong advice) or merely raises agreement with the AI, which overall accuracy or agreement with the AI does not show on its own.",
+      "assurance_goals": [
+        "Explainability",
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/human-evaluation/decision-study",
+        "assurance-goal-category/explainability/property/decision-support",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/verification",
+        "data-requirements/labelled-data",
+        "data-requirements/test-scenarios",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/human-factors",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/metric",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Explainability",
+          "description": "An insurer considering highlighted claim features as an explanation for its fraud-flagging model runs a two-step study with its claims handlers on 40 past claims, with the model wrong on a quarter of them, comparing handlers who see the flag alone with handlers who also see the highlights. It adopts the highlights only if relative AI reliance rises without relative self-reliance falling, since higher acceptance of all advice, right and wrong, would show deference rather than better judgement."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A conservation charity whose volunteers identify bird species with help from an image classifier measures relative AI reliance and relative self-reliance separately for experienced birders and beginners, and for example-based and written explanations. It chooses which explanation to show each group from the results, because a volunteer's expertise changes how an explanation, especially a wrong one, shifts their reliance on the classifier."
+        },
+        {
+          "goal": "Safety",
+          "description": "A hospital whose safety case for a sepsis alert relies on ward doctors overriding wrong alerts, and whose workflow has doctors record their own escalation decision before the alert appears, runs a vignette study in that workflow, with and without the alert's explanation panel. Before switching the panel on, it reports relative self-reliance, and the share of wrong-alert cases that ended in a wrong decision, against the oversight requirement in the safety case."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The rates describe behaviour on a task set built to contain many AI errors: Schemmer et al. drew equal numbers of items from each cell of the confusion matrix, which put the AI's accuracy on their 16 items at 50%. The study does not show how people rely on advice when errors are rarer, as they usually are in service, so it supports a claim about the conditions tested, not a direct estimate of over-reliance in deployment."
+        },
+        {
+          "description": "Only items on which the first decision and the advice disagree enter the two rates, so each rate can rest on a handful of items per person, and items on which the person and the AI are wrong together, the errors that oversight cannot catch, enter neither rate. Plan the sample around the expected number of disagreements, and report beside the rates the share of wrong-advice items that ended in a wrong final decision."
+        },
+        {
+          "description": "Asking for a decision before the advice is shown is itself an intervention. Guo et al.'s reanalysis of an earlier study found reliance closer to the appropriate level when people decided first than when they saw the AI's advice first, so a two-step study may show better reliance than a deployed system that presents the advice straight away."
+        },
+        {
+          "description": "The rates judge each decision by whether the advice turned out to be right, not by whether following it was the better bet given what the person could see. Guo et al. argue that this outcome-based definition mixes two failures, wrong beliefs about how often the AI is right and poor use of those beliefs, and treats a close call the same as an obvious one, so a low rate does not say which to fix."
+        },
+        {
+          "description": "Results depend on who takes part and on how good the explanations are. Morrison et al. found that participants' expertise changed how incorrect explanations affected their reliance, and that example-based explanations misled participants more than written ones, so a result from novices, or from explanations that were always correct, does not carry over to expert users or to explanations that are sometimes wrong."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Appropriate Reliance on AI Advice: Conceptualization and the Effect of Explanations",
+          "url": "https://doi.org/10.1145/3581641.3584066",
+          "source_type": "technical_paper",
+          "authors": [
+            "Max Schemmer",
+            "Niklas Kuehl",
+            "Carina Benz",
+            "Andrea Bartos",
+            "Gerhard Satzger"
+          ],
+          "publication_date": "2023-3-27",
+          "citationKey": "schemmerAppropriateRelianceAI2023"
+        },
+        {
+          "title": "The Impact of Imperfect XAI on Human-AI Decision-Making",
+          "url": "https://doi.org/10.1145/3641022",
+          "source_type": "application_paper",
+          "authors": [
+            "Katelyn Morrison",
+            "Philipp Spitzer",
+            "Violet Turri",
+            "Michelle Feng",
+            "Niklas Kühl",
+            "Adam Perer"
+          ],
+          "publication_date": "2024-4-17",
+          "citationKey": "morrisonImpactImperfectXAI2024"
+        },
+        {
+          "title": "Majority voting of doctors improves appropriateness of AI reliance in pathology",
+          "url": "https://doi.org/10.1016/j.ijhcs.2024.103315",
+          "source_type": "application_paper",
+          "authors": [
+            "Hongyan Gu",
+            "Chunxu Yang",
+            "Shino Magaki",
+            "Neda Zarrin-Khameh",
+            "Nelli S. Lakis",
+            "Inma Cobos",
+            "Negar Khanlou",
+            "Xinhai R. Zhang",
+            "Jasmeet Assi",
+            "Joshua T. Byers",
+            "Ameer Hamza",
+            "Karam Han",
+            "Anders Meyer",
+            "Hilda Mirbaha",
+            "Carrie A. Mohila",
+            "Todd M. Stevens",
+            "Sara L. Stone",
+            "Wenzhong Yan",
+            "Mohammad Haeri",
+            "Xiang ‘Anthony’ Chen"
+          ],
+          "publication_date": "2024-10",
+          "citationKey": "guMajorityVotingDoctors2024"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Claims handlers shown the highlighted features switched to the fraud model's correct advice on a higher share of disagreement cases than handlers shown the flag alone, and the share in which they kept a correct decision against wrong advice was no more than five percentage points lower, the margin set in the study plan.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "In a vignette study using the decide-first workflow, ward doctors shown the explanation panel kept their correct escalation decision against an incorrect sepsis alert in at least 80% of disagreement cases, and fewer than 10% of all incorrect alerts led to a wrong final decision.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For both experienced and beginner volunteers, the share of disagreement cases in which they rejected the classifier's incorrect species identification was no more than five percentage points lower with the chosen explanation format than without it, the margin set in advance.",
+          "assuranceGoal": "explainability",
+          "domain": "environmental"
+        }
+      ]
+    },
+    {
+      "slug": "forward-simulation-test",
+      "name": "Forward Simulation Test",
+      "description": "A forward simulation test checks whether people who have studied a model's explanations can predict the model's output for inputs they have not seen, so it tests with people the understanding an explanation method is assumed to give, where fidelity checks only compare the explanation with the model by computation. Doshi-Velez and Kim proposed it as a human-grounded evaluation of interpretability: participants are given an explanation and an input and must state what the model will output, whether or not that output is correct. In the controlled design of Hase and Bansal, participants study a set of examples with the model's outputs, predict the outputs for a separate set of test inputs, then study the same examples with explanations added and predict the same test inputs again, and the gain in accuracy is credited to the explanations (a separate group that studies the examples without explanations guards against a practice gain); the test inputs are kept apart from the explained examples so that explanations cannot give the answers away, and are chosen so that the model is right and wrong equally often, so that predicting the true label scores no better than chance. A counterfactual variant, in Hase and Bansal's form, shows an input, the model's output and its explanation, and asks what the model will output for an edited version of that input, with edits chosen so that half change the output. The result is the change in the share of correct predictions, with a confidence interval, for each explanation method or design compared; it is evidence that people can anticipate the model on the kind of input tested, not that they make better decisions with it.",
+      "assurance_goals": [
+        "Explainability",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/human-evaluation/understanding-test",
+        "assurance-goal-category/explainability/property/comprehensibility",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/decision-reasons",
+        "data-requirements/test-scenarios",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/human-factors",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/statistics",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Explainability",
+          "description": "A bank's model validation team must choose between feature-attribution bar charts and a short rule list as the explanation shown to credit analysts for a loan-default model. It runs a forward simulation test with 30 credit analysts on past applications, balanced between correct and incorrect model predictions, and adopts the rule list only if its gain over the no-explanation baseline is clearly larger than that of the bar charts; otherwise it treats the two as equal."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An online platform's trust and safety team uses the counterfactual variant to test whether moderators who see which words a toxicity classifier weighted can predict whether it will still flag a comment after one of those words is replaced. A score no better than the baseline tells the team that the highlights do not show how the classifier responds to edits, before it writes moderation guidance that relies on them."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A research team choosing between counterfactual images and saliency heatmaps for a chest X-ray pneumonia classifier shows each group of participants explained example images, then asks them to predict the classifier's decision on 12 other images, three from each cell of its confusion matrix, without explanations. It takes forward to a study with clinicians the explanation whose group predicts best, measured against a group that saw the examples without explanations."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A local authority plans to show caseworkers, who are outside the team that built it, the reasons behind a housing-benefit fraud-risk score. Before releasing the reasons in that form, it runs a forward simulation test with caseworkers on unseen cases, half of them cases the score got wrong, using the reasons exactly as they will appear, and revises them if caseworkers who studied them predict the flag no better than caseworkers who did not."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A pass shows that people can anticipate the model, not that they decide better with it. Buçinca et al. found that results on a task of predicting an AI's decisions did not predict results on the real decision task, and Poursabzi-Sangdeh et al. found that people who could better simulate a simple, clear model did not follow it more when that helped, and in some experiments were less able to correct its large mistakes. A claim about decisions needs a decision study."
+        },
+        {
+          "description": "The test is easily made trivial. If the explained examples are reused as test items, explanations that show the predicted class or a probability give the answer away, and if the model is mostly right, participants can score well by predicting the true label. Hase and Bansal found earlier studies that reused the same items for explanation and prediction; results from such designs overstate what the explanation conveys."
+        },
+        {
+          "description": "Effects are often small against the variation between people and items. With 32 trained undergraduates and about 180 to 320 responses per condition, Hase and Bansal's 95% confidence intervals on the change in accuracy were about 8 to 13 percentage points either side, and only LIME on tabular data clearly improved both forward and counterfactual simulation. A study must be sized for the difference it needs to detect, with a bootstrap over both participants and items."
+        },
+        {
+          "description": "The score holds for the people tested. Many studies use students or crowd workers because domain experts are costly to recruit, which Doshi-Velez and Kim give as the reason this kind of evaluation is cheaper; a result from lay participants does not show that the clinicians, analysts or caseworkers who will use the explanation can predict the model."
+        },
+        {
+          "description": "The before-and-after design credits any gain to the explanations, but participants see the same examples and test items twice, and Hase and Bansal had no group that repeated both phases without explanations, so a practice gain is not ruled out. Their participants also found it hard to remember the explained examples while predicting, so the number of examples and the time allowed must be fixed and reported when methods are compared."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Towards A Rigorous Science of Interpretable Machine Learning",
+          "url": "https://arxiv.org/abs/1702.08608",
+          "source_type": "technical_paper",
+          "authors": [
+            "Finale Doshi-Velez",
+            "Been Kim"
+          ],
+          "publication_date": "2017-03-02",
+          "citationKey": "doshi-velezRigorousScienceInterpretable2017",
+          "abstract": "As machine learning systems become ubiquitous, there has been a surge of interest in interpretable machine learning: systems that provide explanation for their outputs. These explanations are often used to qualitatively assess other criteria such as safety or non-discrimination. However, despite the interest in interpretability, there is very little consensus on what interpretable machine learning is and how it should be measured. In this position paper, we first define interpretability and describe when interpretability is needed (and when it is not). Next, we suggest a taxonomy for rigorous evaluation and expose open questions towards a more rigorous science of interpretable machine learning."
+        },
+        {
+          "title": "InterpretableNLP-ACL2020: code for 'Evaluating Explainable AI: Which Algorithmic Explanations Help Users Predict Model Behavior?'",
+          "url": "https://github.com/peterbhase/InterpretableNLP-ACL2020",
+          "source_type": "software_package",
+          "publication_date": "2026-03-31T10:31:49Z",
+          "citationKey": "haseInterpretableNLPACL2020CodeEvaluating2026",
+          "abstract": "Code for \"Evaluating Explainable AI: Which Algorithmic Explanations Help Users Predict Model Behavior?\""
+        },
+        {
+          "title": "Evaluating Explainable AI: Which Algorithmic Explanations Help Users Predict Model Behavior?",
+          "url": "https://doi.org/10.18653/v1/2020.acl-main.491",
+          "source_type": "application_paper",
+          "authors": [
+            "Peter Hase",
+            "Mohit Bansal"
+          ],
+          "publication_date": "2020",
+          "citationKey": "haseEvaluatingExplainableAI2020"
+        },
+        {
+          "title": "Manipulating and Measuring Model Interpretability",
+          "url": "https://doi.org/10.1145/3411764.3445315",
+          "source_type": "application_paper",
+          "authors": [
+            "Forough Poursabzi-Sangdeh",
+            "Daniel G Goldstein",
+            "Jake M Hofman",
+            "Jennifer Wortman Wortman Vaughan",
+            "Hanna Wallach"
+          ],
+          "publication_date": "2021-5-6",
+          "citationKey": "poursabzi-sangdehManipulatingMeasuringModel2021"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Credit analysts who studied the rule-list explanations predicted the loan-default model's output on unseen applications more accurately than at their no-explanation baseline, on a test set balanced between correct and incorrect model predictions.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Caseworkers who studied the fraud-risk reasons predicted the score's flag on unseen cases, half of them cases the score got wrong, more accurately than caseworkers who studied the same cases without the reasons, and above the accuracy threshold set in the evaluation plan.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Moderators shown the toxicity classifier's word weightings predicted whether an edited comment would still be flagged more accurately than before they saw the weightings, on a set of edits half of which changed the classifier's decision.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        },
+        {
+          "text": "Participants who studied the counterfactual images predicted the pneumonia classifier's decisions on separate, unexplained images more accurately than participants who studied the saliency heatmaps, on a test set in which the classifier was wrong as often as it was right.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "disaggregated-evaluation",
+      "name": "Disaggregated Evaluation",
+      "description": "Disaggregated evaluation assesses and reports a system's performance separately for each group of people a claim covers, and for combinations of groups (intersectional groups, such as darker-skinned women), so that a good overall score cannot hide a group for whom the system works badly. Following Barocas et al. (2021), the evaluator first fixes the design choices that change what the evaluation can show: which groups and combinations to report; how other factors that affect performance, such as lighting or recording conditions, are handled (held constant, varied deliberately, or left as they occur); which metrics to use, for a classifier often false positive and false negative rates reported separately, because each can harm different people; and whether the evaluation is exploratory, or confirmatory, meaning that it tests hypotheses stated in advance on data built to hold enough cases in every group. Each metric is then computed on a labelled evaluation set for every group and combination, together with the number of cases behind it and an interval showing how far the estimate could move through sampling alone, obtained for example by resampling the evaluation set. Groups are compared by absolute and by relative gaps, which can tell different stories: false negative rates of 1 and 10 per cent differ by nine points but tenfold. The output is a table or chart of per-group and per-combination results with their case counts and intervals, and a record of the design choices needed to interpret them; it is this design, more than any one metric or interval method, that decides which comparisons the evaluation can support and how conclusive each is.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/performance-by-group",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/fairness-metric",
+        "expertise-needed/statistics",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Fairness",
+          "description": "Before a hospital trust adopts a supplier's skin-lesion classifier, its clinical safety team reports sensitivity and specificity on locally labelled images for each skin-tone group, sex and age band, and for skin tone crossed with sex. Cells holding fewer melanoma cases than the evaluation protocol requires are marked as too small to estimate rather than reported, and the trust collects more images for them before deciding whether the tool may be used for all patients."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A consumer organisation evaluating the speech-to-text services behind automated phone lines has speakers from several regional and ethnic groups, matched on age and gender, read identical scripted passages, and reports word error rate per group with intervals. Because everyone says the same words, a gap can be attributed to how each service recognises speech rather than to what was said, the evidence the organisation needs for a complaint to the providers."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A bank's model risk team runs a confirmatory evaluation of its fraud model each quarter. The groups (age band, sex and their combinations), the metrics (false positive rate, which drives blocked legitimate payments, and false negative rate), the sample and the largest acceptable gap are fixed in a protocol before the data are drawn, and the model stays in service only if every interval for a gap lies inside that margin."
+        },
+        {
+          "goal": "Fairness",
+          "description": "An exam board piloting an automated essay-scoring model runs an exploratory evaluation of its agreement with human markers, split by first language, school type and their combinations. It finds one weak cell, candidates with English as an additional language at small schools, too small to be conclusive, and commissions a confirmatory study with a sample built to fill that cell before deciding whether the scores can count towards grades."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Each attribute added multiplies the number of cells and shrinks each one, so combinations of attributes soon hold too few cases for a stable estimate, and where a cell holds only a few errors, intervals from resampling come out too narrow. Comparing many cells also throws up some large gaps by chance. A confirmatory claim needs enough cases in every cell, which Barocas et al. note existing datasets rarely provide, so the data available limit which comparisons can be tested."
+        },
+        {
+          "description": "A gap between groups shows that performance differs, not why. Another factor that affects performance may differ between the groups, as with the time between paired images that NIST suggested could explain a higher false negative rate for Asian people in face recognition. Holding such a factor constant hides gaps at its other values, varying it needs the factor labelled for every case, and strongly correlated factors are hard to separate, or impossible when they always occur together."
+        },
+        {
+          "description": "The result is only as good as two sets of labels. Where ground-truth outcomes are wrong, or recorded differently for different groups, and the extent of the error cannot be identified, Barocas et al. note the results are meaningless however careful the design. Group membership is often ascribed by an institution or inferred from appearance, adding errors and possible harm to those labelled, and datasets may hold few of some groups (darker-skinned women were 4.4 per cent of one benchmark)."
+        },
+        {
+          "description": "It measures differences in performance and nothing else. Equal error rates say nothing about whether outputs stereotype or demean people, or whether favourable decisions are shared in proportion, and narrowing a gap under one metric can open a gap under another. A clean result supports a claim about the performance gaps measured, for the groups and conditions tested, and no wider fairness claim."
+        },
+        {
+          "description": "Results on a laboratory dataset may not carry over to the system in use, where lighting, recording conditions and operators' decisions differ, and Barocas et al. note that a component's performance alone may say little about the whole system around it. Evaluating in the setting of use captures this but is costly, and is often impossible for an outside evaluator, who usually sees the system only as a black box."
+        }
+      ],
+      "resources": [
+        {
+          "title": "fairlearn.metrics.MetricFrame (Fairlearn API reference)",
+          "url": "https://fairlearn.org/main/api_reference/generated/fairlearn.metrics.MetricFrame.html",
+          "source_type": "documentation",
+          "citationKey": "FairlearnmetricsMetricFrameFairlearnAPI"
+        },
+        {
+          "title": "fairlearn",
+          "url": "https://github.com/fairlearn/fairlearn",
+          "source_type": "software_package",
+          "publication_date": "2018-05-15",
+          "citationKey": "fairlearnFairlearn2018",
+          "abstract": "A Python package to assess and improve fairness of machine learning models."
+        },
+        {
+          "title": "Designing Disaggregated Evaluations of AI Systems: Choices, Considerations, and Tradeoffs",
+          "url": "https://doi.org/10.1145/3461702.3462610",
+          "source_type": "technical_paper",
+          "authors": [
+            "Solon Barocas",
+            "Anhong Guo",
+            "Ece Kamar",
+            "Jacquelyn Krones",
+            "Meredith Ringel Morris",
+            "Jennifer Wortman Vaughan",
+            "W. Duncan Wadsworth",
+            "Hanna Wallach"
+          ],
+          "publication_date": "2021-7-21",
+          "citationKey": "barocasDesigningDisaggregatedEvaluations2021"
+        },
+        {
+          "title": "Performing a Fairness Assessment (Fairlearn user guide)",
+          "url": "https://fairlearn.org/main/user_guide/assessment/perform_fairness_assessment.html",
+          "source_type": "tutorial",
+          "citationKey": "PerformingFairnessAssessment"
+        },
+        {
+          "title": "Gender Shades: Intersectional Accuracy Disparities in Commercial Gender Classification",
+          "url": "https://proceedings.mlr.press/v81/buolamwini18a.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Joy Buolamwini",
+            "Timnit Gebru"
+          ],
+          "publication_date": "2018-01-21",
+          "citationKey": "buolamwiniGenderShadesIntersectional2018",
+          "abstract": "Recent studies demonstrate that machine learning algorithms can discriminate based on classes like race and gender. In this work, we present an approach to evaluate bias present in automated facial analysis algorithms and datasets with respect to phenotypic subgroups. Using the dermatologist  approved Fitzpatrick Skin Type classification system, we characterize the gender and skin type distribution of two facial analysis benchmarks, IJB-A and Adience. We find that these datasets are overwhelmingly composed of lighter-skinned subjects (79.6% for IJB-A and 86.2% for Adience) and introduce a new facial analysis dataset which is balanced by gender and skin type. We evaluate 3 commercial gender classification systems using our dataset and show that darker-skinned females are the most misclassified group (with error rates of up to 34.7%). The maximum error rate for lighter-skinned males is 0.8%. The substantial disparities in the accuracy of classifying darker females, lighter females, darker males, and lighter males in gender classification systems require urgent attention if commercial companies are to build genuinely fair, transparent and accountable facial analysis algorithms."
+        },
+        {
+          "title": "Racial disparities in automated speech recognition",
+          "url": "https://doi.org/10.1073/pnas.1915768117",
+          "source_type": "application_paper",
+          "authors": [
+            "Allison Koenecke",
+            "Andrew Nam",
+            "Emily Lake",
+            "Joe Nudell",
+            "Minnie Quartey",
+            "Zion Mengesha",
+            "Connor Toups",
+            "John R. Rickford",
+            "Dan Jurafsky",
+            "Sharad Goel"
+          ],
+          "publication_date": "2020-3-23",
+          "citationKey": "koeneckeRacialDisparitiesAutomated2020"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "assuranceGoal": "fairness",
+          "domain": "healthcare",
+          "text": "On the trust's locally labelled images, the skin-lesion classifier's sensitivity for each skin-tone group, and for skin tone crossed with sex, is within 5 percentage points of its overall sensitivity, with the 95 per cent interval for each gap and the number of melanoma cases in each cell reported."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "general",
+          "text": "The groups, combinations, metrics and acceptable gaps for the fairness evaluation were fixed in a protocol before the evaluation data were drawn, and every cell with too few cases to estimate its gap to the agreed precision is reported as untested rather than as passed."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "finance",
+          "text": "In each of the last four quarters, the upper bound of the 95 per cent interval for the difference in false positive rate between each age-and-sex group and the best-served group was below the 1 percentage point margin set in the model risk policy."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "telecommunications",
+          "text": "On identical scripted passages read by speakers matched on age and gender, the upper bound of the 95 per cent interval for each speaker group's gap in word error rate to the best-served group is below the agreed margin."
+        }
+      ]
+    },
+    {
+      "slug": "predictive-parity-and-calibration-within-groups",
+      "name": "Predictive Parity and Calibration Within Groups",
+      "description": "This test checks whether a model's output means the same for every group: among people who receive the same score or the same decision, the share who turn out to have the outcome (or its average, for an outcome such as a cost or a count of illnesses) should not depend on their group, a requirement the fairness literature calls sufficiency. For a model that outputs a risk score, cases with known outcomes are grouped into score bins and, for each group, the observed outcome rate in each bin is plotted against the score, giving one calibration curve per group (a score is calibrated when, of the cases scored 0.3, about 30 per cent have the outcome); calibration within groups (Kleinberg, Mullainathan and Raghavan) holds when each group's curve matches the scores, and the weaker condition that the curves coincide holds when a given score corresponds to the same outcome rate in every group. For a yes/no decision the same comparison is made in the two cells of the decision: predictive parity (Chouldechova) holds when the positive predictive value, the share of people flagged positive who turn out positive, is equal across groups, and the negative predictive value can be compared in the same way for those not flagged. The two read-outs can disagree, because a score that means the same for every group can still give unequal positive predictive values at a threshold when the groups' scores are spread differently above it, so the test reports the read-out matching the output on which decisions are taken, with intervals and the gaps between groups. Where comparisons of error rates condition on the true outcome and ask whether people who turn out the same are treated the same, this test conditions on the model's output and asks whether people treated the same turn out the same; when the outcome is more common in one group, the two cannot both hold except in special cases.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "evidence-type/fairness-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/metric",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Fairness",
+          "description": "A hospital's clinical informatics team checks a deterioration-risk score before it is shown to ward staff. On a year of admissions with recorded outcomes it plots a calibration curve, with intervals, for each ethnic group and each sex, and approves the score for use with every patient only if, across the scores that trigger escalation, each group's curve stays within a band agreed with clinicians."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A lender's model validation team compares the repayment rate among approved applicants across age bands, using two years of outcomes, to check whether approval means the same for each band. Because a difference among the approved can come from how scores are spread above the cut-off rather than from a different bar for one band, it also compares the calibration curves of the underlying score before raising any finding with the credit risk committee."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A probation service assessing a supplier's reoffending-risk tool is shown evidence that its positive predictive value is equal across ethnic groups. Its analysts reproduce the figures on local data and set them beside the groups' false positive and false negative rates, which differ because reconviction rates differ, so that the oversight board chooses which criterion the tool will be held to with both sets of figures in front of it."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A health insurer auditing a score that selects members for a care-management programme checks twice whether the score means the same for every racial group: against next year's costs, the label the model was trained on, and against a measure of illness such as the number of active chronic conditions. A score calibrated for cost but not for illness, with one group sicker than another at the same score, would lead the insurer to retrain on a different label."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "When the outcome is more common in one group, a score or decision that satisfies predictive parity cannot also give the groups both equal false positive and equal false negative rates, and calibration within groups cannot coexist with equal average scores for each group's positives and negatives except with perfect prediction or equal base rates (Chouldechova; Kleinberg et al.). Passing this test therefore means accepting unequal error rates, a choice the test informs but cannot make."
+        },
+        {
+          "description": "Passing says little about how accurately the model predicts for each group. A well-fitted model usually comes close to calibration within groups without any fairness intervention when group membership can be inferred from its inputs, and a model that predicts accurately for one group while giving everyone in another group that group's average rate is still perfectly calibrated (Barocas, Hardt and Narayanan). The result needs pairing with performance measured for each group."
+        },
+        {
+          "description": "The test uses recorded outcomes, so it inherits any difference between groups in how the outcome is recorded. Rearrest stands in for reoffending, and a care-management score was calibrated by race for health costs while, at the 97th percentile of the score, Black patients had 26 per cent more chronic illnesses than white patients (Obermeyer et al.). A model can pass while scoring one group's need too low, so the outcome tested must be the one the claim is about."
+        },
+        {
+          "description": "A gap in positive predictive value is not by itself evidence that the score treats groups differently: the value averages over everyone above the threshold, so it depends on how each group's scores are spread there and moves when the threshold moves. Chouldechova notes that well-calibrated scores can fail predictive parity, and the converse also holds. Where scores are available the calibration curves should be reported, and the threshold stated."
+        },
+        {
+          "description": "Per-group calibration curves need labelled cases across the score range in every group; in a small group the high-score bins may hold a handful of people, so their rates swing widely, and the choice of bin widths changes the picture. An outside auditor who sees only decisions, not scores, can test predictive parity but not calibration, so access determines which claim the evidence can support."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Aequitas documentation",
+          "url": "https://dssg.github.io/aequitas/",
+          "source_type": "documentation",
+          "citationKey": "AequitasDocumentation"
+        },
+        {
+          "title": "Aequitas (dssg/aequitas)",
+          "url": "https://github.com/dssg/aequitas",
+          "source_type": "software_package",
+          "publication_date": "2026-10-06T08:52:07Z",
+          "citationKey": "AequitasDssgAequitas2026",
+          "abstract": "Bias Auditing & Fair ML Toolkit"
+        },
+        {
+          "title": "Fair Prediction with Disparate Impact: A Study of Bias in Recidivism Prediction Instruments",
+          "url": "https://doi.org/10.1089/big.2016.0047",
+          "source_type": "technical_paper",
+          "authors": [
+            "Alexandra Chouldechova"
+          ],
+          "publication_date": "2017-6",
+          "citationKey": "chouldechovaFairPredictionDisparate2017"
+        },
+        {
+          "title": "Inherent Trade-Offs in the Fair Determination of Risk Scores",
+          "url": "https://drops.dagstuhl.de/entities/document/10.4230/LIPIcs.ITCS.2017.43",
+          "source_type": "technical_paper",
+          "authors": [
+            "Jon Kleinberg",
+            "Sendhil Mullainathan",
+            "Manish Raghavan"
+          ],
+          "publication_date": "2017",
+          "citationKey": "kleinbergInherentTradeOffsFair2017"
+        },
+        {
+          "title": "COMPAS Analysis using Aequitas (example notebook)",
+          "url": "https://github.com/dssg/aequitas/blob/notebooks/compas_demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "COMPASAnalysisUsing"
+        },
+        {
+          "title": "Dissecting racial bias in an algorithm used to manage the health of populations",
+          "url": "https://doi.org/10.1126/science.aax2342",
+          "source_type": "application_paper",
+          "authors": [
+            "Ziad Obermeyer",
+            "Brian Powers",
+            "Christine Vogeli",
+            "Sendhil Mullainathan"
+          ],
+          "publication_date": "2019-10-25",
+          "citationKey": "obermeyerDissectingRacialBias2019"
+        },
+        {
+          "title": "Assessing calibration and bias of a deployed machine learning malnutrition prediction model within a large healthcare system",
+          "url": "https://doi.org/10.1038/s41746-024-01141-5",
+          "source_type": "application_paper",
+          "authors": [
+            "Lathan Liou",
+            "Erick Scott",
+            "Prathamesh Parchure",
+            "Yuxia Ouyang",
+            "Natalia Egorova",
+            "Robert Freeman",
+            "Ira S. Hofer",
+            "Girish N. Nadkarni",
+            "Prem Timsina",
+            "Arash Kia",
+            "Matthew A. Levin"
+          ],
+          "publication_date": "2024-6-6",
+          "citationKey": "liouAssessingCalibrationBias2024",
+          "abstract": "Malnutrition is a frequently underdiagnosed condition leading to increased morbidity, mortality, and healthcare costs. The Mount Sinai Health System (MSHS) deployed a machine learning model (MUST-Plus) to detect malnutrition upon hospital admission. However, in diverse patient groups, a poorly calibrated model may lead to misdiagnosis, exacerbating health care disparities. We explored the model’s calibration across different variables and methods to improve calibration. Data from adult patients admitted to five MSHS hospitals from January 1, 2021 - December 31, 2022, were analyzed. We compared MUST-Plus prediction to the registered dietitian’s formal assessment. Hierarchical calibration was assessed and compared between the recalibration sample (N = 49,562) of patients admitted between January 1, 2021 - December 31, 2022, and the hold-out sample (N = 17,278) of patients admitted between January 1, 2023 - September 30, 2023. Statistical differences in calibration metrics were tested using bootstrapping with replacement. Before recalibration, the overall model calibration intercept was −1.17 (95% CI: −1.20, −1.14), slope was 1.37 (95% CI: 1.34, 1.40), and Brier score was 0.26 (95% CI: 0.25, 0.26). Both weak and moderate measures of calibration were significantly different between White and Black patients and between male and female patients. Logistic recalibration significantly improved calibration of the model across race and gender in the hold-out sample. The original MUST-Plus model showed significant differences in calibration between White vs. Black patients. It also overestimated malnutrition in females compared to males. Logistic recalibration effectively reduced miscalibration across all patient subgroups. Continual monitoring and timely recalibration can improve model accuracy."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "assuranceGoal": "fairness",
+          "domain": "healthcare",
+          "text": "Across the deterioration-risk scores that trigger escalation, each ethnic group's observed deterioration rate lies within 3 percentage points of the rate for all patients with the same score, with the 95 per cent interval for each gap inside that band, on twelve months of admissions held out from model development."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "finance",
+          "text": "Among applicants approved by the credit model in the evaluation period, the repayment rate for each age band is within 2 percentage points of the rate for all approved applicants, and the calibration curves of the underlying score for each band are reported alongside."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "public sector",
+          "text": "At the deployed threshold, the reoffending-risk tool's positive predictive value differs between ethnic groups by less than 5 percentage points on local data, and the corresponding differences in false positive and false negative rates are reported with it."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "healthcare",
+          "text": "At each decile of the care-management score, the mean number of active chronic conditions differs between racial groups by less than the tolerance agreed with the clinical lead, so the score indicates the same level of illness in every group, not only the same expected cost."
+        }
+      ]
+    },
+    {
+      "slug": "rich-subgroup-fairness-auditing",
+      "name": "Rich Subgroup Fairness Auditing",
+      "description": "Rich subgroup fairness auditing checks whether a binary classifier treats any subgroup much better or much worse than the population as a whole, where the subgroups are not a short list chosen in advance but every group that rules of a chosen kind over several protected attributes can describe, such as everyone for whom a weighted sum of age, sex and ethnicity indicators exceeds a threshold. Kearns, Neel, Roth and Wu (2018) proposed it to detect what they call fairness gerrymandering: a classifier can have equal false positive rates for men and for women, and for each ethnic group, yet very unequal rates for particular combinations, such as women of one ethnicity. For a chosen rate (the false positive or false negative rate, or in the paper also the rate of positive decisions), each subgroup is scored by the gap between its rate and the overall rate multiplied by the share of all records that are in the subgroup and count towards that rate (for the false positive rate, those with a negative true outcome), so a gap counts for more the larger the group, and the audit searches for the subgroup with the highest score. Exact search is computationally hard in the worst case, so it is posed as a weighted (cost-sensitive) classification problem over the protected attributes and solved approximately: the reference implementation fits two linear regressions that propose a candidate worst subgroup as a linear threshold rule, using only those attributes, the true outcomes and the classifier's decisions, not the model itself. The output is that rule with the subgroup's size, rate and weighted gap (called gamma), compared with a limit set beforehand; unlike reporting metrics for groups listed in advance, the audit finds subgroups nobody listed, and unlike multiaccuracy boosting, which checks a score's average error in each subgroup and then corrects the model, it compares a decision rate with the overall rate and changes nothing.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/fairness-metric",
+        "evidence-type/structured-output",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A lender's model risk team validating a credit-risk model before release audits its decisions on a held-out sample of past applicants whose repayment is known, and records that these are only applicants the old policy approved. It searches subgroups over age, sex, ethnicity and disability status for the worst false positive rate gap (good payers flagged as high risk), compares it with a limit agreed with the risk committee, and sends the rule for any subgroup over it to the developers.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A hospital's clinical AI team has confirmed that a sepsis early-warning model misses cases at similar rates for men and women and for each recorded ethnic group. Before rollout it audits the false negative rate over subgroups combining age, sex and ethnicity and, because the search is approximate, also scores a grid of rules over two of the attributes by brute force, as the method's authors did, to check the search did not miss a larger gap.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A local authority's internal audit team re-audits a model that flags housing benefit claims for fraud review each quarter, using a random sample of claims reviewed whether or not they were flagged. It records the worst subgroup by false positive rate (legitimate claims flagged) over age, sex, ethnicity and disability, with its size and gap, and escalates to the system owner when the weighted gap exceeds the agreed limit.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Finding the worst subgroup exactly is hard in the worst case, even for conjunctions or linear thresholds of attributes (Kearns et al. 2018, Theorem 3.3), so practical audits use a heuristic search. A subgroup it reports does have the measured gap on the audit data, but a clean result is only a lower bound: the authors note their auditor could miss a larger disparity and checked it by brute force on two attributes (Kearns et al. 2019). 'Nothing found' is a search result, not a proof."
+        },
+        {
+          "description": "Gaps are weighted by subgroup size, which the authors require for reliable estimates and which lets small groups pass with large gaps: a subgroup holding 2% of the records whose false positive rate is 20 percentage points above the overall rate scores at most 0.004, under the 0.005 limit used in the AIF360 demonstration. The audit cannot support a claim about a small named group; report that group's own rate, with an interval, instead."
+        },
+        {
+          "description": "Only subgroups that the rule class can describe, over the attributes designated as protected, are searched; the reference implementation uses linear threshold rules. The class has to be limited because, as the authors note, any imperfect classifier could be accused of unfairness to the set of people it misclassifies. A protected attribute that is not recorded or not designated is invisible, so the attributes used and their encoding must be stated with the finding."
+        },
+        {
+          "description": "Error-rate audits need the protected attributes and the true outcome for every audited record, which a deployed system may not supply, for example when outcomes are seen only for approved applications. Reliable estimates need more data the richer the subgroup class, the authors' experiments report in-sample results, and the tools give no confidence interval, so audit on held-out data and repeat on fresh data before relying on a worst-case figure."
+        },
+        {
+          "description": "It tests parity of one rate at a time for binary decisions, each subgroup's rate against the overall rate. A pass on false positives says nothing about false negatives, the AIF360 auditor implements only those two error rates, and other criteria, such as whether scores mean the same in every subgroup (calibration), need a different test. The rate must be chosen to match the fairness claim before the audit."
+        }
+      ],
+      "resources": [
+        {
+          "title": "aif360.metrics.BinaryLabelDatasetMetric (AIF360 documentation)",
+          "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.metrics.BinaryLabelDatasetMetric.html",
+          "source_type": "documentation",
+          "citationKey": "Aif360metricsBinaryLabelDatasetMetricAIF360Documentation"
+        },
+        {
+          "title": "AIF360",
+          "url": "https://github.com/Trusted-AI/AIF360",
+          "source_type": "software_package",
+          "publication_date": "2018-08-22",
+          "citationKey": "trusted-aiAIF3602018",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
+        },
+        {
+          "title": "Preventing Fairness Gerrymandering: Auditing and Learning for Subgroup Fairness",
+          "url": "https://proceedings.mlr.press/v80/kearns18a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Michael Kearns",
+            "Seth Neel",
+            "Aaron Roth",
+            "Zhiwei Steven Wu"
+          ],
+          "publication_date": "2018-07-03",
+          "citationKey": "kearnsPreventingFairnessGerrymandering2018",
+          "abstract": "The most prevalent notions of fairness in machine learning fix a small collection of pre-defined groups (such as race or gender), and then ask for approximate parity of some statistic of the classifier (such as false positive rate) across these groups. Constraints of this form are susceptible to fairness gerrymandering, in which a classifier is fair on each individual group, but badly violates the fairness constraint on structured subgroups, such as certain combinations of protected attribute values. We thus consider fairness across exponentially or infinitely many subgroups, defined by a structured class of functions over the protected attributes. We first prove that the problem of auditing subgroup fairness for both equality of false positive rates and statistical parity is computationally equivalent to the problem of weak agnostic learning — which means it is hard in the worst case, even for simple structured subclasses. However, it also suggests that common heuristics for learning can be applied to successfully solve the auditing problem in practice. We then derive an algorithm that provably converges in a polynomial number of steps to the best subgroup-fair distribution over classifiers, given access to an oracle which can solve the agnostic learning problem. The algorithm is based on a formulation of subgroup fairness as a zero-sum game between a Learner (the primal player) and an Auditor (the dual player). We implement a variant of this algorithm using heuristic oracles, and show that we can effectively both audit and learn fair classifiers on a real dataset."
+        },
+        {
+          "title": "AIF360 demo: GerryFair rich subgroup fairness (notebook)",
+          "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/demo_gerryfair.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AIF360DemoGerryFair",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models. - Trusted-AI/AIF360"
+        },
+        {
+          "title": "An Empirical Study of Rich Subgroup Fairness for Machine Learning",
+          "url": "https://doi.org/10.1145/3287560.3287592",
+          "source_type": "application_paper",
+          "authors": [
+            "Michael Kearns",
+            "Seth Neel",
+            "Aaron Roth",
+            "Zhiwei Steven Wu"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "kearnsEmpiricalStudyRich2019"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On a held-out sample of 40,000 previously approved applicants with known repayment, the rich subgroup audit over age, sex, ethnicity and disability status found no subgroup whose size-weighted false positive rate gap exceeded the 0.005 limit agreed with the risk committee.",
+          "assuranceGoal": "fairness",
+          "domain": "finance"
+        },
+        {
+          "text": "Before rollout, neither the heuristic audit over age, sex and ethnicity nor a brute-force grid over age and ethnicity found a subgroup whose size-weighted gap in the rate of missed sepsis cases exceeded 0.003.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
+        },
+        {
+          "text": "In each of the last four quarterly re-audits, on a random sample of claims reviewed whether or not they were flagged, the worst subgroup found had a size-weighted false positive rate gap below the agreed limit, and its description and size were recorded.",
+          "assuranceGoal": "fairness",
+          "domain": "public sector"
+        }
+      ]
     }
   ],
-  "count": 37
+  "count": 46
 }

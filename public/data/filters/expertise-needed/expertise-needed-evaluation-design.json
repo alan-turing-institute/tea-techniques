@@ -2,7 +2,7 @@
   "tag": {
     "name": "expertise-needed/evaluation-design",
     "slug": "expertise-needed-evaluation-design",
-    "count": 18,
+    "count": 24,
     "category": "expertise-needed"
   },
   "techniques": [
@@ -3011,7 +3011,952 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "metamorphic-testing",
+      "name": "Metamorphic Testing",
+      "description": "Metamorphic testing checks a model or AI system without needing the correct output for each test input, by checking that the outputs for related inputs stand in a relation that must hold if the system works as intended. The tester first writes metamorphic relations from knowledge of the task, each pairing a change to the input with the change it should cause in the output, or with no change: adding fog to a road image should leave a steering prediction within a set tolerance, adding a few stray sensor points outside the road area should not remove any detected obstacle, and rotating a whole flight scenario should leave its outcome unchanged. Existing test inputs (source cases) are transformed into follow-up inputs according to each relation, the system is run on both, and each pair is checked, with numeric outputs often allowed a tolerance. A violation points to a fault or unwanted behaviour without any labelled answer, unless the relation itself is wrong; the output is the violation rate for each relation with the failing pairs, and a relation that holds on every pair shows only that the outputs agree with each other, not that they are right. Prompt robustness testing and causal discrimination testing in this catalogue each apply one family of invariance relations (meaning-preserving changes to a prompt, and a change of protected attribute), and prompt robustness testing also scores the answers against known ones; metamorphic testing is the general procedure for writing and checking any such relation, including relations that say how the output should change, and needs no known answers.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/robustness",
+        "data-requirements/test-scenarios",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/software-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An air navigation service provider evaluating a machine-learning conflict-detection aid for en-route controllers has no ground truth for most replayed traffic samples. Its test team writes three relations: swapping two aircraft's call signs, shifting every timestamp by the same amount, and rotating the whole sample together with its wind field must not change which aircraft pairs are flagged. It runs them on a year of recorded traffic and holds the release until every violation is explained.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A supplier of lidar obstacle perception for driverless shuttles cannot label every frame it records. Following a relation implied by the perception specification, its test team adds a few hundred random points outside the mapped road area to recorded frames and checks that no obstacle detected in the original frame disappears, reporting the share of frames where one does, by number of points added, as a release criterion for each software build.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A weather service testing a neural network that nowcasts rainfall from radar images checks a relation expected from the way rain moves with the wind: away from the domain's edges, shifting the input radar sequence a few grid cells east should shift the forecast rain field by the same amount, within a tolerance set from the model's day-to-day error. Forecasters review the breaking cases to judge whether the model has learnt a dependence on location, such as on terrain, that it should keep.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A bank moving its credit-scoring models to a new library cannot treat every difference from the old library's outputs as a fault, since the solvers differ. Its validation team writes relations the mathematics guarantees: reordering the input columns, or adding a constant to a numeric input in training and scoring data of a logistic regression with an unpenalised intercept, must leave every predicted probability unchanged within solver tolerance. Each violation is investigated as a fault.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Passing shows that outputs are consistent, not that they are correct. A model that gives the same wrong answer for a source case and its follow-up satisfies the relation, and one that is wrong in the same way everywhere can pass every invariance relation. On its own the technique therefore does not suit systems where each output must be shown to be right, and it complements rather than replaces testing against known answers where those exist."
+        },
+        {
+          "description": "The evidence is only as good as the relations, which are written by hand from domain knowledge, with no systematic way to choose among the many possible ones. A relation the system is not bound to obey produces false alarms: in a study of the Weka library, violations by its nearest-neighbour classifier came from legitimate tie-breaking between equally likely labels, not from faults. An incomplete set of relations gives false confidence."
+        },
+        {
+          "description": "Most model outputs need a tolerance, and the result depends heavily on it. In the DeepTest study of three driving models, violations under simple image transformations fell from 23,391 when a transformed frame's squared error against the human steering label could be at most the original mean squared error to 330 when it could be five times that, and manual review still found false positives. Counts compare only between runs with the same tolerance, set from what the application can accept."
+        },
+        {
+          "description": "Follow-up inputs are synthetic and may not occur in practice: rain or fog added to an image, or points scattered into a lidar frame, approximate real conditions without reproducing them. A violation on an unrealistic input may not matter in operation, and a pass covers only the transformations tried, so the evidence is about the tested relations and transformations, not the operating conditions as a whole."
+        },
+        {
+          "description": "A model whose outputs vary between runs on the same input, through sampling, seeds or GPU arithmetic, breaks relations by chance, so runs must be made repeatable or each case repeated and judged statistically. This bites hardest for relations over the training data, such as Xie et al.'s for classifiers, which need the model retrained for every follow-up case; for models that are costly to train only prediction-time relations are practical, and they test the trained model, not its training."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ISTQB Certified Tester AI Testing (CT-AI) Syllabus v2.0, section 6.1.5 Metamorphic Testing",
+          "url": "https://istqb.org/certifications/certified-tester-ai-testing-ct-ai/",
+          "source_type": "documentation",
+          "authors": [
+            "International Software Testing Qualifications Board (ISTQB)"
+          ],
+          "publication_date": "2026-04-17",
+          "citationKey": "ISTQBCertifiedTester2024",
+          "abstract": "The CT-AI v1.0 certification will be retired: the English version will remain available until April 21, 2027, and non-English versions will remain available"
+        },
+        {
+          "title": "Metamorphic Testing: A New Approach for Generating Next Test Cases",
+          "url": "https://arxiv.org/abs/2002.12543",
+          "source_type": "technical_paper",
+          "authors": [
+            "T. Y. Chen",
+            "S. C. Cheung",
+            "S. M. Yiu"
+          ],
+          "publication_date": "2020-02-28",
+          "citationKey": "chenMetamorphicTestingNew2020",
+          "abstract": "In software testing, a set of test cases is constructed according to some predefined selection criteria. The software is then examined against these test cases. Three interesting observations have been made on the current artifacts of software testing. Firstly, an error-revealing test case is considered useful while a successful test case which does not reveal software errors is usually not further investigated. Whether these successful test cases still contain useful information for revealing software errors has not been properly studied. Secondly, no matter how extensive the testing has been conducted in the development phase, errors may still exist in the software [5]. These errors, if left undetected, may eventually cause damage to the production system. The study of techniques for uncovering software errors in the production phase is seldom addressed in the literature. Thirdly, as indicated by Weyuker in [6], the availability of test oracles is pragmatically unattainable in most situations. However, the availability of test oracles is generally assumed in conventional software testing techniques. In this paper, we propose a novel test case selection technique that derives new test cases from the successful ones. The selection aims at revealing software errors that are possibly left undetected in successful test cases which may be generated using some existing strategies. As such, the proposed technique augments the effectiveness of existing test selection strategies. The technique also helps uncover software errors in the production phase and can be used in the absence of test oracles."
+        },
+        {
+          "title": "Testing and validating machine learning classifiers by metamorphic testing",
+          "url": "https://doi.org/10.1016/j.jss.2010.11.920",
+          "source_type": "technical_paper",
+          "authors": [
+            "Xiaoyuan Xie",
+            "Joshua W.K. Ho",
+            "Christian Murphy",
+            "Gail Kaiser",
+            "Baowen Xu",
+            "Tsong Yueh Chen"
+          ],
+          "publication_date": "2011-4",
+          "citationKey": "xieTestingValidatingMachine2011"
+        },
+        {
+          "title": "Metamorphic Testing: Testing the Untestable",
+          "url": "https://doi.org/10.1109/ms.2018.2875968",
+          "source_type": "tutorial",
+          "authors": [
+            "Sergio Segura",
+            "Dave Towey",
+            "Zhi Quan Zhou",
+            "Tsong Yueh Chen"
+          ],
+          "publication_date": "2020-5",
+          "citationKey": "seguraMetamorphicTestingTesting2020"
+        },
+        {
+          "title": "DeepTest",
+          "url": "https://doi.org/10.1145/3180155.3180220",
+          "source_type": "application_paper",
+          "authors": [
+            "Yuchi Tian",
+            "Kexin Pei",
+            "Suman Jana",
+            "Baishakhi Ray"
+          ],
+          "publication_date": "2018-5-27",
+          "citationKey": "tianDeepTest2018"
+        },
+        {
+          "title": "Metamorphic testing of driverless cars",
+          "url": "https://doi.org/10.1145/3241979",
+          "source_type": "application_paper",
+          "authors": [
+            "Zhi Quan Zhou",
+            "Liqun Sun"
+          ],
+          "publication_date": "2019-2-21",
+          "citationKey": "zhouMetamorphicTestingDriverless2019"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For every replayed traffic sample in the 2025 test year, swapping aircraft call signs, shifting all timestamps by the same amount and rotating the sample with its wind field left the set of flagged conflict pairs unchanged apart from the swapped labels.",
+          "assuranceGoal": "reliability",
+          "domain": "aviation"
+        },
+        {
+          "text": "Across 3,000 recorded urban frames, adding up to 100 random lidar points outside the mapped road area removed no obstacle that the perception software detected in the original frame.",
+          "assuranceGoal": "reliability",
+          "domain": "automotive"
+        },
+        {
+          "text": "For at least 98 per cent of test cases from the 2025 season, shifting the input radar sequence by up to five grid cells within the interior of the domain shifted the nowcast rain field by the same amount, within the agreed tolerance.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "In the new library, reordering the input columns, or adding a constant to any numeric input in both training and scoring data, left every credit-scoring model's predicted probabilities on the full validation set unchanged within the solver's tolerance.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "deletion-and-insertion-curves",
+      "name": "Deletion and Insertion Curves",
+      "description": "Deletion and insertion curves test whether a feature-attribution explanation, such as a heatmap over an image or highlighted words in a text, puts first the input features the model actually relies on. For the deletion curve, the evaluator removes features in the order the explanation ranks them, most important first, replacing each with a neutral value such as zero, the dataset mean, random noise or a blurred copy, and records the model's score for the explained class after each step; a faithful ranking makes the score fall quickly, so a smaller area under the curve is better (equivalently, a larger area over it, the AOPC score Samek et al. report). The insertion curve runs the other way: it starts from an input with every feature removed or blurred, restores features in ranked order, and rewards a fast rise. For text, the same procedure is often reported as comprehensiveness (how far the predicted-class probability drops when the top-ranked words are deleted) and sufficiency (how far it drops when only those words are kept), either at one cut-off or averaged over cut-offs from the top 1% to the top 50% of words. Explanation methods are compared on the same model, inputs and replacement value, against a random ranking as a baseline, and the result shows how well the ranking tracks the model's behaviour, not whether the highlighted features make sense to a person.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability/property/fidelity",
+        "data-requirements/no-special-requirements",
+        "data-type/image",
+        "data-type/text",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/evaluation-design",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A hospital's cardiology informatics team has a deep network that measures intervals and amplitudes from 12-lead ECGs and must choose which heatmap method to show cardiologists. It perturbs the highest-ranked sample points first, one per step, tracks the rise in measurement error over several thousand ECGs, and compares each method's area under the error curve with that of random heatmaps. Because expert preferences and the curves can disagree, it reports both before choosing.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A regulator's data team routes consumer complaints with a fine-tuned transformer classifier and wants to highlight for caseworkers the words behind each routing decision. Before choosing between two word-attribution methods, it computes comprehensiveness and sufficiency on a validation sample at the 1, 5, 10, 20 and 50% cut-offs and adopts a method only if it clearly beats randomly ranked words on both measures.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A rail operator's engineering team uses an image classifier to flag defects in track inspection photographs and wants heatmaps that point inspectors to the defect. It runs deletion with pixels set to a constant and insertion from a blurred image for three heatmap methods, then repeats the deletion run with a second replacement value, and adopts a method only if it ranks first under both.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Removing pixels or words produces inputs unlike anything the model was trained on, so part of the drop in score can be the model reacting to an unfamiliar input rather than to the loss of the information the explanation pointed to, and the shape of the removed region can itself carry class information. Results are least trustworthy when large parts of the input are removed; variants that retrain the model or fill removed pixels from their neighbours reduce the effect."
+        },
+        {
+          "description": "The score depends on how features are removed and in what order. On one image classifier, the best-ranked method changed when removed pixels were set to the dataset mean instead of random colours, removing the least relevant pixels first ranked the methods roughly in reverse of removing the most relevant first, and rankings varied from image to image. A comparison holds only for the stated replacement value, order, step size and fraction removed, and should be checked under a second replacement."
+        },
+        {
+          "description": "Only the order of the attribution scores counts, not their size, so explanations with very different magnitudes can receive the same score. Taking absolute values of signed attributions changes the order and hence the result. The curves cannot tell an explanation that ranks the right features but gives them misleading magnitudes from one that gets both right; that needs a measure that uses the attribution values."
+        },
+        {
+          "description": "The curves show whether the ranking tracks the model, not whether the explanation is useful or correct for the domain: a model that relies on a spurious cue receives a faithful explanation of that cue. In a study of ECG models, ECG experts' choice of the best heatmap method disagreed considerably with the perturbation ranking, so a good curve does not show that experts will find the explanation helpful."
+        },
+        {
+          "description": "Each curve needs one model evaluation per step, for every input and method compared, so fine-grained curves over large images, long documents or big test sets are expensive. In the original region-perturbation study, two settings over 5,040 images each, with 100 steps repeated ten times because the replacement values were random, took roughly 36 hours on a workstation with 20 hyper-threaded Xeon cores in 2015. Coarser steps cut the cost but make the curve less able to separate methods."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Deletion — Xplique documentation",
+          "url": "https://deel-ai.github.io/xplique/latest/api/attributions/metrics/deletion/",
+          "source_type": "documentation",
+          "citationKey": "DeletionXpliqueDocumentation"
+        },
+        {
+          "title": "Xplique (deel-ai/xplique)",
+          "url": "https://github.com/deel-ai/xplique",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T04:32:57Z",
+          "citationKey": "XpliqueDeelaiXplique2026",
+          "abstract": "👋 Xplique is a Neural Networks Explainability Toolbox"
+        },
+        {
+          "title": "Evaluating the Visualization of What a Deep Neural Network Has Learned",
+          "url": "https://doi.org/10.1109/tnnls.2016.2599820",
+          "source_type": "technical_paper",
+          "authors": [
+            "Wojciech Samek",
+            "Alexander Binder",
+            "Gregoire Montavon",
+            "Sebastian Lapuschkin",
+            "Klaus-Robert Muller"
+          ],
+          "publication_date": "2017-11",
+          "citationKey": "samekEvaluatingVisualizationWhat2017"
+        },
+        {
+          "title": "RISE: Randomized Input Sampling for Explanation of Black-box Models",
+          "url": "https://bmva-archive.org.uk/bmvc/2018/contents/papers/1064.pdf",
+          "source_type": "technical_paper",
+          "authors": [
+            "Vitali Petsiuk",
+            "Abir Das",
+            "Kate Saenko"
+          ],
+          "publication_date": "2018",
+          "citationKey": "RISERandomizedInput"
+        },
+        {
+          "title": "ERASER: A Benchmark to Evaluate Rationalized NLP Models",
+          "url": "https://doi.org/10.18653/v1/2020.acl-main.408",
+          "source_type": "technical_paper",
+          "authors": [
+            "Jay DeYoung",
+            "Sarthak Jain",
+            "Nazneen Fatema Rajani",
+            "Eric Lehman",
+            "Caiming Xiong",
+            "Richard Socher",
+            "Byron C. Wallace"
+          ],
+          "publication_date": "2020",
+          "citationKey": "deyoungERASERBenchmarkEvaluate2020"
+        },
+        {
+          "title": "Attribution Metrics tutorial (Xplique)",
+          "url": "https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg",
+          "source_type": "tutorial",
+          "citationKey": "AttributionMetricsTutorial"
+        },
+        {
+          "title": "Evaluating gradient-based explanation methods for neural network ECG analysis using heatmaps",
+          "url": "https://doi.org/10.1093/jamia/ocae280",
+          "source_type": "application_paper",
+          "authors": [
+            "Andrea Marheim Storås",
+            "Steffen Mæland",
+            "Jonas L Isaksen",
+            "Steven Alexander Hicks",
+            "Vajira Thambawita",
+            "Claus Graff",
+            "Hugo Lewi Hammer",
+            "Pål Halvorsen",
+            "Michael Alexander Riegler",
+            "Jørgen K Kanters"
+          ],
+          "publication_date": "2024-11-6",
+          "citationKey": "storasEvaluatingGradientbasedExplanation2024"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Across a held-out set of ECGs, perturbing the sample points ranked highest by the selected heatmap method raises the interval-measurement error faster than perturbing points ranked by random heatmaps, by at least the margin set in the validation plan, measured by the area under the error curve over the first 15 perturbation steps.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The word highlights shown to complaint caseworkers exceed randomly ranked words by at least the margin set in the validation plan on both comprehensiveness and sufficiency (higher comprehensiveness, lower sufficiency) on the validation sample, averaged over the 1, 5, 10, 20 and 50% cut-offs.",
+          "assuranceGoal": "explainability",
+          "domain": "public sector"
+        },
+        {
+          "text": "The heatmap method used in the track-inspection tool has a smaller deletion area and a larger insertion area than the other candidate methods on the validation images, under both replacement values tested.",
+          "assuranceGoal": "explainability",
+          "domain": "transport"
+        }
+      ]
+    },
+    {
+      "slug": "appropriate-reliance-measurement",
+      "name": "Appropriate Reliance Measurement",
+      "description": "Appropriate reliance measurement tests whether people who receive an AI system's advice follow it when it is right and keep their own judgement when it is wrong, and whether an explanation, or another aid such as a confidence score, moves them towards that pattern. It uses a two-step decision study on a classification task, the only kind Schemmer et al. define it for: for each task item the participant first decides alone, then sees the AI's advice, with or without the explanation, and makes a final decision, on a set of items with known correct answers drawn so that the AI is wrong on a known share of them. Only items on which the first decision and the advice disagree are counted, because when they agree the final decision cannot show which source the person relied on. Schemmer et al. define two rates over these items: relative AI reliance, the share of items with a wrong first decision and correct advice on which the person switched to the advice, and relative self-reliance, the share of items with a correct first decision and wrong advice on which the person kept their own answer. Comparing the two rates between an explanation condition and a control condition shows whether the explanation reduces under-reliance (rejecting correct advice), reduces over-reliance (accepting wrong advice) or merely raises agreement with the AI, which overall accuracy or agreement with the AI does not show on its own.",
+      "assurance_goals": [
+        "Explainability",
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/human-evaluation/decision-study",
+        "assurance-goal-category/explainability/property/decision-support",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/verification",
+        "data-requirements/labelled-data",
+        "data-requirements/test-scenarios",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/human-factors",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/statistics",
+        "expertise-needed/domain-expertise",
+        "technique-type/metric",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Explainability",
+          "description": "An insurer considering highlighted claim features as an explanation for its fraud-flagging model runs a two-step study with its claims handlers on 40 past claims, with the model wrong on a quarter of them, comparing handlers who see the flag alone with handlers who also see the highlights. It adopts the highlights only if relative AI reliance rises without relative self-reliance falling, since higher acceptance of all advice, right and wrong, would show deference rather than better judgement."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A conservation charity whose volunteers identify bird species with help from an image classifier measures relative AI reliance and relative self-reliance separately for experienced birders and beginners, and for example-based and written explanations. It chooses which explanation to show each group from the results, because a volunteer's expertise changes how an explanation, especially a wrong one, shifts their reliance on the classifier."
+        },
+        {
+          "goal": "Safety",
+          "description": "A hospital whose safety case for a sepsis alert relies on ward doctors overriding wrong alerts, and whose workflow has doctors record their own escalation decision before the alert appears, runs a vignette study in that workflow, with and without the alert's explanation panel. Before switching the panel on, it reports relative self-reliance, and the share of wrong-alert cases that ended in a wrong decision, against the oversight requirement in the safety case."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The rates describe behaviour on a task set built to contain many AI errors: Schemmer et al. drew equal numbers of items from each cell of the confusion matrix, which put the AI's accuracy on their 16 items at 50%. The study does not show how people rely on advice when errors are rarer, as they usually are in service, so it supports a claim about the conditions tested, not a direct estimate of over-reliance in deployment."
+        },
+        {
+          "description": "Only items on which the first decision and the advice disagree enter the two rates, so each rate can rest on a handful of items per person, and items on which the person and the AI are wrong together, the errors that oversight cannot catch, enter neither rate. Plan the sample around the expected number of disagreements, and report beside the rates the share of wrong-advice items that ended in a wrong final decision."
+        },
+        {
+          "description": "Asking for a decision before the advice is shown is itself an intervention. Guo et al.'s reanalysis of an earlier study found reliance closer to the appropriate level when people decided first than when they saw the AI's advice first, so a two-step study may show better reliance than a deployed system that presents the advice straight away."
+        },
+        {
+          "description": "The rates judge each decision by whether the advice turned out to be right, not by whether following it was the better bet given what the person could see. Guo et al. argue that this outcome-based definition mixes two failures, wrong beliefs about how often the AI is right and poor use of those beliefs, and treats a close call the same as an obvious one, so a low rate does not say which to fix."
+        },
+        {
+          "description": "Results depend on who takes part and on how good the explanations are. Morrison et al. found that participants' expertise changed how incorrect explanations affected their reliance, and that example-based explanations misled participants more than written ones, so a result from novices, or from explanations that were always correct, does not carry over to expert users or to explanations that are sometimes wrong."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Appropriate Reliance on AI Advice: Conceptualization and the Effect of Explanations",
+          "url": "https://doi.org/10.1145/3581641.3584066",
+          "source_type": "technical_paper",
+          "authors": [
+            "Max Schemmer",
+            "Niklas Kuehl",
+            "Carina Benz",
+            "Andrea Bartos",
+            "Gerhard Satzger"
+          ],
+          "publication_date": "2023-3-27",
+          "citationKey": "schemmerAppropriateRelianceAI2023"
+        },
+        {
+          "title": "The Impact of Imperfect XAI on Human-AI Decision-Making",
+          "url": "https://doi.org/10.1145/3641022",
+          "source_type": "application_paper",
+          "authors": [
+            "Katelyn Morrison",
+            "Philipp Spitzer",
+            "Violet Turri",
+            "Michelle Feng",
+            "Niklas Kühl",
+            "Adam Perer"
+          ],
+          "publication_date": "2024-4-17",
+          "citationKey": "morrisonImpactImperfectXAI2024"
+        },
+        {
+          "title": "Majority voting of doctors improves appropriateness of AI reliance in pathology",
+          "url": "https://doi.org/10.1016/j.ijhcs.2024.103315",
+          "source_type": "application_paper",
+          "authors": [
+            "Hongyan Gu",
+            "Chunxu Yang",
+            "Shino Magaki",
+            "Neda Zarrin-Khameh",
+            "Nelli S. Lakis",
+            "Inma Cobos",
+            "Negar Khanlou",
+            "Xinhai R. Zhang",
+            "Jasmeet Assi",
+            "Joshua T. Byers",
+            "Ameer Hamza",
+            "Karam Han",
+            "Anders Meyer",
+            "Hilda Mirbaha",
+            "Carrie A. Mohila",
+            "Todd M. Stevens",
+            "Sara L. Stone",
+            "Wenzhong Yan",
+            "Mohammad Haeri",
+            "Xiang ‘Anthony’ Chen"
+          ],
+          "publication_date": "2024-10",
+          "citationKey": "guMajorityVotingDoctors2024"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Claims handlers shown the highlighted features switched to the fraud model's correct advice on a higher share of disagreement cases than handlers shown the flag alone, and the share in which they kept a correct decision against wrong advice was no more than five percentage points lower, the margin set in the study plan.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "In a vignette study using the decide-first workflow, ward doctors shown the explanation panel kept their correct escalation decision against an incorrect sepsis alert in at least 80% of disagreement cases, and fewer than 10% of all incorrect alerts led to a wrong final decision.",
+          "assuranceGoal": "safety",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For both experienced and beginner volunteers, the share of disagreement cases in which they rejected the classifier's incorrect species identification was no more than five percentage points lower with the chosen explanation format than without it, the margin set in advance.",
+          "assuranceGoal": "explainability",
+          "domain": "environmental"
+        }
+      ]
+    },
+    {
+      "slug": "forward-simulation-test",
+      "name": "Forward Simulation Test",
+      "description": "A forward simulation test checks whether people who have studied a model's explanations can predict the model's output for inputs they have not seen, so it tests with people the understanding an explanation method is assumed to give, where fidelity checks only compare the explanation with the model by computation. Doshi-Velez and Kim proposed it as a human-grounded evaluation of interpretability: participants are given an explanation and an input and must state what the model will output, whether or not that output is correct. In the controlled design of Hase and Bansal, participants study a set of examples with the model's outputs, predict the outputs for a separate set of test inputs, then study the same examples with explanations added and predict the same test inputs again, and the gain in accuracy is credited to the explanations (a separate group that studies the examples without explanations guards against a practice gain); the test inputs are kept apart from the explained examples so that explanations cannot give the answers away, and are chosen so that the model is right and wrong equally often, so that predicting the true label scores no better than chance. A counterfactual variant, in Hase and Bansal's form, shows an input, the model's output and its explanation, and asks what the model will output for an edited version of that input, with edits chosen so that half change the output. The result is the change in the share of correct predictions, with a confidence interval, for each explanation method or design compared; it is evidence that people can anticipate the model on the kind of input tested, not that they make better decisions with it.",
+      "assurance_goals": [
+        "Explainability",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/human-evaluation/understanding-test",
+        "assurance-goal-category/explainability/property/comprehensibility",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/decision-reasons",
+        "data-requirements/test-scenarios",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/human-factors",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/statistics",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Explainability",
+          "description": "A bank's model validation team must choose between feature-attribution bar charts and a short rule list as the explanation shown to credit analysts for a loan-default model. It runs a forward simulation test with 30 credit analysts on past applications, balanced between correct and incorrect model predictions, and adopts the rule list only if its gain over the no-explanation baseline is clearly larger than that of the bar charts; otherwise it treats the two as equal."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An online platform's trust and safety team uses the counterfactual variant to test whether moderators who see which words a toxicity classifier weighted can predict whether it will still flag a comment after one of those words is replaced. A score no better than the baseline tells the team that the highlights do not show how the classifier responds to edits, before it writes moderation guidance that relies on them."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A research team choosing between counterfactual images and saliency heatmaps for a chest X-ray pneumonia classifier shows each group of participants explained example images, then asks them to predict the classifier's decision on 12 other images, three from each cell of its confusion matrix, without explanations. It takes forward to a study with clinicians the explanation whose group predicts best, measured against a group that saw the examples without explanations."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A local authority plans to show caseworkers, who are outside the team that built it, the reasons behind a housing-benefit fraud-risk score. Before releasing the reasons in that form, it runs a forward simulation test with caseworkers on unseen cases, half of them cases the score got wrong, using the reasons exactly as they will appear, and revises them if caseworkers who studied them predict the flag no better than caseworkers who did not."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A pass shows that people can anticipate the model, not that they decide better with it. Buçinca et al. found that results on a task of predicting an AI's decisions did not predict results on the real decision task, and Poursabzi-Sangdeh et al. found that people who could better simulate a simple, clear model did not follow it more when that helped, and in some experiments were less able to correct its large mistakes. A claim about decisions needs a decision study."
+        },
+        {
+          "description": "The test is easily made trivial. If the explained examples are reused as test items, explanations that show the predicted class or a probability give the answer away, and if the model is mostly right, participants can score well by predicting the true label. Hase and Bansal found earlier studies that reused the same items for explanation and prediction; results from such designs overstate what the explanation conveys."
+        },
+        {
+          "description": "Effects are often small against the variation between people and items. With 32 trained undergraduates and about 180 to 320 responses per condition, Hase and Bansal's 95% confidence intervals on the change in accuracy were about 8 to 13 percentage points either side, and only LIME on tabular data clearly improved both forward and counterfactual simulation. A study must be sized for the difference it needs to detect, with a bootstrap over both participants and items."
+        },
+        {
+          "description": "The score holds for the people tested. Many studies use students or crowd workers because domain experts are costly to recruit, which Doshi-Velez and Kim give as the reason this kind of evaluation is cheaper; a result from lay participants does not show that the clinicians, analysts or caseworkers who will use the explanation can predict the model."
+        },
+        {
+          "description": "The before-and-after design credits any gain to the explanations, but participants see the same examples and test items twice, and Hase and Bansal had no group that repeated both phases without explanations, so a practice gain is not ruled out. Their participants also found it hard to remember the explained examples while predicting, so the number of examples and the time allowed must be fixed and reported when methods are compared."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Towards A Rigorous Science of Interpretable Machine Learning",
+          "url": "https://arxiv.org/abs/1702.08608",
+          "source_type": "technical_paper",
+          "authors": [
+            "Finale Doshi-Velez",
+            "Been Kim"
+          ],
+          "publication_date": "2017-03-02",
+          "citationKey": "doshi-velezRigorousScienceInterpretable2017",
+          "abstract": "As machine learning systems become ubiquitous, there has been a surge of interest in interpretable machine learning: systems that provide explanation for their outputs. These explanations are often used to qualitatively assess other criteria such as safety or non-discrimination. However, despite the interest in interpretability, there is very little consensus on what interpretable machine learning is and how it should be measured. In this position paper, we first define interpretability and describe when interpretability is needed (and when it is not). Next, we suggest a taxonomy for rigorous evaluation and expose open questions towards a more rigorous science of interpretable machine learning."
+        },
+        {
+          "title": "InterpretableNLP-ACL2020: code for 'Evaluating Explainable AI: Which Algorithmic Explanations Help Users Predict Model Behavior?'",
+          "url": "https://github.com/peterbhase/InterpretableNLP-ACL2020",
+          "source_type": "software_package",
+          "publication_date": "2026-03-31T10:31:49Z",
+          "citationKey": "haseInterpretableNLPACL2020CodeEvaluating2026",
+          "abstract": "Code for \"Evaluating Explainable AI: Which Algorithmic Explanations Help Users Predict Model Behavior?\""
+        },
+        {
+          "title": "Evaluating Explainable AI: Which Algorithmic Explanations Help Users Predict Model Behavior?",
+          "url": "https://doi.org/10.18653/v1/2020.acl-main.491",
+          "source_type": "application_paper",
+          "authors": [
+            "Peter Hase",
+            "Mohit Bansal"
+          ],
+          "publication_date": "2020",
+          "citationKey": "haseEvaluatingExplainableAI2020"
+        },
+        {
+          "title": "Manipulating and Measuring Model Interpretability",
+          "url": "https://doi.org/10.1145/3411764.3445315",
+          "source_type": "application_paper",
+          "authors": [
+            "Forough Poursabzi-Sangdeh",
+            "Daniel G Goldstein",
+            "Jake M Hofman",
+            "Jennifer Wortman Wortman Vaughan",
+            "Hanna Wallach"
+          ],
+          "publication_date": "2021-5-6",
+          "citationKey": "poursabzi-sangdehManipulatingMeasuringModel2021"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Credit analysts who studied the rule-list explanations predicted the loan-default model's output on unseen applications more accurately than at their no-explanation baseline, on a test set balanced between correct and incorrect model predictions.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Caseworkers who studied the fraud-risk reasons predicted the score's flag on unseen cases, half of them cases the score got wrong, more accurately than caseworkers who studied the same cases without the reasons, and above the accuracy threshold set in the evaluation plan.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Moderators shown the toxicity classifier's word weightings predicted whether an edited comment would still be flagged more accurately than before they saw the weightings, on a set of edits half of which changed the classifier's decision.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        },
+        {
+          "text": "Participants who studied the counterfactual images predicted the pneumonia classifier's decisions on separate, unexplained images more accurately than participants who studied the saliency heatmaps, on a test set in which the classifier was wrong as often as it was right.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "disaggregated-evaluation",
+      "name": "Disaggregated Evaluation",
+      "description": "Disaggregated evaluation assesses and reports a system's performance separately for each group of people a claim covers, and for combinations of groups (intersectional groups, such as darker-skinned women), so that a good overall score cannot hide a group for whom the system works badly. Following Barocas et al. (2021), the evaluator first fixes the design choices that change what the evaluation can show: which groups and combinations to report; how other factors that affect performance, such as lighting or recording conditions, are handled (held constant, varied deliberately, or left as they occur); which metrics to use, for a classifier often false positive and false negative rates reported separately, because each can harm different people; and whether the evaluation is exploratory, or confirmatory, meaning that it tests hypotheses stated in advance on data built to hold enough cases in every group. Each metric is then computed on a labelled evaluation set for every group and combination, together with the number of cases behind it and an interval showing how far the estimate could move through sampling alone, obtained for example by resampling the evaluation set. Groups are compared by absolute and by relative gaps, which can tell different stories: false negative rates of 1 and 10 per cent differ by nine points but tenfold. The output is a table or chart of per-group and per-combination results with their case counts and intervals, and a record of the design choices needed to interpret them; it is this design, more than any one metric or interval method, that decides which comparisons the evaluation can support and how conclusive each is.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/performance-by-group",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/fairness-metric",
+        "expertise-needed/statistics",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Fairness",
+          "description": "Before a hospital trust adopts a supplier's skin-lesion classifier, its clinical safety team reports sensitivity and specificity on locally labelled images for each skin-tone group, sex and age band, and for skin tone crossed with sex. Cells holding fewer melanoma cases than the evaluation protocol requires are marked as too small to estimate rather than reported, and the trust collects more images for them before deciding whether the tool may be used for all patients."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A consumer organisation evaluating the speech-to-text services behind automated phone lines has speakers from several regional and ethnic groups, matched on age and gender, read identical scripted passages, and reports word error rate per group with intervals. Because everyone says the same words, a gap can be attributed to how each service recognises speech rather than to what was said, the evidence the organisation needs for a complaint to the providers."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A bank's model risk team runs a confirmatory evaluation of its fraud model each quarter. The groups (age band, sex and their combinations), the metrics (false positive rate, which drives blocked legitimate payments, and false negative rate), the sample and the largest acceptable gap are fixed in a protocol before the data are drawn, and the model stays in service only if every interval for a gap lies inside that margin."
+        },
+        {
+          "goal": "Fairness",
+          "description": "An exam board piloting an automated essay-scoring model runs an exploratory evaluation of its agreement with human markers, split by first language, school type and their combinations. It finds one weak cell, candidates with English as an additional language at small schools, too small to be conclusive, and commissions a confirmatory study with a sample built to fill that cell before deciding whether the scores can count towards grades."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Each attribute added multiplies the number of cells and shrinks each one, so combinations of attributes soon hold too few cases for a stable estimate, and where a cell holds only a few errors, intervals from resampling come out too narrow. Comparing many cells also throws up some large gaps by chance. A confirmatory claim needs enough cases in every cell, which Barocas et al. note existing datasets rarely provide, so the data available limit which comparisons can be tested."
+        },
+        {
+          "description": "A gap between groups shows that performance differs, not why. Another factor that affects performance may differ between the groups, as with the time between paired images that NIST suggested could explain a higher false negative rate for Asian people in face recognition. Holding such a factor constant hides gaps at its other values, varying it needs the factor labelled for every case, and strongly correlated factors are hard to separate, or impossible when they always occur together."
+        },
+        {
+          "description": "The result is only as good as two sets of labels. Where ground-truth outcomes are wrong, or recorded differently for different groups, and the extent of the error cannot be identified, Barocas et al. note the results are meaningless however careful the design. Group membership is often ascribed by an institution or inferred from appearance, adding errors and possible harm to those labelled, and datasets may hold few of some groups (darker-skinned women were 4.4 per cent of one benchmark)."
+        },
+        {
+          "description": "It measures differences in performance and nothing else. Equal error rates say nothing about whether outputs stereotype or demean people, or whether favourable decisions are shared in proportion, and narrowing a gap under one metric can open a gap under another. A clean result supports a claim about the performance gaps measured, for the groups and conditions tested, and no wider fairness claim."
+        },
+        {
+          "description": "Results on a laboratory dataset may not carry over to the system in use, where lighting, recording conditions and operators' decisions differ, and Barocas et al. note that a component's performance alone may say little about the whole system around it. Evaluating in the setting of use captures this but is costly, and is often impossible for an outside evaluator, who usually sees the system only as a black box."
+        }
+      ],
+      "resources": [
+        {
+          "title": "fairlearn.metrics.MetricFrame (Fairlearn API reference)",
+          "url": "https://fairlearn.org/main/api_reference/generated/fairlearn.metrics.MetricFrame.html",
+          "source_type": "documentation",
+          "citationKey": "FairlearnmetricsMetricFrameFairlearnAPI"
+        },
+        {
+          "title": "fairlearn",
+          "url": "https://github.com/fairlearn/fairlearn",
+          "source_type": "software_package",
+          "publication_date": "2018-05-15",
+          "citationKey": "fairlearnFairlearn2018",
+          "abstract": "A Python package to assess and improve fairness of machine learning models."
+        },
+        {
+          "title": "Designing Disaggregated Evaluations of AI Systems: Choices, Considerations, and Tradeoffs",
+          "url": "https://doi.org/10.1145/3461702.3462610",
+          "source_type": "technical_paper",
+          "authors": [
+            "Solon Barocas",
+            "Anhong Guo",
+            "Ece Kamar",
+            "Jacquelyn Krones",
+            "Meredith Ringel Morris",
+            "Jennifer Wortman Vaughan",
+            "W. Duncan Wadsworth",
+            "Hanna Wallach"
+          ],
+          "publication_date": "2021-7-21",
+          "citationKey": "barocasDesigningDisaggregatedEvaluations2021"
+        },
+        {
+          "title": "Performing a Fairness Assessment (Fairlearn user guide)",
+          "url": "https://fairlearn.org/main/user_guide/assessment/perform_fairness_assessment.html",
+          "source_type": "tutorial",
+          "citationKey": "PerformingFairnessAssessment"
+        },
+        {
+          "title": "Gender Shades: Intersectional Accuracy Disparities in Commercial Gender Classification",
+          "url": "https://proceedings.mlr.press/v81/buolamwini18a.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Joy Buolamwini",
+            "Timnit Gebru"
+          ],
+          "publication_date": "2018-01-21",
+          "citationKey": "buolamwiniGenderShadesIntersectional2018",
+          "abstract": "Recent studies demonstrate that machine learning algorithms can discriminate based on classes like race and gender. In this work, we present an approach to evaluate bias present in automated facial analysis algorithms and datasets with respect to phenotypic subgroups. Using the dermatologist  approved Fitzpatrick Skin Type classification system, we characterize the gender and skin type distribution of two facial analysis benchmarks, IJB-A and Adience. We find that these datasets are overwhelmingly composed of lighter-skinned subjects (79.6% for IJB-A and 86.2% for Adience) and introduce a new facial analysis dataset which is balanced by gender and skin type. We evaluate 3 commercial gender classification systems using our dataset and show that darker-skinned females are the most misclassified group (with error rates of up to 34.7%). The maximum error rate for lighter-skinned males is 0.8%. The substantial disparities in the accuracy of classifying darker females, lighter females, darker males, and lighter males in gender classification systems require urgent attention if commercial companies are to build genuinely fair, transparent and accountable facial analysis algorithms."
+        },
+        {
+          "title": "Racial disparities in automated speech recognition",
+          "url": "https://doi.org/10.1073/pnas.1915768117",
+          "source_type": "application_paper",
+          "authors": [
+            "Allison Koenecke",
+            "Andrew Nam",
+            "Emily Lake",
+            "Joe Nudell",
+            "Minnie Quartey",
+            "Zion Mengesha",
+            "Connor Toups",
+            "John R. Rickford",
+            "Dan Jurafsky",
+            "Sharad Goel"
+          ],
+          "publication_date": "2020-3-23",
+          "citationKey": "koeneckeRacialDisparitiesAutomated2020"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "assuranceGoal": "fairness",
+          "domain": "healthcare",
+          "text": "On the trust's locally labelled images, the skin-lesion classifier's sensitivity for each skin-tone group, and for skin tone crossed with sex, is within 5 percentage points of its overall sensitivity, with the 95 per cent interval for each gap and the number of melanoma cases in each cell reported."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "general",
+          "text": "The groups, combinations, metrics and acceptable gaps for the fairness evaluation were fixed in a protocol before the evaluation data were drawn, and every cell with too few cases to estimate its gap to the agreed precision is reported as untested rather than as passed."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "finance",
+          "text": "In each of the last four quarters, the upper bound of the 95 per cent interval for the difference in false positive rate between each age-and-sex group and the best-served group was below the 1 percentage point margin set in the model risk policy."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "telecommunications",
+          "text": "On identical scripted passages read by speakers matched on age and gender, the upper bound of the 95 per cent interval for each speaker group's gap in word error rate to the best-served group is below the agreed margin."
+        }
+      ]
+    },
+    {
+      "slug": "bias-benchmark-for-question-answering",
+      "name": "Bias Benchmark for Question Answering",
+      "description": "The Bias Benchmark for Question Answering (BBQ) is a fixed set of about 58,500 multiple-choice reading questions that tests whether a language model's answers rely on social stereotypes, across nine social dimensions (age, disability status, gender identity, nationality, physical appearance, race and ethnicity, religion, socio-economic status and sexual orientation) and two combinations of them, using stereotypes documented as harmful in US English-speaking contexts (Parrish et al., 2022). Each item describes two people from different groups and asks a question that points at a stereotype, such as who is bad at maths, with three answers to choose from: either person, or an answer such as 'cannot be determined'; in the ambiguous version the passage does not say which person the question is about, so 'cannot be determined' is correct, and in the disambiguated version an added sentence settles it. Items come in balanced sets that swap the two groups and their order and pair each negative question with a non-negative one, so that a model which simply prefers one group whatever the question is not counted as stereotyping. From the model's chosen answers (generated, or picked by comparing the probabilities it gives the three options) the test reports accuracy in each version and a bias score per category from -100% to 100%: the share of answers naming a person that follow the stereotype, rescaled so that 0 means no consistent direction and a negative score leans against the stereotype, and in the ambiguous version multiplied by the error rate, so that stereotyped guesses weigh more when the model guesses often; it also reports how far accuracy falls when the correct answer goes against the stereotype. Unlike substituting identity terms into a deployer's own inputs, or varying the people shown in few-shot examples, BBQ is a fixed external question set that tests what a model concludes about people when the text does, and does not, support a conclusion.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/test-scenarios",
+        "data-type/text",
+        "evidence-type/fairness-metric",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/ml-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A government department choosing between three language models for a service that answers citizens' questions about benefits runs the full BBQ set on each, with the same prompt, answer extraction and scoring for all three. It compares accuracy and both bias scores category by category, rules out any model whose ambiguous-context bias score in any category is further from zero, in either direction, than a limit set before testing, and records that the result covers US stereotypes only.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A recruitment software company fine-tuning an open-weight model to answer HR helpdesk questions runs BBQ on the base model and on every fine-tuned version through the same evaluation harness, logging each answer. A release is blocked if any category's ambiguous-context bias score moves further from zero than the base model's by more than an agreed margin, or if the accuracy gap between items whose correct answer matches the stereotype and items whose correct answer goes against it widens.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "An NHS trust's digital team preparing a health-information assistant needs evidence about UK stereotypes, which BBQ was not built for. Following the procedure used to build a Korean version, it keeps templates that transfer, changes target groups where UK stereotypes differ, drops those that do not apply, writes UK-specific ones, surveys members of the UK public to confirm each stereotype and its target group, and reports results on the original and adapted sets side by side.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "BBQ's stereotypes, and most of its categories, come from US English-speaking contexts, and its authors say results should not be used as evidence about other cultures. Adapting it to Korean meant changing target groups, dropping templates and adding four categories, and a machine-translated BBQ gave different bias scores from the adapted version (Jin et al., 2024). For a UK deployment the original set says nothing about UK-specific stereotypes."
+        },
+        {
+          "description": "A low bias score is weak evidence that a model is unbiased. Each category rests on about 25 templates with very short passages and three fixed answers; the authors warn that a low score is not proof of an unbiased model, and that for a model used on very different text BBQ is unlikely to be a valid measure. It counts only stereotypes that change the chosen answer, so it misses bias that shifts the model's probabilities without changing its choice."
+        },
+        {
+          "description": "The bias score leaves out 'cannot be determined' answers and has a sign, so it must be read with accuracy and by its distance from zero. A model that always gives that answer has full accuracy and a zero bias score on ambiguous items, yet fails every disambiguated one. A negative score means answers lean against the stereotype, as HELM found for most of the models it tested (Liang et al., 2023); a one-sided limit such as 'below 5%' passes such a model."
+        },
+        {
+          "description": "Scores depend on the prompt format and on how answers are extracted or scored, so they compare only across models tested the same way. In the original study one UnifiedQA model, given the same items in two input formats, scored 2.4 and 18.6 on ambiguous gender-identity items. Results for a single template rest on few items (one reported example has 72), so they are noisy and should be combined across templates for the same stereotype."
+        },
+        {
+          "description": "It is weak evidence about bias against people with two combined identities. In the original study, results on the two intersectional categories (race by gender, race by socio-economic status) were too inconsistent for the authors to conclude that models responded to more than one aspect of identity, and the lm-evaluation-harness task notes that these categories are not really taken into account in its bias scores."
+        }
+      ],
+      "resources": [
+        {
+          "title": "BBQ: Repository for the Bias Benchmark for QA dataset (nyu-mll/BBQ)",
+          "url": "https://github.com/nyu-mll/BBQ",
+          "source_type": "documentation",
+          "publication_date": "2026-10-08T09:56:07Z",
+          "citationKey": "BBQRepositoryBias2026",
+          "abstract": "Repository for the Bias Benchmark for QA dataset."
+        },
+        {
+          "title": "Language Model Evaluation Harness (EleutherAI/lm-evaluation-harness)",
+          "url": "https://github.com/EleutherAI/lm-evaluation-harness",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T04:54:54Z",
+          "citationKey": "LanguageModelEvaluation2026",
+          "abstract": "A framework for few-shot evaluation of language models."
+        },
+        {
+          "title": "BBQ: A hand-built bias benchmark for question answering",
+          "url": "https://doi.org/10.18653/v1/2022.findings-acl.165",
+          "source_type": "technical_paper",
+          "authors": [
+            "Alicia Parrish",
+            "Angelica Chen",
+            "Nikita Nangia",
+            "Vishakh Padmakumar",
+            "Jason Phang",
+            "Jana Thompson",
+            "Phu Mon Htut",
+            "Samuel Bowman"
+          ],
+          "publication_date": "2022",
+          "citationKey": "parrishBBQHandbuiltBias2022"
+        },
+        {
+          "title": "KoBBQ: Korean Bias Benchmark for Question Answering",
+          "url": "https://doi.org/10.1162/tacl_a_00661",
+          "source_type": "application_paper",
+          "authors": [
+            "Jiho Jin",
+            "Jiseon Kim",
+            "Nayeon Lee",
+            "Haneul Yoo",
+            "Alice Oh",
+            "Hwaran Lee"
+          ],
+          "publication_date": "2024",
+          "citationKey": "jinKoBBQKoreanBias2024"
+        },
+        {
+          "title": "Holistic Evaluation of Language Models",
+          "url": "https://arxiv.org/abs/2211.09110",
+          "source_type": "application_paper",
+          "authors": [
+            "Percy Liang",
+            "Rishi Bommasani",
+            "Tony Lee",
+            "Dimitris Tsipras",
+            "Dilara Soylu",
+            "Michihiro Yasunaga",
+            "Yian Zhang",
+            "Deepak Narayanan",
+            "Yuhuai Wu",
+            "Ananya Kumar",
+            "Benjamin Newman",
+            "Binhang Yuan",
+            "Bobby Yan",
+            "Ce Zhang",
+            "Christian Cosgrove",
+            "Christopher D. Manning",
+            "Christopher Ré",
+            "Diana Acosta-Navas",
+            "Drew A. Hudson",
+            "Eric Zelikman",
+            "Esin Durmus",
+            "Faisal Ladhak",
+            "Frieda Rong",
+            "Hongyu Ren",
+            "Huaxiu Yao",
+            "Jue Wang",
+            "Keshav Santhanam",
+            "Laurel Orr",
+            "Lucia Zheng",
+            "Mert Yuksekgonul",
+            "Mirac Suzgun",
+            "Nathan Kim",
+            "Neel Guha",
+            "Niladri Chatterji",
+            "Omar Khattab",
+            "Peter Henderson",
+            "Qian Huang",
+            "Ryan Chi",
+            "Sang Michael Xie",
+            "Shibani Santurkar",
+            "Surya Ganguli",
+            "Tatsunori Hashimoto",
+            "Thomas Icard",
+            "Tianyi Zhang",
+            "Vishrav Chaudhary",
+            "William Wang",
+            "Xuechen Li",
+            "Yifan Mai",
+            "Yuhui Zhang",
+            "Yuta Koreeda"
+          ],
+          "publication_date": "2023-10-01",
+          "citationKey": "liangHolisticEvaluationLanguage2023",
+          "abstract": "Language models (LMs) are becoming the foundation for almost all major language technologies, but their capabilities, limitations, and risks are not well understood. We present Holistic Evaluation of Language Models (HELM) to improve the transparency of language models. First, we taxonomize the vast space of potential scenarios (i.e. use cases) and metrics (i.e. desiderata) that are of interest for LMs. Then we select a broad subset based on coverage and feasibility, noting what's missing or underrepresented (e.g. question answering for neglected English dialects, metrics for trustworthiness). Second, we adopt a multi-metric approach: We measure 7 metrics (accuracy, calibration, robustness, fairness, bias, toxicity, and efficiency) for each of 16 core scenarios when possible (87.5% of the time). This ensures metrics beyond accuracy don't fall to the wayside, and that trade-offs are clearly exposed. We also perform 7 targeted evaluations, based on 26 targeted scenarios, to analyze specific aspects (e.g. reasoning, disinformation). Third, we conduct a large-scale evaluation of 30 prominent language models (spanning open, limited-access, and closed models) on all 42 scenarios, 21 of which were not previously used in mainstream LM evaluation. Prior to HELM, models on average were evaluated on just 17.9% of the core HELM scenarios, with some prominent models not sharing a single scenario in common. We improve this to 96.0%: now all 30 models have been densely benchmarked on the same core scenarios and metrics under standardized conditions. Our evaluation surfaces 25 top-level findings. For full transparency, we release all raw model prompts and completions publicly for further analysis, as well as a general modular toolkit. We intend for HELM to be a living benchmark for the community, continuously updated with new scenarios, metrics, and models."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 3,
+      "acronym": "BBQ",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under the department's fixed prompt and scoring, the selected model's ambiguous-context BBQ bias score was between -5% and +5% in each of the nine categories, and its accuracy on disambiguated items differed by less than 2 percentage points between items whose correct answer matched the stereotype and items whose correct answer did not.",
+          "assuranceGoal": "fairness",
+          "domain": "public sector"
+        },
+        {
+          "text": "No fine-tuned release of the HR helpdesk model has an ambiguous-context BBQ bias score more than 2 percentage points further from zero than the base model's in any category, measured with the same harness version, prompt and scoring.",
+          "assuranceGoal": "fairness",
+          "domain": "general"
+        },
+        {
+          "text": "On a UK-adapted version of BBQ, whose stereotypes and target groups were confirmed by a survey of the UK public before use, the health-information assistant's ambiguous-context bias score was between -5% and +5% in every category and its accuracy on disambiguated items was above 90%.",
+          "assuranceGoal": "fairness",
+          "domain": "healthcare"
+        }
+      ]
     }
   ],
-  "count": 18
+  "count": 24
 }

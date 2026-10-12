@@ -6825,5 +6825,1378 @@
         "domain": "general"
       }
     ]
+  },
+  {
+    "slug": "data-validation-checks",
+    "name": "Data Validation Checks",
+    "description": "Data validation checks apply a written set of rules about what valid data look like to every new batch of data before a model is trained on it or uses it to make predictions, and flag or hold back any batch that breaks them. In Great Expectations (GX Core), a widely used open-source library for this, each rule is an expectation, a declarative assertion such as that a column exists and has a given type, has no missing values or takes values only from an allowed set or within a range (rules on single values can allow a stated share of rows to fail), or keeps a summary statistic (its mean, a quantile, or the divergence of its histogram from one built on reference data) within bounds the team sets. Expectations are grouped into a suite that a checkpoint runs on each batch as it arrives; the result records for every rule whether it passed and how many values broke it, with examples, configured actions can alert the team or update a human-readable report, and the pipeline can be set to stop training or scoring on a batch that failed. Running the same suite on training batches and on the data a deployed model receives catches differences between the two, such as a feature that is always missing in production, before they degrade predictions; unlike out-of-distribution detectors, the checks need no model and judge whole batches against explicit rules rather than scoring single inputs, and unlike runtime monitoring of a deployed model they act before the model sees the data. Unlike a kernel two-sample test, its distribution rules are fixed bounds set by the team, not a statistical test of whether two samples differ.",
+    "assurance_goals": [
+      "Reliability"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/reliability",
+      "assurance-goal-category/reliability/shift-detection",
+      "data-requirements/reference-dataset",
+      "data-type/tabular",
+      "evidence-type/dataset-analysis",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/data-engineering",
+      "expertise-needed/domain-expertise",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring",
+      "technique-type/testing"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every batch of surveillance track reports used by the arrival-time model in 2026 had passed the agreed expectation suite for required fields, units and value ranges; batches that failed were withheld and logged.",
+        "assuranceGoal": "reliability",
+        "domain": "aviation"
+      },
+      {
+        "text": "No monthly retraining of the correction model in 2026 used an extract in which any variable had more than 2 per cent missing values or values outside its station's climatological limits.",
+        "assuranceGoal": "reliability",
+        "domain": "meteorology"
+      },
+      {
+        "text": "Over the last quarter, the daily sample of scored applications met the training data's expectation suite on every field, and no field's share of default values exceeded its share in training by more than one percentage point.",
+        "assuranceGoal": "reliability",
+        "domain": "finance"
+      },
+      {
+        "text": "No deterioration-risk score in 2026 was computed from a laboratory batch that had failed the test-code and unit checks.",
+        "assuranceGoal": "reliability",
+        "domain": "healthcare"
+      }
+    ]
+  },
+  {
+    "slug": "metamorphic-testing",
+    "name": "Metamorphic Testing",
+    "description": "Metamorphic testing checks a model or AI system without needing the correct output for each test input, by checking that the outputs for related inputs stand in a relation that must hold if the system works as intended. The tester first writes metamorphic relations from knowledge of the task, each pairing a change to the input with the change it should cause in the output, or with no change: adding fog to a road image should leave a steering prediction within a set tolerance, adding a few stray sensor points outside the road area should not remove any detected obstacle, and rotating a whole flight scenario should leave its outcome unchanged. Existing test inputs (source cases) are transformed into follow-up inputs according to each relation, the system is run on both, and each pair is checked, with numeric outputs often allowed a tolerance. A violation points to a fault or unwanted behaviour without any labelled answer, unless the relation itself is wrong; the output is the violation rate for each relation with the failing pairs, and a relation that holds on every pair shows only that the outputs agree with each other, not that they are right. Prompt robustness testing and causal discrimination testing in this catalogue each apply one family of invariance relations (meaning-preserving changes to a prompt, and a change of protected attribute), and prompt robustness testing also scores the answers against known ones; metamorphic testing is the general procedure for writing and checking any such relation, including relations that say how the output should change, and needs no known answers.",
+    "assurance_goals": [
+      "Reliability"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/reliability",
+      "assurance-goal-category/reliability/robustness",
+      "data-requirements/test-scenarios",
+      "data-type/any",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/evaluation-design",
+      "expertise-needed/software-engineering",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "technique-type/testing"
+    ],
+    "sample_claims": [
+      {
+        "text": "For every replayed traffic sample in the 2025 test year, swapping aircraft call signs, shifting all timestamps by the same amount and rotating the sample with its wind field left the set of flagged conflict pairs unchanged apart from the swapped labels.",
+        "assuranceGoal": "reliability",
+        "domain": "aviation"
+      },
+      {
+        "text": "Across 3,000 recorded urban frames, adding up to 100 random lidar points outside the mapped road area removed no obstacle that the perception software detected in the original frame.",
+        "assuranceGoal": "reliability",
+        "domain": "automotive"
+      },
+      {
+        "text": "For at least 98 per cent of test cases from the 2025 season, shifting the input radar sequence by up to five grid cells within the interior of the domain shifted the nowcast rain field by the same amount, within the agreed tolerance.",
+        "assuranceGoal": "reliability",
+        "domain": "meteorology"
+      },
+      {
+        "text": "In the new library, reordering the input columns, or adding a constant to any numeric input in both training and scoring data, left every credit-scoring model's predicted probabilities on the full validation set unchanged within the solver's tolerance.",
+        "assuranceGoal": "reliability",
+        "domain": "finance"
+      }
+    ]
+  },
+  {
+    "slug": "reliability-diagram-with-expected-calibration-error",
+    "name": "Reliability Diagram with Expected Calibration Error",
+    "description": "A reliability diagram with expected calibration error (ECE) measures whether a classifier's stated confidence matches how often it is right, so that a reader can tell whether predictions given a probability of 70 per cent come true about 70 per cent of the time. Using labelled cases the model was not trained on, each prediction's confidence (the probability given to the predicted class, or to an event such as rain above a threshold) is placed in one of a fixed number of bins, commonly ten or fifteen equal-width intervals between 0 and 1, and in each bin the average confidence is compared with the observed frequency, the share of its cases in which the predicted class or event actually occurred. The reliability diagram plots observed frequency against average confidence bin by bin, so that bins below the diagonal show overconfidence and bins above it underconfidence, and is usually shown with a histogram of how many cases fall in each bin, which the diagram itself does not show; the ECE condenses the same comparison into one number, the average gap between confidence and observed frequency weighted by each bin's share of the cases, and the maximum calibration error reports the largest gap in any bin. The technique measures and changes nothing: Platt scaling, isotonic regression calibration and temperature scaling repair a model's probabilities, and this measurement, run before and after on the same held-out cases, none of them used to fit the repair, is the evidence that a repair worked.",
+    "assurance_goals": [
+      "Reliability"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "applicable-models/requirements/probabilistic-output",
+      "assurance-goal-category/reliability",
+      "assurance-goal-category/reliability/calibration",
+      "data-requirements/labelled-data",
+      "data-type/any",
+      "evidence-type/quantitative-metric",
+      "evidence-type/visualisation",
+      "expertise-needed/statistics",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring",
+      "technique-type/metric",
+      "technique-type/visualisation"
+    ],
+    "sample_claims": [
+      {
+        "text": "On the held-out 2025 convective season, the nowcast's probabilities of exceeding 25 dBZ at 30-minute lead time have an expected calibration error below 0.01 over ten equal-width bins, no higher than that of the current extrapolation ensemble.",
+        "assuranceGoal": "reliability",
+        "domain": "meteorology"
+      },
+      {
+        "text": "After temperature scaling, the chest X-ray classifier's expected calibration error on the hospital's untouched test split is below 0.03 with 15 equal-width bins, and no bin holding more than 2 per cent of studies shows a gap above five percentage points.",
+        "assuranceGoal": "reliability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "For each practice area with at least 300 evaluation questions, the research assistant's self-reported confidence has an expected calibration error below 0.08 against verified answers.",
+        "assuranceGoal": "reliability",
+        "domain": "legal"
+      },
+      {
+        "text": "In every month of 2026, in each high-score bin fixed at model sign-off, the fraud model's average predicted probability was within two percentage points of the observed fraud rate among transactions with confirmed outcomes.",
+        "assuranceGoal": "reliability",
+        "domain": "finance"
+      }
+    ]
+  },
+  {
+    "slug": "continuous-ranked-probability-score",
+    "name": "Continuous Ranked Probability Score",
+    "description": "The continuous ranked probability score (CRPS) measures the quality of a probabilistic forecast of a numerical quantity, such as tomorrow's temperature or next week's demand, by scoring the whole predicted distribution, not just a single best guess, against the value later observed. For each case it compares the forecast's cumulative distribution (the predicted probability that the outcome will fall below each possible value) with a step that jumps from 0 to 1 at the observed value, squares the gap at every value and adds these up, which is the same as adding up the Brier score of the yes-or-no forecasts 'the outcome will be below this value' over every possible threshold. For a forecast given as an ensemble or a sample it can be computed as the average distance between the members and the observation minus half the average distance between pairs of members, closed forms exist for common distributions such as the Gaussian, and for a single-value forecast it reduces to the absolute error, so probabilistic and deterministic forecasts can be compared directly. The score is proper: a forecaster expects the best score by reporting the distribution they actually believe, so it cannot be improved on average by making forecasts narrower or wider than warranted, and it is lowest when the forecast distribution matches how outcomes actually vary. Scores are averaged over many cases, are in the units of the forecast quantity with lower values better, and are often reported as a skill score relative to a reference forecast such as climatology (the long-run historical distribution), giving evidence for claims about the accuracy of a forecaster's probabilities by variable, location and lead time.",
+    "assurance_goals": [
+      "Reliability"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "applicable-models/requirements/probabilistic-output",
+      "assurance-goal-category/reliability",
+      "assurance-goal-category/reliability/performance-assessment",
+      "data-requirements/labelled-data",
+      "data-type/time-series",
+      "data-type/tabular",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/statistics",
+      "technique-type/metric",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "Over the 2025 verification year, the machine-learning ensemble has a lower mean fair CRPS for 2-metre temperature than the operational ensemble at every lead time from one to ten days, averaged over all stations in the service area.",
+        "assuranceGoal": "reliability",
+        "domain": "environmental"
+      },
+      {
+        "text": "The one-week-ahead bed-occupancy forecast has had a positive CRPS skill score relative to a seasonal naive forecast in every rolling eight-week window since it entered use.",
+        "assuranceGoal": "reliability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Scored against metered output over the winter season, the selected vendor's probabilistic wind-power forecasts have a lower mean CRPS than the alternative vendor's, and also a lower mean when the score is weighted towards high output, with both averages taken over all hours.",
+        "assuranceGoal": "reliability",
+        "domain": "energy"
+      },
+      {
+        "text": "The comparison between the 20-member and 50-member ensemble systems used the fair version of the CRPS, so the reported difference does not reflect ensemble size.",
+        "assuranceGoal": "reliability",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "explainer-latency-benchmarking",
+    "name": "Explainer Latency Benchmarking",
+    "description": "Explainer latency benchmarking measures how long an explanation method takes to produce an explanation for a single prediction, on the hardware, software and settings it will run with, and compares the result with the time that the decision it supports allows. The evaluator first sets the time budget, the share of the time the decision allows that is left for the explanation once the prediction is ready, then runs the explainer exactly as it will be deployed (the same model, background data, number of samples and batch size) on a representative set of real inputs, timing each explanation from request to a result ready to display, after warm-up runs and with one-off set-up costs, such as building the explainer, recorded separately. Because the time varies with the model, the data, the hardware and the load on the system, each configuration is timed many times, as machine-learning inference benchmarks such as MLPerf Inference time a model, under realistic concurrent demand where the explainer runs as a shared service, and the result is reported as a distribution: the median, high percentiles such as the 95th or 99th, the slowest case and the share of explanations over budget. Canha et al.'s benchmark framework for explanation methods, which scores methods on properties measurable without human participants, includes this property under the name speed and rates it on a five-level scale with cut-offs at 0.1, 1, 5 and 10 seconds aligned with human response-time limits; the scale suits comparisons between methods, while a claim about a deployment needs the measured percentiles set against that deployment's own budget. The output is a latency profile for each explainer configuration, recorded with its hardware, software versions and load, which shows whether explanations will arrive in time and lets a team choose between explainers and settings on speed alongside the explanation quality measured by other tests.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/explanation-evaluation",
+      "assurance-goal-category/explainability/property/efficiency",
+      "explanatory-scope/local",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/software-engineering",
+      "expertise-needed/ml-engineering",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "On the production review server at peak queue load, 99 per cent of feature attributions for held transactions were delivered within the two-second budget set by the fraud-review workflow, measured over more than 300,000 explanations.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "The explainer configuration whose latency was benchmarked, including its background data and number of samples, is the same configuration whose faithfulness and stability were evaluated.",
+        "assuranceGoal": "explainability",
+        "domain": "general"
+      },
+      {
+        "text": "After the latest model update, explanation latency was re-measured on the hospital's production servers at typical alert volume, and both the 95th percentile and the slowest case remained within the one-second limit agreed with clinical users.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "On the listing-review service's production servers, with a week of recorded traffic replayed at its real pace, both the 95th-percentile and the slowest explanation times, including requests after quiet periods, were within the three-second budget.",
+        "assuranceGoal": "explainability",
+        "domain": "e-commerce"
+      }
+    ]
+  },
+  {
+    "slug": "kernel-two-sample-test",
+    "name": "Kernel Two-Sample Test (Maximum Mean Discrepancy)",
+    "description": "A kernel two-sample test checks whether two sets of data could have come from the same distribution; in assurance it is used to check whether the inputs a deployed model now receives still resemble the data on which it was validated, and to detect when they stop doing so. Its statistic, the maximum mean discrepancy (MMD), is built from a kernel, a function that scores how similar two data points are (commonly a Gaussian function of the distance between them), and in its usual squared form it is the average similarity among points in the reference sample, plus the average similarity among points in the new sample, minus twice the average similarity between points from different samples. With a characteristic kernel such as the Gaussian, the population value is zero only when the two distributions are identical, so the test can respond to any kind of difference, including a change in how features vary together that tests applied to one feature at a time cannot see, and kernels exist for strings and graphs as well as numerical vectors. To obtain a p-value, the two samples are pooled and repeatedly divided at random into groups of the original sizes, the statistic is recomputed for each division, and the p-value is the share of divisions giving a value at least as large as the one observed; high-dimensional inputs such as images are usually first reduced to a short vector, for example the code of an autoencoder or the model's predicted class probabilities. The output, for each window of new data, is the MMD value and its p-value at a stated significance level, which shows whether that window differs detectably from the reference, but not whether the difference affects the model's accuracy.",
+    "assurance_goals": [
+      "Reliability"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/reliability",
+      "assurance-goal-category/reliability/shift-detection",
+      "data-requirements/reference-dataset",
+      "data-type/any",
+      "evidence-type/statistical-test",
+      "expertise-needed/statistics",
+      "expertise-needed/ml-engineering",
+      "technique-type/algorithmic",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "Applied to autoencoder representations of 500 images from each source, the kernel two-sample test found no significant difference at the 1 per cent level between the new hospital's chest X-rays and the validation images, and the same test detected the simulated scanner changes that had reduced the model's accuracy in validation.",
+        "assuranceGoal": "reliability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Every alarm raised by the nightly kernel two-sample test on the fraud model's inputs in the past six months was followed within two working days by an accuracy check on newly labelled cases, and each check either met the accuracy requirement or led to retraining.",
+        "assuranceGoal": "reliability",
+        "domain": "finance"
+      },
+      {
+        "text": "In each weekly window since deployment, the loan-application model's production inputs showed no difference from its validation sample detectable by the agreed kernel two-sample test, at a significance level corrected for weekly repetition, and the same test detected the input shifts that had reduced the model's accuracy in pre-deployment trials.",
+        "assuranceGoal": "reliability",
+        "domain": "finance"
+      },
+      {
+        "text": "Replayed on reference data alone, the drift monitor's kernel two-sample test raised false alarms at no more than the configured rate of one per quarter.",
+        "assuranceGoal": "reliability",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "rolling-origin-evaluation",
+    "name": "Rolling-Origin Evaluation",
+    "description": "Rolling-origin evaluation, also called time-series cross-validation or backtesting, estimates how accurately a forecasting model will predict the future by repeatedly recreating the position it will be in when used: trained only on data up to a point in time, it forecasts the period that follows. The evaluator chooses a first forecast origin (the last time point the model may see) late enough to leave adequate training data, fits the model on the data up to that origin, forecasts every step of a fixed horizon ahead, for example one to seven days, and records the error at each lead time against the values later observed. The origin then moves forward by one step or a block of steps and the process repeats, with the model either refitted at each origin on all the data so far or on a window of fixed length (recalibration, in Tashman's terms), or kept unchanged and simply given the new observations as inputs (updating), whichever matches how it will be maintained in service. Because every forecast uses only data from before its origin, the method avoids the leakage of future information that randomly shuffled cross-validation can cause on time-ordered data, and because it uses many test periods rather than the single one of a fixed train-test split, its result depends less on which period happened to be held out. The output is the forecast error, under whatever error measure suits the forecast, broken down by lead time and by origin date for each candidate model, which supports claims about expected accuracy on unseen future data over a stated horizon and shows how that accuracy varies across seasons and conditions.",
+    "assurance_goals": [
+      "Reliability"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/reliability",
+      "assurance-goal-category/reliability/performance-assessment",
+      "data-requirements/labelled-data",
+      "data-requirements/access-to-training-data",
+      "data-type/time-series",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/statistics",
+      "expertise-needed/ml-engineering",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training",
+      "lifecycle-stage/model-development/model-testing-and-validation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Across daily forecast origins over the two most recent years, the new day-ahead demand model has a lower mean absolute error than the current model at every lead time from one to 48 half-hours, and the difference is significant under a test designed for serially correlated forecast errors.",
+        "assuranceGoal": "reliability",
+        "domain": "energy"
+      },
+      {
+        "text": "With weekly refitting matching the planned retraining schedule, the seven-day-ahead admissions forecast stayed within the agreed error limit in every month of the two-year rolling-origin evaluation, including both winters.",
+        "assuranceGoal": "reliability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Every scaling, feature-selection and tuning step behind the reported forecast errors used only data available before each forecast origin.",
+        "assuranceGoal": "reliability",
+        "domain": "general"
+      },
+      {
+        "text": "The temperature correction reduces ten-day-ahead forecast error in each of the three winters covered by the rolling-origin evaluation, not only on average across them.",
+        "assuranceGoal": "reliability",
+        "domain": "environmental"
+      }
+    ]
+  },
+  {
+    "slug": "deletion-and-insertion-curves",
+    "name": "Deletion and Insertion Curves",
+    "description": "Deletion and insertion curves test whether a feature-attribution explanation, such as a heatmap over an image or highlighted words in a text, puts first the input features the model actually relies on. For the deletion curve, the evaluator removes features in the order the explanation ranks them, most important first, replacing each with a neutral value such as zero, the dataset mean, random noise or a blurred copy, and records the model's score for the explained class after each step; a faithful ranking makes the score fall quickly, so a smaller area under the curve is better (equivalently, a larger area over it, the AOPC score Samek et al. report). The insertion curve runs the other way: it starts from an input with every feature removed or blurred, restores features in ranked order, and rewards a fast rise. For text, the same procedure is often reported as comprehensiveness (how far the predicted-class probability drops when the top-ranked words are deleted) and sufficiency (how far it drops when only those words are kept), either at one cut-off or averaged over cut-offs from the top 1% to the top 50% of words. Explanation methods are compared on the same model, inputs and replacement value, against a random ranking as a baseline, and the result shows how well the ranking tracks the model's behaviour, not whether the highlighted features make sense to a person.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/explanation-evaluation",
+      "explanatory-scope/local",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability/property/fidelity",
+      "data-requirements/no-special-requirements",
+      "data-type/image",
+      "data-type/text",
+      "data-type/time-series",
+      "evidence-type/quantitative-metric",
+      "evidence-type/visualisation",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/evaluation-design",
+      "technique-type/testing"
+    ],
+    "sample_claims": [
+      {
+        "text": "Across a held-out set of ECGs, perturbing the sample points ranked highest by the selected heatmap method raises the interval-measurement error faster than perturbing points ranked by random heatmaps, by at least the margin set in the validation plan, measured by the area under the error curve over the first 15 perturbation steps.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "The word highlights shown to complaint caseworkers exceed randomly ranked words by at least the margin set in the validation plan on both comprehensiveness and sufficiency (higher comprehensiveness, lower sufficiency) on the validation sample, averaged over the 1, 5, 10, 20 and 50% cut-offs.",
+        "assuranceGoal": "explainability",
+        "domain": "public sector"
+      },
+      {
+        "text": "The heatmap method used in the track-inspection tool has a smaller deletion area and a larger insertion area than the other candidate methods on the validation images, under both replacement values tested.",
+        "assuranceGoal": "explainability",
+        "domain": "transport"
+      }
+    ]
+  },
+  {
+    "slug": "explanation-infidelity",
+    "name": "Explanation Infidelity",
+    "description": "Explanation infidelity scores a feature-attribution explanation (one importance score per input feature) by how well it predicts what the model does when the input is changed. The evaluator chooses a distribution of meaningful perturbations, for example small random noise around a reference input, or setting random subsets of features or square patches of an image to a reference value, and draws many perturbations from it. For each one it compares the change in output that the explanation predicts, the sum over features of each feature's perturbation multiplied by its attribution score, with the change the model actually shows, its output on the original input minus its output on the perturbed one. Infidelity is the average squared difference between the two, estimated by random sampling, so lower is better; Yeh et al. (2019), who proposed it, showed that several common explanation methods each have the lowest infidelity for one particular perturbation distribution, so the distribution chosen defines what counts as faithful in a given test. Scores are averaged over a set of inputs and compared across explanation methods, or across settings of one method, under the same perturbations; unlike a deletion curve, the score uses the size of each attribution as well as its rank.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/explanation-evaluation",
+      "explanatory-scope/local",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability/property/fidelity",
+      "data-requirements/no-special-requirements",
+      "data-type/image",
+      "data-type/tabular",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/statistics",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/model-updating-or-deprovisioning",
+      "technique-type/metric"
+    ],
+    "sample_claims": [
+      {
+        "text": "Under the documented perturbation distribution, the attribution method that supplies credit analysts' reason scores has the lowest rescaled infidelity of the candidate methods on the held-out applications.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "The smoothing level used for weld-radiograph heatmaps gives lower mean infidelity under square-patch perturbations than the unsmoothed heatmaps on the validation radiographs.",
+        "assuranceGoal": "explainability",
+        "domain": "manufacturing"
+      },
+      {
+        "text": "After each quarterly retraining, the deployed attribution settings have the lowest rescaled infidelity of the settings compared on current validation data, under the perturbation distribution fixed when the explainer was first validated.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      }
+    ]
+  },
+  {
+    "slug": "explanation-max-sensitivity",
+    "name": "Explanation Max-Sensitivity",
+    "description": "Explanation max-sensitivity measures how stable an explanation is: whether inputs that differ only slightly, in ways that should not change the answer, receive very different explanations. For each input, the evaluator samples many nearby points within a small radius (for example, no feature moved by more than 0.02 on a 0 to 1 scale), recomputes the explanation at each with the same explanation method, and records the largest distance between a recomputed explanation and the original; Yeh et al. (2019) defined the measure and estimated it by random sampling. Dividing each change in the explanation by the distance the input moved, and taking the largest ratio, gives the closely related local Lipschitz estimate of Alvarez-Melis and Jaakkola (2018), which they maximised with an optimiser rather than by sampling; the two are not interchangeable, because the ratio is dominated by the smallest input changes and can be unbounded where max-sensitivity is finite, so they can rank methods differently. Lower scores mean a more stable explanation, and scores are compared across explanation methods, or across settings of one method, on the same inputs, radius and distance measure. The test treats the explanation method as a black box, so it applies to attribution scores from any method, but on its own it says nothing about faithfulness: a constant explanation that ignores the model is perfectly stable.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/explanation-evaluation",
+      "explanatory-scope/local",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability/property/consistency",
+      "data-requirements/no-special-requirements",
+      "data-type/image",
+      "data-type/tabular",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/statistics",
+      "technique-type/metric"
+    ],
+    "sample_claims": [
+      {
+        "text": "On a held-out sample of declined applications, the largest change in normalised attribution scores under perturbations within the lending policy's immaterial bounds stays below the agreed threshold for at least 95% of applications.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "The attribution method used for land-cover analysts has the lowest mean max-sensitivity of the candidate methods on the validation patches at the stated radius and sample count, and a steeper deletion curve than a random ranking.",
+        "assuranceGoal": "explainability",
+        "domain": "environmental"
+      },
+      {
+        "text": "At the noise level used to smooth the perception system's heatmaps, mean infidelity on validation frames is no higher than at any lower level tested, and mean max-sensitivity is within the tolerance stated in the test plan of the lowest value reached across the levels tested.",
+        "assuranceGoal": "explainability",
+        "domain": "autonomous systems"
+      }
+    ]
+  },
+  {
+    "slug": "sanity-checks-for-saliency-maps",
+    "name": "Sanity Checks for Saliency Maps",
+    "description": "Sanity checks for saliency maps are two randomisation tests that show whether an explanation method's output depends on what a neural network has learned, or would look much the same for a network that had learned nothing. In the model parameter randomisation test, the evaluator recomputes explanations for a fixed set of inputs after replacing the trained weights with random ones, either cumulatively from the output layer down towards the input (cascading randomisation) or one layer at a time with the others left trained (independent randomisation). In the data randomisation test, the evaluator trains a copy of the same architecture on the training data with the labels shuffled, until it has memorised them, and compares its explanations with those of the model trained on the true labels. Similarity between original and randomised explanations is measured with rank correlation, with and without absolute values, and with image similarity scores such as the structural similarity index; a method whose maps stay similar fails, because its output cannot reflect the learned weights or the relationship between inputs and labels, as Guided Backpropagation and Guided GradCAM failed in the original study when the upper layers were randomised, while plain gradients and GradCAM passed. Passing is a necessary condition, not proof of a good explanation: it shows a method responds to the model, not that its explanations are faithful or useful.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/explanation-evaluation",
+      "explanatory-scope/local",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/requirements/white-box",
+      "applicable-models/requirements/model-internals",
+      "assurance-goal-category/explainability/property/fidelity",
+      "data-requirements/access-to-training-data",
+      "data-requirements/labelled-data",
+      "data-type/image",
+      "data-type/tabular",
+      "data-type/time-series",
+      "evidence-type/quantitative-metric",
+      "evidence-type/visualisation",
+      "expertise-needed/deep-learning",
+      "expertise-needed/ml-engineering",
+      "technique-type/testing"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every saliency method used in the chest-radiograph review tool produced maps whose structural similarity to the original fell below the agreed threshold once the top blocks of the network were randomised, on a held-out sample of radiographs.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "For the fraud model's attribution scores, rank correlation without absolute values between original and layer-randomised attributions is below the threshold set in the validation plan for every layer tested.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "Heatmaps from the methods kept for the gearbox dashboard differ between the network trained on true fault labels and the same architecture trained on shuffled labels, by more than the threshold stated in the test report.",
+        "assuranceGoal": "explainability",
+        "domain": "energy"
+      }
+    ]
+  },
+  {
+    "slug": "diverse-counterfactual-explanations",
+    "name": "Diverse Counterfactual Explanations",
+    "description": "Diverse Counterfactual Explanations (DiCE) explains one decision of a classifier by generating several altered versions of the input, called counterfactuals, each changed just enough that the model would have given the other outcome, and chosen to differ from one another so that a person sees several distinct ways the result could have been different. Where the contrastive explanation method returns, for one input, a minimal set of features that must be present and a minimal set that must stay absent, DiCE returns several complete alternative inputs at once, within limits the user sets on which features may change and over what range. In the original method all the counterfactuals are optimised together by gradient descent on a loss with three parts: a hinge loss that pushes each across the model's decision threshold, a distance term (each continuous feature's change divided by its median absolute deviation in the training data, plus the share of categorical features changed) that keeps each close to the original, and a diversity term, the determinant of a similarity matrix between them, that rewards them for differing. Afterwards, small changes are reset to their original values for as long as the counterfactual still gets the other outcome, to make it sparser, and counterfactuals that break causal rules supplied by the user, such as gaining a degree without growing older, can be filtered out. The method as published needs a differentiable model such as a neural network; the reference library adds random-sampling, genetic-algorithm and nearest-training-example searches that need only the model's predictions.",
+    "assurance_goals": [
+      "Explainability",
+      "Transparency"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/paradigm/supervised",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/instance-based/counterfactual",
+      "assurance-goal-category/explainability/explains/decision-boundaries",
+      "assurance-goal-category/explainability/property/counterfactual-validity",
+      "assurance-goal-category/explainability/property/sparsity",
+      "assurance-goal-category/transparency",
+      "assurance-goal-category/transparency/notice-and-recourse",
+      "data-requirements/no-special-requirements",
+      "data-type/tabular",
+      "evidence-type/structured-output",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/ml-engineering",
+      "explanatory-scope/local",
+      "technique-type/algorithmic",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "For 500 sampled refused applications, no counterfactual reached approval by changing only the postcode or another field on the agreed list of proxies for protected characteristics.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "Every refusal letter issued since the model release contains at least two counterfactuals that change only features on the agreed list of applicant-changeable features, each re-scored against the model version in use on the day the letter was sent and confirmed to reach approval.",
+        "assuranceGoal": "transparency",
+        "domain": "finance"
+      },
+      {
+        "text": "For 100 sampled patients, clinicians found no case in which the cardiovascular-risk classifier's counterfactuals, restricted to modifiable risk factors, reached a lower risk category through a change contrary to clinical guidance.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Re-running counterfactual generation with the recorded settings and seed reproduces the counterfactual sets given to applicants for all audited cases.",
+        "assuranceGoal": "transparency",
+        "domain": "finance"
+      },
+      {
+        "text": "In a comprehension test of the draft refusal letter with 50 recent applicants, at least 80% named a change that would have led to approval, and at least 80% correctly said that the options do not guarantee approval if they reapply.",
+        "assuranceGoal": "transparency",
+        "domain": "finance"
+      }
+    ]
+  },
+  {
+    "slug": "gnnexplainer",
+    "name": "GNNExplainer",
+    "description": "GNNExplainer explains one prediction of a graph neural network, a model that passes information along the edges of a graph such as a molecule, a payment network or a mesh of weather grid points, by finding a small subgraph and a small set of input features that most support that prediction. Explanation methods for flat inputs, such as SHAP and LIME, give each input feature its own score and have no built-in notion of a connection between two nodes; this method scores the connections themselves, restricted to the part of the graph the model actually reads for the prediction (its computation graph, the neighbourhood within as many hops as the model has message-passing layers). It learns a mask with a value between 0 and 1 for each edge of that computation graph and for each node-feature dimension by gradient descent: the masked graph is fed to the model, and the masks are adjusted to keep the predicted label as likely as possible while penalties keep the total mask small and push values towards 0 or 1. Edges and features whose mask values fall below a threshold are then dropped, leaving a compact subgraph and feature subset that can be drawn over the input graph; the same procedure explains node labels, predicted links and whole-graph labels, and the original paper also aligns the explanations of many nodes of one class into a summary pattern. It needs gradient access to the model, and each explanation is a separate optimisation.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/requirements/gradient-access",
+      "applicable-models/requirements/differentiable",
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+      "assurance-goal-category/explainability/explains/feature-importance",
+      "assurance-goal-category/explainability/property/sparsity",
+      "data-requirements/no-special-requirements",
+      "evidence-type/structured-output",
+      "evidence-type/visualisation",
+      "expertise-needed/deep-learning",
+      "expertise-needed/domain-expertise",
+      "explanatory-scope/local",
+      "technique-type/algorithmic",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring",
+      "data-type/graph",
+      "applicable-models/architecture/neural-networks/graph"
+    ],
+    "sample_claims": [
+      {
+        "text": "For at least 90% of the validation molecules the toxicity model flags as mutagenic, the explanation subgraph contains a recognised structural alert, and deleting the explanation subgraph removes the flag for at least 80% of them.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Across 300 sampled money-mule flags, branch and account-opening channel are never among the three node features with the highest mask values in the explanation.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "For each of the 20 high-impact rainfall forecasts reviewed, forecasters judged the selected connections and input variables physically plausible, and removing the selected connections changed the forecast total by more than the agreed tolerance.",
+        "assuranceGoal": "explainability",
+        "domain": "environmental"
+      },
+      {
+        "text": "Repeating each reviewed explanation from five random starting masks gives ten highest-weighted edge sets whose pairwise Jaccard index is at least 0.8.",
+        "assuranceGoal": "explainability",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "sparse-autoencoder-feature-analysis",
+    "name": "Sparse Autoencoder Feature Analysis",
+    "description": "Sparse autoencoder feature analysis looks for human-interpretable units inside a neural network, usually a language model, by learning from the activations at one layer a large dictionary of directions, called features, such that each activation vector can be rebuilt from only a few of them. Unlike neuron activation analysis it does not take the network's own neurons as the units, since single neurons often respond to several unrelated things, and unlike concept activation vectors it needs no labelled examples of a concept chosen in advance, because the features are found without supervision. The analyst records activations at the chosen layer over a large body of ordinary text and trains an autoencoder, a network with one hidden layer usually several times wider than the layer studied, to reconstruct them while a sparsity penalty keeps most hidden units at zero; the decoder weights of each hidden unit then give one feature direction. Each feature is labelled from the inputs on which it fires most strongly, by a person or by a language model that writes a description, which is then scored on how well it predicts the feature's activations on other text, and the label is tested by removing or amplifying the feature inside the running model and checking the change in output. The output is a catalogue of labelled features with example activations, interpretability scores and measured effects, plus a reconstruction score saying how much of the layer's behaviour the dictionary accounts for; the features can then serve as units for causal mediation analysis, which traces pathways, while this method finds and checks the units themselves.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks/transformer",
+      "applicable-models/architecture/neural-networks/transformer/llm",
+      "applicable-models/requirements/model-internals",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/representation-analysis/concept-identification",
+      "assurance-goal-category/explainability/explains/internal-mechanisms",
+      "assurance-goal-category/explainability/property/comprehensibility",
+      "assurance-goal-category/explainability/property/sparsity",
+      "data-requirements/no-special-requirements",
+      "data-type/text",
+      "evidence-type/quantitative-metric",
+      "evidence-type/qualitative-report",
+      "expertise-needed/deep-learning",
+      "expertise-needed/ml-engineering",
+      "explanatory-scope/global",
+      "explanatory-scope/local",
+      "technique-type/algorithmic",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Substituting the sparse autoencoder's reconstruction for the audited layer recovers at least 90% of that layer's contribution to next-token loss on the audit prompts.",
+        "assuranceGoal": "explainability",
+        "domain": "general"
+      },
+      {
+        "text": "Each feature cited in the refusal analysis has a description that predicts its activations on held-out prompts with a correlation of at least 0.5, and suppressing it lowers the refusal rate on the investment-advice test set by at least 20 percentage points.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "None of the 50 features with the largest effect on the triage model's 'urgent' score on the validation set responds mainly to the referring practice's letter template.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Features in the protein model labelled as binding-site detectors activate on annotated binding-site residues of held-out proteins with a precision of at least 0.8, and the same features appear in a second autoencoder trained with a different seed.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      }
+    ]
+  },
+  {
+    "slug": "timeshap",
+    "name": "TimeSHAP",
+    "description": "TimeSHAP explains one prediction of a model that reads a sequence of events, such as a recurrent neural network that scores a bank transaction using the account's history, by giving each past event, each input feature and selected event-feature cells a Shapley value: a share of the score, taken from cooperative game theory, such that all the shares add up to the difference between the model's score and its score with every event and feature removed. It adapts KernelSHAP, the sampling estimator in SHAP, which explains a single input vector and so, applied to the latest event of a recurrent model, gives earlier events no credit; TimeSHAP instead switches off whole rows or columns of the event-by-feature input matrix, replacing them with a background value (the training-data average in the original paper), queries the model on many such perturbed sequences, and fits a weighted linear model whose coefficients are the attributions. Because the number of event combinations doubles with every event, a pruning step first walks back from the most recent event and merges all older events into a single player once their combined attribution falls below a chosen tolerance, and cell-level values are computed only where the most important events and features intersect, with the other cells grouped. The model is treated as a black box that takes a batch of sequences and returns one score per sequence, and the output is event, feature and cell attributions for each explained sequence, plus plots that aggregate them across many sequences into a global view.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks/recurrent",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+      "assurance-goal-category/explainability/explains/feature-importance",
+      "assurance-goal-category/explainability/property/completeness",
+      "data-requirements/reference-dataset",
+      "data-type/time-series",
+      "evidence-type/quantitative-metric",
+      "evidence-type/visualisation",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/domain-expertise",
+      "explanatory-scope/local",
+      "explanatory-scope/global",
+      "technique-type/algorithmic",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "On a sample of 1,000 alerts from the account-takeover model, the five features with the largest mean absolute TimeSHAP attribution are all on the fraud team's list of recognised account-takeover indicators.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "Clinicians reviewing the event- and feature-level attributions for 200 test-set patients judged the leading drivers of the escalation model clinically plausible in at least 90% of cases, and each implausible case was traced to a documented data or model issue.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "For 95% of the fog warnings explained in validation, observations more than 12 hours before the forecast time carry less than 10% of the summed absolute event attribution.",
+        "assuranceGoal": "explainability",
+        "domain": "aviation"
+      },
+      {
+        "text": "With the background and pruning tolerance fixed in the validation plan, ten repeated TimeSHAP runs on the validation sample give event attributions whose relative standard deviation is below 0.5.",
+        "assuranceGoal": "explainability",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "appropriate-reliance-measurement",
+    "name": "Appropriate Reliance Measurement",
+    "description": "Appropriate reliance measurement tests whether people who receive an AI system's advice follow it when it is right and keep their own judgement when it is wrong, and whether an explanation, or another aid such as a confidence score, moves them towards that pattern. It uses a two-step decision study on a classification task, the only kind Schemmer et al. define it for: for each task item the participant first decides alone, then sees the AI's advice, with or without the explanation, and makes a final decision, on a set of items with known correct answers drawn so that the AI is wrong on a known share of them. Only items on which the first decision and the advice disagree are counted, because when they agree the final decision cannot show which source the person relied on. Schemmer et al. define two rates over these items: relative AI reliance, the share of items with a wrong first decision and correct advice on which the person switched to the advice, and relative self-reliance, the share of items with a correct first decision and wrong advice on which the person kept their own answer. Comparing the two rates between an explanation condition and a control condition shows whether the explanation reduces under-reliance (rejecting correct advice), reduces over-reliance (accepting wrong advice) or merely raises agreement with the AI, which overall accuracy or agreement with the AI does not show on its own.",
+    "assurance_goals": [
+      "Explainability",
+      "Safety"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/human-evaluation/decision-study",
+      "assurance-goal-category/explainability/property/decision-support",
+      "assurance-goal-category/safety",
+      "assurance-goal-category/safety/verification",
+      "data-requirements/labelled-data",
+      "data-requirements/test-scenarios",
+      "data-type/any",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/human-factors",
+      "expertise-needed/evaluation-design",
+      "expertise-needed/statistics",
+      "expertise-needed/domain-expertise",
+      "technique-type/metric",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Claims handlers shown the highlighted features switched to the fraud model's correct advice on a higher share of disagreement cases than handlers shown the flag alone, and the share in which they kept a correct decision against wrong advice was no more than five percentage points lower, the margin set in the study plan.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "In a vignette study using the decide-first workflow, ward doctors shown the explanation panel kept their correct escalation decision against an incorrect sepsis alert in at least 80% of disagreement cases, and fewer than 10% of all incorrect alerts led to a wrong final decision.",
+        "assuranceGoal": "safety",
+        "domain": "healthcare"
+      },
+      {
+        "text": "For both experienced and beginner volunteers, the share of disagreement cases in which they rejected the classifier's incorrect species identification was no more than five percentage points lower with the chosen explanation format than without it, the margin set in advance.",
+        "assuranceGoal": "explainability",
+        "domain": "environmental"
+      }
+    ]
+  },
+  {
+    "slug": "explanation-satisfaction-scale",
+    "name": "Explanation Satisfaction Scale",
+    "description": "The Explanation Satisfaction Scale is a short questionnaire on which people who have used an AI system's explanations rate how satisfying and sufficient they found them; Hoffman, Mueller, Klein and Litman developed it in the DARPA Explainable AI programme to capture the user's judgement of an explanation, as distinct from a researcher's judgement of its quality. Each item is a statement about the explanation, for example that from it the user understands how the system works, or that it is satisfying, has sufficient detail, seems complete, tells the user how to use the system, is useful to their goals or shows how accurate the system is, and each is rated on a five-point scale from 'I agree strongly' to 'I disagree strongly'. Participants complete it after they have worked with the system and received explanations, usually once for each explanation condition in a study that compares conditions; the published form sets no scoring rule or threshold, and the implementation by one of its authors in the OpenScales library scores it as the mean of the item ratings. Versions differ: the authors' 2018 report gives eight items, their 2023 journal article seven (it drops the item on knowing when to trust the system), and the form on the XAITK site nine (it adds an item on reliability), with a note that researchers may use a subset. The score measures how users judge an explanation, not whether they understood it or decide better with it, and the authors present it beside separate measures of mental models, trust and task performance.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/human-evaluation/rating-scale",
+      "assurance-goal-category/explainability/property/comprehensibility",
+      "data-requirements/test-scenarios",
+      "data-type/any",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/human-factors",
+      "expertise-needed/statistics",
+      "technique-type/metric",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Participants rated the counterfactual explanations higher on the Explanation Satisfaction Scale than the heatmap explanations, and their accuracy in predicting the classifier's decisions was no more than five percentage points below that of the heatmap group, the margin set in the study plan.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Participants rated the causal explanations of the game agent higher than both the simpler explanations and no explanation on the satisfaction, sufficient-detail and completeness items of the Explanation Satisfaction Scale.",
+        "assuranceGoal": "explainability",
+        "domain": "general"
+      },
+      {
+        "text": "Pilot applicants who received the new refusal letter rated its explanation higher on the 'sufficient detail' and 'useful to my goals' items than applicants who received the current letter.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      }
+    ]
+  },
+  {
+    "slug": "forward-simulation-test",
+    "name": "Forward Simulation Test",
+    "description": "A forward simulation test checks whether people who have studied a model's explanations can predict the model's output for inputs they have not seen, so it tests with people the understanding an explanation method is assumed to give, where fidelity checks only compare the explanation with the model by computation. Doshi-Velez and Kim proposed it as a human-grounded evaluation of interpretability: participants are given an explanation and an input and must state what the model will output, whether or not that output is correct. In the controlled design of Hase and Bansal, participants study a set of examples with the model's outputs, predict the outputs for a separate set of test inputs, then study the same examples with explanations added and predict the same test inputs again, and the gain in accuracy is credited to the explanations (a separate group that studies the examples without explanations guards against a practice gain); the test inputs are kept apart from the explained examples so that explanations cannot give the answers away, and are chosen so that the model is right and wrong equally often, so that predicting the true label scores no better than chance. A counterfactual variant, in Hase and Bansal's form, shows an input, the model's output and its explanation, and asks what the model will output for an edited version of that input, with edits chosen so that half change the output. The result is the change in the share of correct predictions, with a confidence interval, for each explanation method or design compared; it is evidence that people can anticipate the model on the kind of input tested, not that they make better decisions with it.",
+    "assurance_goals": [
+      "Explainability",
+      "Transparency"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/human-evaluation/understanding-test",
+      "assurance-goal-category/explainability/property/comprehensibility",
+      "assurance-goal-category/transparency",
+      "assurance-goal-category/transparency/decision-reasons",
+      "data-requirements/test-scenarios",
+      "data-requirements/labelled-data",
+      "data-type/any",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/human-factors",
+      "expertise-needed/evaluation-design",
+      "expertise-needed/statistics",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Credit analysts who studied the rule-list explanations predicted the loan-default model's output on unseen applications more accurately than at their no-explanation baseline, on a test set balanced between correct and incorrect model predictions.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "Caseworkers who studied the fraud-risk reasons predicted the score's flag on unseen cases, half of them cases the score got wrong, more accurately than caseworkers who studied the same cases without the reasons, and above the accuracy threshold set in the evaluation plan.",
+        "assuranceGoal": "transparency",
+        "domain": "public sector"
+      },
+      {
+        "text": "Moderators shown the toxicity classifier's word weightings predicted whether an edited comment would still be flagged more accurately than before they saw the weightings, on a set of edits half of which changed the classifier's decision.",
+        "assuranceGoal": "explainability",
+        "domain": "general"
+      },
+      {
+        "text": "Participants who studied the counterfactual images predicted the pneumonia classifier's decisions on separate, unexplained images more accurately than participants who studied the saliency heatmaps, on a test set in which the classifier was wrong as often as it was right.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      }
+    ]
+  },
+  {
+    "slug": "think-aloud-study-of-explanation-use",
+    "name": "Think-Aloud Study of Explanation Use",
+    "description": "A think-aloud study of explanation use asks a small number of participants to say what they are thinking while they use an AI system's explanations to do a realistic task, so that the design team can see how the explanation is read, used, ignored or misread. It applies the think-aloud method from cognitive psychology, which rests on Ericsson and Simon's account of verbal reports: people can voice what they are attending to as they work without changing their thinking, provided they are not asked to report things they would not otherwise attend to, such as the reasons for their actions. In a session, a facilitator gives a short practice task, then sets tasks in which the participant sees the model's output and explanation and makes a decision, and while the participant works gives only neutral reminders, such as 'what are you thinking?', when they fall silent; audio and screen are recorded. The recordings are transcribed and coded, often by thematic analysis, into findings such as parts of the explanation that were misread, parts never looked at and questions it left unanswered, and the team changes the design and tests it again. The output is qualitative, design-stage evidence about how an explanation is understood: it can show that a misreading occurs, but not how often it occurs among users or whether their decisions improve.",
+    "assurance_goals": [
+      "Explainability"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/explainability",
+      "assurance-goal-category/explainability/human-evaluation/understanding-test",
+      "assurance-goal-category/explainability/property/comprehensibility",
+      "data-requirements/test-scenarios",
+      "data-type/any",
+      "evidence-type/qualitative-report",
+      "expertise-needed/human-factors",
+      "expertise-needed/domain-expertise",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation"
+    ],
+    "sample_claims": [
+      {
+        "text": "Each misreading of the deterioration-score explanation found in think-aloud sessions with ward nurses is recorded in the design log with the change made and the result of re-testing it.",
+        "assuranceGoal": "explainability",
+        "domain": "healthcare"
+      },
+      {
+        "text": "The explanation interface for loan officers was tested in think-aloud sessions with intended users, including cases where the model's recommendation was wrong, before the design was fixed for quantitative evaluation.",
+        "assuranceGoal": "explainability",
+        "domain": "finance"
+      },
+      {
+        "text": "The misreading of the highlight colour bar as a trace of the speaker's tone, found in the first round of think-aloud sessions, led to a redrawn highlight that was re-tested with new participants before release.",
+        "assuranceGoal": "explainability",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "conditional-demographic-disparity",
+    "name": "Conditional Demographic Disparity",
+    "description": "Conditional demographic disparity (CDD) measures whether members of a protected group make up a larger share of the people a system turns down than of the people it accepts, after taking into account a factor that differs between groups and that the assessor treats as a legitimate explanation of outcomes; Wachter, Mittelstadt and Russell (2021) propose it as baseline statistical evidence for assessing possible discrimination under EU non-discrimination law. Demographic disparity is the group's share of the unfavourable outcomes minus its share of the favourable ones: in the Berkeley graduate admissions data the paper revisits, women were 46 per cent of rejected applicants but 32 per cent of admitted ones, a disparity of 0.14. CDD computes the same difference separately within each stratum of the conditioning attribute (there, the department applied to) and averages the strata, weighting each by its number of people, so a gap that arises only because groups apply in different proportions to strata with different acceptance rates (an instance of Simpson's paradox) drops out, while a gap within strata remains. Conditioning on department turns the Berkeley figure to about -0.02, a slight disparity in women's favour: within departments, women were on average 40 per cent of rejected and 42 per cent of admitted applicants. The output is the disparity in each stratum and their weighted average, computed on the outcomes recorded in a dataset before training or on a model's decisions after it; the authors present it as a descriptive magnitude to support a contextual judgement, not a pass-or-fail test, and the choice of conditioning attribute is a judgement the measure does not make.",
+    "assurance_goals": [
+      "Fairness"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/bias-measurement",
+      "data-requirements/sensitive-attributes",
+      "data-type/any",
+      "evidence-type/fairness-metric",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/statistics",
+      "expertise-needed/regulatory-compliance",
+      "expertise-needed/domain-expertise",
+      "technique-type/metric",
+      "lifecycle-stage/project-design",
+      "lifecycle-stage/project-design/data-analysis",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "assuranceGoal": "fairness",
+        "domain": "employment",
+        "text": "Conditioned on job family, the CV-screening model's conditional demographic disparity for women in the last hiring round is below 0.02, and no job family with at least 100 applicants shows a disparity above 0.05."
+      },
+      {
+        "assuranceGoal": "fairness",
+        "domain": "finance",
+        "text": "The conditioning factors for the credit model's disparity analysis were fixed, with written reasons, before the decision data were examined, and the disparity in each stratum is reported with its count alongside the weighted summary."
+      },
+      {
+        "assuranceGoal": "fairness",
+        "domain": "public sector",
+        "text": "In the historical housing allocation decisions proposed as training labels, each ethnic group's share of refused applicants exceeds its share of successful applicants by no more than 0.03 within any band of assessed housing need, and each group's acceptance rate in each band is reported beside the disparity."
+      }
+    ]
+  },
+  {
+    "slug": "disaggregated-evaluation",
+    "name": "Disaggregated Evaluation",
+    "description": "Disaggregated evaluation assesses and reports a system's performance separately for each group of people a claim covers, and for combinations of groups (intersectional groups, such as darker-skinned women), so that a good overall score cannot hide a group for whom the system works badly. Following Barocas et al. (2021), the evaluator first fixes the design choices that change what the evaluation can show: which groups and combinations to report; how other factors that affect performance, such as lighting or recording conditions, are handled (held constant, varied deliberately, or left as they occur); which metrics to use, for a classifier often false positive and false negative rates reported separately, because each can harm different people; and whether the evaluation is exploratory, or confirmatory, meaning that it tests hypotheses stated in advance on data built to hold enough cases in every group. Each metric is then computed on a labelled evaluation set for every group and combination, together with the number of cases behind it and an interval showing how far the estimate could move through sampling alone, obtained for example by resampling the evaluation set. Groups are compared by absolute and by relative gaps, which can tell different stories: false negative rates of 1 and 10 per cent differ by nine points but tenfold. The output is a table or chart of per-group and per-combination results with their case counts and intervals, and a record of the design choices needed to interpret them; it is this design, more than any one metric or interval method, that decides which comparisons the evaluation can support and how conclusive each is.",
+    "assurance_goals": [
+      "Fairness"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/performance-by-group",
+      "data-requirements/labelled-data",
+      "data-requirements/sensitive-attributes",
+      "data-type/any",
+      "evidence-type/quantitative-metric",
+      "evidence-type/fairness-metric",
+      "expertise-needed/statistics",
+      "expertise-needed/evaluation-design",
+      "expertise-needed/domain-expertise",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "assuranceGoal": "fairness",
+        "domain": "healthcare",
+        "text": "On the trust's locally labelled images, the skin-lesion classifier's sensitivity for each skin-tone group, and for skin tone crossed with sex, is within 5 percentage points of its overall sensitivity, with the 95 per cent interval for each gap and the number of melanoma cases in each cell reported."
+      },
+      {
+        "assuranceGoal": "fairness",
+        "domain": "general",
+        "text": "The groups, combinations, metrics and acceptable gaps for the fairness evaluation were fixed in a protocol before the evaluation data were drawn, and every cell with too few cases to estimate its gap to the agreed precision is reported as untested rather than as passed."
+      },
+      {
+        "assuranceGoal": "fairness",
+        "domain": "finance",
+        "text": "In each of the last four quarters, the upper bound of the 95 per cent interval for the difference in false positive rate between each age-and-sex group and the best-served group was below the 1 percentage point margin set in the model risk policy."
+      },
+      {
+        "assuranceGoal": "fairness",
+        "domain": "telecommunications",
+        "text": "On identical scripted passages read by speakers matched on age and gender, the upper bound of the 95 per cent interval for each speaker group's gap in word error rate to the best-served group is below the agreed margin."
+      }
+    ]
+  },
+  {
+    "slug": "predictive-parity-and-calibration-within-groups",
+    "name": "Predictive Parity and Calibration Within Groups",
+    "description": "This test checks whether a model's output means the same for every group: among people who receive the same score or the same decision, the share who turn out to have the outcome (or its average, for an outcome such as a cost or a count of illnesses) should not depend on their group, a requirement the fairness literature calls sufficiency. For a model that outputs a risk score, cases with known outcomes are grouped into score bins and, for each group, the observed outcome rate in each bin is plotted against the score, giving one calibration curve per group (a score is calibrated when, of the cases scored 0.3, about 30 per cent have the outcome); calibration within groups (Kleinberg, Mullainathan and Raghavan) holds when each group's curve matches the scores, and the weaker condition that the curves coincide holds when a given score corresponds to the same outcome rate in every group. For a yes/no decision the same comparison is made in the two cells of the decision: predictive parity (Chouldechova) holds when the positive predictive value, the share of people flagged positive who turn out positive, is equal across groups, and the negative predictive value can be compared in the same way for those not flagged. The two read-outs can disagree, because a score that means the same for every group can still give unequal positive predictive values at a threshold when the groups' scores are spread differently above it, so the test reports the read-out matching the output on which decisions are taken, with intervals and the gaps between groups. Where comparisons of error rates condition on the true outcome and ask whether people who turn out the same are treated the same, this test conditions on the model's output and asks whether people treated the same turn out the same; when the outcome is more common in one group, the two cannot both hold except in special cases.",
+    "assurance_goals": [
+      "Fairness"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/paradigm/supervised",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/bias-measurement",
+      "data-requirements/labelled-data",
+      "data-requirements/sensitive-attributes",
+      "data-type/any",
+      "evidence-type/fairness-metric",
+      "evidence-type/visualisation",
+      "expertise-needed/statistics",
+      "expertise-needed/domain-expertise",
+      "technique-type/metric",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "assuranceGoal": "fairness",
+        "domain": "healthcare",
+        "text": "Across the deterioration-risk scores that trigger escalation, each ethnic group's observed deterioration rate lies within 3 percentage points of the rate for all patients with the same score, with the 95 per cent interval for each gap inside that band, on twelve months of admissions held out from model development."
+      },
+      {
+        "assuranceGoal": "fairness",
+        "domain": "finance",
+        "text": "Among applicants approved by the credit model in the evaluation period, the repayment rate for each age band is within 2 percentage points of the rate for all approved applicants, and the calibration curves of the underlying score for each band are reported alongside."
+      },
+      {
+        "assuranceGoal": "fairness",
+        "domain": "public sector",
+        "text": "At the deployed threshold, the reoffending-risk tool's positive predictive value differs between ethnic groups by less than 5 percentage points on local data, and the corresponding differences in false positive and false negative rates are reported with it."
+      },
+      {
+        "assuranceGoal": "fairness",
+        "domain": "healthcare",
+        "text": "At each decile of the care-management score, the mean number of active chronic conditions differs between racial groups by less than the tolerance agreed with the clinical lead, so the score indicates the same level of illness in every group, not only the same expected cost."
+      }
+    ]
+  },
+  {
+    "slug": "bias-benchmark-for-question-answering",
+    "name": "Bias Benchmark for Question Answering",
+    "description": "The Bias Benchmark for Question Answering (BBQ) is a fixed set of about 58,500 multiple-choice reading questions that tests whether a language model's answers rely on social stereotypes, across nine social dimensions (age, disability status, gender identity, nationality, physical appearance, race and ethnicity, religion, socio-economic status and sexual orientation) and two combinations of them, using stereotypes documented as harmful in US English-speaking contexts (Parrish et al., 2022). Each item describes two people from different groups and asks a question that points at a stereotype, such as who is bad at maths, with three answers to choose from: either person, or an answer such as 'cannot be determined'; in the ambiguous version the passage does not say which person the question is about, so 'cannot be determined' is correct, and in the disambiguated version an added sentence settles it. Items come in balanced sets that swap the two groups and their order and pair each negative question with a non-negative one, so that a model which simply prefers one group whatever the question is not counted as stereotyping. From the model's chosen answers (generated, or picked by comparing the probabilities it gives the three options) the test reports accuracy in each version and a bias score per category from -100% to 100%: the share of answers naming a person that follow the stereotype, rescaled so that 0 means no consistent direction and a negative score leans against the stereotype, and in the ambiguous version multiplied by the error rate, so that stereotyped guesses weigh more when the model guesses often; it also reports how far accuracy falls when the correct answer goes against the stereotype. Unlike substituting identity terms into a deployer's own inputs, or varying the people shown in few-shot examples, BBQ is a fixed external question set that tests what a model concludes about people when the text does, and does not, support a conclusion.",
+    "assurance_goals": [
+      "Fairness"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks/transformer/llm",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/bias-measurement",
+      "data-requirements/test-scenarios",
+      "data-type/text",
+      "evidence-type/fairness-metric",
+      "evidence-type/quantitative-metric",
+      "expertise-needed/evaluation-design",
+      "expertise-needed/ml-engineering",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-selection-and-training",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "technique-type/testing"
+    ],
+    "sample_claims": [
+      {
+        "text": "Under the department's fixed prompt and scoring, the selected model's ambiguous-context BBQ bias score was between -5% and +5% in each of the nine categories, and its accuracy on disambiguated items differed by less than 2 percentage points between items whose correct answer matched the stereotype and items whose correct answer did not.",
+        "assuranceGoal": "fairness",
+        "domain": "public sector"
+      },
+      {
+        "text": "No fine-tuned release of the HR helpdesk model has an ambiguous-context BBQ bias score more than 2 percentage points further from zero than the base model's in any category, measured with the same harness version, prompt and scoring.",
+        "assuranceGoal": "fairness",
+        "domain": "general"
+      },
+      {
+        "text": "On a UK-adapted version of BBQ, whose stereotypes and target groups were confirmed by a survey of the UK public before use, the health-information assistant's ambiguous-context bias score was between -5% and +5% in every category and its accuracy on disambiguated items was above 90%.",
+        "assuranceGoal": "fairness",
+        "domain": "healthcare"
+      }
+    ]
+  },
+  {
+    "slug": "rich-subgroup-fairness-auditing",
+    "name": "Rich Subgroup Fairness Auditing",
+    "description": "Rich subgroup fairness auditing checks whether a binary classifier treats any subgroup much better or much worse than the population as a whole, where the subgroups are not a short list chosen in advance but every group that rules of a chosen kind over several protected attributes can describe, such as everyone for whom a weighted sum of age, sex and ethnicity indicators exceeds a threshold. Kearns, Neel, Roth and Wu (2018) proposed it to detect what they call fairness gerrymandering: a classifier can have equal false positive rates for men and for women, and for each ethnic group, yet very unequal rates for particular combinations, such as women of one ethnicity. For a chosen rate (the false positive or false negative rate, or in the paper also the rate of positive decisions), each subgroup is scored by the gap between its rate and the overall rate multiplied by the share of all records that are in the subgroup and count towards that rate (for the false positive rate, those with a negative true outcome), so a gap counts for more the larger the group, and the audit searches for the subgroup with the highest score. Exact search is computationally hard in the worst case, so it is posed as a weighted (cost-sensitive) classification problem over the protected attributes and solved approximately: the reference implementation fits two linear regressions that propose a candidate worst subgroup as a linear threshold rule, using only those attributes, the true outcomes and the classifier's decisions, not the model itself. The output is that rule with the subgroup's size, rate and weighted gap (called gamma), compared with a limit set beforehand; unlike reporting metrics for groups listed in advance, the audit finds subgroups nobody listed, and unlike multiaccuracy boosting, which checks a score's average error in each subgroup and then corrects the model, it compares a decision rate with the overall rate and changes nothing.",
+    "assurance_goals": [
+      "Fairness"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/paradigm/supervised",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/bias-measurement",
+      "data-requirements/labelled-data",
+      "data-requirements/sensitive-attributes",
+      "data-type/tabular",
+      "evidence-type/fairness-metric",
+      "evidence-type/structured-output",
+      "expertise-needed/domain-expertise",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/statistics",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring",
+      "technique-type/testing"
+    ],
+    "sample_claims": [
+      {
+        "text": "On a held-out sample of 40,000 previously approved applicants with known repayment, the rich subgroup audit over age, sex, ethnicity and disability status found no subgroup whose size-weighted false positive rate gap exceeded the 0.005 limit agreed with the risk committee.",
+        "assuranceGoal": "fairness",
+        "domain": "finance"
+      },
+      {
+        "text": "Before rollout, neither the heuristic audit over age, sex and ethnicity nor a brute-force grid over age and ethnicity found a subgroup whose size-weighted gap in the rate of missed sepsis cases exceeded 0.003.",
+        "assuranceGoal": "fairness",
+        "domain": "healthcare"
+      },
+      {
+        "text": "In each of the last four quarterly re-audits, on a random sample of claims reviewed whether or not they were flagged, the worst subgroup found had a size-weighted false positive rate gap below the agreed limit, and its description and size were recorded.",
+        "assuranceGoal": "fairness",
+        "domain": "public sector"
+      }
+    ]
+  },
+  {
+    "slug": "actionable-recourse-audit",
+    "name": "Actionable Recourse Audit",
+    "description": "An actionable recourse audit checks whether the people a linear classifier refuses, for example for a loan, a job interview or a public service, could change that decision through actions open to them, and how much they would have to change. The auditor first writes an action set saying which features can change and how: immutable features such as age stay fixed, features such as education level can only rise, and each changeable feature gets bounds and a grid of realistic values. Then, for each refused person in a sample drawn from the population the model will serve, an integer programming solver (optimisation software that searches discrete choices exactly) looks through the permitted actions for the cheapest change that flips the decision, measuring cost as the largest shift, in population percentiles, that the change makes to any one feature, and either returns that action or proves that none exists, which a search that simply fails to find a counterfactual cannot do. The audit reports the share of refused people who have recourse and the distribution of its cost, which can be compared across candidate models or broken down by group, and the same solver can list a refused person's cheapest alternative changes (a 'flipset') for a decision notice. Unlike the Contrastive Explanation Method, which explains one prediction through features that must be present or absent, or Diverse Counterfactual Explanations (DiCE), which searches any model for several alternative inputs that would change one decision, the audit works only on linear models but certifies whether any permitted action exists and summarises the answer across a population.",
+    "assurance_goals": [
+      "Transparency",
+      "Fairness"
+    ],
+    "tags": [
+      "applicable-models/architecture/linear-models",
+      "applicable-models/architecture/linear-models/logistic",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/transparency",
+      "assurance-goal-category/transparency/notice-and-recourse",
+      "assurance-goal-category/fairness",
+      "assurance-goal-category/fairness/bias-measurement",
+      "data-requirements/reference-dataset",
+      "data-requirements/sensitive-attributes",
+      "data-type/tabular",
+      "evidence-type/quantitative-metric",
+      "evidence-type/fairness-metric",
+      "evidence-type/structured-output",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/domain-expertise",
+      "technique-type/testing",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every refused applicant in the audit sample, drawn from last year's applications to the scheme, has at least one action under the agreed action set that would make them eligible under the deployed model.",
+        "assuranceGoal": "transparency",
+        "domain": "public sector"
+      },
+      {
+        "text": "Under the agreed action set, at least half of the declined applicants in the audit sample have an action that would bring approval while moving no feature by more than 25 percentiles of the applicant population.",
+        "assuranceGoal": "transparency",
+        "domain": "finance"
+      },
+      {
+        "text": "Among candidates refused by the screening model with similar predicted scores, the median cost of recourse for women is within five percentile points of that for men.",
+        "assuranceGoal": "fairness",
+        "domain": "employment"
+      },
+      {
+        "text": "Each decline letter lists at least one action that would change the decision under the current scorecard, together with the scored features the applicant must keep unchanged.",
+        "assuranceGoal": "transparency",
+        "domain": "finance"
+      }
+    ]
+  },
+  {
+    "slug": "ai-factsheets",
+    "name": "AI FactSheets",
+    "description": "AI FactSheets is a documentation practice in which the developer or supplier of an AI model or service answers a structured set of questions about it, modelled on the supplier's declarations of conformity that industries such as telecommunications and transport use to give written assurance, with evidence, that a product meets stated requirements. The questions cover the service's purpose and its intended and unsuitable uses, the datasets it was trained and tested on, its test methods and results (reported for groups such as age bands or genders where relevant), checks for bias, explainability, behaviour on data unlike its training data and robustness to adversarial attack, how user data is secured, and its lineage, such as when and how its models were retrained; 'N/A' and 'Proprietary' are allowed answers. Facts are gathered from the people in each role across the lifecycle (business owner, data scientist, model validator and operations engineer), and any change to the service produces a new version of the FactSheet while earlier versions are kept. The originating group's seven-step method designs the template with its readers: interview the people who will read the facts and those who will produce them, draft and trial a template of questions, have the real producers complete it, evaluate the result with its readers for content and presentation, and build further templates for other audiences such as a review board or regulator. Unlike a model card, which reports one model's intended use and evaluation to the people choosing it, or a datasheet, which describes one dataset, a FactSheet may cover one model or a whole service built from several models and datasets (attaching their datasheets), gathers facts from each role in the lifecycle and has a different template for each audience; unlike a CycloneDX ML-BOM it is written for people to read rather than as a machine-readable parts list for software tools.",
+    "assurance_goals": [
+      "Transparency"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/transparency",
+      "assurance-goal-category/transparency/documentation",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/documentation",
+      "expertise-needed/governance-and-audit",
+      "expertise-needed/ml-engineering",
+      "expertise-needed/stakeholder-engagement",
+      "technique-type/documentation",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-documentation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation",
+      "lifecycle-stage/other/cross-cutting"
+    ],
+    "sample_claims": [
+      {
+        "text": "The supplier's FactSheet for the dictation service states its intended and unsuitable uses, the datasets it was tested on, and its word error rate on each, reported separately by speaker accent and age band.",
+        "assuranceGoal": "transparency",
+        "domain": "healthcare"
+      },
+      {
+        "text": "Each production version of the affordability model has a FactSheet to which its data scientist and validator contributed before deployment and its operations engineer after, and the FactSheets of earlier versions are retained unchanged.",
+        "assuranceGoal": "transparency",
+        "domain": "finance"
+      },
+      {
+        "text": "Every FactSheet item a supplier answered 'N/A' or 'Proprietary' carries a stated reason, and the review board accepted each reason before approving the service.",
+        "assuranceGoal": "transparency",
+        "domain": "public sector"
+      },
+      {
+        "text": "The FactSheet template used to assess suppliers was evaluated with the procurement and risk assessors who read it before first use, and the items they found missing or unclear were revised.",
+        "assuranceGoal": "transparency",
+        "domain": "general"
+      }
+    ]
+  },
+  {
+    "slug": "uk-algorithmic-transparency-recording-standard-record",
+    "name": "UK Algorithmic Transparency Recording Standard Record",
+    "description": "An Algorithmic Transparency Recording Standard (ATRS) record is a public account that a UK public sector organisation writes about one algorithmic tool it uses, on the UK government's standard template, and publishes in a central repository on GOV.UK. The template has two tiers: a short plain-language summary for the general public (what the tool is, why it is used and a contact), and eight further sheets for specialist readers such as journalists, researchers and civil society, covering who is accountable for the tool and which suppliers were involved, how it works and what it replaced, how its output feeds into decisions, when a person reviews that output, how members of the public can appeal, the system's and each model's inputs, outputs, architecture and performance (including any bias testing), the data used, and the impact assessments, risks and mitigations. Information that would be exempt under the Freedom of Information Act can be left out or summarised field by field, with the reason stated, and the record is cleared by the tool's team, its senior responsible owner (the role accountable for the tool) and the press office, checked for readability by the central ATRS team, and updated when the tool changes substantially or is retired. Publishing is mandatory for central government departments and for arm's-length bodies that deliver public or frontline services or deal directly with the public, for tools in beta, pilot or production that significantly influence decisions affecting the public or interact with it directly; other public bodies may publish voluntarily. Unlike a model card, written by a developer for people choosing a model, or a supplier's AI FactSheet for buyers, an ATRS record is written by the deploying public body for the public and describes the decision process, human review and appeal routes around the tool as well as the tool.",
+    "assurance_goals": [
+      "Transparency"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/transparency",
+      "assurance-goal-category/transparency/documentation",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/documentation",
+      "expertise-needed/governance-and-audit",
+      "expertise-needed/regulatory-compliance",
+      "expertise-needed/stakeholder-engagement",
+      "technique-type/documentation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring",
+      "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+    ],
+    "sample_claims": [
+      {
+        "text": "An ATRS record for the claim-prioritisation model was published on GOV.UK before the pilot began, stating the model's role in decisions, when a caseworker reviews its output and how claimants can ask for a review.",
+        "assuranceGoal": "transparency",
+        "domain": "public sector"
+      },
+      {
+        "text": "Every algorithmic tool in the department's inventory that falls within the ATRS mandatory scope and is in beta, pilot or production has a published ATRS record.",
+        "assuranceGoal": "transparency",
+        "domain": "public sector"
+      },
+      {
+        "text": "Each field withheld from the published record is marked exempt with its reason, and each exemption was cleared by the tool's senior responsible owner, under the ATRS scope and exemptions policy, before publication.",
+        "assuranceGoal": "transparency",
+        "domain": "public sector"
+      },
+      {
+        "text": "The published ATRS record was updated within one month of the model being retrained on new data or its role in the decision process changing.",
+        "assuranceGoal": "transparency",
+        "domain": "public sector"
+      }
+    ]
+  },
+  {
+    "slug": "c2pa-content-credentials",
+    "name": "C2PA Content Credentials",
+    "description": "C2PA Content Credentials attach a signed provenance record, called a manifest, to a media file, so that whoever receives the file can see who signed it and what the signer declares (which tool produced it, whether a generative AI model created or altered it and what edits followed), and can check that the record, and the parts of the file its hash covers, have not changed since signing. Under the Coalition for Content Provenance and Authenticity (C2PA) technical specification, the tool that creates or edits the file writes statements called assertions, such as a 'created' action whose source type is trainedAlgorithmicMedia (the code for AI-generated content) and links to the earlier files it was made from, adds a cryptographic hash of the file's content, and signs the bundle with an X.509 certificate, the kind of credential used to secure websites. The manifest is usually embedded in the file, and each later edit in a supporting tool adds a new manifest that refers to the previous one, so the history travels with the file. A validator recomputes the hash and checks the signature, then reports the manifest as well-formed, valid or, if the signing certificate chains to a trust list such as the C2PA Trust List, trusted, and reports a failure when the file no longer matches its hash. If the manifest is removed, nothing in the file leads back to it unless a watermark or fingerprint (a 'soft binding') was also registered so that the manifest can be looked up in a repository, and a file without credentials says nothing about its origin; unlike trigger-set model watermarking or model signing, which mark or sign a model, it records the history of an individual output.",
+    "assurance_goals": [
+      "Transparency"
+    ],
+    "tags": [
+      "applicable-models/architecture/model-agnostic",
+      "applicable-models/paradigm/generative",
+      "applicable-models/requirements/black-box",
+      "assurance-goal-category/transparency",
+      "assurance-goal-category/transparency/audit-trail",
+      "data-requirements/no-special-requirements",
+      "data-type/image",
+      "data-type/text",
+      "evidence-type/audit-record",
+      "expertise-needed/security",
+      "expertise-needed/software-engineering",
+      "technique-type/algorithmic",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every image in each weekly validation sample of the generation service's output carried a C2PA manifest, signed with a certificate that chains to the C2PA Trust List, that declares the image AI-generated.",
+        "assuranceGoal": "transparency",
+        "domain": "generative AI"
+      },
+      {
+        "text": "In the provider's stripping and re-encoding tests, generated images whose embedded manifest had been removed were matched to their original manifest through the registered watermark soft binding.",
+        "assuranceGoal": "transparency",
+        "domain": "generative AI"
+      },
+      {
+        "text": "Every reader-submitted image published with a provenance label had a trusted manifest whose hash matched the published file.",
+        "assuranceGoal": "transparency",
+        "domain": "journalism"
+      },
+      {
+        "text": "Each AI edit applied to a claims photograph is recorded as an action in the photograph's signed manifest, naming the tool that made it.",
+        "assuranceGoal": "transparency",
+        "domain": "insurance"
+      }
+    ]
+  },
+  {
+    "slug": "zero-knowledge-proof-of-model-inference",
+    "name": "Zero-Knowledge Proof of Model Inference",
+    "description": "A zero-knowledge proof of model inference lets the owner of a model show an outside party that one specific model, fixed in advance, turns a particular input into a particular output, without revealing the model's weights. The owner publishes a commitment to the weights, a short cryptographic fingerprint such as a hash that binds them without disclosing them, together with a verification key that fixes the model's architecture. The model's arithmetic is converted to whole numbers (quantised) and written as a system of equations called a circuit, and for each input a proving system produces a proof, of a few kilobytes to a few hundred kilobytes, that this circuit, run with weights matching the commitment, turns that input into that output; the input can be public or committed in the same way. Anyone holding the verification key can check the proof in milliseconds to seconds: it shows that the committed model gives that output for that input, while keeping the weights hidden, and says nothing about whether that model is accurate, fair or safe. Unlike homomorphic encryption, which lets a server compute on data it cannot read but gives the caller no evidence of which computation was run, and unlike model signing, which lets someone who holds a model's files check who released them, it lets someone who never sees the weights check individual outputs against them.",
+    "assurance_goals": [
+      "Transparency"
+    ],
+    "tags": [
+      "applicable-models/architecture/neural-networks",
+      "applicable-models/architecture/tree-based",
+      "applicable-models/requirements/white-box",
+      "assurance-goal-category/transparency",
+      "assurance-goal-category/transparency/confidential-verification",
+      "data-requirements/no-special-requirements",
+      "data-type/any",
+      "evidence-type/audit-record",
+      "expertise-needed/cryptography",
+      "expertise-needed/ml-engineering",
+      "technique-type/algorithmic",
+      "lifecycle-stage/model-development",
+      "lifecycle-stage/model-development/model-testing-and-validation",
+      "lifecycle-stage/system-deployment",
+      "lifecycle-stage/system-deployment/system-implementation",
+      "lifecycle-stage/system-deployment/system-use-and-monitoring"
+    ],
+    "sample_claims": [
+      {
+        "text": "Every credit decision referred to the complaints process was accompanied by a proof, checked by the complaints team, that the model whose weight commitment appears in the independent audit report gives that decision on the applicant's data.",
+        "assuranceGoal": "transparency",
+        "domain": "finance"
+      },
+      {
+        "text": "The accuracy and bias figures in the audit report were computed from outputs proven against the same weight commitment that is used in production.",
+        "assuranceGoal": "transparency",
+        "domain": "finance"
+      },
+      {
+        "text": "Every triage result sampled for challenge in the reporting period was supported by a proof that verified against the commitment to the validated model.",
+        "assuranceGoal": "transparency",
+        "domain": "healthcare"
+      },
+      {
+        "text": "For every test image submitted by the regulator's inspectors, the age-estimation service returned a proof that verified against the certified model's commitment.",
+        "assuranceGoal": "transparency",
+        "domain": "online safety"
+      }
+    ]
   }
 ]

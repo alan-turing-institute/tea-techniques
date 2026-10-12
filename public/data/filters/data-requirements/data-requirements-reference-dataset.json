@@ -2,7 +2,7 @@
   "tag": {
     "name": "data-requirements/reference-dataset",
     "slug": "data-requirements-reference-dataset",
-    "count": 4,
+    "count": 8,
     "category": "data-requirements"
   },
   "techniques": [
@@ -694,7 +694,773 @@
           "assuranceGoal": "privacy"
         }
       ]
+    },
+    {
+      "slug": "data-validation-checks",
+      "name": "Data Validation Checks",
+      "description": "Data validation checks apply a written set of rules about what valid data look like to every new batch of data before a model is trained on it or uses it to make predictions, and flag or hold back any batch that breaks them. In Great Expectations (GX Core), a widely used open-source library for this, each rule is an expectation, a declarative assertion such as that a column exists and has a given type, has no missing values or takes values only from an allowed set or within a range (rules on single values can allow a stated share of rows to fail), or keeps a summary statistic (its mean, a quantile, or the divergence of its histogram from one built on reference data) within bounds the team sets. Expectations are grouped into a suite that a checkpoint runs on each batch as it arrives; the result records for every rule whether it passed and how many values broke it, with examples, configured actions can alert the team or update a human-readable report, and the pipeline can be set to stop training or scoring on a batch that failed. Running the same suite on training batches and on the data a deployed model receives catches differences between the two, such as a feature that is always missing in production, before they degrade predictions; unlike out-of-distribution detectors, the checks need no model and judge whole batches against explicit rules rather than scoring single inputs, and unlike runtime monitoring of a deployed model they act before the model sees the data. Unlike a kernel two-sample test, its distribution rules are fixed bounds set by the team, not a statistical test of whether two samples differ.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/shift-detection",
+        "data-requirements/reference-dataset",
+        "data-type/tabular",
+        "evidence-type/dataset-analysis",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/data-engineering",
+        "expertise-needed/domain-expertise",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An air navigation service provider feeds surveillance track reports into a model that predicts aircraft arrival times. Its data engineers run an expectation suite on every incoming batch, covering required fields, units, plausible ranges for altitude and ground speed, and the share of reports with missing positions, so that a sensor change that silently switched altitude from feet to metres would stop the batch before it reached the model rather than surface weeks later as worse predictions.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A weather service that retrains a statistical correction model each month on station observations validates every monthly extract first: station identifiers must come from the station list, temperatures must lie within each station's climatological limits, no variable may have more than 2 per cent missing values, and each variable's mean and quantiles must stay within bounds set from earlier years. A failed check stops the retraining and opens a ticket listing the failing stations.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital running a deterioration-risk model on laboratory results checks each hourly batch from the laboratory system against expectations for test codes, units and value ranges, so that if a laboratory changes the unit of a test without notice the batch is flagged and risk scores for the affected patients are withheld until the mapping is corrected.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A bank's credit-scoring team runs the expectation suite written for its training data on a daily sample of the applications its deployed model scores and compares the results, so that a field the online form has stopped collecting, which the scoring service quietly fills with a default value, shows up as a difference between training and production data rather than as an unexplained drop in approval rates.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Checks catch only what someone thought to write down. A batch can satisfy every rule and still be wrong in a way no rule covers, such as a changed relationship between two columns or a change in how labels were assigned. GX Core does not infer rules from the data, since its automatic profilers were removed in version 1.0, so each rule has to be specified, and for pipelines with thousands of features that effort can put teams off setting up validation at all."
+        },
+        {
+          "description": "Bounds for distribution rules are hard to set. Statistical tests on large batches fire on differences too small to matter: in Google's data validation paper, a chi-square test between 100 million points and a copy with 0.01 per cent of them redrawn from a wider distribution raised an alert in 7 of 10 trials, while thresholds on divergence measures such as KL divergence are hard for teams to interpret. Bounds are therefore tuned by trial, risking too many alerts or missed shifts."
+        },
+        {
+          "description": "The rules describe the input data, not the model's performance. A batch that passes can still produce wrong predictions if the relationship between inputs and outcomes has changed (concept drift), and a batch that fails shows that the data changed, not that predictions got worse, so the checks need pairing with monitoring of performance once outcomes arrive."
+        },
+        {
+          "description": "Alerts help only if someone acts on them, and rules need upkeep as data legitimately change. In Google's deployment across more than 700 pipelines, new columns, unexpected values and missing columns were the commonest anomalies, most pipelines revised their schema, and between 28 and 100 per cent of fired anomalies of each kind were fixed, which the authors attribute partly to operators missing or ignoring alerts."
+        },
+        {
+          "description": "The checks work on tables: GX Core connects to data frames, SQL databases and data files, so for images, audio, free text or gridded weather fields the team must first compute a table of properties, such as sizes, value ranges or missing tiles, and write rules about those. This catches broken or truncated inputs but not changes in what the content shows."
+        }
+      ],
+      "resources": [
+        {
+          "title": "GX Core overview (Great Expectations documentation)",
+          "url": "https://docs.greatexpectations.io/docs/core/introduction/gx_overview/",
+          "source_type": "documentation",
+          "citationKey": "GXCoreOverview",
+          "abstract": "This overview is for new users of GX Core and those looking for an improved understanding of GX Core components and primary workflows. It is an ideal place to start before exploring more advanced topics found in the GX Core documentation."
+        },
+        {
+          "title": "great_expectations (GX Core)",
+          "url": "https://github.com/fivetran/great_expectations",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T09:53:50Z",
+          "citationKey": "gongGreat_expectationsGXCore2026",
+          "abstract": "Always know what to expect from your data."
+        },
+        {
+          "title": "Data Validation for Machine Learning",
+          "url": "https://mlsys.org/Conferences/2019/doc/2019/167.pdf",
+          "source_type": "technical_paper",
+          "authors": [
+            "Eric Breck",
+            "Neoklis Polyzotis",
+            "Sudip Roy",
+            "Steven Euijong Whang",
+            "Martin Zinkevich"
+          ],
+          "publication_date": "2019",
+          "citationKey": "DataValidationMachine"
+        },
+        {
+          "title": "Try GX Core (Great Expectations documentation)",
+          "url": "https://docs.greatexpectations.io/docs/core/introduction/try_gx/",
+          "source_type": "tutorial",
+          "citationKey": "TryGXCore",
+          "abstract": "Start here to learn how to connect to data, create Expectations, validate data, and review Validation Results. This is an ideal place to start if you're new to GX Core and want to experiment with features and see what it offers."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every batch of surveillance track reports used by the arrival-time model in 2026 had passed the agreed expectation suite for required fields, units and value ranges; batches that failed were withheld and logged.",
+          "assuranceGoal": "reliability",
+          "domain": "aviation"
+        },
+        {
+          "text": "No monthly retraining of the correction model in 2026 used an extract in which any variable had more than 2 per cent missing values or values outside its station's climatological limits.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "Over the last quarter, the daily sample of scored applications met the training data's expectation suite on every field, and no field's share of default values exceeded its share in training by more than one percentage point.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        },
+        {
+          "text": "No deterioration-risk score in 2026 was computed from a laboratory batch that had failed the test-code and unit checks.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "kernel-two-sample-test",
+      "name": "Kernel Two-Sample Test (Maximum Mean Discrepancy)",
+      "description": "A kernel two-sample test checks whether two sets of data could have come from the same distribution; in assurance it is used to check whether the inputs a deployed model now receives still resemble the data on which it was validated, and to detect when they stop doing so. Its statistic, the maximum mean discrepancy (MMD), is built from a kernel, a function that scores how similar two data points are (commonly a Gaussian function of the distance between them), and in its usual squared form it is the average similarity among points in the reference sample, plus the average similarity among points in the new sample, minus twice the average similarity between points from different samples. With a characteristic kernel such as the Gaussian, the population value is zero only when the two distributions are identical, so the test can respond to any kind of difference, including a change in how features vary together that tests applied to one feature at a time cannot see, and kernels exist for strings and graphs as well as numerical vectors. To obtain a p-value, the two samples are pooled and repeatedly divided at random into groups of the original sizes, the statistic is recomputed for each division, and the p-value is the share of divisions giving a value at least as large as the one observed; high-dimensional inputs such as images are usually first reduced to a short vector, for example the code of an autoencoder or the model's predicted class probabilities. The output, for each window of new data, is the MMD value and its p-value at a stated significance level, which shows whether that window differs detectably from the reference, but not whether the difference affects the model's accuracy.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/shift-detection",
+        "data-requirements/reference-dataset",
+        "data-type/any",
+        "evidence-type/statistical-test",
+        "expertise-needed/statistics",
+        "expertise-needed/ml-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A card issuer's model-risk team tests a random sample of each night's transactions, at most one per customer, against a fixed sample from the fraud model's validation period, after standardising the input features. It set the significance level so that, with nothing changed, it expects about one false alarm a quarter, and a significant result triggers a check of the model's accuracy on newly labelled cases before its alert thresholds are relied on the next day.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "Before switching on a chest X-ray triage model at a second hospital that uses a different make of scanner, the deploying team compares 500 recent images from the new site with 500 from the validation set. Each image is first reduced to a short vector by an autoencoder trained on validation images. A significant difference sends the model for local validation on labelled cases from the new site instead of relying on its original results.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A customer-service team whose question-answering assistant was evaluated on a fixed test set compares the sentence embeddings of each week's user questions with those of the test set. When a week is flagged, it computes the MMD witness function, which scores each question by how much more it resembles the new week's questions than the test set, reads the top-scoring questions, finds queries about a new product, and adds such questions to the test set.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A significant result shows that inputs differ from the reference, not that the model has got worse: Rabanser et al. note that distributions shift constantly and often harmlessly, and with large windows the test can flag differences too small to matter. A drift alarm becomes evidence about performance only when followed by an accuracy check on labelled cases, and an absence of alarms reassures only if the test was shown beforehand to detect the shifts that harm the model."
+        },
+        {
+          "description": "On raw high-dimensional inputs the test has little power: in Rabanser et al.'s comparison on image data the multivariate test performed poorly without first reducing the dimension. The reduction then decides what can be seen, since a change that leaves the autoencoder code or predicted probabilities unchanged goes undetected. The kernel's width matters too: it is usually set to the median distance between points, which Gretton et al. call a heuristic, the best width being an open question."
+        },
+        {
+          "description": "The statistic compares every pair of points, so its cost grows with the square of the combined sample size, and the permutation test repeats it many times; Rabanser et al. ran kernel tests only up to 1,000 new samples for this reason. Gretton et al.'s linear-time version is far cheaper but needs much more data for the same power, so high-volume monitoring has to trade window size, detection delay and computing cost against each other."
+        },
+        {
+          "description": "The permutation p-value assumes that observations within each sample are independent. Consecutive sensor readings, transactions from one customer or successive time steps are correlated, and shuffling them breaks that dependence, so the test signals a difference far more often than its stated level: in Chwialkowski et al.'s experiments on autocorrelated signals the permutation test almost always rejected when nothing had changed. Such data need thinning or a wild bootstrap."
+        },
+        {
+          "description": "Run on every new window at the conventional 5 per cent level, the test flags about one window in twenty even when nothing has changed, which for daily windows means around 18 false alarms a year. Continuous monitoring needs a stricter level, a correction for repeated testing, or an online version of the test whose threshold is set for an expected run time between false alarms."
+        }
+      ],
+      "resources": [
+        {
+          "title": "A Kernel Two-Sample Test",
+          "url": "https://jmlr.org/papers/v13/gretton12a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Arthur Gretton",
+            "Karsten M. Borgwardt",
+            "Malte J. Rasch",
+            "Bernhard Schölkopf",
+            "Alexander Smola"
+          ],
+          "publication_date": "2012",
+          "citationKey": "grettonKernelTwoSampleTest2012",
+          "abstract": "We propose a framework for analyzing and comparing distributions, which we use to construct statistical tests to determine if two samples are drawn from different distributions.  Our test statistic is the largest difference in expectations over functions in the unit ball of a reproducing kernel Hilbert space (RKHS), and is called the maximum mean discrepancy (MMD).  We present two distribution-free tests based on large deviation bounds for the MMD, and a third test based on the asymptotic distribution of this statistic.  The MMD can be computed in quadratic time, although efficient linear time approximations are available.  Our statistic is an instance of an integral probability metric, and various classical metrics on distributions are obtained when alternative function classes are used in place of an RKHS.  We apply our two-sample tests  to a variety of problems, including attribute matching for databases using the Hungarian marriage method, where they perform strongly.  Excellent performance is also obtained when comparing distributions over graphs, for which these are the first such tests."
+        },
+        {
+          "title": "Maximum Mean Discrepancy (Alibi Detect documentation)",
+          "url": "https://docs.seldon.ai/alibi-detect/cd/methods/offline/mmddrift",
+          "source_type": "documentation",
+          "publication_date": "2024-10-16",
+          "citationKey": "MaximumMeanDiscrepancy2024"
+        },
+        {
+          "title": "Frouros: an open-source Python library for drift detection in machine learning systems",
+          "url": "https://github.com/IFCA-Advanced-Computing/frouros",
+          "source_type": "software_package",
+          "publication_date": "2024-04",
+          "citationKey": "cespedessisniegaFrourosOpensourcePython2024",
+          "abstract": "Frouros: an open-source Python library for drift detection in machine learning systems."
+        },
+        {
+          "title": "MNIST dataset (Frouros data drift example: MMD with an autoencoder)",
+          "url": "https://frouros.readthedocs.io/en/latest/examples/data_drift/MMD_advance.html",
+          "source_type": "tutorial",
+          "citationKey": "MNISTDatasetFrouros"
+        },
+        {
+          "title": "Failing Loudly: An Empirical Study of Methods for Detecting Dataset Shift",
+          "url": "https://proceedings.neurips.cc/paper/2019/hash/846c260d715e5b854ffad5f70a516c88-Abstract.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Stephan Rabanser",
+            "Stephan Günnemann",
+            "Zachary Lipton"
+          ],
+          "publication_date": "2019",
+          "citationKey": "rabanserFailingLoudlyEmpirical2019",
+          "abstract": "We might hope that when faced with unexpected inputs, well-designed software systems would fire off warnings. Machine learning (ML) systems, however, which depend strongly on properties of their inputs (e.g. the i.i.d. assumption), tend to fail silently. This paper explores the problem of building ML systems that fail loudly, investigating methods for detecting dataset shift, identifying exemplars that most typify the shift, and quantifying shift malignancy. We focus on several datasets and various perturbations to both covariates and label distributions with varying magnitudes and fractions of data affected. Interestingly, we show that across the dataset shifts that we explore, a two-sample-testing-based approach, using pre-trained classifiers for dimensionality reduction, performs best. Moreover, we demonstrate that domain-discriminating approaches tend to be helpful for characterizing shifts qualitatively and determining if they are harmful."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "acronym": "MMD",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Applied to autoencoder representations of 500 images from each source, the kernel two-sample test found no significant difference at the 1 per cent level between the new hospital's chest X-rays and the validation images, and the same test detected the simulated scanner changes that had reduced the model's accuracy in validation.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every alarm raised by the nightly kernel two-sample test on the fraud model's inputs in the past six months was followed within two working days by an accuracy check on newly labelled cases, and each check either met the accuracy requirement or led to retraining.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        },
+        {
+          "text": "In each weekly window since deployment, the loan-application model's production inputs showed no difference from its validation sample detectable by the agreed kernel two-sample test, at a significance level corrected for weekly repetition, and the same test detected the input shifts that had reduced the model's accuracy in pre-deployment trials.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        },
+        {
+          "text": "Replayed on reference data alone, the drift monitor's kernel two-sample test raised false alarms at no more than the configured rate of one per quarter.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "timeshap",
+      "name": "TimeSHAP",
+      "description": "TimeSHAP explains one prediction of a model that reads a sequence of events, such as a recurrent neural network that scores a bank transaction using the account's history, by giving each past event, each input feature and selected event-feature cells a Shapley value: a share of the score, taken from cooperative game theory, such that all the shares add up to the difference between the model's score and its score with every event and feature removed. It adapts KernelSHAP, the sampling estimator in SHAP, which explains a single input vector and so, applied to the latest event of a recurrent model, gives earlier events no credit; TimeSHAP instead switches off whole rows or columns of the event-by-feature input matrix, replacing them with a background value (the training-data average in the original paper), queries the model on many such perturbed sequences, and fits a weighted linear model whose coefficients are the attributions. Because the number of event combinations doubles with every event, a pruning step first walks back from the most recent event and merges all older events into a single player once their combined attribution falls below a chosen tolerance, and cell-level values are computed only where the most important events and features intersect, with the other cells grouped. The model is treated as a black box that takes a batch of sequences and returns one score per sequence, and the output is event, feature and cell attributions for each explained sequence, plus plots that aggregate them across many sequences into a global view.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/recurrent",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/property/completeness",
+        "data-requirements/reference-dataset",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "explanatory-scope/local",
+        "explanatory-scope/global",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's fraud operations team runs TimeSHAP on each alert from its recurrent account-takeover model, so the analyst reviewing an alert sees which earlier events (for example a password change, then a login from a new device) and which features carried the score, not only the payment being held. The analyst uses this to decide whether to release the payment or contact the customer, and the model team samples the explanations to check that the drivers match known fraud patterns.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A hospital data-science team validating a recurrent model that predicts next-day escalation of treatment for patients in intensive care computes event- and feature-level TimeSHAP values for test-set patients and reviews them with clinicians. Drivers the clinicians judge implausible, such as an indicator that a measurement is missing outweighing the measurements themselves, are investigated before the model is used in a prospective study.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "An airport's forecasting team using a recurrent model to warn of fog in the next six hours from the past 48 hours of station observations uses the pruning statistics and global event plots to find how far back the model actually draws on, and the feature attributions to check that humidity, temperature and wind lead each warning. The findings set the input window for the next retraining and go into the model's validation report.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Every attribution is measured against the background chosen to stand for a removed event or feature, the training-data average in the original paper. A sequence containing averaged events may be unlike anything the model has seen, and another background gives other attributions; the original authors note that a feature scoring zero for every sequence may reflect the background rather than the model. Report the background with the results."
+        },
+        {
+          "description": "Exact values need every combination of events, which doubles with each event. On the original fraud data (median sequence about 138 events), exact values were possible for only 10% of sequences with 32,000 sampled combinations, and repeated runs disagreed (relative standard deviation 1.71 without pruning, 0.98 at the chosen tolerance). With tens of thousands of model calls per explanation, explaining every scored event in real time is impractical; the alerts people review are the usual scope."
+        },
+        {
+          "description": "Pruning trades detail on older events for speed and stability. All events before the cut-off share one attribution. The cut-off test compares the older block's net, signed attribution with a user-set tolerance, so by construction an early event that pushed the score up can pass unseen if others pushed it down; the original paper does not measure how often this happens. Results change with the tolerance, so fix it in advance and report it."
+        },
+        {
+          "description": "It explains one score per sequence: the reference implementation expects the model to return a single value for each sequence. A model with many outputs, such as a forecast for several lead times or locations, needs a separate run or a chosen summary for each. The attributions show what the model relies on, not causes in the world: in the original study a high attribution to customer age led to a bias audit, which was needed to establish the disparity."
+        },
+        {
+          "description": "Each event and feature receives one number, so an effect that arises only from a combination, such as a settings change followed by a login from a new device, is shared out among its parts: an analyst sees each part with some credit but cannot tell that they matter only together. Cell-level values are computed only where the top-ranked events and features intersect. A clinical study using the method found escalation effects hard to see and suggested interactions as the cause."
+        }
+      ],
+      "resources": [
+        {
+          "title": "TimeSHAP (README of the reference implementation, feedzai/timeshap)",
+          "url": "https://github.com/feedzai/timeshap/blob/main/README.md",
+          "source_type": "documentation",
+          "citationKey": "TimeSHAPREADMEReference",
+          "abstract": "TimeSHAP explains Recurrent Neural Network predictions. - feedzai/timeshap"
+        },
+        {
+          "title": "TimeSHAP (feedzai/timeshap)",
+          "url": "https://github.com/feedzai/timeshap",
+          "source_type": "software_package",
+          "publication_date": "2026-09-30T19:07:11Z",
+          "citationKey": "TimeSHAPFeedzaiTimeshap2026",
+          "abstract": "TimeSHAP explains Recurrent Neural Network predictions."
+        },
+        {
+          "title": "TimeSHAP: Explaining Recurrent Models through Sequence Perturbations",
+          "url": "https://doi.org/10.1145/3447548.3467166",
+          "source_type": "technical_paper",
+          "authors": [
+            "João Bento",
+            "Pedro Saleiro",
+            "André F. Cruz",
+            "Mário A.T. Figueiredo",
+            "Pedro Bizarro"
+          ],
+          "publication_date": "2021-8-14",
+          "citationKey": "bentoTimeSHAPExplainingRecurrent2021"
+        },
+        {
+          "title": "TimeSHAP tutorial: AReM (PyTorch) notebook",
+          "url": "https://github.com/feedzai/timeshap/blob/main/notebooks/AReM/AReM.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "TimeSHAPTutorialAReM",
+          "abstract": "TimeSHAP explains Recurrent Neural Network predictions. - feedzai/timeshap"
+        },
+        {
+          "title": "TILTomorrow today: dynamic factors predicting changes in intracranial pressure treatment intensity after traumatic brain injury",
+          "url": "https://doi.org/10.1038/s41598-024-83862-x",
+          "source_type": "application_paper",
+          "authors": [
+            "Shubhayu Bhattacharyay",
+            "Florian D. van Leeuwen",
+            "Erta Beqiri",
+            "Cecilia A. I. Åkerlund",
+            "Lindsay Wilson",
+            "Ewout W. Steyerberg",
+            "David W. Nelson",
+            "Andrew I. R. Maas",
+            "David K. Menon",
+            "Ari Ercole",
+            "Cecilia Åkerlund",
+            "Krisztina Amrein",
+            "Nada Andelic",
+            "Lasse Andreassen",
+            "Audny Anke",
+            "Anna Antoni",
+            "Gérard Audibert",
+            "Philippe Azouvi",
+            "Maria Luisa Azzolini",
+            "Ronald Bartels",
+            "Pál Barzó",
+            "Romuald Beauvais",
+            "Ronny Beer",
+            "Bo-Michael Bellander",
+            "Antonio Belli",
+            "Habib Benali",
+            "Maurizio Berardino",
+            "Luigi Beretta",
+            "Morten Blaabjerg",
+            "Peter Bragge",
+            "Alexandra Brazinova",
+            "Vibeke Brinck",
+            "Joanne Brooker",
+            "Camilla Brorsson",
+            "Andras Buki",
+            "Monika Bullinger",
+            "Manuel Cabeleira",
+            "Alessio Caccioppola",
+            "Emiliana Calappi",
+            "Maria Rosa Calvi",
+            "Peter Cameron",
+            "Guillermo Carbayo Lozano",
+            "Marco Carbonara",
+            "Simona Cavallo",
+            "Giorgio Chevallard",
+            "Arturo Chieregato",
+            "Giuseppe Citerio",
+            "Hans Clusmann",
+            "Mark Coburn",
+            "Jonathan Coles",
+            "Jamie D. Cooper",
+            "Marta Correia",
+            "Amra Čović",
+            "Nicola Curry",
+            "Endre Czeiter",
+            "Marek Czosnyka",
+            "Claire Dahyot-Fizelier",
+            "Paul Dark",
+            "Helen Dawes",
+            "Véronique De Keyser",
+            "Vincent Degos",
+            "Francesco Della Corte",
+            "Hugo den Boogert",
+            "Bart Depreitere",
+            "Đula Đilvesi",
+            "Abhishek Dixit",
+            "Emma Donoghue",
+            "Jens Dreier",
+            "Guy-Loup Dulière",
+            "Ari Ercole",
+            "Patrick Esser",
+            "Erzsébet Ezer",
+            "Martin Fabricius",
+            "Valery L. Feigin",
+            "Kelly Foks",
+            "Shirin Frisvold",
+            "Alex Furmanov",
+            "Pablo Gagliardo",
+            "Damien Galanaud",
+            "Dashiell Gantner",
+            "Guoyi Gao",
+            "Pradeep George",
+            "Alexandre Ghuysen",
+            "Lelde Giga",
+            "Ben Glocker",
+            "Jagoš Golubovic",
+            "Pedro A. Gomez",
+            "Johannes Gratz",
+            "Benjamin Gravesteijn",
+            "Francesca Grossi",
+            "Russell L. Gruen",
+            "Deepak Gupta",
+            "Juanita A. Haagsma",
+            "Iain Haitsma",
+            "Raimund Helbok",
+            "Eirik Helseth",
+            "Lindsay Horton",
+            "Jilske Huijben",
+            "Peter J. Hutchinson",
+            "Bram Jacobs",
+            "Stefan Jankowski",
+            "Mike Jarrett",
+            "Ji-yao Jiang",
+            "Faye Johnson",
+            "Kelly Jones",
+            "Mladen Karan",
+            "Angelos G. Kolias",
+            "Erwin Kompanje",
+            "Daniel Kondziella",
+            "Evgenios Kornaropoulos",
+            "Lars-Owe Koskinen",
+            "Noémi Kovács",
+            "Ana Kowark",
+            "Alfonso Lagares",
+            "Linda Lanyon",
+            "Steven Laureys",
+            "Fiona Lecky",
+            "Didier Ledoux",
+            "Rolf Lefering",
+            "Valerie Legrand",
+            "Aurelie Lejeune",
+            "Leon Levi",
+            "Roger Lightfoot",
+            "Hester Lingsma",
+            "Andrew I. R. Maas",
+            "Ana M. Castaño-León",
+            "Marc Maegele",
+            "Marek Majdan",
+            "Alex Manara",
+            "Geoffrey Manley",
+            "Costanza Martino",
+            "Hugues Maréchal",
+            "Julia Mattern",
+            "Catherine McMahon",
+            "Béla Melegh",
+            "David Menon",
+            "Tomas Menovsky",
+            "Ana Mikolic",
+            "Benoit Misset",
+            "Visakh Muraleedharan",
+            "Lynnette Murray",
+            "Ancuta Negru",
+            "David Nelson",
+            "Virginia Newcombe",
+            "Daan Nieboer",
+            "József Nyirádi",
+            "Otesile Olubukola",
+            "Matej Oresic",
+            "Fabrizio Ortolano",
+            "Aarno Palotie",
+            "Paul M. Parizel",
+            "Jean-François Payen",
+            "Natascha Perera",
+            "Vincent Perlbarg",
+            "Paolo Persona",
+            "Wilco Peul",
+            "Anna Piippo-Karjalainen",
+            "Matti Pirinen",
+            "Dana Pisica",
+            "Horia Ples",
+            "Suzanne Polinder",
+            "Inigo Pomposo",
+            "Jussi P. Posti",
+            "Louis Puybasset",
+            "Andreea Radoi",
+            "Arminas Ragauskas",
+            "Rahul Raj",
+            "Malinka Rambadagalla",
+            "Isabel Retel Helmrich",
+            "Jonathan Rhodes",
+            "Sylvia Richardson",
+            "Sophie Richter",
+            "Samuli Ripatti",
+            "Saulius Rocka",
+            "Cecilie Roe",
+            "Olav Roise",
+            "Jonathan Rosand",
+            "Jeffrey V. Rosenfeld",
+            "Christina Rosenlund",
+            "Guy Rosenthal",
+            "Rolf Rossaint",
+            "Sandra Rossi",
+            "Daniel Rueckert",
+            "Martin Rusnák",
+            "Juan Sahuquillo",
+            "Oliver Sakowitz",
+            "Renan Sanchez-Porras",
+            "Janos Sandor",
+            "Nadine Schäfer",
+            "Silke Schmidt",
+            "Herbert Schoechl",
+            "Guus Schoonman",
+            "Rico Frederik Schou",
+            "Elisabeth Schwendenwein",
+            "Charlie Sewalt",
+            "Ranjit D. Singh",
+            "Toril Skandsen",
+            "Peter Smielewski",
+            "Abayomi Sorinola",
+            "Emmanuel Stamatakis",
+            "Simon Stanworth",
+            "Robert Stevens",
+            "William Stewart",
+            "Ewout W. Steyerberg",
+            "Nino Stocchetti",
+            "Nina Sundström",
+            "Riikka Takala",
+            "Viktória Tamás",
+            "Tomas Tamosuitis",
+            "Mark Steven Taylor",
+            "Aurore Thibaut",
+            "Braden Te Ao",
+            "Olli Tenovuo",
+            "Alice Theadom",
+            "Matt Thomas",
+            "Dick Tibboel",
+            "Marjolein Timmers",
+            "Christos Tolias",
+            "Tony Trapani",
+            "Cristina Maria Tudora",
+            "Andreas Unterberg",
+            "Peter Vajkoczy",
+            "Shirley Vallance",
+            "Egils Valeinis",
+            "Zoltán Vámos",
+            "Mathieu van der Jagt",
+            "Gregory Van der Steen",
+            "Joukje van der Naalt",
+            "Jeroen T. J. M. van Dijck",
+            "Inge A. M. van Erp",
+            "Thomas A. van Essen",
+            "Wim Van Hecke",
+            "Caroline van Heugten",
+            "Ernest van Veen",
+            "Thijs Vande Vyvere",
+            "Roel P. J. van Wijk",
+            "Alessia Vargiolu",
+            "Emmanuel Vega",
+            "Kimberley Velt",
+            "Jan Verheyden",
+            "Paul M. Vespa",
+            "Anne Vik",
+            "Rimantas Vilcinis",
+            "Victor Volovici",
+            "Nicole von Steinbüchel",
+            "Daphne Voormolen",
+            "Petar Vulekovic",
+            "Kevin K. W. Wang",
+            "Daniel Whitehouse",
+            "Eveline Wiegers",
+            "Guy Williams",
+            "Stefan Winzeck",
+            "Stefan Wolf",
+            "Zhihui Yang",
+            "Peter Ylén",
+            "Alexander Younsi",
+            "Frederick A. Zeiler",
+            "Veronika Zelinkova",
+            "Agate Ziverte",
+            "Tommaso Zoerle"
+          ],
+          "publication_date": "2025-1-2",
+          "citationKey": "bhattacharyayTILTomorrowTodayDynamic2025"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On a sample of 1,000 alerts from the account-takeover model, the five features with the largest mean absolute TimeSHAP attribution are all on the fraud team's list of recognised account-takeover indicators.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Clinicians reviewing the event- and feature-level attributions for 200 test-set patients judged the leading drivers of the escalation model clinically plausible in at least 90% of cases, and each implausible case was traced to a documented data or model issue.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For 95% of the fog warnings explained in validation, observations more than 12 hours before the forecast time carry less than 10% of the summed absolute event attribution.",
+          "assuranceGoal": "explainability",
+          "domain": "aviation"
+        },
+        {
+          "text": "With the background and pruning tolerance fixed in the validation plan, ten repeated TimeSHAP runs on the validation sample give event attributions whose relative standard deviation is below 0.5.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "actionable-recourse-audit",
+      "name": "Actionable Recourse Audit",
+      "description": "An actionable recourse audit checks whether the people a linear classifier refuses, for example for a loan, a job interview or a public service, could change that decision through actions open to them, and how much they would have to change. The auditor first writes an action set saying which features can change and how: immutable features such as age stay fixed, features such as education level can only rise, and each changeable feature gets bounds and a grid of realistic values. Then, for each refused person in a sample drawn from the population the model will serve, an integer programming solver (optimisation software that searches discrete choices exactly) looks through the permitted actions for the cheapest change that flips the decision, measuring cost as the largest shift, in population percentiles, that the change makes to any one feature, and either returns that action or proves that none exists, which a search that simply fails to find a counterfactual cannot do. The audit reports the share of refused people who have recourse and the distribution of its cost, which can be compared across candidate models or broken down by group, and the same solver can list a refused person's cheapest alternative changes (a 'flipset') for a decision notice. Unlike the Contrastive Explanation Method, which explains one prediction through features that must be present or absent, or Diverse Counterfactual Explanations (DiCE), which searches any model for several alternative inputs that would change one decision, the audit works only on linear models but certifies whether any permitted action exists and summarises the answer across a population.",
+      "assurance_goals": [
+        "Transparency",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/linear-models",
+        "applicable-models/architecture/linear-models/logistic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/notice-and-recourse",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/reference-dataset",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "evidence-type/fairness-metric",
+        "evidence-type/structured-output",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before launching a linear model that ranks applications to a housing support scheme, a local authority's analytics team audits recourse on last year's applicants, with age and household size fixed. Its report to the scheme's oversight board gives the share of refused applicants who could qualify through changes the scheme expects, such as completing a tenancy course, and how large those changes are, so the board can decide whether to approve the model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A credit card issuer generates a flipset for each applicant its linear scorecard declines and puts the two cheapest items in the decline letter, for example reducing current debt to a stated amount, together with the other scored features the applicant should keep unchanged, so that following the stated actions would change the decision under the current model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A lender's model risk committee is shown recourse audits for candidate credit models of almost equal accuracy. It rejects the most accurate, under which some refused applicants had no feasible action because of an 'ever defaulted' feature, adopts a variant that uses recent defaults only, and has the audit re-run each quarter on new applicants, watching younger applicants, who were scarce in the training data.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An employer's analytics team audits its linear screening model for interview invitations and compares the cost of recourse for refused women and men with similar predicted scores. Sex is not a model input, but the cost can still differ by sex. Refused candidates' true suitability is never observed, so the team cannot also match on outcome as the originating study did, and reports any gap with that caveat to its fairness review panel, which decides whether the features need revising.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The proof that no action exists depends on the model being linear, such as logistic regression, a linear support vector machine or a rule set that can be written in linear form. For tree ensembles or neural networks, a local linear approximation can still suggest actions, which then have to be checked on the real model, but a failure to find one proves nothing, so the share of refused people without recourse is no longer a certified figure."
+        },
+        {
+          "description": "Every conclusion rests on the action set and cost the auditor chooses. Bounds that are too tight make people appear to lack recourse; loose bounds let a model 'provide' recourse only through drastic changes, which shows only as high cost; and the default cost treats a one-percentile change as equally hard in every feature unless someone who knows the domain sets how much harder some changes are."
+        },
+        {
+          "description": "The search treats features as changing independently unless the auditor adds constraints. Real actions have knock-on effects: raising income can also raise savings, so a listed action may cost more than needed, or may not change the decision once its effects on other features are counted, as Karimi, Schölkopf and Valera showed for recourse methods that ignore causal relations between features."
+        },
+        {
+          "description": "Recourse is defined for a fixed model. After retraining, an action given in an earlier notice may no longer change the decision, so the audit has to be re-run after each update. An action that changes the prediction need not change the real outcome either: showing a refused applicant how to be approved can lead them into credit they cannot repay."
+        },
+        {
+          "description": "A flipset lists only the features to change, so a person who also changes an undisclosed feature may still be refused unless the notice says what must stay the same. The originating paper builds flipsets from public credit datasets and does not test whether refused people understand them or can act on them. Owners may also resist publishing flipsets, because many of them together can let others reconstruct the model."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Actionable Recourse in Linear Classification",
+          "url": "https://doi.org/10.1145/3287560.3287566",
+          "source_type": "technical_paper",
+          "authors": [
+            "Berk Ustun",
+            "Alexander Spangher",
+            "Yang Liu"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "ustunActionableRecourseLinear2019"
+        },
+        {
+          "title": "actionable-recourse",
+          "url": "https://github.com/ustunb/actionable-recourse",
+          "source_type": "software_package",
+          "publication_date": "2026-07-11T02:55:36Z",
+          "citationKey": "ustunActionablerecourse2026",
+          "abstract": "python tools to check recourse in linear classification"
+        },
+        {
+          "title": "actionable-recourse example: Auditing Recourse",
+          "url": "https://github.com/ustunb/actionable-recourse/blob/master/examples/ex_02_audit_model-effects-of-recourse-demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ActionablerecourseExampleAuditing",
+          "abstract": "python tools to check recourse in linear classification - ustunb/actionable-recourse"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every refused applicant in the audit sample, drawn from last year's applications to the scheme, has at least one action under the agreed action set that would make them eligible under the deployed model.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Under the agreed action set, at least half of the declined applicants in the audit sample have an action that would bring approval while moving no feature by more than 25 percentiles of the applicant population.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "Among candidates refused by the screening model with similar predicted scores, the median cost of recourse for women is within five percentile points of that for men.",
+          "assuranceGoal": "fairness",
+          "domain": "employment"
+        },
+        {
+          "text": "Each decline letter lists at least one action that would change the decision under the current scorecard, together with the scored features the applicant must keep unchanged.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        }
+      ]
     }
   ],
-  "count": 4
+  "count": 8
 }

@@ -2,7 +2,7 @@
   "tag": {
     "name": "data-requirements/access-to-training-data",
     "slug": "data-requirements-access-to-training-data",
-    "count": 40,
+    "count": 42,
     "category": "data-requirements"
   },
   "techniques": [
@@ -6128,7 +6128,286 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "rolling-origin-evaluation",
+      "name": "Rolling-Origin Evaluation",
+      "description": "Rolling-origin evaluation, also called time-series cross-validation or backtesting, estimates how accurately a forecasting model will predict the future by repeatedly recreating the position it will be in when used: trained only on data up to a point in time, it forecasts the period that follows. The evaluator chooses a first forecast origin (the last time point the model may see) late enough to leave adequate training data, fits the model on the data up to that origin, forecasts every step of a fixed horizon ahead, for example one to seven days, and records the error at each lead time against the values later observed. The origin then moves forward by one step or a block of steps and the process repeats, with the model either refitted at each origin on all the data so far or on a window of fixed length (recalibration, in Tashman's terms), or kept unchanged and simply given the new observations as inputs (updating), whichever matches how it will be maintained in service. Because every forecast uses only data from before its origin, the method avoids the leakage of future information that randomly shuffled cross-validation can cause on time-ordered data, and because it uses many test periods rather than the single one of a fixed train-test split, its result depends less on which period happened to be held out. The output is the forecast error, under whatever error measure suits the forecast, broken down by lead time and by origin date for each candidate model, which supports claims about expected accuracy on unseen future data over a stated horizon and shows how that accuracy varies across seasons and conditions.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/performance-assessment",
+        "data-requirements/labelled-data",
+        "data-requirements/access-to-training-data",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A regional electricity distributor deciding whether to replace its regression model for day-ahead substation demand with a gradient-boosted model evaluates both over the last two years, with an origin each day at the time forecasts are issued, a horizon of the next 48 half-hours and weekly refitting, as planned for operation. It compares error at each lead time and in each season, and switches only after finding the new model better in winter peaks as well as on average.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A national weather service's post-processing team testing a machine-learning correction for station temperature forecasts places origins every day over three years, with lead times of one to ten days, and refits the correction monthly as it would in service. Error by lead time and by month shows whether the correction still helps at the longest lead times and whether its gain in winter holds in all three winters rather than one.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital's operations analysts choosing a model to forecast emergency admissions one to fourteen days ahead for staff rotas compare a seasonal statistical model with a neural network, using weekly origins over two years that include two winter peaks. They report error at the seven-day lead time the rota planners use, and keep the simpler model because the neural network's advantage disappears at that horizon.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Refitting at every origin multiplies training cost by the number of origins: daily origins over two years means more than 700 fits. Machine-learning forecasters are often refitted only now and then and otherwise just fed new data, which Hewamalage et al. describe as common practice; that is cheaper but measures something different, so the refit schedule in the evaluation must match the one planned for deployment or the errors do not describe the deployed system."
+        },
+        {
+          "description": "The time-ordered split prevents leakage only through the split itself. Scaling, smoothing, decomposition, feature selection or tuning done on the whole series before splitting, or features summarising a period not yet over at the forecast time, still let future information in. Hewamalage et al. show a model beating the best possible forecast of a random walk only because a decomposition was fitted to the whole series; every such step must be redone within each origin."
+        },
+        {
+          "description": "Errors from neighbouring origins share most of their training data and, for multi-step horizons, overlapping test periods, so they are correlated: an average over hundreds of origins is less precise than the count suggests, and the spread across origins is not a confidence interval. Deciding whether one model beats another needs a test designed for serially correlated forecast errors, such as the Diebold-Mariano test, not a plain comparison of average errors."
+        },
+        {
+          "description": "The first origins have little training data, so their errors can overstate those of a model trained on the full history, and a short series leaves few test periods and a noisy average. For purely autoregressive models (past values as the only inputs) on stationary series, whose errors show no remaining autocorrelation, Bergmeir et al. show that standard k-fold cross-validation remains valid, and Hewamalage et al. recommend it for short series as it uses the data more efficiently."
+        },
+        {
+          "description": "It measures how the model would have performed over the history available, not how it will perform after a change that history does not contain, such as a new tariff, a replaced sensor or an abrupt structural break; Hewamalage et al. note that no evaluation design can anticipate a break that lies only in the future. Results should be stated for the periods and conditions they cover and repeated as new data arrive."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Out-of-sample tests of forecasting accuracy: an analysis and review",
+          "url": "https://doi.org/10.1016/s0169-2070(00)00065-0",
+          "source_type": "technical_paper",
+          "authors": [
+            "Leonard J. Tashman"
+          ],
+          "publication_date": "2000-10",
+          "citationKey": "tashmanOutofsampleTestsForecasting2000"
+        },
+        {
+          "title": "Forecast evaluation for data scientists: common pitfalls and best practices",
+          "url": "https://doi.org/10.1007/s10618-022-00894-5",
+          "source_type": "technical_paper",
+          "authors": [
+            "Hansika Hewamalage",
+            "Klaus Ackermann",
+            "Christoph Bergmeir"
+          ],
+          "publication_date": "2022-12-2",
+          "citationKey": "hewamalageForecastEvaluationData2022"
+        },
+        {
+          "title": "evaluate: evaluate forecaster using timeseries cross-validation (sktime documentation)",
+          "url": "https://www.sktime.net/docs/api-reference/sktimeforecastingmodel-evaluationevaluate/",
+          "source_type": "documentation",
+          "citationKey": "EvaluateEvaluateForecaster",
+          "abstract": "Evaluate forecaster using timeseries cross-validation."
+        },
+        {
+          "title": "sktime: a unified framework for machine learning with time series",
+          "url": "https://github.com/sktime/sktime",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T10:02:42Z",
+          "citationKey": "SktimeUnifiedFramework2026",
+          "abstract": "A unified framework for machine learning with time series"
+        },
+        {
+          "title": "Forecasting: Principles and Practice (3rd ed.), section 5.10: Time series cross-validation",
+          "url": "https://otexts.com/fpp3/toolbox.html#sec-tscv",
+          "source_type": "tutorial",
+          "citationKey": "ForecastingPrinciplesPractice"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Across daily forecast origins over the two most recent years, the new day-ahead demand model has a lower mean absolute error than the current model at every lead time from one to 48 half-hours, and the difference is significant under a test designed for serially correlated forecast errors.",
+          "assuranceGoal": "reliability",
+          "domain": "energy"
+        },
+        {
+          "text": "With weekly refitting matching the planned retraining schedule, the seven-day-ahead admissions forecast stayed within the agreed error limit in every month of the two-year rolling-origin evaluation, including both winters.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every scaling, feature-selection and tuning step behind the reported forecast errors used only data available before each forecast origin.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        },
+        {
+          "text": "The temperature correction reduces ten-day-ahead forecast error in each of the three winters covered by the rolling-origin evaluation, not only on average across them.",
+          "assuranceGoal": "reliability",
+          "domain": "environmental"
+        }
+      ]
+    },
+    {
+      "slug": "sanity-checks-for-saliency-maps",
+      "name": "Sanity Checks for Saliency Maps",
+      "description": "Sanity checks for saliency maps are two randomisation tests that show whether an explanation method's output depends on what a neural network has learned, or would look much the same for a network that had learned nothing. In the model parameter randomisation test, the evaluator recomputes explanations for a fixed set of inputs after replacing the trained weights with random ones, either cumulatively from the output layer down towards the input (cascading randomisation) or one layer at a time with the others left trained (independent randomisation). In the data randomisation test, the evaluator trains a copy of the same architecture on the training data with the labels shuffled, until it has memorised them, and compares its explanations with those of the model trained on the true labels. Similarity between original and randomised explanations is measured with rank correlation, with and without absolute values, and with image similarity scores such as the structural similarity index; a method whose maps stay similar fails, because its output cannot reflect the learned weights or the relationship between inputs and labels, as Guided Backpropagation and Guided GradCAM failed in the original study when the upper layers were randomised, while plain gradients and GradCAM passed. Passing is a necessary condition, not proof of a good explanation: it shows a method responds to the model, not that its explanations are faithful or useful.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/white-box",
+        "applicable-models/requirements/model-internals",
+        "assurance-goal-category/explainability/property/fidelity",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/image",
+        "data-type/tabular",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A radiology AI group considering saliency maps as a guide to where a chest-radiograph model sees a pneumothorax runs cascading randomisation on the trained network, measuring structural similarity between original and randomised maps after each block. It sets aside methods whose maps stay similar, as several common methods did in a published study of this task, unless a deletion test shows they still track the model, and uses the rest only alongside a separately validated localisation model.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "An insurer's fraud analytics team shows investigators attribution scores for each claim flagged by a neural-network model. Before rollout it runs independent layer randomisation, one layer at a time, and checks that rank correlation without absolute values falls for every layer, so that the scores investigators see depend on the trained weights throughout the network rather than mostly on the claim's raw feature values.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A wind-farm operator's reliability team uses a one-dimensional convolutional network on gearbox vibration signals and gives maintenance engineers heatmaps over each signal. It runs the data randomisation test by training the same architecture on shuffled fault labels until it fits them, and keeps only heatmap methods whose maps differ clearly between the two networks, since a map that survives shuffled labels cannot show what the network learned about faults.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Passing is easy for an explanation that carries no information. Binder et al. show that attribution maps with no correlation between neighbouring pixels score well in model randomisation tests, and that top-down randomisation tends to preserve the scale of forward-pass activations, so even a good explanation can change only so much. They argue the test should not alone decide whether a method is kept: two methods that score poorly on it beat several gradient methods in occlusion-based tests."
+        },
+        {
+          "description": "The verdict depends on how similarity is measured. In the original study, rank correlation with absolute values and structural similarity stayed high for some methods after randomisation while rank correlation without absolute values fell to near zero, because randomisation flipped signs but kept the input's outline. There is no agreed pass threshold and libraries set their own defaults, so the measure, absolute-value setting and threshold must be reported with the result."
+        },
+        {
+          "description": "The similarity measures are sensitive to noise, so a method with noisy maps looks changed by randomisation partly because of its own noise, and its score is overstated. Later work proposes repairs: averaging each explanation over noisy copies of the input before comparing (Smooth MPRT), or comparing how much more complex the explanation becomes after full randomisation (Efficient MPRT); its authors report more reliable results with both."
+        },
+        {
+          "description": "The model parameter test needs the weights and a layered network, so it cannot be run on a model reached only through an interface. The data randomisation test needs the training data and pipeline and a network able to memorise shuffled labels; the original study trained to over 95% training accuracy, which for a large model costs a full training run."
+        },
+        {
+          "description": "Most evidence for the tests comes from image classifiers. Passing says nothing about whether the highlighted regions match what matters in the domain: in a chest-radiograph study, every saliency method, including those that passed the randomisation test, localised abnormalities worse than a dedicated detection or segmentation network."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ModelRandomizationMetric — Xplique documentation",
+          "url": "https://deel-ai.github.io/xplique/latest/api/attributions/metrics/model_randomization/",
+          "source_type": "documentation",
+          "citationKey": "ModelRandomizationMetricXpliqueDocumentation"
+        },
+        {
+          "title": "Quantus (understandable-machine-intelligence-lab/Quantus)",
+          "url": "https://github.com/understandable-machine-intelligence-lab/Quantus",
+          "source_type": "software_package",
+          "citationKey": "QuantusUnderstandablemachineintelligencelabQuantus",
+          "abstract": "[JMLR 2023] Quantus is an eXplainable AI toolkit for responsible evaluation of neural network explanations - understandable-machine-intelligence-lab/Quantus"
+        },
+        {
+          "title": "Sanity Checks for Saliency Maps",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2018/hash/294a8ed24b1ad22ec2e7efea049b8737-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Julius Adebayo",
+            "Justin Gilmer",
+            "Michael Muelly",
+            "Ian Goodfellow",
+            "Moritz Hardt",
+            "Been Kim"
+          ],
+          "publication_date": "2018",
+          "citationKey": "adebayoSanityChecksSaliency2018",
+          "abstract": "Saliency methods have emerged as a popular tool to highlight features in an input\ndeemed relevant for the prediction of a learned model. Several saliency methods\nhave been proposed, often guided by visual appeal on image data. In this work, we\npropose an actionable methodology to evaluate what kinds of explanations a given\nmethod can and cannot provide. We find that reliance, solely, on visual assessment\ncan be misleading. Through extensive experiments we show that some existing\nsaliency methods are independent both of the model and of the data generating\nprocess. Consequently, methods that fail the proposed tests are inadequate for\ntasks that are sensitive to either data or model, such as, finding outliers in the data,\nexplaining the relationship between inputs and outputs that the model learned,\nand debugging the model. We interpret our findings through an analogy with\nedge detection in images, a technique that requires neither training data nor model.\nTheory in the case of a linear model and a single-layer convolutional neural network\nsupports our experimental findings."
+        },
+        {
+          "title": "Attribution Randomization Metrics (Sanity Checks) tutorial (Xplique)",
+          "url": "https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y",
+          "source_type": "tutorial",
+          "citationKey": "AttributionRandomizationMetrics"
+        },
+        {
+          "title": "Assessing the Trustworthiness of Saliency Maps for Localizing                     Abnormalities in Medical Imaging",
+          "url": "https://doi.org/10.1148/ryai.2021200267",
+          "source_type": "application_paper",
+          "authors": [
+            "Nishanth Arun",
+            "Nathan Gaw",
+            "Praveer Singh",
+            "Ken Chang",
+            "Mehak Aggarwal",
+            "Bryan Chen",
+            "Katharina Hoebel",
+            "Sharut Gupta",
+            "Jay Patel",
+            "Mishka Gidwani",
+            "Julius Adebayo",
+            "Matthew D. Li",
+            "Jayashree Kalpathy-Cramer"
+          ],
+          "publication_date": "2021-11-1",
+          "citationKey": "arunAssessingTrustworthinessSaliency2021"
+        },
+        {
+          "title": "Gradient-Based Saliency Maps Are Not Trustworthy Visual Explanations of Automated AI Musculoskeletal Diagnoses",
+          "url": "https://doi.org/10.1007/s10278-024-01136-4",
+          "source_type": "application_paper",
+          "authors": [
+            "Kesavan Venkatesh",
+            "Simukayi Mutasa",
+            "Fletcher Moore",
+            "Jeremias Sulam",
+            "Paul H. Yi"
+          ],
+          "publication_date": "2024-5-6",
+          "citationKey": "venkateshGradientBasedSaliencyMaps2024",
+          "abstract": "Saliency maps are popularly used to “explain” decisions made by modern machine learning models, including deep convolutional neural networks (DCNNs). While the resulting heatmaps purportedly indicate important image features, their “trustworthiness,” i.e., utility and robustness, has not been evaluated for musculoskeletal imaging. The purpose of this study was to systematically evaluate the trustworthiness of saliency maps used in disease diagnosis on upper extremity X-ray images. The underlying DCNNs were trained using the Stanford MURA dataset. We studied four trustworthiness criteria—(1) localization accuracy of abnormalities, (2) repeatability, (3) reproducibility, and (4) sensitivity to underlying DCNN weights—across six different gradient-based saliency methods (Grad-CAM (GCAM), gradient explanation (GRAD), integrated gradients (IG), Smoothgrad (SG), smooth IG (SIG), and XRAI). Ground-truth was defined by the consensus of three fellowship-trained musculoskeletal radiologists who each placed bounding boxes around abnormalities on a holdout saliency test set. Compared to radiologists, all saliency methods showed inferior localization (AUPRCs: 0.438 (SG)–0.590 (XRAI); average radiologist AUPRC: 0.816), repeatability (IoUs: 0.427 (SG)–0.551 (IG); average radiologist IOU: 0.613), and reproducibility (IoUs: 0.250 (SG)–0.502 (XRAI); average radiologist IOU: 0.613) on abnormalities such as fractures, orthopedic hardware insertions, and arthritis. Five methods (GCAM, GRAD, IG, SG, XRAI) passed the sensitivity test. Ultimately, no saliency method met all four trustworthiness criteria; therefore, we recommend caution and rigorous evaluation of saliency maps prior to their clinical use."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every saliency method used in the chest-radiograph review tool produced maps whose structural similarity to the original fell below the agreed threshold once the top blocks of the network were randomised, on a held-out sample of radiographs.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For the fraud model's attribution scores, rank correlation without absolute values between original and layer-randomised attributions is below the threshold set in the validation plan for every layer tested.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Heatmaps from the methods kept for the gearbox dashboard differ between the network trained on true fault labels and the same architecture trained on shuffled labels, by more than the threshold stated in the test report.",
+          "assuranceGoal": "explainability",
+          "domain": "energy"
+        }
+      ]
     }
   ],
-  "count": 40
+  "count": 42
 }

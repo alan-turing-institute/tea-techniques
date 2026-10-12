@@ -1,0 +1,116 @@
+{
+  "slug": "conditional-demographic-disparity",
+  "name": "Conditional Demographic Disparity",
+  "description": "Conditional demographic disparity (CDD) measures whether members of a protected group make up a larger share of the people a system turns down than of the people it accepts, after taking into account a factor that differs between groups and that the assessor treats as a legitimate explanation of outcomes; Wachter, Mittelstadt and Russell (2021) propose it as baseline statistical evidence for assessing possible discrimination under EU non-discrimination law. Demographic disparity is the group's share of the unfavourable outcomes minus its share of the favourable ones: in the Berkeley graduate admissions data the paper revisits, women were 46 per cent of rejected applicants but 32 per cent of admitted ones, a disparity of 0.14. CDD computes the same difference separately within each stratum of the conditioning attribute (there, the department applied to) and averages the strata, weighting each by its number of people, so a gap that arises only because groups apply in different proportions to strata with different acceptance rates (an instance of Simpson's paradox) drops out, while a gap within strata remains. Conditioning on department turns the Berkeley figure to about -0.02, a slight disparity in women's favour: within departments, women were on average 40 per cent of rejected and 42 per cent of admitted applicants. The output is the disparity in each stratum and their weighted average, computed on the outcomes recorded in a dataset before training or on a model's decisions after it; the authors present it as a descriptive magnitude to support a contextual judgement, not a pass-or-fail test, and the choice of conditioning attribute is a judgement the measure does not make.",
+  "assurance_goals": [
+    "Fairness"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/fairness",
+    "assurance-goal-category/fairness/bias-measurement",
+    "data-requirements/sensitive-attributes",
+    "data-type/any",
+    "evidence-type/fairness-metric",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/statistics",
+    "expertise-needed/regulatory-compliance",
+    "expertise-needed/domain-expertise",
+    "technique-type/metric",
+    "lifecycle-stage/project-design",
+    "lifecycle-stage/project-design/data-analysis",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring"
+  ],
+  "example_use_cases": [
+    {
+      "goal": "Fairness",
+      "description": "An employer's HR analytics team audits a CV-screening model used across job families. Women make up a larger share of screened-out applicants than of shortlisted ones overall, but apply in greater numbers to the families with the fewest vacancies per applicant, so the team reports CDD conditioned on job family, with each family's own disparity, letting the recruitment board see whether a gap remains within families before it decides whether to keep using the model."
+    },
+    {
+      "goal": "Fairness",
+      "description": "A consumer lender's compliance team computes CDD on its credit model's decisions for applicants of different ethnic origins, recorded for equality monitoring, conditioned first on the loan product applied for and then on income band. It reports both results with the per-stratum figures and a written reason for treating each factor as a legitimate explanation, as the starting point for its assessment of possible indirect discrimination."
+    },
+    {
+      "goal": "Fairness",
+      "description": "A local authority planning to train a model on past housing allocation decisions measures CDD in those decisions, conditioned on assessed band of housing need, before any training. A positive disparity for one ethnic group within need bands, larger than chance would explain, indicates that the labels carry a pattern a model could learn, and the project board uses the finding to decide whether those decisions can serve as training labels at all."
+    }
+  ],
+  "limitations": [
+    {
+      "description": "The result depends on which attribute is conditioned on, and the measure cannot tell whether that attribute is a legitimate explanation. If the attribute is itself shaped by discrimination, for instance if one group was deterred from applying to some departments, conditioning on it removes the very disparity a claimant would point to. Wachter et al. leave the choice of factors to courts and context, so each choice needs a recorded justification that a reviewer can contest."
+    },
+    {
+      "description": "The weighted average can hide large disparities of opposite sign in different strata. In the Berkeley data the per-department disparities run from about -0.09 to +0.05 around a summary of -0.02, and Wachter et al. note that the largest swings come from the department where few women applied, which chance alone could produce. A claim should rest on the per-stratum figures, with their counts, as well as on the summary."
+    },
+    {
+      "description": "Searching many conditioning attributes or their combinations will find disparities by chance, as the authors warn, and choosing among them after seeing the results can equally make a real one disappear. The authors also offer a descriptive magnitude rather than a statistical test, and set no threshold for how much disparity is too much, so the conditioning attributes need fixing before the data are examined, and a claim that a gap is real needs an interval or test added."
+    },
+    {
+      "description": "CDD compares shares of outcomes, not rates, so the same gap in acceptance rates gives a smaller value where the group is a small part of a stratum: accepted at 20 per cent against 50 per cent for others, a group scores about 0.33 where it is half the stratum but 0.02 where it is 2 per cent. A fixed threshold therefore tolerates larger rate gaps for smaller groups. Scores and graded outcomes must also first be cut into favourable and unfavourable, and the result changes with the cut."
+    },
+    {
+      "description": "In the open-source SageMaker Clarify code, a stratum where everyone gets the same outcome is counted rather than skipped: an all-rejected stratum adds a disparity equal to the group's share of it, though no one there was treated differently, so such strata need removing first. AWS has closed Clarify to new customers. The calculation is easy to reimplement, but published applications to deployed AI systems are scarce; the paper's worked example is the 1975 Berkeley admissions study."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Conditional Demographic Disparity (CDD) (Amazon SageMaker AI Developer Guide)",
+      "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/clarify-data-bias-metric-cddl.html",
+      "source_type": "documentation",
+      "citationKey": "ConditionalDemographicDisparity",
+      "abstract": "Amazon SageMaker Clarify conditional demographic disparity data bias metric."
+    },
+    {
+      "title": "smclarify (aws/amazon-sagemaker-clarify)",
+      "url": "https://github.com/aws/amazon-sagemaker-clarify",
+      "source_type": "software_package",
+      "publication_date": "2026-05-23T16:19:14Z",
+      "citationKey": "SmclarifyAwsAmazonsagemakerclarify2026",
+      "abstract": "Fairness Aware Machine Learning. Bias detection and mitigation for datasets and models."
+    },
+    {
+      "title": "Why fairness cannot be automated: Bridging the gap between EU non-discrimination law and AI",
+      "url": "https://doi.org/10.1016/j.clsr.2021.105567",
+      "source_type": "technical_paper",
+      "authors": [
+        "Sandra Wachter",
+        "Brent Mittelstadt",
+        "Chris Russell"
+      ],
+      "publication_date": "2021-7",
+      "citationKey": "wachterWhyFairnessCannot2021"
+    },
+    {
+      "title": "SMclarify bias metrics example usage (example notebook)",
+      "url": "https://github.com/aws/amazon-sagemaker-clarify/blob/master/examples/Bias_metrics_usage.ipynb",
+      "source_type": "tutorial",
+      "citationKey": "SMclarifyBiasMetrics",
+      "abstract": "Fairness Aware Machine Learning. Bias detection and mitigation for datasets and models. - aws/amazon-sagemaker-clarify"
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 1,
+  "acronym": "CDD",
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "assuranceGoal": "fairness",
+      "domain": "employment",
+      "text": "Conditioned on job family, the CV-screening model's conditional demographic disparity for women in the last hiring round is below 0.02, and no job family with at least 100 applicants shows a disparity above 0.05."
+    },
+    {
+      "assuranceGoal": "fairness",
+      "domain": "finance",
+      "text": "The conditioning factors for the credit model's disparity analysis were fixed, with written reasons, before the decision data were examined, and the disparity in each stratum is reported with its count alongside the weighted summary."
+    },
+    {
+      "assuranceGoal": "fairness",
+      "domain": "public sector",
+      "text": "In the historical housing allocation decisions proposed as training labels, each ethnic group's share of refused applicants exceeds its share of successful applicants by no more than 0.03 within any band of assessed housing need, and each group's acceptance rate in each band is reported beside the disparity."
+    }
+  ]
+}

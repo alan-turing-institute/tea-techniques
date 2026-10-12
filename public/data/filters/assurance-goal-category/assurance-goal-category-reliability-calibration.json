@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/reliability/calibration",
     "slug": "assurance-goal-category-reliability-calibration",
-    "count": 4,
+    "count": 5,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -2514,7 +2514,170 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "reliability-diagram-with-expected-calibration-error",
+      "name": "Reliability Diagram with Expected Calibration Error",
+      "description": "A reliability diagram with expected calibration error (ECE) measures whether a classifier's stated confidence matches how often it is right, so that a reader can tell whether predictions given a probability of 70 per cent come true about 70 per cent of the time. Using labelled cases the model was not trained on, each prediction's confidence (the probability given to the predicted class, or to an event such as rain above a threshold) is placed in one of a fixed number of bins, commonly ten or fifteen equal-width intervals between 0 and 1, and in each bin the average confidence is compared with the observed frequency, the share of its cases in which the predicted class or event actually occurred. The reliability diagram plots observed frequency against average confidence bin by bin, so that bins below the diagonal show overconfidence and bins above it underconfidence, and is usually shown with a histogram of how many cases fall in each bin, which the diagram itself does not show; the ECE condenses the same comparison into one number, the average gap between confidence and observed frequency weighted by each bin's share of the cases, and the maximum calibration error reports the largest gap in any bin. The technique measures and changes nothing: Platt scaling, isotonic regression calibration and temperature scaling repair a model's probabilities, and this measurement, run before and after on the same held-out cases, none of them used to fit the repair, is the evidence that a repair worked.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/calibration",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/statistics",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/metric",
+        "technique-type/visualisation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A national meteorological service is deciding whether to issue a neural-network nowcast's probabilities that radar reflectivity will exceed set thresholds within the next hour. On a held-out season of radar composites, its verification team draws reliability diagrams with sample-count histograms and computes the ECE for each threshold and lead time beside those of its current extrapolation ensemble, and issues the new probabilities only for thresholds where they are at least as reliable.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital's imaging AI group receives a chest X-ray classifier whose vendor reports good calibration on public data. Before connecting it, the group computes the reliability diagram and ECE on a year of its own labelled studies, finds the model overconfident in its highest bins, fits temperature scaling on a separate validation split, and repeats the measurement on the untouched test split to show whether the gap has closed.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A law firm's knowledge team evaluating a language-model research assistant that reports a confidence with each answer asks it a held-out set of questions with verified answers, bins its self-reported confidence, and computes the reliability diagram and ECE for each practice area rather than only for the whole set. The confidence display is switched off for practice areas where the gap between stated confidence and accuracy exceeds the firm's threshold.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A card issuer's fraud team checks its transaction-risk model each month on transactions whose outcomes have arrived, using bins fixed at validation that are narrow over the high scores where alerts are raised. Because fraud is rare, nearly all cases fall in the lowest bin and dominate the ECE, so the team tracks the gap in each high-score bin as well; a gap above the limit set at model sign-off triggers an investigation of drift and a decision on recalibration.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The result depends on how predictions are binned. With equal-width bins, confident models put most cases in one or two bins, which dominate the ECE while the others rest on few cases; more bins give a finer measurement but a noisier estimate in each bin. Rankings of recalibration methods can change with the number of bins or the binning scheme, so both must be reported and held fixed in any comparison."
+        },
+        {
+          "description": "Binning distorts the estimate in both directions. Overconfident and underconfident predictions in the same bin cancel, so with plenty of data the binned ECE understates the true error. On small samples, sampling noise inflates it: with 15 equal-width bins, a simulated perfectly calibrated model showed large errors on 200 cases. ECEs from samples of different sizes, such as subgroups, are not directly comparable; equal-mass bins or a debiased estimator reduce the bias."
+        },
+        {
+          "description": "Calibration says nothing about how well the model separates cases. A model that gives every case the overall base rate, such as 0.5 on a balanced dataset, is calibrated but useless, so the ECE must be reported with accuracy, the area under the ROC curve or a proper scoring rule such as the Brier score, which combines calibration with how decisive the predictions are."
+        },
+        {
+          "description": "Weighting by bin size gives rare but important predictions almost no weight. In a precipitation nowcasting study, almost all probabilities for heavy-rain thresholds fell in the lowest bin, so the ECE barely registered the rare high-probability forecasts, and at the highest threshold it could not be compared because some bins were empty. For multi-class models the usual ECE also looks only at the top predicted class and ignores the calibration of the others."
+        },
+        {
+          "description": "The measurement holds only for the population and period it was computed on. One ECE over a whole test set can hide large differences between subgroups: in an evaluation of language models answering medical questions, ECE ranged from 0.041 to 0.141 across specialties, a spread the pooled figure masked. Calibration can also drift after deployment, so it has to be measured for the subgroups that matter and repeated on new labelled data."
+        }
+      ],
+      "resources": [
+        {
+          "title": "netcal: Uncertainty Calibration (API reference documentation)",
+          "url": "https://efs-opensource.github.io/calibration-framework/",
+          "source_type": "documentation",
+          "citationKey": "NetcalUncertaintyCalibration"
+        },
+        {
+          "title": "netcal: calibration-framework (EFS-OpenSource)",
+          "url": "https://github.com/EFS-OpenSource/calibration-framework",
+          "source_type": "software_package",
+          "publication_date": "2026-10-11T08:41:15Z",
+          "citationKey": "NetcalCalibrationframeworkEFSOpenSource2026",
+          "abstract": "The net:cal calibration framework is a Python 3 library for measuring and mitigating miscalibration of uncertainty estimates, e.g., by a neural network."
+        },
+        {
+          "title": "Obtaining Well Calibrated Probabilities Using Bayesian Binning",
+          "url": "https://doi.org/10.1609/aaai.v29i1.9602",
+          "source_type": "technical_paper",
+          "authors": [
+            "Mahdi Pakdaman Naeini",
+            "Gregory Cooper",
+            "Milos Hauskrecht"
+          ],
+          "publication_date": "2015-2-21",
+          "citationKey": "pakdamannaeiniObtainingWellCalibrated2015"
+        },
+        {
+          "title": "On Calibration of Modern Neural Networks",
+          "url": "https://arxiv.org/abs/1706.04599",
+          "source_type": "technical_paper",
+          "authors": [
+            "Chuan Guo",
+            "Geoff Pleiss",
+            "Yu Sun",
+            "Kilian Q. Weinberger"
+          ],
+          "publication_date": "2017-06-14",
+          "citationKey": "guoCalibrationModernNeural2017",
+          "abstract": "Confidence calibration -- the problem of predicting probability estimates representative of the true correctness likelihood -- is important for classification models in many applications. We discover that modern neural networks, unlike those from a decade ago, are poorly calibrated. Through extensive experiments, we observe that depth, width, weight decay, and Batch Normalization are important factors influencing calibration. We evaluate the performance of various post-processing calibration methods on state-of-the-art architectures with image and document classification datasets. Our analysis and experiments not only offer insights into neural network learning, but also provide a simple and straightforward recipe for practical settings: on most datasets, temperature scaling -- a single-parameter variant of Platt Scaling -- is surprisingly effective at calibrating predictions."
+        },
+        {
+          "title": "Probability Calibration curves — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
+          "source_type": "tutorial",
+          "citationKey": "ProbabilityCalibrationCurves",
+          "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
+        },
+        {
+          "title": "DEUCE v1.0: a neural network for probabilistic precipitation nowcasting with aleatoric and epistemic uncertainties",
+          "url": "https://doi.org/10.5194/gmd-17-3839-2024",
+          "source_type": "application_paper",
+          "authors": [
+            "Bent Harnist",
+            "Seppo Pulkkinen",
+            "Terhi Mäkinen"
+          ],
+          "publication_date": "2024-5-14",
+          "citationKey": "harnistDEUCEV10Neural2024"
+        },
+        {
+          "title": "Calibration of Self-Reported Confidence and Accuracy of Large Language Models in Medical Question Answering",
+          "url": "https://doi.org/10.1007/s10916-026-02430-0",
+          "source_type": "application_paper",
+          "authors": [
+            "Sebastian Daniel Boie",
+            "Florian Reis",
+            "Nicolas Frey",
+            "Elias Grünewald",
+            "Felix Balzer"
+          ],
+          "publication_date": "2026-6-26",
+          "citationKey": "boieCalibrationSelfReportedConfidence2026",
+          "abstract": "Objective: To evaluate the alignment between self-reported confidence of large language models (LLM) and their accuracy in answering medical multiple-choice questions. Materials and Methods: We prompted six LLMs (GPT-5, GPT-5-mini, GPT-5-nano, GPT-4o, Claude Sonnet 4.5, and Gemini 2.5) to answer MedMCQA items and report confidence scores. Based on 12,000 LLM responses, we calculated Expected Calibration Errors (ECE) by averaging absolute differences between observed accuracy and predicted confidence. Results: Mean ECE differed by model (Claude Sonnet 4.5 best: 0.06; Gpt-4o worst: 0.127) and varied across specialties (“Skin” best: 0.041; “Social & Preventive Medicine” worst: 0.141). Accuracy of examined LLMs showed analogous variation between specialties. Discussion: Our results demonstrate that high accuracy does not guarantee reliable uncertainty estimation. We identified substantial heterogeneity across medical specialties, where pooled metrics masked a threefold ECE increase between best- and worst-performing domains. Conclusion: We recommend incorporating calibration reporting into LLM evaluations, as larger models exhibit improved “self-knowledge”, but uneven overconfidence persists."
+        }
+      ],
+      "complexity_rating": 1,
+      "computational_cost_rating": 1,
+      "acronym": "ECE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On the held-out 2025 convective season, the nowcast's probabilities of exceeding 25 dBZ at 30-minute lead time have an expected calibration error below 0.01 over ten equal-width bins, no higher than that of the current extrapolation ensemble.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "After temperature scaling, the chest X-ray classifier's expected calibration error on the hospital's untouched test split is below 0.03 with 15 equal-width bins, and no bin holding more than 2 per cent of studies shows a gap above five percentage points.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For each practice area with at least 300 evaluation questions, the research assistant's self-reported confidence has an expected calibration error below 0.08 against verified answers.",
+          "assuranceGoal": "reliability",
+          "domain": "legal"
+        },
+        {
+          "text": "In every month of 2026, in each high-score bin fixed at model sign-off, the fraud model's average predicted probability was within two percentage points of the observed fraud rate among transactions with confirmed outcomes.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        }
+      ]
     }
   ],
-  "count": 16
+  "count": 17
 }

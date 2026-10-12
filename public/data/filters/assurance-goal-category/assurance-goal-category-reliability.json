@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/reliability",
     "slug": "assurance-goal-category-reliability",
-    "count": 43,
+    "count": 49,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -8949,7 +8949,869 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "data-validation-checks",
+      "name": "Data Validation Checks",
+      "description": "Data validation checks apply a written set of rules about what valid data look like to every new batch of data before a model is trained on it or uses it to make predictions, and flag or hold back any batch that breaks them. In Great Expectations (GX Core), a widely used open-source library for this, each rule is an expectation, a declarative assertion such as that a column exists and has a given type, has no missing values or takes values only from an allowed set or within a range (rules on single values can allow a stated share of rows to fail), or keeps a summary statistic (its mean, a quantile, or the divergence of its histogram from one built on reference data) within bounds the team sets. Expectations are grouped into a suite that a checkpoint runs on each batch as it arrives; the result records for every rule whether it passed and how many values broke it, with examples, configured actions can alert the team or update a human-readable report, and the pipeline can be set to stop training or scoring on a batch that failed. Running the same suite on training batches and on the data a deployed model receives catches differences between the two, such as a feature that is always missing in production, before they degrade predictions; unlike out-of-distribution detectors, the checks need no model and judge whole batches against explicit rules rather than scoring single inputs, and unlike runtime monitoring of a deployed model they act before the model sees the data. Unlike a kernel two-sample test, its distribution rules are fixed bounds set by the team, not a statistical test of whether two samples differ.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/shift-detection",
+        "data-requirements/reference-dataset",
+        "data-type/tabular",
+        "evidence-type/dataset-analysis",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/data-engineering",
+        "expertise-needed/domain-expertise",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An air navigation service provider feeds surveillance track reports into a model that predicts aircraft arrival times. Its data engineers run an expectation suite on every incoming batch, covering required fields, units, plausible ranges for altitude and ground speed, and the share of reports with missing positions, so that a sensor change that silently switched altitude from feet to metres would stop the batch before it reached the model rather than surface weeks later as worse predictions.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A weather service that retrains a statistical correction model each month on station observations validates every monthly extract first: station identifiers must come from the station list, temperatures must lie within each station's climatological limits, no variable may have more than 2 per cent missing values, and each variable's mean and quantiles must stay within bounds set from earlier years. A failed check stops the retraining and opens a ticket listing the failing stations.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital running a deterioration-risk model on laboratory results checks each hourly batch from the laboratory system against expectations for test codes, units and value ranges, so that if a laboratory changes the unit of a test without notice the batch is flagged and risk scores for the affected patients are withheld until the mapping is corrected.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A bank's credit-scoring team runs the expectation suite written for its training data on a daily sample of the applications its deployed model scores and compares the results, so that a field the online form has stopped collecting, which the scoring service quietly fills with a default value, shows up as a difference between training and production data rather than as an unexplained drop in approval rates.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Checks catch only what someone thought to write down. A batch can satisfy every rule and still be wrong in a way no rule covers, such as a changed relationship between two columns or a change in how labels were assigned. GX Core does not infer rules from the data, since its automatic profilers were removed in version 1.0, so each rule has to be specified, and for pipelines with thousands of features that effort can put teams off setting up validation at all."
+        },
+        {
+          "description": "Bounds for distribution rules are hard to set. Statistical tests on large batches fire on differences too small to matter: in Google's data validation paper, a chi-square test between 100 million points and a copy with 0.01 per cent of them redrawn from a wider distribution raised an alert in 7 of 10 trials, while thresholds on divergence measures such as KL divergence are hard for teams to interpret. Bounds are therefore tuned by trial, risking too many alerts or missed shifts."
+        },
+        {
+          "description": "The rules describe the input data, not the model's performance. A batch that passes can still produce wrong predictions if the relationship between inputs and outcomes has changed (concept drift), and a batch that fails shows that the data changed, not that predictions got worse, so the checks need pairing with monitoring of performance once outcomes arrive."
+        },
+        {
+          "description": "Alerts help only if someone acts on them, and rules need upkeep as data legitimately change. In Google's deployment across more than 700 pipelines, new columns, unexpected values and missing columns were the commonest anomalies, most pipelines revised their schema, and between 28 and 100 per cent of fired anomalies of each kind were fixed, which the authors attribute partly to operators missing or ignoring alerts."
+        },
+        {
+          "description": "The checks work on tables: GX Core connects to data frames, SQL databases and data files, so for images, audio, free text or gridded weather fields the team must first compute a table of properties, such as sizes, value ranges or missing tiles, and write rules about those. This catches broken or truncated inputs but not changes in what the content shows."
+        }
+      ],
+      "resources": [
+        {
+          "title": "GX Core overview (Great Expectations documentation)",
+          "url": "https://docs.greatexpectations.io/docs/core/introduction/gx_overview/",
+          "source_type": "documentation",
+          "citationKey": "GXCoreOverview",
+          "abstract": "This overview is for new users of GX Core and those looking for an improved understanding of GX Core components and primary workflows. It is an ideal place to start before exploring more advanced topics found in the GX Core documentation."
+        },
+        {
+          "title": "great_expectations (GX Core)",
+          "url": "https://github.com/fivetran/great_expectations",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T09:53:50Z",
+          "citationKey": "gongGreat_expectationsGXCore2026",
+          "abstract": "Always know what to expect from your data."
+        },
+        {
+          "title": "Data Validation for Machine Learning",
+          "url": "https://mlsys.org/Conferences/2019/doc/2019/167.pdf",
+          "source_type": "technical_paper",
+          "authors": [
+            "Eric Breck",
+            "Neoklis Polyzotis",
+            "Sudip Roy",
+            "Steven Euijong Whang",
+            "Martin Zinkevich"
+          ],
+          "publication_date": "2019",
+          "citationKey": "DataValidationMachine"
+        },
+        {
+          "title": "Try GX Core (Great Expectations documentation)",
+          "url": "https://docs.greatexpectations.io/docs/core/introduction/try_gx/",
+          "source_type": "tutorial",
+          "citationKey": "TryGXCore",
+          "abstract": "Start here to learn how to connect to data, create Expectations, validate data, and review Validation Results. This is an ideal place to start if you're new to GX Core and want to experiment with features and see what it offers."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every batch of surveillance track reports used by the arrival-time model in 2026 had passed the agreed expectation suite for required fields, units and value ranges; batches that failed were withheld and logged.",
+          "assuranceGoal": "reliability",
+          "domain": "aviation"
+        },
+        {
+          "text": "No monthly retraining of the correction model in 2026 used an extract in which any variable had more than 2 per cent missing values or values outside its station's climatological limits.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "Over the last quarter, the daily sample of scored applications met the training data's expectation suite on every field, and no field's share of default values exceeded its share in training by more than one percentage point.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        },
+        {
+          "text": "No deterioration-risk score in 2026 was computed from a laboratory batch that had failed the test-code and unit checks.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "metamorphic-testing",
+      "name": "Metamorphic Testing",
+      "description": "Metamorphic testing checks a model or AI system without needing the correct output for each test input, by checking that the outputs for related inputs stand in a relation that must hold if the system works as intended. The tester first writes metamorphic relations from knowledge of the task, each pairing a change to the input with the change it should cause in the output, or with no change: adding fog to a road image should leave a steering prediction within a set tolerance, adding a few stray sensor points outside the road area should not remove any detected obstacle, and rotating a whole flight scenario should leave its outcome unchanged. Existing test inputs (source cases) are transformed into follow-up inputs according to each relation, the system is run on both, and each pair is checked, with numeric outputs often allowed a tolerance. A violation points to a fault or unwanted behaviour without any labelled answer, unless the relation itself is wrong; the output is the violation rate for each relation with the failing pairs, and a relation that holds on every pair shows only that the outputs agree with each other, not that they are right. Prompt robustness testing and causal discrimination testing in this catalogue each apply one family of invariance relations (meaning-preserving changes to a prompt, and a change of protected attribute), and prompt robustness testing also scores the answers against known ones; metamorphic testing is the general procedure for writing and checking any such relation, including relations that say how the output should change, and needs no known answers.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/robustness",
+        "data-requirements/test-scenarios",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/software-engineering",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An air navigation service provider evaluating a machine-learning conflict-detection aid for en-route controllers has no ground truth for most replayed traffic samples. Its test team writes three relations: swapping two aircraft's call signs, shifting every timestamp by the same amount, and rotating the whole sample together with its wind field must not change which aircraft pairs are flagged. It runs them on a year of recorded traffic and holds the release until every violation is explained.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A supplier of lidar obstacle perception for driverless shuttles cannot label every frame it records. Following a relation implied by the perception specification, its test team adds a few hundred random points outside the mapped road area to recorded frames and checks that no obstacle detected in the original frame disappears, reporting the share of frames where one does, by number of points added, as a release criterion for each software build.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A weather service testing a neural network that nowcasts rainfall from radar images checks a relation expected from the way rain moves with the wind: away from the domain's edges, shifting the input radar sequence a few grid cells east should shift the forecast rain field by the same amount, within a tolerance set from the model's day-to-day error. Forecasters review the breaking cases to judge whether the model has learnt a dependence on location, such as on terrain, that it should keep.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A bank moving its credit-scoring models to a new library cannot treat every difference from the old library's outputs as a fault, since the solvers differ. Its validation team writes relations the mathematics guarantees: reordering the input columns, or adding a constant to a numeric input in training and scoring data of a logistic regression with an unpenalised intercept, must leave every predicted probability unchanged within solver tolerance. Each violation is investigated as a fault.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Passing shows that outputs are consistent, not that they are correct. A model that gives the same wrong answer for a source case and its follow-up satisfies the relation, and one that is wrong in the same way everywhere can pass every invariance relation. On its own the technique therefore does not suit systems where each output must be shown to be right, and it complements rather than replaces testing against known answers where those exist."
+        },
+        {
+          "description": "The evidence is only as good as the relations, which are written by hand from domain knowledge, with no systematic way to choose among the many possible ones. A relation the system is not bound to obey produces false alarms: in a study of the Weka library, violations by its nearest-neighbour classifier came from legitimate tie-breaking between equally likely labels, not from faults. An incomplete set of relations gives false confidence."
+        },
+        {
+          "description": "Most model outputs need a tolerance, and the result depends heavily on it. In the DeepTest study of three driving models, violations under simple image transformations fell from 23,391 when a transformed frame's squared error against the human steering label could be at most the original mean squared error to 330 when it could be five times that, and manual review still found false positives. Counts compare only between runs with the same tolerance, set from what the application can accept."
+        },
+        {
+          "description": "Follow-up inputs are synthetic and may not occur in practice: rain or fog added to an image, or points scattered into a lidar frame, approximate real conditions without reproducing them. A violation on an unrealistic input may not matter in operation, and a pass covers only the transformations tried, so the evidence is about the tested relations and transformations, not the operating conditions as a whole."
+        },
+        {
+          "description": "A model whose outputs vary between runs on the same input, through sampling, seeds or GPU arithmetic, breaks relations by chance, so runs must be made repeatable or each case repeated and judged statistically. This bites hardest for relations over the training data, such as Xie et al.'s for classifiers, which need the model retrained for every follow-up case; for models that are costly to train only prediction-time relations are practical, and they test the trained model, not its training."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ISTQB Certified Tester AI Testing (CT-AI) Syllabus v2.0, section 6.1.5 Metamorphic Testing",
+          "url": "https://istqb.org/certifications/certified-tester-ai-testing-ct-ai/",
+          "source_type": "documentation",
+          "authors": [
+            "International Software Testing Qualifications Board (ISTQB)"
+          ],
+          "publication_date": "2026-04-17",
+          "citationKey": "ISTQBCertifiedTester2024",
+          "abstract": "The CT-AI v1.0 certification will be retired: the English version will remain available until April 21, 2027, and non-English versions will remain available"
+        },
+        {
+          "title": "Metamorphic Testing: A New Approach for Generating Next Test Cases",
+          "url": "https://arxiv.org/abs/2002.12543",
+          "source_type": "technical_paper",
+          "authors": [
+            "T. Y. Chen",
+            "S. C. Cheung",
+            "S. M. Yiu"
+          ],
+          "publication_date": "2020-02-28",
+          "citationKey": "chenMetamorphicTestingNew2020",
+          "abstract": "In software testing, a set of test cases is constructed according to some predefined selection criteria. The software is then examined against these test cases. Three interesting observations have been made on the current artifacts of software testing. Firstly, an error-revealing test case is considered useful while a successful test case which does not reveal software errors is usually not further investigated. Whether these successful test cases still contain useful information for revealing software errors has not been properly studied. Secondly, no matter how extensive the testing has been conducted in the development phase, errors may still exist in the software [5]. These errors, if left undetected, may eventually cause damage to the production system. The study of techniques for uncovering software errors in the production phase is seldom addressed in the literature. Thirdly, as indicated by Weyuker in [6], the availability of test oracles is pragmatically unattainable in most situations. However, the availability of test oracles is generally assumed in conventional software testing techniques. In this paper, we propose a novel test case selection technique that derives new test cases from the successful ones. The selection aims at revealing software errors that are possibly left undetected in successful test cases which may be generated using some existing strategies. As such, the proposed technique augments the effectiveness of existing test selection strategies. The technique also helps uncover software errors in the production phase and can be used in the absence of test oracles."
+        },
+        {
+          "title": "Testing and validating machine learning classifiers by metamorphic testing",
+          "url": "https://doi.org/10.1016/j.jss.2010.11.920",
+          "source_type": "technical_paper",
+          "authors": [
+            "Xiaoyuan Xie",
+            "Joshua W.K. Ho",
+            "Christian Murphy",
+            "Gail Kaiser",
+            "Baowen Xu",
+            "Tsong Yueh Chen"
+          ],
+          "publication_date": "2011-4",
+          "citationKey": "xieTestingValidatingMachine2011"
+        },
+        {
+          "title": "Metamorphic Testing: Testing the Untestable",
+          "url": "https://doi.org/10.1109/ms.2018.2875968",
+          "source_type": "tutorial",
+          "authors": [
+            "Sergio Segura",
+            "Dave Towey",
+            "Zhi Quan Zhou",
+            "Tsong Yueh Chen"
+          ],
+          "publication_date": "2020-5",
+          "citationKey": "seguraMetamorphicTestingTesting2020"
+        },
+        {
+          "title": "DeepTest",
+          "url": "https://doi.org/10.1145/3180155.3180220",
+          "source_type": "application_paper",
+          "authors": [
+            "Yuchi Tian",
+            "Kexin Pei",
+            "Suman Jana",
+            "Baishakhi Ray"
+          ],
+          "publication_date": "2018-5-27",
+          "citationKey": "tianDeepTest2018"
+        },
+        {
+          "title": "Metamorphic testing of driverless cars",
+          "url": "https://doi.org/10.1145/3241979",
+          "source_type": "application_paper",
+          "authors": [
+            "Zhi Quan Zhou",
+            "Liqun Sun"
+          ],
+          "publication_date": "2019-2-21",
+          "citationKey": "zhouMetamorphicTestingDriverless2019"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For every replayed traffic sample in the 2025 test year, swapping aircraft call signs, shifting all timestamps by the same amount and rotating the sample with its wind field left the set of flagged conflict pairs unchanged apart from the swapped labels.",
+          "assuranceGoal": "reliability",
+          "domain": "aviation"
+        },
+        {
+          "text": "Across 3,000 recorded urban frames, adding up to 100 random lidar points outside the mapped road area removed no obstacle that the perception software detected in the original frame.",
+          "assuranceGoal": "reliability",
+          "domain": "automotive"
+        },
+        {
+          "text": "For at least 98 per cent of test cases from the 2025 season, shifting the input radar sequence by up to five grid cells within the interior of the domain shifted the nowcast rain field by the same amount, within the agreed tolerance.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "In the new library, reordering the input columns, or adding a constant to any numeric input in both training and scoring data, left every credit-scoring model's predicted probabilities on the full validation set unchanged within the solver's tolerance.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "reliability-diagram-with-expected-calibration-error",
+      "name": "Reliability Diagram with Expected Calibration Error",
+      "description": "A reliability diagram with expected calibration error (ECE) measures whether a classifier's stated confidence matches how often it is right, so that a reader can tell whether predictions given a probability of 70 per cent come true about 70 per cent of the time. Using labelled cases the model was not trained on, each prediction's confidence (the probability given to the predicted class, or to an event such as rain above a threshold) is placed in one of a fixed number of bins, commonly ten or fifteen equal-width intervals between 0 and 1, and in each bin the average confidence is compared with the observed frequency, the share of its cases in which the predicted class or event actually occurred. The reliability diagram plots observed frequency against average confidence bin by bin, so that bins below the diagonal show overconfidence and bins above it underconfidence, and is usually shown with a histogram of how many cases fall in each bin, which the diagram itself does not show; the ECE condenses the same comparison into one number, the average gap between confidence and observed frequency weighted by each bin's share of the cases, and the maximum calibration error reports the largest gap in any bin. The technique measures and changes nothing: Platt scaling, isotonic regression calibration and temperature scaling repair a model's probabilities, and this measurement, run before and after on the same held-out cases, none of them used to fit the repair, is the evidence that a repair worked.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/calibration",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/statistics",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/metric",
+        "technique-type/visualisation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A national meteorological service is deciding whether to issue a neural-network nowcast's probabilities that radar reflectivity will exceed set thresholds within the next hour. On a held-out season of radar composites, its verification team draws reliability diagrams with sample-count histograms and computes the ECE for each threshold and lead time beside those of its current extrapolation ensemble, and issues the new probabilities only for thresholds where they are at least as reliable.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital's imaging AI group receives a chest X-ray classifier whose vendor reports good calibration on public data. Before connecting it, the group computes the reliability diagram and ECE on a year of its own labelled studies, finds the model overconfident in its highest bins, fits temperature scaling on a separate validation split, and repeats the measurement on the untouched test split to show whether the gap has closed.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A law firm's knowledge team evaluating a language-model research assistant that reports a confidence with each answer asks it a held-out set of questions with verified answers, bins its self-reported confidence, and computes the reliability diagram and ECE for each practice area rather than only for the whole set. The confidence display is switched off for practice areas where the gap between stated confidence and accuracy exceeds the firm's threshold.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A card issuer's fraud team checks its transaction-risk model each month on transactions whose outcomes have arrived, using bins fixed at validation that are narrow over the high scores where alerts are raised. Because fraud is rare, nearly all cases fall in the lowest bin and dominate the ECE, so the team tracks the gap in each high-score bin as well; a gap above the limit set at model sign-off triggers an investigation of drift and a decision on recalibration.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The result depends on how predictions are binned. With equal-width bins, confident models put most cases in one or two bins, which dominate the ECE while the others rest on few cases; more bins give a finer measurement but a noisier estimate in each bin. Rankings of recalibration methods can change with the number of bins or the binning scheme, so both must be reported and held fixed in any comparison."
+        },
+        {
+          "description": "Binning distorts the estimate in both directions. Overconfident and underconfident predictions in the same bin cancel, so with plenty of data the binned ECE understates the true error. On small samples, sampling noise inflates it: with 15 equal-width bins, a simulated perfectly calibrated model showed large errors on 200 cases. ECEs from samples of different sizes, such as subgroups, are not directly comparable; equal-mass bins or a debiased estimator reduce the bias."
+        },
+        {
+          "description": "Calibration says nothing about how well the model separates cases. A model that gives every case the overall base rate, such as 0.5 on a balanced dataset, is calibrated but useless, so the ECE must be reported with accuracy, the area under the ROC curve or a proper scoring rule such as the Brier score, which combines calibration with how decisive the predictions are."
+        },
+        {
+          "description": "Weighting by bin size gives rare but important predictions almost no weight. In a precipitation nowcasting study, almost all probabilities for heavy-rain thresholds fell in the lowest bin, so the ECE barely registered the rare high-probability forecasts, and at the highest threshold it could not be compared because some bins were empty. For multi-class models the usual ECE also looks only at the top predicted class and ignores the calibration of the others."
+        },
+        {
+          "description": "The measurement holds only for the population and period it was computed on. One ECE over a whole test set can hide large differences between subgroups: in an evaluation of language models answering medical questions, ECE ranged from 0.041 to 0.141 across specialties, a spread the pooled figure masked. Calibration can also drift after deployment, so it has to be measured for the subgroups that matter and repeated on new labelled data."
+        }
+      ],
+      "resources": [
+        {
+          "title": "netcal: Uncertainty Calibration (API reference documentation)",
+          "url": "https://efs-opensource.github.io/calibration-framework/",
+          "source_type": "documentation",
+          "citationKey": "NetcalUncertaintyCalibration"
+        },
+        {
+          "title": "netcal: calibration-framework (EFS-OpenSource)",
+          "url": "https://github.com/EFS-OpenSource/calibration-framework",
+          "source_type": "software_package",
+          "publication_date": "2026-10-11T08:41:15Z",
+          "citationKey": "NetcalCalibrationframeworkEFSOpenSource2026",
+          "abstract": "The net:cal calibration framework is a Python 3 library for measuring and mitigating miscalibration of uncertainty estimates, e.g., by a neural network."
+        },
+        {
+          "title": "Obtaining Well Calibrated Probabilities Using Bayesian Binning",
+          "url": "https://doi.org/10.1609/aaai.v29i1.9602",
+          "source_type": "technical_paper",
+          "authors": [
+            "Mahdi Pakdaman Naeini",
+            "Gregory Cooper",
+            "Milos Hauskrecht"
+          ],
+          "publication_date": "2015-2-21",
+          "citationKey": "pakdamannaeiniObtainingWellCalibrated2015"
+        },
+        {
+          "title": "On Calibration of Modern Neural Networks",
+          "url": "https://arxiv.org/abs/1706.04599",
+          "source_type": "technical_paper",
+          "authors": [
+            "Chuan Guo",
+            "Geoff Pleiss",
+            "Yu Sun",
+            "Kilian Q. Weinberger"
+          ],
+          "publication_date": "2017-06-14",
+          "citationKey": "guoCalibrationModernNeural2017",
+          "abstract": "Confidence calibration -- the problem of predicting probability estimates representative of the true correctness likelihood -- is important for classification models in many applications. We discover that modern neural networks, unlike those from a decade ago, are poorly calibrated. Through extensive experiments, we observe that depth, width, weight decay, and Batch Normalization are important factors influencing calibration. We evaluate the performance of various post-processing calibration methods on state-of-the-art architectures with image and document classification datasets. Our analysis and experiments not only offer insights into neural network learning, but also provide a simple and straightforward recipe for practical settings: on most datasets, temperature scaling -- a single-parameter variant of Platt Scaling -- is surprisingly effective at calibrating predictions."
+        },
+        {
+          "title": "Probability Calibration curves — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
+          "source_type": "tutorial",
+          "citationKey": "ProbabilityCalibrationCurves",
+          "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
+        },
+        {
+          "title": "DEUCE v1.0: a neural network for probabilistic precipitation nowcasting with aleatoric and epistemic uncertainties",
+          "url": "https://doi.org/10.5194/gmd-17-3839-2024",
+          "source_type": "application_paper",
+          "authors": [
+            "Bent Harnist",
+            "Seppo Pulkkinen",
+            "Terhi Mäkinen"
+          ],
+          "publication_date": "2024-5-14",
+          "citationKey": "harnistDEUCEV10Neural2024"
+        },
+        {
+          "title": "Calibration of Self-Reported Confidence and Accuracy of Large Language Models in Medical Question Answering",
+          "url": "https://doi.org/10.1007/s10916-026-02430-0",
+          "source_type": "application_paper",
+          "authors": [
+            "Sebastian Daniel Boie",
+            "Florian Reis",
+            "Nicolas Frey",
+            "Elias Grünewald",
+            "Felix Balzer"
+          ],
+          "publication_date": "2026-6-26",
+          "citationKey": "boieCalibrationSelfReportedConfidence2026",
+          "abstract": "Objective: To evaluate the alignment between self-reported confidence of large language models (LLM) and their accuracy in answering medical multiple-choice questions. Materials and Methods: We prompted six LLMs (GPT-5, GPT-5-mini, GPT-5-nano, GPT-4o, Claude Sonnet 4.5, and Gemini 2.5) to answer MedMCQA items and report confidence scores. Based on 12,000 LLM responses, we calculated Expected Calibration Errors (ECE) by averaging absolute differences between observed accuracy and predicted confidence. Results: Mean ECE differed by model (Claude Sonnet 4.5 best: 0.06; Gpt-4o worst: 0.127) and varied across specialties (“Skin” best: 0.041; “Social & Preventive Medicine” worst: 0.141). Accuracy of examined LLMs showed analogous variation between specialties. Discussion: Our results demonstrate that high accuracy does not guarantee reliable uncertainty estimation. We identified substantial heterogeneity across medical specialties, where pooled metrics masked a threefold ECE increase between best- and worst-performing domains. Conclusion: We recommend incorporating calibration reporting into LLM evaluations, as larger models exhibit improved “self-knowledge”, but uneven overconfidence persists."
+        }
+      ],
+      "complexity_rating": 1,
+      "computational_cost_rating": 1,
+      "acronym": "ECE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On the held-out 2025 convective season, the nowcast's probabilities of exceeding 25 dBZ at 30-minute lead time have an expected calibration error below 0.01 over ten equal-width bins, no higher than that of the current extrapolation ensemble.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "After temperature scaling, the chest X-ray classifier's expected calibration error on the hospital's untouched test split is below 0.03 with 15 equal-width bins, and no bin holding more than 2 per cent of studies shows a gap above five percentage points.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For each practice area with at least 300 evaluation questions, the research assistant's self-reported confidence has an expected calibration error below 0.08 against verified answers.",
+          "assuranceGoal": "reliability",
+          "domain": "legal"
+        },
+        {
+          "text": "In every month of 2026, in each high-score bin fixed at model sign-off, the fraud model's average predicted probability was within two percentage points of the observed fraud rate among transactions with confirmed outcomes.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "continuous-ranked-probability-score",
+      "name": "Continuous Ranked Probability Score",
+      "description": "The continuous ranked probability score (CRPS) measures the quality of a probabilistic forecast of a numerical quantity, such as tomorrow's temperature or next week's demand, by scoring the whole predicted distribution, not just a single best guess, against the value later observed. For each case it compares the forecast's cumulative distribution (the predicted probability that the outcome will fall below each possible value) with a step that jumps from 0 to 1 at the observed value, squares the gap at every value and adds these up, which is the same as adding up the Brier score of the yes-or-no forecasts 'the outcome will be below this value' over every possible threshold. For a forecast given as an ensemble or a sample it can be computed as the average distance between the members and the observation minus half the average distance between pairs of members, closed forms exist for common distributions such as the Gaussian, and for a single-value forecast it reduces to the absolute error, so probabilistic and deterministic forecasts can be compared directly. The score is proper: a forecaster expects the best score by reporting the distribution they actually believe, so it cannot be improved on average by making forecasts narrower or wider than warranted, and it is lowest when the forecast distribution matches how outcomes actually vary. Scores are averaged over many cases, are in the units of the forecast quantity with lower values better, and are often reported as a skill score relative to a reference forecast such as climatology (the long-run historical distribution), giving evidence for claims about the accuracy of a forecaster's probabilities by variable, location and lead time.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "applicable-models/requirements/probabilistic-output",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/performance-assessment",
+        "data-requirements/labelled-data",
+        "data-type/time-series",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "technique-type/metric",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A national weather service deciding whether to run a machine-learning ensemble alongside its physics-based ensemble scores both against a year of station observations, computing the fair CRPS (the two ensembles differ in size) for 2-metre temperature and 10-metre wind at every station and lead time. It adopts the new system only for the variables and lead times where its CRPS skill relative to the existing ensemble is positive.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A wind-farm operator choosing between two vendors of probabilistic power forecasts for day-ahead trading receives 19 quantiles per hour from each. It approximates each forecast's CRPS by averaging the quantile scores across those levels and compares the vendors over a full winter against metered output. Because high-output hours drive balancing costs, it also compares them on a version of the score weighted towards the upper quantiles, averaged over all hours, not only those with high output.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital group's capacity team plans elective admissions with a probabilistic forecast of bed occupancy one week ahead. Each week it computes the forecast's CRPS against the occupancy that followed and its skill score against a seasonal naive forecast, and a rolling eight-week skill score below zero triggers a review of the model before it is used for the next planning cycle.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "One CRPS value combines calibration (whether outcomes behave like draws from the forecast distribution) and sharpness (how narrow the forecast is), so a better score does not show which improved, and an average over many cases can hide conditions in which forecasts are consistently too narrow or too wide. A claim about calibration needs Hersbach's decomposition of the score into reliability and resolution parts, a rank histogram or a spread-skill check as well."
+        },
+        {
+          "description": "Every threshold carries equal weight and extreme outcomes are rare, so the average score says little about how well extremes are forecast; WeatherBench 2 notes that the CRPS does not specifically focus on extreme weather. Averaging only over cases in which an extreme occurred does not repair this and can discredit skilful forecasters (Lerch et al. 2017); claims about warnings of extremes need a threshold-weighted CRPS that emphasises the tails."
+        },
+        {
+          "description": "It scores one quantity at one place and lead time at a time, so it does not test whether a forecast gets the relationships between places, times or variables right. WeatherBench 2 notes that its CRPS results ignore spatial and temporal correlation, and found models trained on each wind component separately biased in wind speed; claims about joint quantities, such as rainfall totalled over a catchment, need a multivariate score such as the energy score."
+        },
+        {
+          "description": "The score is in the units of the forecast quantity and grows with how variable that quantity is, so raw values cannot be compared or pooled across variables, locations or seasons with different variability, and averages are dominated by the most variable cases. Comparisons across these need a skill score relative to a stated reference forecast, and the choice of reference, such as climatology or persistence, changes the result."
+        },
+        {
+          "description": "For an ensemble, the usual estimate treats the members as the whole forecast distribution, which penalises small ensembles: if two systems draw members from the same distribution, the one with fewer members scores worse on average. Ferro (2014) showed the usual ensemble CRPS is unfair in this sense and gave an adjusted fair version, which libraries such as scoringrules provide; it should be used whenever ensembles of different sizes are compared."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Scoring Rules for Continuous Probability Distributions",
+          "url": "https://doi.org/10.1287/mnsc.22.10.1087",
+          "source_type": "technical_paper",
+          "authors": [
+            "James E. Matheson",
+            "Robert L. Winkler"
+          ],
+          "publication_date": "1976-6",
+          "citationKey": "mathesonScoringRulesContinuous1976"
+        },
+        {
+          "title": "Strictly Proper Scoring Rules, Prediction, and Estimation",
+          "url": "https://doi.org/10.1198/016214506000001437",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tilmann Gneiting",
+            "Adrian E Raftery"
+          ],
+          "publication_date": "2007-3",
+          "citationKey": "gneitingStrictlyProperScoring2007"
+        },
+        {
+          "title": "Ensemble forecasts (scoringrules documentation)",
+          "url": "https://scoringrules.readthedocs.io/en/latest/crps_estimators.html",
+          "source_type": "documentation",
+          "citationKey": "EnsembleForecastsScoringrules"
+        },
+        {
+          "title": "scoringrules: a python library for probabilistic forecast evaluation",
+          "url": "https://github.com/frazane/scoringrules",
+          "source_type": "software_package",
+          "publication_date": "2026-10-01T11:33:37Z",
+          "citationKey": "zanettaScoringrulesPythonLibrary2026",
+          "abstract": "Lightweight library for probabilistic forecast evaluation and optimization."
+        },
+        {
+          "title": "Evaluating Probabilistic Forecasts with                     <b>scoringRules</b>",
+          "url": "https://doi.org/10.18637/jss.v090.i12",
+          "source_type": "tutorial",
+          "authors": [
+            "Alexander Jordan",
+            "Fabian Krüger",
+            "Sebastian Lerch"
+          ],
+          "publication_date": "2019",
+          "citationKey": "jordanEvaluatingProbabilisticForecasts2019"
+        },
+        {
+          "title": "WeatherBench 2: A Benchmark for the Next Generation of Data‐Driven Global Weather Models",
+          "url": "https://doi.org/10.1029/2023ms004019",
+          "source_type": "application_paper",
+          "authors": [
+            "Stephan Rasp",
+            "Stephan Hoyer",
+            "Alexander Merose",
+            "Ian Langmore",
+            "Peter Battaglia",
+            "Tyler Russell",
+            "Alvaro Sanchez‐Gonzalez",
+            "Vivian Yang",
+            "Rob Carver",
+            "Shreya Agrawal",
+            "Matthew Chantry",
+            "Zied Ben Bouallegue",
+            "Peter Dueben",
+            "Carla Bromberg",
+            "Jared Sisk",
+            "Luke Barrington",
+            "Aaron Bell",
+            "Fei Sha"
+          ],
+          "publication_date": "2024-6",
+          "citationKey": "raspWeatherBench2Benchmark2024"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "acronym": "CRPS",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Over the 2025 verification year, the machine-learning ensemble has a lower mean fair CRPS for 2-metre temperature than the operational ensemble at every lead time from one to ten days, averaged over all stations in the service area.",
+          "assuranceGoal": "reliability",
+          "domain": "environmental"
+        },
+        {
+          "text": "The one-week-ahead bed-occupancy forecast has had a positive CRPS skill score relative to a seasonal naive forecast in every rolling eight-week window since it entered use.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Scored against metered output over the winter season, the selected vendor's probabilistic wind-power forecasts have a lower mean CRPS than the alternative vendor's, and also a lower mean when the score is weighted towards high output, with both averages taken over all hours.",
+          "assuranceGoal": "reliability",
+          "domain": "energy"
+        },
+        {
+          "text": "The comparison between the 20-member and 50-member ensemble systems used the fair version of the CRPS, so the reported difference does not reflect ensemble size.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "kernel-two-sample-test",
+      "name": "Kernel Two-Sample Test (Maximum Mean Discrepancy)",
+      "description": "A kernel two-sample test checks whether two sets of data could have come from the same distribution; in assurance it is used to check whether the inputs a deployed model now receives still resemble the data on which it was validated, and to detect when they stop doing so. Its statistic, the maximum mean discrepancy (MMD), is built from a kernel, a function that scores how similar two data points are (commonly a Gaussian function of the distance between them), and in its usual squared form it is the average similarity among points in the reference sample, plus the average similarity among points in the new sample, minus twice the average similarity between points from different samples. With a characteristic kernel such as the Gaussian, the population value is zero only when the two distributions are identical, so the test can respond to any kind of difference, including a change in how features vary together that tests applied to one feature at a time cannot see, and kernels exist for strings and graphs as well as numerical vectors. To obtain a p-value, the two samples are pooled and repeatedly divided at random into groups of the original sizes, the statistic is recomputed for each division, and the p-value is the share of divisions giving a value at least as large as the one observed; high-dimensional inputs such as images are usually first reduced to a short vector, for example the code of an autoencoder or the model's predicted class probabilities. The output, for each window of new data, is the MMD value and its p-value at a stated significance level, which shows whether that window differs detectably from the reference, but not whether the difference affects the model's accuracy.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/shift-detection",
+        "data-requirements/reference-dataset",
+        "data-type/any",
+        "evidence-type/statistical-test",
+        "expertise-needed/statistics",
+        "expertise-needed/ml-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A card issuer's model-risk team tests a random sample of each night's transactions, at most one per customer, against a fixed sample from the fraud model's validation period, after standardising the input features. It set the significance level so that, with nothing changed, it expects about one false alarm a quarter, and a significant result triggers a check of the model's accuracy on newly labelled cases before its alert thresholds are relied on the next day.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "Before switching on a chest X-ray triage model at a second hospital that uses a different make of scanner, the deploying team compares 500 recent images from the new site with 500 from the validation set. Each image is first reduced to a short vector by an autoencoder trained on validation images. A significant difference sends the model for local validation on labelled cases from the new site instead of relying on its original results.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A customer-service team whose question-answering assistant was evaluated on a fixed test set compares the sentence embeddings of each week's user questions with those of the test set. When a week is flagged, it computes the MMD witness function, which scores each question by how much more it resembles the new week's questions than the test set, reads the top-scoring questions, finds queries about a new product, and adds such questions to the test set.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A significant result shows that inputs differ from the reference, not that the model has got worse: Rabanser et al. note that distributions shift constantly and often harmlessly, and with large windows the test can flag differences too small to matter. A drift alarm becomes evidence about performance only when followed by an accuracy check on labelled cases, and an absence of alarms reassures only if the test was shown beforehand to detect the shifts that harm the model."
+        },
+        {
+          "description": "On raw high-dimensional inputs the test has little power: in Rabanser et al.'s comparison on image data the multivariate test performed poorly without first reducing the dimension. The reduction then decides what can be seen, since a change that leaves the autoencoder code or predicted probabilities unchanged goes undetected. The kernel's width matters too: it is usually set to the median distance between points, which Gretton et al. call a heuristic, the best width being an open question."
+        },
+        {
+          "description": "The statistic compares every pair of points, so its cost grows with the square of the combined sample size, and the permutation test repeats it many times; Rabanser et al. ran kernel tests only up to 1,000 new samples for this reason. Gretton et al.'s linear-time version is far cheaper but needs much more data for the same power, so high-volume monitoring has to trade window size, detection delay and computing cost against each other."
+        },
+        {
+          "description": "The permutation p-value assumes that observations within each sample are independent. Consecutive sensor readings, transactions from one customer or successive time steps are correlated, and shuffling them breaks that dependence, so the test signals a difference far more often than its stated level: in Chwialkowski et al.'s experiments on autocorrelated signals the permutation test almost always rejected when nothing had changed. Such data need thinning or a wild bootstrap."
+        },
+        {
+          "description": "Run on every new window at the conventional 5 per cent level, the test flags about one window in twenty even when nothing has changed, which for daily windows means around 18 false alarms a year. Continuous monitoring needs a stricter level, a correction for repeated testing, or an online version of the test whose threshold is set for an expected run time between false alarms."
+        }
+      ],
+      "resources": [
+        {
+          "title": "A Kernel Two-Sample Test",
+          "url": "https://jmlr.org/papers/v13/gretton12a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Arthur Gretton",
+            "Karsten M. Borgwardt",
+            "Malte J. Rasch",
+            "Bernhard Schölkopf",
+            "Alexander Smola"
+          ],
+          "publication_date": "2012",
+          "citationKey": "grettonKernelTwoSampleTest2012",
+          "abstract": "We propose a framework for analyzing and comparing distributions, which we use to construct statistical tests to determine if two samples are drawn from different distributions.  Our test statistic is the largest difference in expectations over functions in the unit ball of a reproducing kernel Hilbert space (RKHS), and is called the maximum mean discrepancy (MMD).  We present two distribution-free tests based on large deviation bounds for the MMD, and a third test based on the asymptotic distribution of this statistic.  The MMD can be computed in quadratic time, although efficient linear time approximations are available.  Our statistic is an instance of an integral probability metric, and various classical metrics on distributions are obtained when alternative function classes are used in place of an RKHS.  We apply our two-sample tests  to a variety of problems, including attribute matching for databases using the Hungarian marriage method, where they perform strongly.  Excellent performance is also obtained when comparing distributions over graphs, for which these are the first such tests."
+        },
+        {
+          "title": "Maximum Mean Discrepancy (Alibi Detect documentation)",
+          "url": "https://docs.seldon.ai/alibi-detect/cd/methods/offline/mmddrift",
+          "source_type": "documentation",
+          "publication_date": "2024-10-16",
+          "citationKey": "MaximumMeanDiscrepancy2024"
+        },
+        {
+          "title": "Frouros: an open-source Python library for drift detection in machine learning systems",
+          "url": "https://github.com/IFCA-Advanced-Computing/frouros",
+          "source_type": "software_package",
+          "publication_date": "2024-04",
+          "citationKey": "cespedessisniegaFrourosOpensourcePython2024",
+          "abstract": "Frouros: an open-source Python library for drift detection in machine learning systems."
+        },
+        {
+          "title": "MNIST dataset (Frouros data drift example: MMD with an autoencoder)",
+          "url": "https://frouros.readthedocs.io/en/latest/examples/data_drift/MMD_advance.html",
+          "source_type": "tutorial",
+          "citationKey": "MNISTDatasetFrouros"
+        },
+        {
+          "title": "Failing Loudly: An Empirical Study of Methods for Detecting Dataset Shift",
+          "url": "https://proceedings.neurips.cc/paper/2019/hash/846c260d715e5b854ffad5f70a516c88-Abstract.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Stephan Rabanser",
+            "Stephan Günnemann",
+            "Zachary Lipton"
+          ],
+          "publication_date": "2019",
+          "citationKey": "rabanserFailingLoudlyEmpirical2019",
+          "abstract": "We might hope that when faced with unexpected inputs, well-designed software systems would fire off warnings. Machine learning (ML) systems, however, which depend strongly on properties of their inputs (e.g. the i.i.d. assumption), tend to fail silently. This paper explores the problem of building ML systems that fail loudly, investigating methods for detecting dataset shift, identifying exemplars that most typify the shift, and quantifying shift malignancy. We focus on several datasets and various perturbations to both covariates and label distributions with varying magnitudes and fractions of data affected. Interestingly, we show that across the dataset shifts that we explore, a two-sample-testing-based approach, using pre-trained classifiers for dimensionality reduction, performs best. Moreover, we demonstrate that domain-discriminating approaches tend to be helpful for characterizing shifts qualitatively and determining if they are harmful."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "acronym": "MMD",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Applied to autoencoder representations of 500 images from each source, the kernel two-sample test found no significant difference at the 1 per cent level between the new hospital's chest X-rays and the validation images, and the same test detected the simulated scanner changes that had reduced the model's accuracy in validation.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every alarm raised by the nightly kernel two-sample test on the fraud model's inputs in the past six months was followed within two working days by an accuracy check on newly labelled cases, and each check either met the accuracy requirement or led to retraining.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        },
+        {
+          "text": "In each weekly window since deployment, the loan-application model's production inputs showed no difference from its validation sample detectable by the agreed kernel two-sample test, at a significance level corrected for weekly repetition, and the same test detected the input shifts that had reduced the model's accuracy in pre-deployment trials.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        },
+        {
+          "text": "Replayed on reference data alone, the drift monitor's kernel two-sample test raised false alarms at no more than the configured rate of one per quarter.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "rolling-origin-evaluation",
+      "name": "Rolling-Origin Evaluation",
+      "description": "Rolling-origin evaluation, also called time-series cross-validation or backtesting, estimates how accurately a forecasting model will predict the future by repeatedly recreating the position it will be in when used: trained only on data up to a point in time, it forecasts the period that follows. The evaluator chooses a first forecast origin (the last time point the model may see) late enough to leave adequate training data, fits the model on the data up to that origin, forecasts every step of a fixed horizon ahead, for example one to seven days, and records the error at each lead time against the values later observed. The origin then moves forward by one step or a block of steps and the process repeats, with the model either refitted at each origin on all the data so far or on a window of fixed length (recalibration, in Tashman's terms), or kept unchanged and simply given the new observations as inputs (updating), whichever matches how it will be maintained in service. Because every forecast uses only data from before its origin, the method avoids the leakage of future information that randomly shuffled cross-validation can cause on time-ordered data, and because it uses many test periods rather than the single one of a fixed train-test split, its result depends less on which period happened to be held out. The output is the forecast error, under whatever error measure suits the forecast, broken down by lead time and by origin date for each candidate model, which supports claims about expected accuracy on unseen future data over a stated horizon and shows how that accuracy varies across seasons and conditions.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/performance-assessment",
+        "data-requirements/labelled-data",
+        "data-requirements/access-to-training-data",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A regional electricity distributor deciding whether to replace its regression model for day-ahead substation demand with a gradient-boosted model evaluates both over the last two years, with an origin each day at the time forecasts are issued, a horizon of the next 48 half-hours and weekly refitting, as planned for operation. It compares error at each lead time and in each season, and switches only after finding the new model better in winter peaks as well as on average.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A national weather service's post-processing team testing a machine-learning correction for station temperature forecasts places origins every day over three years, with lead times of one to ten days, and refits the correction monthly as it would in service. Error by lead time and by month shows whether the correction still helps at the longest lead times and whether its gain in winter holds in all three winters rather than one.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital's operations analysts choosing a model to forecast emergency admissions one to fourteen days ahead for staff rotas compare a seasonal statistical model with a neural network, using weekly origins over two years that include two winter peaks. They report error at the seven-day lead time the rota planners use, and keep the simpler model because the neural network's advantage disappears at that horizon.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Refitting at every origin multiplies training cost by the number of origins: daily origins over two years means more than 700 fits. Machine-learning forecasters are often refitted only now and then and otherwise just fed new data, which Hewamalage et al. describe as common practice; that is cheaper but measures something different, so the refit schedule in the evaluation must match the one planned for deployment or the errors do not describe the deployed system."
+        },
+        {
+          "description": "The time-ordered split prevents leakage only through the split itself. Scaling, smoothing, decomposition, feature selection or tuning done on the whole series before splitting, or features summarising a period not yet over at the forecast time, still let future information in. Hewamalage et al. show a model beating the best possible forecast of a random walk only because a decomposition was fitted to the whole series; every such step must be redone within each origin."
+        },
+        {
+          "description": "Errors from neighbouring origins share most of their training data and, for multi-step horizons, overlapping test periods, so they are correlated: an average over hundreds of origins is less precise than the count suggests, and the spread across origins is not a confidence interval. Deciding whether one model beats another needs a test designed for serially correlated forecast errors, such as the Diebold-Mariano test, not a plain comparison of average errors."
+        },
+        {
+          "description": "The first origins have little training data, so their errors can overstate those of a model trained on the full history, and a short series leaves few test periods and a noisy average. For purely autoregressive models (past values as the only inputs) on stationary series, whose errors show no remaining autocorrelation, Bergmeir et al. show that standard k-fold cross-validation remains valid, and Hewamalage et al. recommend it for short series as it uses the data more efficiently."
+        },
+        {
+          "description": "It measures how the model would have performed over the history available, not how it will perform after a change that history does not contain, such as a new tariff, a replaced sensor or an abrupt structural break; Hewamalage et al. note that no evaluation design can anticipate a break that lies only in the future. Results should be stated for the periods and conditions they cover and repeated as new data arrive."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Out-of-sample tests of forecasting accuracy: an analysis and review",
+          "url": "https://doi.org/10.1016/s0169-2070(00)00065-0",
+          "source_type": "technical_paper",
+          "authors": [
+            "Leonard J. Tashman"
+          ],
+          "publication_date": "2000-10",
+          "citationKey": "tashmanOutofsampleTestsForecasting2000"
+        },
+        {
+          "title": "Forecast evaluation for data scientists: common pitfalls and best practices",
+          "url": "https://doi.org/10.1007/s10618-022-00894-5",
+          "source_type": "technical_paper",
+          "authors": [
+            "Hansika Hewamalage",
+            "Klaus Ackermann",
+            "Christoph Bergmeir"
+          ],
+          "publication_date": "2022-12-2",
+          "citationKey": "hewamalageForecastEvaluationData2022"
+        },
+        {
+          "title": "evaluate: evaluate forecaster using timeseries cross-validation (sktime documentation)",
+          "url": "https://www.sktime.net/docs/api-reference/sktimeforecastingmodel-evaluationevaluate/",
+          "source_type": "documentation",
+          "citationKey": "EvaluateEvaluateForecaster",
+          "abstract": "Evaluate forecaster using timeseries cross-validation."
+        },
+        {
+          "title": "sktime: a unified framework for machine learning with time series",
+          "url": "https://github.com/sktime/sktime",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T10:02:42Z",
+          "citationKey": "SktimeUnifiedFramework2026",
+          "abstract": "A unified framework for machine learning with time series"
+        },
+        {
+          "title": "Forecasting: Principles and Practice (3rd ed.), section 5.10: Time series cross-validation",
+          "url": "https://otexts.com/fpp3/toolbox.html#sec-tscv",
+          "source_type": "tutorial",
+          "citationKey": "ForecastingPrinciplesPractice"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Across daily forecast origins over the two most recent years, the new day-ahead demand model has a lower mean absolute error than the current model at every lead time from one to 48 half-hours, and the difference is significant under a test designed for serially correlated forecast errors.",
+          "assuranceGoal": "reliability",
+          "domain": "energy"
+        },
+        {
+          "text": "With weekly refitting matching the planned retraining schedule, the seven-day-ahead admissions forecast stayed within the agreed error limit in every month of the two-year rolling-origin evaluation, including both winters.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Every scaling, feature-selection and tuning step behind the reported forecast errors used only data available before each forecast origin.",
+          "assuranceGoal": "reliability",
+          "domain": "general"
+        },
+        {
+          "text": "The temperature correction reduces ten-day-ahead forecast error in each of the three winters covered by the rolling-origin evaluation, not only on average across them.",
+          "assuranceGoal": "reliability",
+          "domain": "environmental"
+        }
+      ]
     }
   ],
-  "count": 54
+  "count": 60
 }

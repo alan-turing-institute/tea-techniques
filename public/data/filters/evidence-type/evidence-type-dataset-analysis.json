@@ -2,7 +2,7 @@
   "tag": {
     "name": "evidence-type/dataset-analysis",
     "slug": "evidence-type-dataset-analysis",
-    "count": 4,
+    "count": 5,
     "category": "evidence-type"
   },
   "techniques": [
@@ -700,7 +700,130 @@
           "domain": "transport"
         }
       ]
+    },
+    {
+      "slug": "data-validation-checks",
+      "name": "Data Validation Checks",
+      "description": "Data validation checks apply a written set of rules about what valid data look like to every new batch of data before a model is trained on it or uses it to make predictions, and flag or hold back any batch that breaks them. In Great Expectations (GX Core), a widely used open-source library for this, each rule is an expectation, a declarative assertion such as that a column exists and has a given type, has no missing values or takes values only from an allowed set or within a range (rules on single values can allow a stated share of rows to fail), or keeps a summary statistic (its mean, a quantile, or the divergence of its histogram from one built on reference data) within bounds the team sets. Expectations are grouped into a suite that a checkpoint runs on each batch as it arrives; the result records for every rule whether it passed and how many values broke it, with examples, configured actions can alert the team or update a human-readable report, and the pipeline can be set to stop training or scoring on a batch that failed. Running the same suite on training batches and on the data a deployed model receives catches differences between the two, such as a feature that is always missing in production, before they degrade predictions; unlike out-of-distribution detectors, the checks need no model and judge whole batches against explicit rules rather than scoring single inputs, and unlike runtime monitoring of a deployed model they act before the model sees the data. Unlike a kernel two-sample test, its distribution rules are fixed bounds set by the team, not a statistical test of whether two samples differ.",
+      "assurance_goals": [
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/shift-detection",
+        "data-requirements/reference-dataset",
+        "data-type/tabular",
+        "evidence-type/dataset-analysis",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/data-engineering",
+        "expertise-needed/domain-expertise",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An air navigation service provider feeds surveillance track reports into a model that predicts aircraft arrival times. Its data engineers run an expectation suite on every incoming batch, covering required fields, units, plausible ranges for altitude and ground speed, and the share of reports with missing positions, so that a sensor change that silently switched altitude from feet to metres would stop the batch before it reached the model rather than surface weeks later as worse predictions.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A weather service that retrains a statistical correction model each month on station observations validates every monthly extract first: station identifiers must come from the station list, temperatures must lie within each station's climatological limits, no variable may have more than 2 per cent missing values, and each variable's mean and quantiles must stay within bounds set from earlier years. A failed check stops the retraining and opens a ticket listing the failing stations.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A hospital running a deterioration-risk model on laboratory results checks each hourly batch from the laboratory system against expectations for test codes, units and value ranges, so that if a laboratory changes the unit of a test without notice the batch is flagged and risk scores for the affected patients are withheld until the mapping is corrected.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "A bank's credit-scoring team runs the expectation suite written for its training data on a daily sample of the applications its deployed model scores and compares the results, so that a field the online form has stopped collecting, which the scoring service quietly fills with a default value, shows up as a difference between training and production data rather than as an unexplained drop in approval rates.",
+          "goal": "Reliability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Checks catch only what someone thought to write down. A batch can satisfy every rule and still be wrong in a way no rule covers, such as a changed relationship between two columns or a change in how labels were assigned. GX Core does not infer rules from the data, since its automatic profilers were removed in version 1.0, so each rule has to be specified, and for pipelines with thousands of features that effort can put teams off setting up validation at all."
+        },
+        {
+          "description": "Bounds for distribution rules are hard to set. Statistical tests on large batches fire on differences too small to matter: in Google's data validation paper, a chi-square test between 100 million points and a copy with 0.01 per cent of them redrawn from a wider distribution raised an alert in 7 of 10 trials, while thresholds on divergence measures such as KL divergence are hard for teams to interpret. Bounds are therefore tuned by trial, risking too many alerts or missed shifts."
+        },
+        {
+          "description": "The rules describe the input data, not the model's performance. A batch that passes can still produce wrong predictions if the relationship between inputs and outcomes has changed (concept drift), and a batch that fails shows that the data changed, not that predictions got worse, so the checks need pairing with monitoring of performance once outcomes arrive."
+        },
+        {
+          "description": "Alerts help only if someone acts on them, and rules need upkeep as data legitimately change. In Google's deployment across more than 700 pipelines, new columns, unexpected values and missing columns were the commonest anomalies, most pipelines revised their schema, and between 28 and 100 per cent of fired anomalies of each kind were fixed, which the authors attribute partly to operators missing or ignoring alerts."
+        },
+        {
+          "description": "The checks work on tables: GX Core connects to data frames, SQL databases and data files, so for images, audio, free text or gridded weather fields the team must first compute a table of properties, such as sizes, value ranges or missing tiles, and write rules about those. This catches broken or truncated inputs but not changes in what the content shows."
+        }
+      ],
+      "resources": [
+        {
+          "title": "GX Core overview (Great Expectations documentation)",
+          "url": "https://docs.greatexpectations.io/docs/core/introduction/gx_overview/",
+          "source_type": "documentation",
+          "citationKey": "GXCoreOverview",
+          "abstract": "This overview is for new users of GX Core and those looking for an improved understanding of GX Core components and primary workflows. It is an ideal place to start before exploring more advanced topics found in the GX Core documentation."
+        },
+        {
+          "title": "great_expectations (GX Core)",
+          "url": "https://github.com/fivetran/great_expectations",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T09:53:50Z",
+          "citationKey": "gongGreat_expectationsGXCore2026",
+          "abstract": "Always know what to expect from your data."
+        },
+        {
+          "title": "Data Validation for Machine Learning",
+          "url": "https://mlsys.org/Conferences/2019/doc/2019/167.pdf",
+          "source_type": "technical_paper",
+          "authors": [
+            "Eric Breck",
+            "Neoklis Polyzotis",
+            "Sudip Roy",
+            "Steven Euijong Whang",
+            "Martin Zinkevich"
+          ],
+          "publication_date": "2019",
+          "citationKey": "DataValidationMachine"
+        },
+        {
+          "title": "Try GX Core (Great Expectations documentation)",
+          "url": "https://docs.greatexpectations.io/docs/core/introduction/try_gx/",
+          "source_type": "tutorial",
+          "citationKey": "TryGXCore",
+          "abstract": "Start here to learn how to connect to data, create Expectations, validate data, and review Validation Results. This is an ideal place to start if you're new to GX Core and want to experiment with features and see what it offers."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every batch of surveillance track reports used by the arrival-time model in 2026 had passed the agreed expectation suite for required fields, units and value ranges; batches that failed were withheld and logged.",
+          "assuranceGoal": "reliability",
+          "domain": "aviation"
+        },
+        {
+          "text": "No monthly retraining of the correction model in 2026 used an extract in which any variable had more than 2 per cent missing values or values outside its station's climatological limits.",
+          "assuranceGoal": "reliability",
+          "domain": "meteorology"
+        },
+        {
+          "text": "Over the last quarter, the daily sample of scored applications met the training data's expectation suite on every field, and no field's share of default values exceeded its share in training by more than one percentage point.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        },
+        {
+          "text": "No deterioration-risk score in 2026 was computed from a laboratory batch that had failed the test-code and unit checks.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        }
+      ]
     }
   ],
-  "count": 4
+  "count": 5
 }

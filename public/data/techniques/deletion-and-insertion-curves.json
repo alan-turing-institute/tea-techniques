@@ -1,0 +1,161 @@
+{
+  "slug": "deletion-and-insertion-curves",
+  "name": "Deletion and Insertion Curves",
+  "description": "Deletion and insertion curves test whether a feature-attribution explanation, such as a heatmap over an image or highlighted words in a text, puts first the input features the model actually relies on. For the deletion curve, the evaluator removes features in the order the explanation ranks them, most important first, replacing each with a neutral value such as zero, the dataset mean, random noise or a blurred copy, and records the model's score for the explained class after each step; a faithful ranking makes the score fall quickly, so a smaller area under the curve is better (equivalently, a larger area over it, the AOPC score Samek et al. report). The insertion curve runs the other way: it starts from an input with every feature removed or blurred, restores features in ranked order, and rewards a fast rise. For text, the same procedure is often reported as comprehensiveness (how far the predicted-class probability drops when the top-ranked words are deleted) and sufficiency (how far it drops when only those words are kept), either at one cut-off or averaged over cut-offs from the top 1% to the top 50% of words. Explanation methods are compared on the same model, inputs and replacement value, against a random ranking as a baseline, and the result shows how well the ranking tracks the model's behaviour, not whether the highlighted features make sense to a person.",
+  "assurance_goals": [
+    "Explainability"
+  ],
+  "tags": [
+    "assurance-goal-category/explainability",
+    "assurance-goal-category/explainability/explanation-evaluation",
+    "explanatory-scope/local",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/explainability/property/fidelity",
+    "data-requirements/no-special-requirements",
+    "data-type/image",
+    "data-type/text",
+    "data-type/time-series",
+    "evidence-type/quantitative-metric",
+    "evidence-type/visualisation",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/evaluation-design",
+    "technique-type/testing"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A hospital's cardiology informatics team has a deep network that measures intervals and amplitudes from 12-lead ECGs and must choose which heatmap method to show cardiologists. It perturbs the highest-ranked sample points first, one per step, tracks the rise in measurement error over several thousand ECGs, and compares each method's area under the error curve with that of random heatmaps. Because expert preferences and the curves can disagree, it reports both before choosing.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "A regulator's data team routes consumer complaints with a fine-tuned transformer classifier and wants to highlight for caseworkers the words behind each routing decision. Before choosing between two word-attribution methods, it computes comprehensiveness and sufficiency on a validation sample at the 1, 5, 10, 20 and 50% cut-offs and adopts a method only if it clearly beats randomly ranked words on both measures.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "A rail operator's engineering team uses an image classifier to flag defects in track inspection photographs and wants heatmaps that point inspectors to the defect. It runs deletion with pixels set to a constant and insertion from a blurred image for three heatmap methods, then repeats the deletion run with a second replacement value, and adopts a method only if it ranks first under both.",
+      "goal": "Explainability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "Removing pixels or words produces inputs unlike anything the model was trained on, so part of the drop in score can be the model reacting to an unfamiliar input rather than to the loss of the information the explanation pointed to, and the shape of the removed region can itself carry class information. Results are least trustworthy when large parts of the input are removed; variants that retrain the model or fill removed pixels from their neighbours reduce the effect."
+    },
+    {
+      "description": "The score depends on how features are removed and in what order. On one image classifier, the best-ranked method changed when removed pixels were set to the dataset mean instead of random colours, removing the least relevant pixels first ranked the methods roughly in reverse of removing the most relevant first, and rankings varied from image to image. A comparison holds only for the stated replacement value, order, step size and fraction removed, and should be checked under a second replacement."
+    },
+    {
+      "description": "Only the order of the attribution scores counts, not their size, so explanations with very different magnitudes can receive the same score. Taking absolute values of signed attributions changes the order and hence the result. The curves cannot tell an explanation that ranks the right features but gives them misleading magnitudes from one that gets both right; that needs a measure that uses the attribution values."
+    },
+    {
+      "description": "The curves show whether the ranking tracks the model, not whether the explanation is useful or correct for the domain: a model that relies on a spurious cue receives a faithful explanation of that cue. In a study of ECG models, ECG experts' choice of the best heatmap method disagreed considerably with the perturbation ranking, so a good curve does not show that experts will find the explanation helpful."
+    },
+    {
+      "description": "Each curve needs one model evaluation per step, for every input and method compared, so fine-grained curves over large images, long documents or big test sets are expensive. In the original region-perturbation study, two settings over 5,040 images each, with 100 steps repeated ten times because the replacement values were random, took roughly 36 hours on a workstation with 20 hyper-threaded Xeon cores in 2015. Coarser steps cut the cost but make the curve less able to separate methods."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Deletion — Xplique documentation",
+      "url": "https://deel-ai.github.io/xplique/latest/api/attributions/metrics/deletion/",
+      "source_type": "documentation",
+      "citationKey": "DeletionXpliqueDocumentation"
+    },
+    {
+      "title": "Xplique (deel-ai/xplique)",
+      "url": "https://github.com/deel-ai/xplique",
+      "source_type": "software_package",
+      "publication_date": "2026-10-09T04:32:57Z",
+      "citationKey": "XpliqueDeelaiXplique2026",
+      "abstract": "👋 Xplique is a Neural Networks Explainability Toolbox"
+    },
+    {
+      "title": "Evaluating the Visualization of What a Deep Neural Network Has Learned",
+      "url": "https://doi.org/10.1109/tnnls.2016.2599820",
+      "source_type": "technical_paper",
+      "authors": [
+        "Wojciech Samek",
+        "Alexander Binder",
+        "Gregoire Montavon",
+        "Sebastian Lapuschkin",
+        "Klaus-Robert Muller"
+      ],
+      "publication_date": "2017-11",
+      "citationKey": "samekEvaluatingVisualizationWhat2017"
+    },
+    {
+      "title": "RISE: Randomized Input Sampling for Explanation of Black-box Models",
+      "url": "https://bmva-archive.org.uk/bmvc/2018/contents/papers/1064.pdf",
+      "source_type": "technical_paper",
+      "authors": [
+        "Vitali Petsiuk",
+        "Abir Das",
+        "Kate Saenko"
+      ],
+      "publication_date": "2018",
+      "citationKey": "RISERandomizedInput"
+    },
+    {
+      "title": "ERASER: A Benchmark to Evaluate Rationalized NLP Models",
+      "url": "https://doi.org/10.18653/v1/2020.acl-main.408",
+      "source_type": "technical_paper",
+      "authors": [
+        "Jay DeYoung",
+        "Sarthak Jain",
+        "Nazneen Fatema Rajani",
+        "Eric Lehman",
+        "Caiming Xiong",
+        "Richard Socher",
+        "Byron C. Wallace"
+      ],
+      "publication_date": "2020",
+      "citationKey": "deyoungERASERBenchmarkEvaluate2020"
+    },
+    {
+      "title": "Attribution Metrics tutorial (Xplique)",
+      "url": "https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg",
+      "source_type": "tutorial",
+      "citationKey": "AttributionMetricsTutorial"
+    },
+    {
+      "title": "Evaluating gradient-based explanation methods for neural network ECG analysis using heatmaps",
+      "url": "https://doi.org/10.1093/jamia/ocae280",
+      "source_type": "application_paper",
+      "authors": [
+        "Andrea Marheim Storås",
+        "Steffen Mæland",
+        "Jonas L Isaksen",
+        "Steven Alexander Hicks",
+        "Vajira Thambawita",
+        "Claus Graff",
+        "Hugo Lewi Hammer",
+        "Pål Halvorsen",
+        "Michael Alexander Riegler",
+        "Jørgen K Kanters"
+      ],
+      "publication_date": "2024-11-6",
+      "citationKey": "storasEvaluatingGradientbasedExplanation2024"
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 3,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Across a held-out set of ECGs, perturbing the sample points ranked highest by the selected heatmap method raises the interval-measurement error faster than perturbing points ranked by random heatmaps, by at least the margin set in the validation plan, measured by the area under the error curve over the first 15 perturbation steps.",
+      "assuranceGoal": "explainability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "The word highlights shown to complaint caseworkers exceed randomly ranked words by at least the margin set in the validation plan on both comprehensiveness and sufficiency (higher comprehensiveness, lower sufficiency) on the validation sample, averaged over the 1, 5, 10, 20 and 50% cut-offs.",
+      "assuranceGoal": "explainability",
+      "domain": "public sector"
+    },
+    {
+      "text": "The heatmap method used in the track-inspection tool has a smaller deletion area and a larger insertion area than the other candidate methods on the validation images, under both replacement values tested.",
+      "assuranceGoal": "explainability",
+      "domain": "transport"
+    }
+  ]
+}

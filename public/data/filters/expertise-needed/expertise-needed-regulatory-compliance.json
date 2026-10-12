@@ -2,7 +2,7 @@
   "tag": {
     "name": "expertise-needed/regulatory-compliance",
     "slug": "expertise-needed-regulatory-compliance",
-    "count": 9,
+    "count": 11,
     "category": "expertise-needed"
   },
   "techniques": [
@@ -1423,7 +1423,248 @@
           "domain": "transport"
         }
       ]
+    },
+    {
+      "slug": "conditional-demographic-disparity",
+      "name": "Conditional Demographic Disparity",
+      "description": "Conditional demographic disparity (CDD) measures whether members of a protected group make up a larger share of the people a system turns down than of the people it accepts, after taking into account a factor that differs between groups and that the assessor treats as a legitimate explanation of outcomes; Wachter, Mittelstadt and Russell (2021) propose it as baseline statistical evidence for assessing possible discrimination under EU non-discrimination law. Demographic disparity is the group's share of the unfavourable outcomes minus its share of the favourable ones: in the Berkeley graduate admissions data the paper revisits, women were 46 per cent of rejected applicants but 32 per cent of admitted ones, a disparity of 0.14. CDD computes the same difference separately within each stratum of the conditioning attribute (there, the department applied to) and averages the strata, weighting each by its number of people, so a gap that arises only because groups apply in different proportions to strata with different acceptance rates (an instance of Simpson's paradox) drops out, while a gap within strata remains. Conditioning on department turns the Berkeley figure to about -0.02, a slight disparity in women's favour: within departments, women were on average 40 per cent of rejected and 42 per cent of admitted applicants. The output is the disparity in each stratum and their weighted average, computed on the outcomes recorded in a dataset before training or on a model's decisions after it; the authors present it as a descriptive magnitude to support a contextual judgement, not a pass-or-fail test, and the choice of conditioning attribute is a judgement the measure does not make.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "evidence-type/fairness-metric",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "expertise-needed/regulatory-compliance",
+        "expertise-needed/domain-expertise",
+        "technique-type/metric",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/data-analysis",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Fairness",
+          "description": "An employer's HR analytics team audits a CV-screening model used across job families. Women make up a larger share of screened-out applicants than of shortlisted ones overall, but apply in greater numbers to the families with the fewest vacancies per applicant, so the team reports CDD conditioned on job family, with each family's own disparity, letting the recruitment board see whether a gap remains within families before it decides whether to keep using the model."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A consumer lender's compliance team computes CDD on its credit model's decisions for applicants of different ethnic origins, recorded for equality monitoring, conditioned first on the loan product applied for and then on income band. It reports both results with the per-stratum figures and a written reason for treating each factor as a legitimate explanation, as the starting point for its assessment of possible indirect discrimination."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A local authority planning to train a model on past housing allocation decisions measures CDD in those decisions, conditioned on assessed band of housing need, before any training. A positive disparity for one ethnic group within need bands, larger than chance would explain, indicates that the labels carry a pattern a model could learn, and the project board uses the finding to decide whether those decisions can serve as training labels at all."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The result depends on which attribute is conditioned on, and the measure cannot tell whether that attribute is a legitimate explanation. If the attribute is itself shaped by discrimination, for instance if one group was deterred from applying to some departments, conditioning on it removes the very disparity a claimant would point to. Wachter et al. leave the choice of factors to courts and context, so each choice needs a recorded justification that a reviewer can contest."
+        },
+        {
+          "description": "The weighted average can hide large disparities of opposite sign in different strata. In the Berkeley data the per-department disparities run from about -0.09 to +0.05 around a summary of -0.02, and Wachter et al. note that the largest swings come from the department where few women applied, which chance alone could produce. A claim should rest on the per-stratum figures, with their counts, as well as on the summary."
+        },
+        {
+          "description": "Searching many conditioning attributes or their combinations will find disparities by chance, as the authors warn, and choosing among them after seeing the results can equally make a real one disappear. The authors also offer a descriptive magnitude rather than a statistical test, and set no threshold for how much disparity is too much, so the conditioning attributes need fixing before the data are examined, and a claim that a gap is real needs an interval or test added."
+        },
+        {
+          "description": "CDD compares shares of outcomes, not rates, so the same gap in acceptance rates gives a smaller value where the group is a small part of a stratum: accepted at 20 per cent against 50 per cent for others, a group scores about 0.33 where it is half the stratum but 0.02 where it is 2 per cent. A fixed threshold therefore tolerates larger rate gaps for smaller groups. Scores and graded outcomes must also first be cut into favourable and unfavourable, and the result changes with the cut."
+        },
+        {
+          "description": "In the open-source SageMaker Clarify code, a stratum where everyone gets the same outcome is counted rather than skipped: an all-rejected stratum adds a disparity equal to the group's share of it, though no one there was treated differently, so such strata need removing first. AWS has closed Clarify to new customers. The calculation is easy to reimplement, but published applications to deployed AI systems are scarce; the paper's worked example is the 1975 Berkeley admissions study."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Conditional Demographic Disparity (CDD) (Amazon SageMaker AI Developer Guide)",
+          "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/clarify-data-bias-metric-cddl.html",
+          "source_type": "documentation",
+          "citationKey": "ConditionalDemographicDisparity",
+          "abstract": "Amazon SageMaker Clarify conditional demographic disparity data bias metric."
+        },
+        {
+          "title": "smclarify (aws/amazon-sagemaker-clarify)",
+          "url": "https://github.com/aws/amazon-sagemaker-clarify",
+          "source_type": "software_package",
+          "publication_date": "2026-05-23T16:19:14Z",
+          "citationKey": "SmclarifyAwsAmazonsagemakerclarify2026",
+          "abstract": "Fairness Aware Machine Learning. Bias detection and mitigation for datasets and models."
+        },
+        {
+          "title": "Why fairness cannot be automated: Bridging the gap between EU non-discrimination law and AI",
+          "url": "https://doi.org/10.1016/j.clsr.2021.105567",
+          "source_type": "technical_paper",
+          "authors": [
+            "Sandra Wachter",
+            "Brent Mittelstadt",
+            "Chris Russell"
+          ],
+          "publication_date": "2021-7",
+          "citationKey": "wachterWhyFairnessCannot2021"
+        },
+        {
+          "title": "SMclarify bias metrics example usage (example notebook)",
+          "url": "https://github.com/aws/amazon-sagemaker-clarify/blob/master/examples/Bias_metrics_usage.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "SMclarifyBiasMetrics",
+          "abstract": "Fairness Aware Machine Learning. Bias detection and mitigation for datasets and models. - aws/amazon-sagemaker-clarify"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "acronym": "CDD",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "assuranceGoal": "fairness",
+          "domain": "employment",
+          "text": "Conditioned on job family, the CV-screening model's conditional demographic disparity for women in the last hiring round is below 0.02, and no job family with at least 100 applicants shows a disparity above 0.05."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "finance",
+          "text": "The conditioning factors for the credit model's disparity analysis were fixed, with written reasons, before the decision data were examined, and the disparity in each stratum is reported with its count alongside the weighted summary."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "public sector",
+          "text": "In the historical housing allocation decisions proposed as training labels, each ethnic group's share of refused applicants exceeds its share of successful applicants by no more than 0.03 within any band of assessed housing need, and each group's acceptance rate in each band is reported beside the disparity."
+        }
+      ]
+    },
+    {
+      "slug": "uk-algorithmic-transparency-recording-standard-record",
+      "name": "UK Algorithmic Transparency Recording Standard Record",
+      "description": "An Algorithmic Transparency Recording Standard (ATRS) record is a public account that a UK public sector organisation writes about one algorithmic tool it uses, on the UK government's standard template, and publishes in a central repository on GOV.UK. The template has two tiers: a short plain-language summary for the general public (what the tool is, why it is used and a contact), and eight further sheets for specialist readers such as journalists, researchers and civil society, covering who is accountable for the tool and which suppliers were involved, how it works and what it replaced, how its output feeds into decisions, when a person reviews that output, how members of the public can appeal, the system's and each model's inputs, outputs, architecture and performance (including any bias testing), the data used, and the impact assessments, risks and mitigations. Information that would be exempt under the Freedom of Information Act can be left out or summarised field by field, with the reason stated, and the record is cleared by the tool's team, its senior responsible owner (the role accountable for the tool) and the press office, checked for readability by the central ATRS team, and updated when the tool changes substantially or is retired. Publishing is mandatory for central government departments and for arm's-length bodies that deliver public or frontline services or deal directly with the public, for tools in beta, pilot or production that significantly influence decisions affecting the public or interact with it directly; other public bodies may publish voluntarily. Unlike a model card, written by a developer for people choosing a model, or a supplier's AI FactSheet for buyers, an ATRS record is written by the deploying public body for the public and describes the decision process, human review and appeal routes around the tool as well as the tool.",
+      "assurance_goals": [
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/documentation",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/documentation",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/regulatory-compliance",
+        "expertise-needed/stakeholder-engagement",
+        "technique-type/documentation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A government department piloting a machine-learning model that prioritises benefit claims for caseworker checks publishes an ATRS record before the pilot starts. It tells claimants, journalists and MPs that the score only orders the caseworkers' queue and a caseworker makes every decision, how claimants can ask for a review, what kinds of data the model uses and what bias testing was done.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A district council piloting a supplier's tool that ranks rent-arrears cases for housing officers publishes a voluntary ATRS record. Because the record needs the model type, a description of the training data and performance figures, the council's procurement team writes their supply into the contract, and the record names the supplier, its role and the terms of its access to tenants' data.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A police force using a domestic-abuse risk assessment tool publishes a voluntary record in which the fields that would show how to evade the tool are marked exempt, with the reason, while the summary, the officers' review of each score, the appeal route and the risk mitigations are published in full for oversight bodies and community groups to examine.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A department launching a chatbot that answers questions about a public service publishes a record because the tool interacts directly with the public. The record states that answers come from a named provider's large language model used as supplied, how answers are checked, how often conversations are reviewed and how a user reaches a human adviser.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A record is the deploying body's own account. The central ATRS team checks drafts for readability, not accuracy, and nothing in the standard tests the stated performance, bias testing or human review against the tool's behaviour. A record is also only as current as its last update, which depends on the body resubmitting after a substantial change, so it shows what was disclosed and when, not that the tool works as described."
+        },
+        {
+          "description": "The mandatory scope is narrow: central government departments and qualifying arm's-length bodies, and only tools that significantly influence decisions with public effect or interact directly with the public, from the beta or pilot stage on. Local authorities, police forces and other bodies outside central government publish voluntarily, and analytical models that inform policy are usually out of scope, so the absence of a record does not show that no tool is in use."
+        },
+        {
+          "description": "Fields can be withheld or summarised under Freedom of Information exemptions, including commercial interests, and no record is published where even the tool's existence cannot be confirmed. Police and commercial interviewees in a 2022 study expected suppliers to resist disclosing proprietary details, so the technical tier of a record for a procured tool can be thin unless the contract requires the supplier to provide the information."
+        },
+        {
+          "description": "For an off-the-shelf model that the organisation has not trained, tested or refined, such as a large language model used through its web interface, the guidance says to leave the model and development data sections blank. Records for such tools say nothing about the model's training data or evaluation, which is often what a reader most needs in order to judge them."
+        },
+        {
+          "description": "Whether the public can find, understand and use records has not been tested. Records sit in a repository on GOV.UK rather than reaching people when a decision affects them, although the 2021 public engagement study behind the two-tier design found people wanted active notice for higher-impact uses. Police interviewees in a 2022 study feared records would give more detail than the public needs and accuracy figures without context; its authors called for evaluation with impacted communities."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Algorithmic Transparency Recording Standard Hub",
+          "url": "https://www.gov.uk/government/collections/algorithmic-transparency-recording-standard-hub",
+          "source_type": "documentation",
+          "publication_date": "2025-05-08",
+          "citationKey": "AlgorithmicTransparencyRecording2025",
+          "abstract": "The Government Digital Service (GDS) is helping public sector organisations provide clear information about how and why they are using algorithmic tools."
+        },
+        {
+          "title": "Algorithmic Transparency Recording Standard - Previous versions",
+          "url": "https://www.gov.uk/government/publications/algorithmic-transparency-data-standard",
+          "source_type": "technical_paper",
+          "publication_date": "2021-12-02",
+          "citationKey": "AlgorithmicTransparencyRecording2021",
+          "abstract": "Collection of previous versions of the Algorithmic Transparency Recording Standard."
+        },
+        {
+          "title": "Algorithmic Transparency Recording Standard - guidance for public sector bodies",
+          "url": "https://www.gov.uk/government/publications/guidance-for-organisations-using-the-algorithmic-transparency-recording-standard/algorithmic-transparency-recording-standard-guidance-for-public-sector-bodies",
+          "source_type": "tutorial",
+          "citationKey": "AlgorithmicTransparencyRecording"
+        },
+        {
+          "title": "Exploring Police Perspectives on Algorithmic Transparency: A Qualitative Analysis of Police Interviews in the UK",
+          "url": "https://doi.org/10.1145/3617694.3623246",
+          "source_type": "application_paper",
+          "authors": [
+            "Miri Zilka",
+            "Carolyn Ashurst",
+            "Luke Chambers",
+            "Ellen P Goodmann",
+            "Pamela Ugwudike",
+            "Marion Oswald"
+          ],
+          "publication_date": "2023-10-30",
+          "citationKey": "zilkaExploringPolicePerspectives2023"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "acronym": "ATRS",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "An ATRS record for the claim-prioritisation model was published on GOV.UK before the pilot began, stating the model's role in decisions, when a caseworker reviews its output and how claimants can ask for a review.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Every algorithmic tool in the department's inventory that falls within the ATRS mandatory scope and is in beta, pilot or production has a published ATRS record.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Each field withheld from the published record is marked exempt with its reason, and each exemption was cleared by the tool's senior responsible owner, under the ATRS scope and exemptions policy, before publication.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "The published ATRS record was updated within one month of the model being retrained on new data or its role in the decision process changing.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        }
+      ]
     }
   ],
-  "count": 9
+  "count": 11
 }

@@ -34,6 +34,8 @@ export const tagDefinitions: Record<string, string> = {
     'Techniques for CNNs and vision models',
   'applicable-models/architecture/neural-networks/recurrent':
     'Techniques for RNNs, LSTMs, and GRUs',
+  'applicable-models/architecture/neural-networks/graph':
+    'Techniques for graph neural networks, which pass messages between connected nodes',
   'applicable-models/architecture/neural-networks/transformer':
     'Techniques for transformer-based architectures',
   'applicable-models/architecture/neural-networks/transformer/llm':
@@ -216,6 +218,8 @@ export const tagDefinitions: Record<string, string> = {
   'data-type/text': 'Designed for text and natural language data',
   'data-type/image': 'Designed for image and visual data',
   'data-type/time-series': 'Designed for sequential or time-indexed data',
+  'data-type/graph':
+    'Designed for graph-structured data: nodes, edges and their features',
 
   // Technique Type
   'technique-type/algorithmic': 'A specific algorithm or computational method',

@@ -1286,6 +1286,533 @@
       ]
     },
     {
+      "slug": "gnnexplainer",
+      "name": "GNNExplainer",
+      "description": "GNNExplainer explains one prediction of a graph neural network, a model that passes information along the edges of a graph such as a molecule, a payment network or a mesh of weather grid points, by finding a small subgraph and a small set of input features that most support that prediction. Explanation methods for flat inputs, such as SHAP and LIME, give each input feature its own score and have no built-in notion of a connection between two nodes; this method scores the connections themselves, restricted to the part of the graph the model actually reads for the prediction (its computation graph, the neighbourhood within as many hops as the model has message-passing layers). It learns a mask with a value between 0 and 1 for each edge of that computation graph and for each node-feature dimension by gradient descent: the masked graph is fed to the model, and the masks are adjusted to keep the predicted label as likely as possible while penalties keep the total mask small and push values towards 0 or 1. Edges and features whose mask values fall below a threshold are then dropped, leaving a compact subgraph and feature subset that can be drawn over the input graph; the same procedure explains node labels, predicted links and whole-graph labels, and the original paper also aligns the explanations of many nodes of one class into a summary pattern. It needs gradient access to the model, and each explanation is a separate optimisation.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/gradient-access",
+        "applicable-models/requirements/differentiable",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/property/sparsity",
+        "data-requirements/no-special-requirements",
+        "evidence-type/structured-output",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/domain-expertise",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "data-type/graph",
+        "applicable-models/architecture/neural-networks/graph"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A pharmaceutical company's computational toxicology team uses a graph neural network to flag candidate molecules as likely mutagenic. For each flagged compound it reviews the substructure and atom features GNNExplainer selects and checks them against known structural alerts such as nitro groups, to decide whether a flag rests on chemistry the team recognises before the compound is deprioritised.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A bank's financial-crime unit scores accounts with a graph neural network over its payment network to flag likely money-mule accounts. Investigators receive with each flag the explanation subgraph of counterparties and transfers and the account features it selected, and use them to decide whether to escalate; model validators sample explanations to check that flags do not rest mainly on features such as branch or account-opening channel.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A weather service's model evaluation team runs the regression mode of the PyTorch Geometric implementation on a small set of high-impact forecasts from a graph-based forecasting model, such as the predicted rainfall total at one location. Forecasters check whether the connections and input variables selected, for example humidity upwind, are physically plausible, and the team deletes the selected connections to confirm the forecast changes, before such forecasts feed a warning service.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Each explanation is a separate optimisation, run for a set number of steps (100 by default in the PyTorch Geometric implementation), so explaining many nodes or graphs is slow and explanations of similar cases are not required to agree. A view of the model as a whole needs an extra step, such as the class-level summary in the original paper, or a method that trains one explainer for all instances."
+        },
+        {
+          "description": "The masks are soft during optimisation, so the model is run on graphs whose edges and features are scaled by fractions it never saw in training, and these values can add meaning or noise of their own. The objective is not convex and the masks start at random: in a 2024 benchmark, the ten-edge explanations from runs with different seeds overlapped by a Jaccard index of only 0.18 to 0.80 across six datasets. The final subgraph also depends on the threshold used to cut the mask."
+        },
+        {
+          "description": "The size of the explanation is set by the user, not found. The original experiments fixed it at the known size of the planted pattern on synthetic graphs and at 10 edges and 5 features on real ones, and the PyTorch Geometric implementation advises tuning the size penalty to the graph's average degree. A compact explanation can therefore leave out structure the model uses."
+        },
+        {
+          "description": "Most evidence that it finds the right structure comes from synthetic graphs with planted patterns, and a trained model need not use the planted edges, so agreement with them can mislead. A 2023 benchmark found graph explainers, this one included, less faithful when linked nodes tend to differ and when the deciding structure is large. Check fidelity on your own model, for example by deleting the explanation and measuring the change."
+        },
+        {
+          "description": "It assumes the computation graph is small. The computation graph grows with every message-passing layer, so in a mesh-based forecasting model that passes messages many times along long-range edges (GraphCast uses 16 such layers) it probably spans most of the mesh: the mask then covers most edges and compactness comes from the size penalty, not the model. This has not been tested. PyTorch Geometric applies the mask inside its own message-passing layers, so the model must use them or be adapted."
+        }
+      ],
+      "resources": [
+        {
+          "title": "torch_geometric.explain.algorithm.GNNExplainer (PyG documentation)",
+          "url": "https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.explain.algorithm.GNNExplainer.html",
+          "source_type": "documentation",
+          "citationKey": "Torch_geometricexplainalgorithmGNNExplainerPyGDocumentation"
+        },
+        {
+          "title": "PyTorch Geometric (pyg-team/pytorch_geometric)",
+          "url": "https://github.com/pyg-team/pytorch_geometric",
+          "source_type": "software_package",
+          "publication_date": "2025",
+          "citationKey": "feyPyTorchGeometricPygteam2025",
+          "abstract": "Graph Neural Network Library for PyTorch"
+        },
+        {
+          "title": "GNNExplainer: Generating Explanations for Graph Neural Networks",
+          "url": "https://proceedings.neurips.cc/paper/2019/hash/d80b7040b773199015de6d3b4293c8ff-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Zhitao Ying",
+            "Dylan Bourgeois",
+            "Jiaxuan You",
+            "Marinka Zitnik",
+            "Jure Leskovec"
+          ],
+          "publication_date": "2019",
+          "citationKey": "yingGNNExplainerGeneratingExplanations2019",
+          "abstract": "Graph Neural Networks (GNNs) are a powerful tool for machine learning on graphs.GNNs combine node feature information with the graph structure by \nrecursively passing neural messages along edges of the input graph. However, incorporating both graph structure and feature information leads to complex models,\nand explaining predictions made by GNNs remains unsolved. Here\nwe propose GNNExplainer, the first general, model-agnostic approach for providing interpretable explanations for predictions of any GNN-based model on any graph-based machine learning task. Given an instance, GNNExplainer identifies a compact subgraph structure and a small subset of node features that have a crucial role in GNN's prediction. \nFurther, GNNExplainer  can generate consistent and concise explanations for an entire class of instances.\nWe formulate GNNExplainer as an optimization task that maximizes the mutual information between a GNN's prediction and distribution of possible subgraph structures. Experiments on synthetic and real-world graphs show that our approach can identify important graph structures as well as node features, and outperforms baselines by 17.1% on average. GNNExplainer  provides a variety of benefits, from the ability to visualize semantically relevant structures to interpretability, to giving insights into errors of faulty GNNs."
+        },
+        {
+          "title": "Explaining Graph Neural Networks (PyG tutorial)",
+          "url": "https://pytorch-geometric.readthedocs.io/en/latest/tutorial/explain.html",
+          "source_type": "tutorial",
+          "citationKey": "ExplainingGraphNeural"
+        },
+        {
+          "title": "Investigating Brain Connectivity with Graph Neural Networks and GNNExplainer",
+          "url": "https://doi.org/10.1109/icpr56361.2022.9956201",
+          "source_type": "application_paper",
+          "authors": [
+            "Maksim Zhdanov",
+            "Saskia Steinmann",
+            "Nico Hoffmann"
+          ],
+          "publication_date": "2022-8-21",
+          "citationKey": "zhdanovInvestigatingBrainConnectivity2022"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For at least 90% of the validation molecules the toxicity model flags as mutagenic, the explanation subgraph contains a recognised structural alert, and deleting the explanation subgraph removes the flag for at least 80% of them.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Across 300 sampled money-mule flags, branch and account-opening channel are never among the three node features with the highest mask values in the explanation.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "For each of the 20 high-impact rainfall forecasts reviewed, forecasters judged the selected connections and input variables physically plausible, and removing the selected connections changed the forecast total by more than the agreed tolerance.",
+          "assuranceGoal": "explainability",
+          "domain": "environmental"
+        },
+        {
+          "text": "Repeating each reviewed explanation from five random starting masks gives ten highest-weighted edge sets whose pairwise Jaccard index is at least 0.8.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "timeshap",
+      "name": "TimeSHAP",
+      "description": "TimeSHAP explains one prediction of a model that reads a sequence of events, such as a recurrent neural network that scores a bank transaction using the account's history, by giving each past event, each input feature and selected event-feature cells a Shapley value: a share of the score, taken from cooperative game theory, such that all the shares add up to the difference between the model's score and its score with every event and feature removed. It adapts KernelSHAP, the sampling estimator in SHAP, which explains a single input vector and so, applied to the latest event of a recurrent model, gives earlier events no credit; TimeSHAP instead switches off whole rows or columns of the event-by-feature input matrix, replacing them with a background value (the training-data average in the original paper), queries the model on many such perturbed sequences, and fits a weighted linear model whose coefficients are the attributions. Because the number of event combinations doubles with every event, a pruning step first walks back from the most recent event and merges all older events into a single player once their combined attribution falls below a chosen tolerance, and cell-level values are computed only where the most important events and features intersect, with the other cells grouped. The model is treated as a black box that takes a batch of sequences and returns one score per sequence, and the output is event, feature and cell attributions for each explained sequence, plus plots that aggregate them across many sequences into a global view.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/recurrent",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/property/completeness",
+        "data-requirements/reference-dataset",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "explanatory-scope/local",
+        "explanatory-scope/global",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's fraud operations team runs TimeSHAP on each alert from its recurrent account-takeover model, so the analyst reviewing an alert sees which earlier events (for example a password change, then a login from a new device) and which features carried the score, not only the payment being held. The analyst uses this to decide whether to release the payment or contact the customer, and the model team samples the explanations to check that the drivers match known fraud patterns.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A hospital data-science team validating a recurrent model that predicts next-day escalation of treatment for patients in intensive care computes event- and feature-level TimeSHAP values for test-set patients and reviews them with clinicians. Drivers the clinicians judge implausible, such as an indicator that a measurement is missing outweighing the measurements themselves, are investigated before the model is used in a prospective study.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "An airport's forecasting team using a recurrent model to warn of fog in the next six hours from the past 48 hours of station observations uses the pruning statistics and global event plots to find how far back the model actually draws on, and the feature attributions to check that humidity, temperature and wind lead each warning. The findings set the input window for the next retraining and go into the model's validation report.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Every attribution is measured against the background chosen to stand for a removed event or feature, the training-data average in the original paper. A sequence containing averaged events may be unlike anything the model has seen, and another background gives other attributions; the original authors note that a feature scoring zero for every sequence may reflect the background rather than the model. Report the background with the results."
+        },
+        {
+          "description": "Exact values need every combination of events, which doubles with each event. On the original fraud data (median sequence about 138 events), exact values were possible for only 10% of sequences with 32,000 sampled combinations, and repeated runs disagreed (relative standard deviation 1.71 without pruning, 0.98 at the chosen tolerance). With tens of thousands of model calls per explanation, explaining every scored event in real time is impractical; the alerts people review are the usual scope."
+        },
+        {
+          "description": "Pruning trades detail on older events for speed and stability. All events before the cut-off share one attribution. The cut-off test compares the older block's net, signed attribution with a user-set tolerance, so by construction an early event that pushed the score up can pass unseen if others pushed it down; the original paper does not measure how often this happens. Results change with the tolerance, so fix it in advance and report it."
+        },
+        {
+          "description": "It explains one score per sequence: the reference implementation expects the model to return a single value for each sequence. A model with many outputs, such as a forecast for several lead times or locations, needs a separate run or a chosen summary for each. The attributions show what the model relies on, not causes in the world: in the original study a high attribution to customer age led to a bias audit, which was needed to establish the disparity."
+        },
+        {
+          "description": "Each event and feature receives one number, so an effect that arises only from a combination, such as a settings change followed by a login from a new device, is shared out among its parts: an analyst sees each part with some credit but cannot tell that they matter only together. Cell-level values are computed only where the top-ranked events and features intersect. A clinical study using the method found escalation effects hard to see and suggested interactions as the cause."
+        }
+      ],
+      "resources": [
+        {
+          "title": "TimeSHAP (README of the reference implementation, feedzai/timeshap)",
+          "url": "https://github.com/feedzai/timeshap/blob/main/README.md",
+          "source_type": "documentation",
+          "citationKey": "TimeSHAPREADMEReference",
+          "abstract": "TimeSHAP explains Recurrent Neural Network predictions. - feedzai/timeshap"
+        },
+        {
+          "title": "TimeSHAP (feedzai/timeshap)",
+          "url": "https://github.com/feedzai/timeshap",
+          "source_type": "software_package",
+          "publication_date": "2026-09-30T19:07:11Z",
+          "citationKey": "TimeSHAPFeedzaiTimeshap2026",
+          "abstract": "TimeSHAP explains Recurrent Neural Network predictions."
+        },
+        {
+          "title": "TimeSHAP: Explaining Recurrent Models through Sequence Perturbations",
+          "url": "https://doi.org/10.1145/3447548.3467166",
+          "source_type": "technical_paper",
+          "authors": [
+            "João Bento",
+            "Pedro Saleiro",
+            "André F. Cruz",
+            "Mário A.T. Figueiredo",
+            "Pedro Bizarro"
+          ],
+          "publication_date": "2021-8-14",
+          "citationKey": "bentoTimeSHAPExplainingRecurrent2021"
+        },
+        {
+          "title": "TimeSHAP tutorial: AReM (PyTorch) notebook",
+          "url": "https://github.com/feedzai/timeshap/blob/main/notebooks/AReM/AReM.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "TimeSHAPTutorialAReM",
+          "abstract": "TimeSHAP explains Recurrent Neural Network predictions. - feedzai/timeshap"
+        },
+        {
+          "title": "TILTomorrow today: dynamic factors predicting changes in intracranial pressure treatment intensity after traumatic brain injury",
+          "url": "https://doi.org/10.1038/s41598-024-83862-x",
+          "source_type": "application_paper",
+          "authors": [
+            "Shubhayu Bhattacharyay",
+            "Florian D. van Leeuwen",
+            "Erta Beqiri",
+            "Cecilia A. I. Åkerlund",
+            "Lindsay Wilson",
+            "Ewout W. Steyerberg",
+            "David W. Nelson",
+            "Andrew I. R. Maas",
+            "David K. Menon",
+            "Ari Ercole",
+            "Cecilia Åkerlund",
+            "Krisztina Amrein",
+            "Nada Andelic",
+            "Lasse Andreassen",
+            "Audny Anke",
+            "Anna Antoni",
+            "Gérard Audibert",
+            "Philippe Azouvi",
+            "Maria Luisa Azzolini",
+            "Ronald Bartels",
+            "Pál Barzó",
+            "Romuald Beauvais",
+            "Ronny Beer",
+            "Bo-Michael Bellander",
+            "Antonio Belli",
+            "Habib Benali",
+            "Maurizio Berardino",
+            "Luigi Beretta",
+            "Morten Blaabjerg",
+            "Peter Bragge",
+            "Alexandra Brazinova",
+            "Vibeke Brinck",
+            "Joanne Brooker",
+            "Camilla Brorsson",
+            "Andras Buki",
+            "Monika Bullinger",
+            "Manuel Cabeleira",
+            "Alessio Caccioppola",
+            "Emiliana Calappi",
+            "Maria Rosa Calvi",
+            "Peter Cameron",
+            "Guillermo Carbayo Lozano",
+            "Marco Carbonara",
+            "Simona Cavallo",
+            "Giorgio Chevallard",
+            "Arturo Chieregato",
+            "Giuseppe Citerio",
+            "Hans Clusmann",
+            "Mark Coburn",
+            "Jonathan Coles",
+            "Jamie D. Cooper",
+            "Marta Correia",
+            "Amra Čović",
+            "Nicola Curry",
+            "Endre Czeiter",
+            "Marek Czosnyka",
+            "Claire Dahyot-Fizelier",
+            "Paul Dark",
+            "Helen Dawes",
+            "Véronique De Keyser",
+            "Vincent Degos",
+            "Francesco Della Corte",
+            "Hugo den Boogert",
+            "Bart Depreitere",
+            "Đula Đilvesi",
+            "Abhishek Dixit",
+            "Emma Donoghue",
+            "Jens Dreier",
+            "Guy-Loup Dulière",
+            "Ari Ercole",
+            "Patrick Esser",
+            "Erzsébet Ezer",
+            "Martin Fabricius",
+            "Valery L. Feigin",
+            "Kelly Foks",
+            "Shirin Frisvold",
+            "Alex Furmanov",
+            "Pablo Gagliardo",
+            "Damien Galanaud",
+            "Dashiell Gantner",
+            "Guoyi Gao",
+            "Pradeep George",
+            "Alexandre Ghuysen",
+            "Lelde Giga",
+            "Ben Glocker",
+            "Jagoš Golubovic",
+            "Pedro A. Gomez",
+            "Johannes Gratz",
+            "Benjamin Gravesteijn",
+            "Francesca Grossi",
+            "Russell L. Gruen",
+            "Deepak Gupta",
+            "Juanita A. Haagsma",
+            "Iain Haitsma",
+            "Raimund Helbok",
+            "Eirik Helseth",
+            "Lindsay Horton",
+            "Jilske Huijben",
+            "Peter J. Hutchinson",
+            "Bram Jacobs",
+            "Stefan Jankowski",
+            "Mike Jarrett",
+            "Ji-yao Jiang",
+            "Faye Johnson",
+            "Kelly Jones",
+            "Mladen Karan",
+            "Angelos G. Kolias",
+            "Erwin Kompanje",
+            "Daniel Kondziella",
+            "Evgenios Kornaropoulos",
+            "Lars-Owe Koskinen",
+            "Noémi Kovács",
+            "Ana Kowark",
+            "Alfonso Lagares",
+            "Linda Lanyon",
+            "Steven Laureys",
+            "Fiona Lecky",
+            "Didier Ledoux",
+            "Rolf Lefering",
+            "Valerie Legrand",
+            "Aurelie Lejeune",
+            "Leon Levi",
+            "Roger Lightfoot",
+            "Hester Lingsma",
+            "Andrew I. R. Maas",
+            "Ana M. Castaño-León",
+            "Marc Maegele",
+            "Marek Majdan",
+            "Alex Manara",
+            "Geoffrey Manley",
+            "Costanza Martino",
+            "Hugues Maréchal",
+            "Julia Mattern",
+            "Catherine McMahon",
+            "Béla Melegh",
+            "David Menon",
+            "Tomas Menovsky",
+            "Ana Mikolic",
+            "Benoit Misset",
+            "Visakh Muraleedharan",
+            "Lynnette Murray",
+            "Ancuta Negru",
+            "David Nelson",
+            "Virginia Newcombe",
+            "Daan Nieboer",
+            "József Nyirádi",
+            "Otesile Olubukola",
+            "Matej Oresic",
+            "Fabrizio Ortolano",
+            "Aarno Palotie",
+            "Paul M. Parizel",
+            "Jean-François Payen",
+            "Natascha Perera",
+            "Vincent Perlbarg",
+            "Paolo Persona",
+            "Wilco Peul",
+            "Anna Piippo-Karjalainen",
+            "Matti Pirinen",
+            "Dana Pisica",
+            "Horia Ples",
+            "Suzanne Polinder",
+            "Inigo Pomposo",
+            "Jussi P. Posti",
+            "Louis Puybasset",
+            "Andreea Radoi",
+            "Arminas Ragauskas",
+            "Rahul Raj",
+            "Malinka Rambadagalla",
+            "Isabel Retel Helmrich",
+            "Jonathan Rhodes",
+            "Sylvia Richardson",
+            "Sophie Richter",
+            "Samuli Ripatti",
+            "Saulius Rocka",
+            "Cecilie Roe",
+            "Olav Roise",
+            "Jonathan Rosand",
+            "Jeffrey V. Rosenfeld",
+            "Christina Rosenlund",
+            "Guy Rosenthal",
+            "Rolf Rossaint",
+            "Sandra Rossi",
+            "Daniel Rueckert",
+            "Martin Rusnák",
+            "Juan Sahuquillo",
+            "Oliver Sakowitz",
+            "Renan Sanchez-Porras",
+            "Janos Sandor",
+            "Nadine Schäfer",
+            "Silke Schmidt",
+            "Herbert Schoechl",
+            "Guus Schoonman",
+            "Rico Frederik Schou",
+            "Elisabeth Schwendenwein",
+            "Charlie Sewalt",
+            "Ranjit D. Singh",
+            "Toril Skandsen",
+            "Peter Smielewski",
+            "Abayomi Sorinola",
+            "Emmanuel Stamatakis",
+            "Simon Stanworth",
+            "Robert Stevens",
+            "William Stewart",
+            "Ewout W. Steyerberg",
+            "Nino Stocchetti",
+            "Nina Sundström",
+            "Riikka Takala",
+            "Viktória Tamás",
+            "Tomas Tamosuitis",
+            "Mark Steven Taylor",
+            "Aurore Thibaut",
+            "Braden Te Ao",
+            "Olli Tenovuo",
+            "Alice Theadom",
+            "Matt Thomas",
+            "Dick Tibboel",
+            "Marjolein Timmers",
+            "Christos Tolias",
+            "Tony Trapani",
+            "Cristina Maria Tudora",
+            "Andreas Unterberg",
+            "Peter Vajkoczy",
+            "Shirley Vallance",
+            "Egils Valeinis",
+            "Zoltán Vámos",
+            "Mathieu van der Jagt",
+            "Gregory Van der Steen",
+            "Joukje van der Naalt",
+            "Jeroen T. J. M. van Dijck",
+            "Inge A. M. van Erp",
+            "Thomas A. van Essen",
+            "Wim Van Hecke",
+            "Caroline van Heugten",
+            "Ernest van Veen",
+            "Thijs Vande Vyvere",
+            "Roel P. J. van Wijk",
+            "Alessia Vargiolu",
+            "Emmanuel Vega",
+            "Kimberley Velt",
+            "Jan Verheyden",
+            "Paul M. Vespa",
+            "Anne Vik",
+            "Rimantas Vilcinis",
+            "Victor Volovici",
+            "Nicole von Steinbüchel",
+            "Daphne Voormolen",
+            "Petar Vulekovic",
+            "Kevin K. W. Wang",
+            "Daniel Whitehouse",
+            "Eveline Wiegers",
+            "Guy Williams",
+            "Stefan Winzeck",
+            "Stefan Wolf",
+            "Zhihui Yang",
+            "Peter Ylén",
+            "Alexander Younsi",
+            "Frederick A. Zeiler",
+            "Veronika Zelinkova",
+            "Agate Ziverte",
+            "Tommaso Zoerle"
+          ],
+          "publication_date": "2025-1-2",
+          "citationKey": "bhattacharyayTILTomorrowTodayDynamic2025"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On a sample of 1,000 alerts from the account-takeover model, the five features with the largest mean absolute TimeSHAP attribution are all on the fraud team's list of recognised account-takeover indicators.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Clinicians reviewing the event- and feature-level attributions for 200 test-set patients judged the leading drivers of the escalation model clinically plausible in at least 90% of cases, and each implausible case was traced to a documented data or model issue.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For 95% of the fog warnings explained in validation, observations more than 12 hours before the forecast time carry less than 10% of the summed absolute event attribution.",
+          "assuranceGoal": "explainability",
+          "domain": "aviation"
+        },
+        {
+          "text": "With the background and pruning tolerance fixed in the validation plan, ten repeated TimeSHAP runs on the validation sample give event attributions whose relative standard deviation is below 0.5.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        }
+      ]
+    },
+    {
       "slug": "mean-decrease-impurity",
       "name": "Mean Decrease Impurity",
       "description": "Mean Decrease Impurity (MDI) quantifies a feature's importance in tree-based models (e.g., Random Forests, Gradient Boosting Machines) by measuring the total reduction in impurity (e.g., Gini impurity, entropy) across all splits where the feature is used. Features that lead to larger, more consistent reductions in impurity are considered more important, indicating their effectiveness in creating homogeneous child nodes and improving predictive accuracy. This makes MDI a computationally efficient method for feature selection and model validation in tree-based ensembles.",
@@ -2897,5 +3424,5 @@
       ]
     }
   ],
-  "count": 18
+  "count": 20
 }

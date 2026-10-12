@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/transparency/audit-trail",
     "slug": "assurance-goal-category-transparency-audit-trail",
-    "count": 9,
+    "count": 10,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -2881,7 +2881,122 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "c2pa-content-credentials",
+      "name": "C2PA Content Credentials",
+      "description": "C2PA Content Credentials attach a signed provenance record, called a manifest, to a media file, so that whoever receives the file can see who signed it and what the signer declares (which tool produced it, whether a generative AI model created or altered it and what edits followed), and can check that the record, and the parts of the file its hash covers, have not changed since signing. Under the Coalition for Content Provenance and Authenticity (C2PA) technical specification, the tool that creates or edits the file writes statements called assertions, such as a 'created' action whose source type is trainedAlgorithmicMedia (the code for AI-generated content) and links to the earlier files it was made from, adds a cryptographic hash of the file's content, and signs the bundle with an X.509 certificate, the kind of credential used to secure websites. The manifest is usually embedded in the file, and each later edit in a supporting tool adds a new manifest that refers to the previous one, so the history travels with the file. A validator recomputes the hash and checks the signature, then reports the manifest as well-formed, valid or, if the signing certificate chains to a trust list such as the C2PA Trust List, trusted, and reports a failure when the file no longer matches its hash. If the manifest is removed, nothing in the file leads back to it unless a watermark or fingerprint (a 'soft binding') was also registered so that the manifest can be looked up in a repository, and a file without credentials says nothing about its origin; unlike trigger-set model watermarking or model signing, which mark or sign a model, it records the history of an individual output.",
+      "assurance_goals": [
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/audit-trail",
+        "data-requirements/no-special-requirements",
+        "data-type/image",
+        "data-type/text",
+        "evidence-type/audit-record",
+        "expertise-needed/security",
+        "expertise-needed/software-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An image-generation service offered in the EU attaches a signed manifest to every image it returns, declaring an AI 'created' action with the service as signer, as its means of meeting the AI Act's Article 50(2) duty to mark synthetic output in a machine-readable format. Its compliance team validates a weekly sample of outputs to decide whether marking is working, and registers a watermark soft binding so that a stripped image can be matched back to its record.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A news agency's verification desk runs every image sent in by the public through a C2PA validator before publication. A trusted manifest recording capture on a named camera, with no AI-generated ingredients, lets editors publish it with a provenance label. A manifest naming a generative tool, or a hash that no longer matches, sends it to forensic review, and an image with no credentials is treated as of unknown origin, not as authentic.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An insurer's claims app lets assessors apply an AI tool that enhances and annotates photographs of vehicle damage, and records each AI edit as an action in the photograph's manifest. When a claim is disputed, a reviewing assessor or the claimant's representative can see which changes the AI tool made and check them against the retained original, which the edited photograph's manifest cites as an ingredient.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A social-media platform reads Content Credentials on upload, labels images whose trusted manifest declares a generative AI source, and shows users who signed the record. Its trust-and-safety team tracks what share of uploads carry trusted, untrusted or no credentials, to decide how far its synthetic-media policy can rely on the labels and where it still needs other detection methods.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The record is easy to lose. Anyone can remove the manifest, an attack the C2PA's own threat model expects, and the file is then an ordinary file with no link to its history unless a watermark or fingerprint soft binding was registered with a manifest repository. Because credentials are optional and removable, a file without them says nothing about its origin: the absence of a manifest cannot show that content is human-made or unaltered."
+        },
+        {
+          "description": "A valid manifest shows who signed the record and that what its hash covers is unchanged, not that its statements are true. A signer can omit an AI step, a stolen key yields manifests that validate, and a camera photographing a screen signs a genuine capture of a staged scene. Validators need not check revocation, metadata such as location may sit outside the hash, and a 2026 preprint found validators disagreeing on the same file, so a result depends on the signer, validator and trust list."
+        },
+        {
+          "description": "The history is complete only while every tool in the workflow supports C2PA. An edit made in an unsupported tool is not recorded, and if the file later passes through a supporting tool, the new signer implicitly vouches for that unrecorded change, so the chain can show fewer steps than took place. The C2PA itself says the approach depends on widespread adoption by tools and platforms."
+        },
+        {
+          "description": "Manifests can disclose more than the creator intends, such as capture time and place, device details, the edit history and, through the separate Creator Assertions Working Group identity extension, who made the content. The C2PA's threat model lists identifying creators and tracking viewers as risks. Assertions can be redacted when a file is reused as an ingredient, but people working in risky settings, such as human-rights documentation, must decide what to include before signing."
+        },
+        {
+          "description": "Support for AI-generated text is immature. Embedding a manifest in plain text, as invisible Unicode characters, entered the specification in version 2.3 and is still marked as under review; the reference SDK supports it only behind an unstable option, and any edit to the text breaks the hash. For language-model output the method is much less dependable than for images, video and audio, where embedding is established."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Content Credentials: C2PA Technical Specification, version 2.4",
+          "url": "https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html",
+          "source_type": "documentation",
+          "citationKey": "ContentCredentialsC2PA"
+        },
+        {
+          "title": "c2pa-rs: Rust SDK for the C2PA specification",
+          "url": "https://github.com/contentauth/c2pa-rs",
+          "source_type": "software_package",
+          "publication_date": "2026-10-11T10:21:29Z",
+          "citationKey": "C2parsRustSDK2026",
+          "abstract": "Rust SDK for the core C2PA (Coalition for Content Provenance and Authenticity) specification"
+        },
+        {
+          "title": "C2PA Technical Specification, version 1.0",
+          "url": "https://spec.c2pa.org/specifications/specifications/1.0/specs/C2PA_Specification.html",
+          "source_type": "technical_paper",
+          "citationKey": "C2PATechnicalSpecification"
+        },
+        {
+          "title": "Using C2PA Tool",
+          "url": "https://github.com/contentauth/c2patool/blob/main/docs/usage.md",
+          "source_type": "tutorial",
+          "citationKey": "UsingC2PATool",
+          "abstract": "Command line tool for displaying and adding C2PA manifests  - contentauth/c2patool"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "acronym": "C2PA",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every image in each weekly validation sample of the generation service's output carried a C2PA manifest, signed with a certificate that chains to the C2PA Trust List, that declares the image AI-generated.",
+          "assuranceGoal": "transparency",
+          "domain": "generative AI"
+        },
+        {
+          "text": "In the provider's stripping and re-encoding tests, generated images whose embedded manifest had been removed were matched to their original manifest through the registered watermark soft binding.",
+          "assuranceGoal": "transparency",
+          "domain": "generative AI"
+        },
+        {
+          "text": "Every reader-submitted image published with a provenance label had a trusted manifest whose hash matched the published file.",
+          "assuranceGoal": "transparency",
+          "domain": "journalism"
+        },
+        {
+          "text": "Each AI edit applied to a claims photograph is recorded as an action in the photograph's signed manifest, naming the tool that made it.",
+          "assuranceGoal": "transparency",
+          "domain": "insurance"
+        }
+      ]
     }
   ],
-  "count": 18
+  "count": 19
 }

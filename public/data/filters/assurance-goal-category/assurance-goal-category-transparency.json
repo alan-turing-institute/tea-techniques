@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/transparency",
     "slug": "assurance-goal-category-transparency",
-    "count": 47,
+    "count": 54,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -7739,6 +7739,10 @@
           "title": "ECMA-424: CycloneDX Bill of Materials Specification (2nd edition, December 2025)",
           "url": "https://ecma-international.org/publications-and-standards/standards/ecma-424/",
           "source_type": "documentation",
+          "authors": [
+            "Ecma International"
+          ],
+          "publication_date": "2025-12",
           "citationKey": "ECMA424CycloneDXBill",
           "abstract": "CycloneDX is a modern standard designed to address the complexities of the software and system supply chain."
         },
@@ -8121,7 +8125,947 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "diverse-counterfactual-explanations",
+      "name": "Diverse Counterfactual Explanations",
+      "description": "Diverse Counterfactual Explanations (DiCE) explains one decision of a classifier by generating several altered versions of the input, called counterfactuals, each changed just enough that the model would have given the other outcome, and chosen to differ from one another so that a person sees several distinct ways the result could have been different. Where the contrastive explanation method returns, for one input, a minimal set of features that must be present and a minimal set that must stay absent, DiCE returns several complete alternative inputs at once, within limits the user sets on which features may change and over what range. In the original method all the counterfactuals are optimised together by gradient descent on a loss with three parts: a hinge loss that pushes each across the model's decision threshold, a distance term (each continuous feature's change divided by its median absolute deviation in the training data, plus the share of categorical features changed) that keeps each close to the original, and a diversity term, the determinant of a similarity matrix between them, that rewards them for differing. Afterwards, small changes are reset to their original values for as long as the counterfactual still gets the other outcome, to make it sparser, and counterfactuals that break causal rules supplied by the user, such as gaining a degree without growing older, can be filtered out. The method as published needs a differentiable model such as a neural network; the reference library adds random-sampling, genetic-algorithm and nearest-training-example searches that need only the model's predictions.",
+      "assurance_goals": [
+        "Explainability",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/instance-based/counterfactual",
+        "assurance-goal-category/explainability/explains/decision-boundaries",
+        "assurance-goal-category/explainability/property/counterfactual-validity",
+        "assurance-goal-category/explainability/property/sparsity",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/notice-and-recourse",
+        "data-requirements/no-special-requirements",
+        "data-type/tabular",
+        "evidence-type/structured-output",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A credit-risk validation team at a lender generates five counterfactuals for each of 500 sampled refused applications with every feature free to change, to see what the model treats as enough for approval. Counterfactuals that reach approval by changing only the postcode, or another likely proxy for a protected characteristic, are logged as findings and passed to the fairness testing team.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A hospital team piloting a classifier that places patients with chronic obstructive pulmonary disease in low, moderate or high cardiovascular risk generates counterfactuals restricted to modifiable factors such as blood pressure, cholesterol and smoking. Clinicians check whether the changes the model links to a lower risk category agree with clinical knowledge before the tool is shown to patients.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A consumer lender puts up to three counterfactuals in each refusal letter, generated against the model version that made the decision and limited to features the applicant can change (income, balances, loan amount and term), each shown as an application that would have been approved. Before rollout it tests a draft letter with applicants, checking that they can name a change that would have worked and understand that the options are not a promise of approval if they reapply.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A counterfactual is only valid for the model version that produced it. The method assumes the model does not change, and after retraining a previously suggested change can stop flipping the decision, so a person who acts on it may still be refused. Counterfactuals shown to people should be dated, tied to a model version and re-checked whenever the model is updated."
+        },
+        {
+          "description": "Feasibility depends on constraints the user supplies. Without them, counterfactuals can change attributes a person cannot change, such as race or sex, or propose impossible combinations: in the original experiments over a third of the counterfactuals that changed education were infeasible, most raising the degree without raising age. Causal rules can only be applied afterwards, as a filter."
+        },
+        {
+          "description": "The set returned is not unique. It depends on the weights on distance and diversity, per-feature weights, the number requested and random starting points, and with the library's random-sampling method a different seed gives a different set. The authors note that showing people counterfactuals produced with different settings is a problem, so fix and record settings and seeds."
+        },
+        {
+          "description": "Distance is measured feature by feature (scaled change for numbers, changed or not for categories), so it ignores how features move together, treats every category change as equally hard, and can place counterfactuals where there is little real data. In a study of 9,613 patient records, DiCE's counterfactuals were closer and sparser but less plausible than those of a sampling-based alternative."
+        },
+        {
+          "description": "The original paper tests no people. Its stand-in for understanding, a nearest-neighbour model trained on the counterfactuals, is in the authors' words a best case of rational extrapolation, and they leave a behavioural study and the cost of choosing among more options to future work. A counterfactual also does not say which features must stay as they are, so a person who raises income by changing job may still be refused. Test the wording with recipients before relying on it."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Diverse Counterfactual Explanations (DiCE) for ML: DiCE documentation",
+          "url": "https://interpret.ml/DiCE/",
+          "source_type": "documentation",
+          "citationKey": "DiverseCounterfactualExplanations"
+        },
+        {
+          "title": "DiCE (interpretml/DiCE)",
+          "url": "https://github.com/interpretml/DiCE",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T17:49:07Z",
+          "citationKey": "DiCEInterpretmlDiCE2026",
+          "abstract": "Generate Diverse Counterfactual Explanations for any machine learning model."
+        },
+        {
+          "title": "Explaining machine learning classifiers through diverse counterfactual explanations",
+          "url": "https://doi.org/10.1145/3351095.3372850",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ramaravind K. Mothilal",
+            "Amit Sharma",
+            "Chenhao Tan"
+          ],
+          "publication_date": "2020-1-27",
+          "citationKey": "mothilalExplainingMachineLearning2020"
+        },
+        {
+          "title": "Quick introduction to generating counterfactual explanations using DiCE",
+          "url": "https://interpret.ml/DiCE/notebooks/DiCE_getting_started.html",
+          "source_type": "tutorial",
+          "citationKey": "QuickIntroductionGenerating"
+        },
+        {
+          "title": "Estimation and Conformity Evaluation of Multi-Class Counterfactual Explanations for Chronic Disease Prevention",
+          "url": "https://doi.org/10.1109/jbhi.2024.3492730",
+          "source_type": "application_paper",
+          "authors": [
+            "Marta Lenatti",
+            "Alberto Carlevaro",
+            "Aziz Guergachi",
+            "Karim Keshavjee",
+            "Maurizio Mongelli",
+            "Alessia Paglialonga"
+          ],
+          "publication_date": "2025-9",
+          "citationKey": "lenattiEstimationConformityEvaluation2025"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "acronym": "DiCE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For 500 sampled refused applications, no counterfactual reached approval by changing only the postcode or another field on the agreed list of proxies for protected characteristics.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Every refusal letter issued since the model release contains at least two counterfactuals that change only features on the agreed list of applicant-changeable features, each re-scored against the model version in use on the day the letter was sent and confirmed to reach approval.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "For 100 sampled patients, clinicians found no case in which the cardiovascular-risk classifier's counterfactuals, restricted to modifiable risk factors, reached a lower risk category through a change contrary to clinical guidance.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Re-running counterfactual generation with the recorded settings and seed reproduces the counterfactual sets given to applicants for all audited cases.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "In a comprehension test of the draft refusal letter with 50 recent applicants, at least 80% named a change that would have led to approval, and at least 80% correctly said that the options do not guarantee approval if they reapply.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "forward-simulation-test",
+      "name": "Forward Simulation Test",
+      "description": "A forward simulation test checks whether people who have studied a model's explanations can predict the model's output for inputs they have not seen, so it tests with people the understanding an explanation method is assumed to give, where fidelity checks only compare the explanation with the model by computation. Doshi-Velez and Kim proposed it as a human-grounded evaluation of interpretability: participants are given an explanation and an input and must state what the model will output, whether or not that output is correct. In the controlled design of Hase and Bansal, participants study a set of examples with the model's outputs, predict the outputs for a separate set of test inputs, then study the same examples with explanations added and predict the same test inputs again, and the gain in accuracy is credited to the explanations (a separate group that studies the examples without explanations guards against a practice gain); the test inputs are kept apart from the explained examples so that explanations cannot give the answers away, and are chosen so that the model is right and wrong equally often, so that predicting the true label scores no better than chance. A counterfactual variant, in Hase and Bansal's form, shows an input, the model's output and its explanation, and asks what the model will output for an edited version of that input, with edits chosen so that half change the output. The result is the change in the share of correct predictions, with a confidence interval, for each explanation method or design compared; it is evidence that people can anticipate the model on the kind of input tested, not that they make better decisions with it.",
+      "assurance_goals": [
+        "Explainability",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/human-evaluation/understanding-test",
+        "assurance-goal-category/explainability/property/comprehensibility",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/decision-reasons",
+        "data-requirements/test-scenarios",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/human-factors",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/statistics",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Explainability",
+          "description": "A bank's model validation team must choose between feature-attribution bar charts and a short rule list as the explanation shown to credit analysts for a loan-default model. It runs a forward simulation test with 30 credit analysts on past applications, balanced between correct and incorrect model predictions, and adopts the rule list only if its gain over the no-explanation baseline is clearly larger than that of the bar charts; otherwise it treats the two as equal."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An online platform's trust and safety team uses the counterfactual variant to test whether moderators who see which words a toxicity classifier weighted can predict whether it will still flag a comment after one of those words is replaced. A score no better than the baseline tells the team that the highlights do not show how the classifier responds to edits, before it writes moderation guidance that relies on them."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A research team choosing between counterfactual images and saliency heatmaps for a chest X-ray pneumonia classifier shows each group of participants explained example images, then asks them to predict the classifier's decision on 12 other images, three from each cell of its confusion matrix, without explanations. It takes forward to a study with clinicians the explanation whose group predicts best, measured against a group that saw the examples without explanations."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A local authority plans to show caseworkers, who are outside the team that built it, the reasons behind a housing-benefit fraud-risk score. Before releasing the reasons in that form, it runs a forward simulation test with caseworkers on unseen cases, half of them cases the score got wrong, using the reasons exactly as they will appear, and revises them if caseworkers who studied them predict the flag no better than caseworkers who did not."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A pass shows that people can anticipate the model, not that they decide better with it. Buçinca et al. found that results on a task of predicting an AI's decisions did not predict results on the real decision task, and Poursabzi-Sangdeh et al. found that people who could better simulate a simple, clear model did not follow it more when that helped, and in some experiments were less able to correct its large mistakes. A claim about decisions needs a decision study."
+        },
+        {
+          "description": "The test is easily made trivial. If the explained examples are reused as test items, explanations that show the predicted class or a probability give the answer away, and if the model is mostly right, participants can score well by predicting the true label. Hase and Bansal found earlier studies that reused the same items for explanation and prediction; results from such designs overstate what the explanation conveys."
+        },
+        {
+          "description": "Effects are often small against the variation between people and items. With 32 trained undergraduates and about 180 to 320 responses per condition, Hase and Bansal's 95% confidence intervals on the change in accuracy were about 8 to 13 percentage points either side, and only LIME on tabular data clearly improved both forward and counterfactual simulation. A study must be sized for the difference it needs to detect, with a bootstrap over both participants and items."
+        },
+        {
+          "description": "The score holds for the people tested. Many studies use students or crowd workers because domain experts are costly to recruit, which Doshi-Velez and Kim give as the reason this kind of evaluation is cheaper; a result from lay participants does not show that the clinicians, analysts or caseworkers who will use the explanation can predict the model."
+        },
+        {
+          "description": "The before-and-after design credits any gain to the explanations, but participants see the same examples and test items twice, and Hase and Bansal had no group that repeated both phases without explanations, so a practice gain is not ruled out. Their participants also found it hard to remember the explained examples while predicting, so the number of examples and the time allowed must be fixed and reported when methods are compared."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Towards A Rigorous Science of Interpretable Machine Learning",
+          "url": "https://arxiv.org/abs/1702.08608",
+          "source_type": "technical_paper",
+          "authors": [
+            "Finale Doshi-Velez",
+            "Been Kim"
+          ],
+          "publication_date": "2017-03-02",
+          "citationKey": "doshi-velezRigorousScienceInterpretable2017",
+          "abstract": "As machine learning systems become ubiquitous, there has been a surge of interest in interpretable machine learning: systems that provide explanation for their outputs. These explanations are often used to qualitatively assess other criteria such as safety or non-discrimination. However, despite the interest in interpretability, there is very little consensus on what interpretable machine learning is and how it should be measured. In this position paper, we first define interpretability and describe when interpretability is needed (and when it is not). Next, we suggest a taxonomy for rigorous evaluation and expose open questions towards a more rigorous science of interpretable machine learning."
+        },
+        {
+          "title": "InterpretableNLP-ACL2020: code for 'Evaluating Explainable AI: Which Algorithmic Explanations Help Users Predict Model Behavior?'",
+          "url": "https://github.com/peterbhase/InterpretableNLP-ACL2020",
+          "source_type": "software_package",
+          "publication_date": "2026-03-31T10:31:49Z",
+          "citationKey": "haseInterpretableNLPACL2020CodeEvaluating2026",
+          "abstract": "Code for \"Evaluating Explainable AI: Which Algorithmic Explanations Help Users Predict Model Behavior?\""
+        },
+        {
+          "title": "Evaluating Explainable AI: Which Algorithmic Explanations Help Users Predict Model Behavior?",
+          "url": "https://doi.org/10.18653/v1/2020.acl-main.491",
+          "source_type": "application_paper",
+          "authors": [
+            "Peter Hase",
+            "Mohit Bansal"
+          ],
+          "publication_date": "2020",
+          "citationKey": "haseEvaluatingExplainableAI2020"
+        },
+        {
+          "title": "Manipulating and Measuring Model Interpretability",
+          "url": "https://doi.org/10.1145/3411764.3445315",
+          "source_type": "application_paper",
+          "authors": [
+            "Forough Poursabzi-Sangdeh",
+            "Daniel G Goldstein",
+            "Jake M Hofman",
+            "Jennifer Wortman Wortman Vaughan",
+            "Hanna Wallach"
+          ],
+          "publication_date": "2021-5-6",
+          "citationKey": "poursabzi-sangdehManipulatingMeasuringModel2021"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Credit analysts who studied the rule-list explanations predicted the loan-default model's output on unseen applications more accurately than at their no-explanation baseline, on a test set balanced between correct and incorrect model predictions.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Caseworkers who studied the fraud-risk reasons predicted the score's flag on unseen cases, half of them cases the score got wrong, more accurately than caseworkers who studied the same cases without the reasons, and above the accuracy threshold set in the evaluation plan.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Moderators shown the toxicity classifier's word weightings predicted whether an edited comment would still be flagged more accurately than before they saw the weightings, on a set of edits half of which changed the classifier's decision.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        },
+        {
+          "text": "Participants who studied the counterfactual images predicted the pneumonia classifier's decisions on separate, unexplained images more accurately than participants who studied the saliency heatmaps, on a test set in which the classifier was wrong as often as it was right.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "actionable-recourse-audit",
+      "name": "Actionable Recourse Audit",
+      "description": "An actionable recourse audit checks whether the people a linear classifier refuses, for example for a loan, a job interview or a public service, could change that decision through actions open to them, and how much they would have to change. The auditor first writes an action set saying which features can change and how: immutable features such as age stay fixed, features such as education level can only rise, and each changeable feature gets bounds and a grid of realistic values. Then, for each refused person in a sample drawn from the population the model will serve, an integer programming solver (optimisation software that searches discrete choices exactly) looks through the permitted actions for the cheapest change that flips the decision, measuring cost as the largest shift, in population percentiles, that the change makes to any one feature, and either returns that action or proves that none exists, which a search that simply fails to find a counterfactual cannot do. The audit reports the share of refused people who have recourse and the distribution of its cost, which can be compared across candidate models or broken down by group, and the same solver can list a refused person's cheapest alternative changes (a 'flipset') for a decision notice. Unlike the Contrastive Explanation Method, which explains one prediction through features that must be present or absent, or Diverse Counterfactual Explanations (DiCE), which searches any model for several alternative inputs that would change one decision, the audit works only on linear models but certifies whether any permitted action exists and summarises the answer across a population.",
+      "assurance_goals": [
+        "Transparency",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/linear-models",
+        "applicable-models/architecture/linear-models/logistic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/notice-and-recourse",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/reference-dataset",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "evidence-type/fairness-metric",
+        "evidence-type/structured-output",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before launching a linear model that ranks applications to a housing support scheme, a local authority's analytics team audits recourse on last year's applicants, with age and household size fixed. Its report to the scheme's oversight board gives the share of refused applicants who could qualify through changes the scheme expects, such as completing a tenancy course, and how large those changes are, so the board can decide whether to approve the model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A credit card issuer generates a flipset for each applicant its linear scorecard declines and puts the two cheapest items in the decline letter, for example reducing current debt to a stated amount, together with the other scored features the applicant should keep unchanged, so that following the stated actions would change the decision under the current model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A lender's model risk committee is shown recourse audits for candidate credit models of almost equal accuracy. It rejects the most accurate, under which some refused applicants had no feasible action because of an 'ever defaulted' feature, adopts a variant that uses recent defaults only, and has the audit re-run each quarter on new applicants, watching younger applicants, who were scarce in the training data.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An employer's analytics team audits its linear screening model for interview invitations and compares the cost of recourse for refused women and men with similar predicted scores. Sex is not a model input, but the cost can still differ by sex. Refused candidates' true suitability is never observed, so the team cannot also match on outcome as the originating study did, and reports any gap with that caveat to its fairness review panel, which decides whether the features need revising.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The proof that no action exists depends on the model being linear, such as logistic regression, a linear support vector machine or a rule set that can be written in linear form. For tree ensembles or neural networks, a local linear approximation can still suggest actions, which then have to be checked on the real model, but a failure to find one proves nothing, so the share of refused people without recourse is no longer a certified figure."
+        },
+        {
+          "description": "Every conclusion rests on the action set and cost the auditor chooses. Bounds that are too tight make people appear to lack recourse; loose bounds let a model 'provide' recourse only through drastic changes, which shows only as high cost; and the default cost treats a one-percentile change as equally hard in every feature unless someone who knows the domain sets how much harder some changes are."
+        },
+        {
+          "description": "The search treats features as changing independently unless the auditor adds constraints. Real actions have knock-on effects: raising income can also raise savings, so a listed action may cost more than needed, or may not change the decision once its effects on other features are counted, as Karimi, Schölkopf and Valera showed for recourse methods that ignore causal relations between features."
+        },
+        {
+          "description": "Recourse is defined for a fixed model. After retraining, an action given in an earlier notice may no longer change the decision, so the audit has to be re-run after each update. An action that changes the prediction need not change the real outcome either: showing a refused applicant how to be approved can lead them into credit they cannot repay."
+        },
+        {
+          "description": "A flipset lists only the features to change, so a person who also changes an undisclosed feature may still be refused unless the notice says what must stay the same. The originating paper builds flipsets from public credit datasets and does not test whether refused people understand them or can act on them. Owners may also resist publishing flipsets, because many of them together can let others reconstruct the model."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Actionable Recourse in Linear Classification",
+          "url": "https://doi.org/10.1145/3287560.3287566",
+          "source_type": "technical_paper",
+          "authors": [
+            "Berk Ustun",
+            "Alexander Spangher",
+            "Yang Liu"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "ustunActionableRecourseLinear2019"
+        },
+        {
+          "title": "actionable-recourse",
+          "url": "https://github.com/ustunb/actionable-recourse",
+          "source_type": "software_package",
+          "publication_date": "2026-07-11T02:55:36Z",
+          "citationKey": "ustunActionablerecourse2026",
+          "abstract": "python tools to check recourse in linear classification"
+        },
+        {
+          "title": "actionable-recourse example: Auditing Recourse",
+          "url": "https://github.com/ustunb/actionable-recourse/blob/master/examples/ex_02_audit_model-effects-of-recourse-demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ActionablerecourseExampleAuditing",
+          "abstract": "python tools to check recourse in linear classification - ustunb/actionable-recourse"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every refused applicant in the audit sample, drawn from last year's applications to the scheme, has at least one action under the agreed action set that would make them eligible under the deployed model.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Under the agreed action set, at least half of the declined applicants in the audit sample have an action that would bring approval while moving no feature by more than 25 percentiles of the applicant population.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "Among candidates refused by the screening model with similar predicted scores, the median cost of recourse for women is within five percentile points of that for men.",
+          "assuranceGoal": "fairness",
+          "domain": "employment"
+        },
+        {
+          "text": "Each decline letter lists at least one action that would change the decision under the current scorecard, together with the scored features the applicant must keep unchanged.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "ai-factsheets",
+      "name": "AI FactSheets",
+      "description": "AI FactSheets is a documentation practice in which the developer or supplier of an AI model or service answers a structured set of questions about it, modelled on the supplier's declarations of conformity that industries such as telecommunications and transport use to give written assurance, with evidence, that a product meets stated requirements. The questions cover the service's purpose and its intended and unsuitable uses, the datasets it was trained and tested on, its test methods and results (reported for groups such as age bands or genders where relevant), checks for bias, explainability, behaviour on data unlike its training data and robustness to adversarial attack, how user data is secured, and its lineage, such as when and how its models were retrained; 'N/A' and 'Proprietary' are allowed answers. Facts are gathered from the people in each role across the lifecycle (business owner, data scientist, model validator and operations engineer), and any change to the service produces a new version of the FactSheet while earlier versions are kept. The originating group's seven-step method designs the template with its readers: interview the people who will read the facts and those who will produce them, draft and trial a template of questions, have the real producers complete it, evaluate the result with its readers for content and presentation, and build further templates for other audiences such as a review board or regulator. Unlike a model card, which reports one model's intended use and evaluation to the people choosing it, or a datasheet, which describes one dataset, a FactSheet may cover one model or a whole service built from several models and datasets (attaching their datasheets), gathers facts from each role in the lifecycle and has a different template for each audience; unlike a CycloneDX ML-BOM it is written for people to read rather than as a machine-readable parts list for software tools.",
+      "assurance_goals": [
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/documentation",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/documentation",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/stakeholder-engagement",
+        "technique-type/documentation",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-documentation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/other/cross-cutting"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A hospital trust buying a speech-to-text service for clinical dictation sends bidders a FactSheet template asking for intended and unsuitable uses, training data, retraining frequency, behaviour on noisy audio, and word error rates by speaker accent and age band on recordings the trust supplies. The panel compares the answers to shortlist bidders, re-tests the shortlisted services on its own recordings, and writes the confirmed error rates into the contract as service levels.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A bank's model risk team follows the seven-step method to design a FactSheet template for credit models: it interviews validators about the decisions they make and data scientists about the facts they can record, then has the scientists complete it for a new affordability model. Validators read the completed FactSheet's training data, performance, bias checks and known weak cases before deciding whether to approve the model for deployment.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A company selling a sentiment-analysis API publishes a short FactSheet for developers browsing its catalogue, giving the purpose, input and output formats, training data, accuracy and the kinds of text the service handles poorly. From the same facts it generates a longer FactSheet, with a different template, for enterprise customers' risk and compliance reviewers.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A city council's AI ethics review board asks each supplier for a FactSheet in a template written for the board, covering training and test data distributions, data handling, the inputs the service handles poorly and possible sources of unfair outcomes. The board reads them before deciding whether a photo-based street-repair reporting service may go live.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A FactSheet is the supplier's own declaration. As with the declarations of conformity it imitates, the supplier runs the tests it reports and nothing in the format checks them, so it shows what was claimed rather than that the claims hold. A buyer who relies on a declared figure has to re-test the service or ask for third-party testing, which the original proposal expects only for the highest-stakes, regulated, enterprise and public-sector applications."
+        },
+        {
+          "description": "Facts not recorded while the service is built are hard to recover. In IBM's own trials, developers forgot how they had transformed training data or which settings they had tried, and recovering the training-data transformations for one FactSheet took several hours over two days although the dataset was small and its author was available. A FactSheet written after development is likely to have gaps or errors unless fact collection is part of the development process."
+        },
+        {
+          "description": "The format accepts 'N/A' and 'Proprietary' as answers. In IBM's trials most developers assumed bias would not be an issue and marked bias questions not applicable, even where further questioning showed it could be, and participants were unsure how much detail they could give without losing competitive advantage. An unchallenged 'N/A' can hide a risk nobody examined, and items withheld as proprietary are often the ones a buyer would need in order to check the self-declared results."
+        },
+        {
+          "description": "There is no single FactSheet. Its authors hold that one template cannot serve every audience and domain, and developers report the metrics conventional for their kind of model, so FactSheets from different suppliers often cannot be compared unless the buyer fixes the questions, metrics and test conditions in its own template."
+        },
+        {
+          "description": "Whether readers understand FactSheets and decide better with them is untested. Producers in IBM's studies found it hard to know what readers needed and often left out what a less expert reader would need. The design method checks a draft with a few intended readers, and the group's later case studies report that producers could follow it, but none of these sources tests whether buyers, validators or review boards read FactSheets correctly or make better decisions with them."
+        }
+      ],
+      "resources": [
+        {
+          "title": "FactSheets: Increasing trust in AI services through supplier's declarations of conformity",
+          "url": "https://doi.org/10.1147/jrd.2019.2942288",
+          "source_type": "technical_paper",
+          "authors": [
+            "M. Arnold",
+            "R. K. E. Bellamy",
+            "M. Hind",
+            "S. Houde",
+            "S. Mehta",
+            "A. Mojsilović",
+            "R. Nair",
+            "K. Natesan Ramamurthy",
+            "A. Olteanu",
+            "D. Piorkowski",
+            "D. Reimer",
+            "J. Richards",
+            "J. Tsay",
+            "K. R. Varshney"
+          ],
+          "publication_date": "2019-7-1",
+          "citationKey": "arnoldFactSheetsIncreasingTrust2019"
+        },
+        {
+          "title": "Using AI Factsheets for AI Governance",
+          "url": "https://dataplatform.cloud.ibm.com/docs/content/wsj/analyze-data/factsheets-model-inventory.html",
+          "source_type": "documentation",
+          "citationKey": "UsingAIFactsheets",
+          "abstract": "Track a machine learning model from request to production by gathering metadata and facts about the model lifecycle using AI Factsheets. Use the detailed information in the factsheets to keep stakeholders informed and to meet your governance and compliance goals. Factsheets can be shared, archived, or printed as report."
+        },
+        {
+          "title": "ibm-aigov-facts-client",
+          "url": "https://pypi.org/project/ibm-aigov-facts-client/",
+          "source_type": "software_package",
+          "citationKey": "Ibmaigovfactsclient",
+          "abstract": "FactSheetService ML facts collection utility"
+        },
+        {
+          "title": "A Methodology for Creating AI FactSheets",
+          "url": "https://arxiv.org/abs/2006.13796",
+          "source_type": "tutorial",
+          "authors": [
+            "John Richards",
+            "David Piorkowski",
+            "Michael Hind",
+            "Stephanie Houde",
+            "Aleksandra Mojsilović"
+          ],
+          "publication_date": "2020-06-28",
+          "citationKey": "richardsMethodologyCreatingAI2020",
+          "abstract": "As AI models and services are used in a growing number of highstakes areas, a consensus is forming around the need for a clearer record of how these models and services are developed to increase trust. Several proposals for higher quality and more consistent AI documentation have emerged to address ethical and legal concerns and general social impacts of such systems. However, there is little published work on how to create this documentation. This is the first work to describe a methodology for creating the form of AI documentation we call FactSheets. We have used this methodology to create useful FactSheets for nearly two dozen models. This paper describes this methodology and shares the insights we have gathered. Within each step of the methodology, we describe the issues to consider and the questions to explore with the relevant people in an organization who will be creating and consuming the AI facts in a FactSheet. This methodology will accelerate the broader adoption of transparent AI documentation."
+        },
+        {
+          "title": "Experiences with Improving the Transparency of AI Models and Services",
+          "url": "https://doi.org/10.1145/3334480.3383051",
+          "source_type": "application_paper",
+          "authors": [
+            "Michael Hind",
+            "Stephanie Houde",
+            "Jacquelyn Martino",
+            "Aleksandra Mojsilovic",
+            "David Piorkowski",
+            "John Richards",
+            "Kush R. Varshney"
+          ],
+          "publication_date": "2020-4-25",
+          "citationKey": "hindExperiencesImprovingTransparency2020"
+        },
+        {
+          "title": "FactSheets for Hardware-Aware AI Models: A Case Study of Analog In Memory Computing AI Models",
+          "url": "https://doi.org/10.1109/sse60056.2023.00029",
+          "source_type": "application_paper",
+          "authors": [
+            "Brandon Dominique",
+            "Kaoutar El Maghraoui",
+            "David Piorkowski",
+            "Lorraine Herger"
+          ],
+          "publication_date": "2023-7",
+          "citationKey": "dominiqueFactSheetsHardwareAwareAI2023"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The supplier's FactSheet for the dictation service states its intended and unsuitable uses, the datasets it was tested on, and its word error rate on each, reported separately by speaker accent and age band.",
+          "assuranceGoal": "transparency",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Each production version of the affordability model has a FactSheet to which its data scientist and validator contributed before deployment and its operations engineer after, and the FactSheets of earlier versions are retained unchanged.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "Every FactSheet item a supplier answered 'N/A' or 'Proprietary' carries a stated reason, and the review board accepted each reason before approving the service.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "The FactSheet template used to assess suppliers was evaluated with the procurement and risk assessors who read it before first use, and the items they found missing or unclear were revised.",
+          "assuranceGoal": "transparency",
+          "domain": "general"
+        }
+      ]
+    },
+    {
+      "slug": "uk-algorithmic-transparency-recording-standard-record",
+      "name": "UK Algorithmic Transparency Recording Standard Record",
+      "description": "An Algorithmic Transparency Recording Standard (ATRS) record is a public account that a UK public sector organisation writes about one algorithmic tool it uses, on the UK government's standard template, and publishes in a central repository on GOV.UK. The template has two tiers: a short plain-language summary for the general public (what the tool is, why it is used and a contact), and eight further sheets for specialist readers such as journalists, researchers and civil society, covering who is accountable for the tool and which suppliers were involved, how it works and what it replaced, how its output feeds into decisions, when a person reviews that output, how members of the public can appeal, the system's and each model's inputs, outputs, architecture and performance (including any bias testing), the data used, and the impact assessments, risks and mitigations. Information that would be exempt under the Freedom of Information Act can be left out or summarised field by field, with the reason stated, and the record is cleared by the tool's team, its senior responsible owner (the role accountable for the tool) and the press office, checked for readability by the central ATRS team, and updated when the tool changes substantially or is retired. Publishing is mandatory for central government departments and for arm's-length bodies that deliver public or frontline services or deal directly with the public, for tools in beta, pilot or production that significantly influence decisions affecting the public or interact with it directly; other public bodies may publish voluntarily. Unlike a model card, written by a developer for people choosing a model, or a supplier's AI FactSheet for buyers, an ATRS record is written by the deploying public body for the public and describes the decision process, human review and appeal routes around the tool as well as the tool.",
+      "assurance_goals": [
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/documentation",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/documentation",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/regulatory-compliance",
+        "expertise-needed/stakeholder-engagement",
+        "technique-type/documentation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A government department piloting a machine-learning model that prioritises benefit claims for caseworker checks publishes an ATRS record before the pilot starts. It tells claimants, journalists and MPs that the score only orders the caseworkers' queue and a caseworker makes every decision, how claimants can ask for a review, what kinds of data the model uses and what bias testing was done.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A district council piloting a supplier's tool that ranks rent-arrears cases for housing officers publishes a voluntary ATRS record. Because the record needs the model type, a description of the training data and performance figures, the council's procurement team writes their supply into the contract, and the record names the supplier, its role and the terms of its access to tenants' data.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A police force using a domestic-abuse risk assessment tool publishes a voluntary record in which the fields that would show how to evade the tool are marked exempt, with the reason, while the summary, the officers' review of each score, the appeal route and the risk mitigations are published in full for oversight bodies and community groups to examine.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A department launching a chatbot that answers questions about a public service publishes a record because the tool interacts directly with the public. The record states that answers come from a named provider's large language model used as supplied, how answers are checked, how often conversations are reviewed and how a user reaches a human adviser.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A record is the deploying body's own account. The central ATRS team checks drafts for readability, not accuracy, and nothing in the standard tests the stated performance, bias testing or human review against the tool's behaviour. A record is also only as current as its last update, which depends on the body resubmitting after a substantial change, so it shows what was disclosed and when, not that the tool works as described."
+        },
+        {
+          "description": "The mandatory scope is narrow: central government departments and qualifying arm's-length bodies, and only tools that significantly influence decisions with public effect or interact directly with the public, from the beta or pilot stage on. Local authorities, police forces and other bodies outside central government publish voluntarily, and analytical models that inform policy are usually out of scope, so the absence of a record does not show that no tool is in use."
+        },
+        {
+          "description": "Fields can be withheld or summarised under Freedom of Information exemptions, including commercial interests, and no record is published where even the tool's existence cannot be confirmed. Police and commercial interviewees in a 2022 study expected suppliers to resist disclosing proprietary details, so the technical tier of a record for a procured tool can be thin unless the contract requires the supplier to provide the information."
+        },
+        {
+          "description": "For an off-the-shelf model that the organisation has not trained, tested or refined, such as a large language model used through its web interface, the guidance says to leave the model and development data sections blank. Records for such tools say nothing about the model's training data or evaluation, which is often what a reader most needs in order to judge them."
+        },
+        {
+          "description": "Whether the public can find, understand and use records has not been tested. Records sit in a repository on GOV.UK rather than reaching people when a decision affects them, although the 2021 public engagement study behind the two-tier design found people wanted active notice for higher-impact uses. Police interviewees in a 2022 study feared records would give more detail than the public needs and accuracy figures without context; its authors called for evaluation with impacted communities."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Algorithmic Transparency Recording Standard Hub",
+          "url": "https://www.gov.uk/government/collections/algorithmic-transparency-recording-standard-hub",
+          "source_type": "documentation",
+          "publication_date": "2025-05-08",
+          "citationKey": "AlgorithmicTransparencyRecording2025",
+          "abstract": "The Government Digital Service (GDS) is helping public sector organisations provide clear information about how and why they are using algorithmic tools."
+        },
+        {
+          "title": "Algorithmic Transparency Recording Standard - Previous versions",
+          "url": "https://www.gov.uk/government/publications/algorithmic-transparency-data-standard",
+          "source_type": "technical_paper",
+          "publication_date": "2021-12-02",
+          "citationKey": "AlgorithmicTransparencyRecording2021",
+          "abstract": "Collection of previous versions of the Algorithmic Transparency Recording Standard."
+        },
+        {
+          "title": "Algorithmic Transparency Recording Standard - guidance for public sector bodies",
+          "url": "https://www.gov.uk/government/publications/guidance-for-organisations-using-the-algorithmic-transparency-recording-standard/algorithmic-transparency-recording-standard-guidance-for-public-sector-bodies",
+          "source_type": "tutorial",
+          "citationKey": "AlgorithmicTransparencyRecording"
+        },
+        {
+          "title": "Exploring Police Perspectives on Algorithmic Transparency: A Qualitative Analysis of Police Interviews in the UK",
+          "url": "https://doi.org/10.1145/3617694.3623246",
+          "source_type": "application_paper",
+          "authors": [
+            "Miri Zilka",
+            "Carolyn Ashurst",
+            "Luke Chambers",
+            "Ellen P Goodmann",
+            "Pamela Ugwudike",
+            "Marion Oswald"
+          ],
+          "publication_date": "2023-10-30",
+          "citationKey": "zilkaExploringPolicePerspectives2023"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "acronym": "ATRS",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "An ATRS record for the claim-prioritisation model was published on GOV.UK before the pilot began, stating the model's role in decisions, when a caseworker reviews its output and how claimants can ask for a review.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Every algorithmic tool in the department's inventory that falls within the ATRS mandatory scope and is in beta, pilot or production has a published ATRS record.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Each field withheld from the published record is marked exempt with its reason, and each exemption was cleared by the tool's senior responsible owner, under the ATRS scope and exemptions policy, before publication.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "The published ATRS record was updated within one month of the model being retrained on new data or its role in the decision process changing.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        }
+      ]
+    },
+    {
+      "slug": "c2pa-content-credentials",
+      "name": "C2PA Content Credentials",
+      "description": "C2PA Content Credentials attach a signed provenance record, called a manifest, to a media file, so that whoever receives the file can see who signed it and what the signer declares (which tool produced it, whether a generative AI model created or altered it and what edits followed), and can check that the record, and the parts of the file its hash covers, have not changed since signing. Under the Coalition for Content Provenance and Authenticity (C2PA) technical specification, the tool that creates or edits the file writes statements called assertions, such as a 'created' action whose source type is trainedAlgorithmicMedia (the code for AI-generated content) and links to the earlier files it was made from, adds a cryptographic hash of the file's content, and signs the bundle with an X.509 certificate, the kind of credential used to secure websites. The manifest is usually embedded in the file, and each later edit in a supporting tool adds a new manifest that refers to the previous one, so the history travels with the file. A validator recomputes the hash and checks the signature, then reports the manifest as well-formed, valid or, if the signing certificate chains to a trust list such as the C2PA Trust List, trusted, and reports a failure when the file no longer matches its hash. If the manifest is removed, nothing in the file leads back to it unless a watermark or fingerprint (a 'soft binding') was also registered so that the manifest can be looked up in a repository, and a file without credentials says nothing about its origin; unlike trigger-set model watermarking or model signing, which mark or sign a model, it records the history of an individual output.",
+      "assurance_goals": [
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/audit-trail",
+        "data-requirements/no-special-requirements",
+        "data-type/image",
+        "data-type/text",
+        "evidence-type/audit-record",
+        "expertise-needed/security",
+        "expertise-needed/software-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An image-generation service offered in the EU attaches a signed manifest to every image it returns, declaring an AI 'created' action with the service as signer, as its means of meeting the AI Act's Article 50(2) duty to mark synthetic output in a machine-readable format. Its compliance team validates a weekly sample of outputs to decide whether marking is working, and registers a watermark soft binding so that a stripped image can be matched back to its record.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A news agency's verification desk runs every image sent in by the public through a C2PA validator before publication. A trusted manifest recording capture on a named camera, with no AI-generated ingredients, lets editors publish it with a provenance label. A manifest naming a generative tool, or a hash that no longer matches, sends it to forensic review, and an image with no credentials is treated as of unknown origin, not as authentic.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An insurer's claims app lets assessors apply an AI tool that enhances and annotates photographs of vehicle damage, and records each AI edit as an action in the photograph's manifest. When a claim is disputed, a reviewing assessor or the claimant's representative can see which changes the AI tool made and check them against the retained original, which the edited photograph's manifest cites as an ingredient.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A social-media platform reads Content Credentials on upload, labels images whose trusted manifest declares a generative AI source, and shows users who signed the record. Its trust-and-safety team tracks what share of uploads carry trusted, untrusted or no credentials, to decide how far its synthetic-media policy can rely on the labels and where it still needs other detection methods.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The record is easy to lose. Anyone can remove the manifest, an attack the C2PA's own threat model expects, and the file is then an ordinary file with no link to its history unless a watermark or fingerprint soft binding was registered with a manifest repository. Because credentials are optional and removable, a file without them says nothing about its origin: the absence of a manifest cannot show that content is human-made or unaltered."
+        },
+        {
+          "description": "A valid manifest shows who signed the record and that what its hash covers is unchanged, not that its statements are true. A signer can omit an AI step, a stolen key yields manifests that validate, and a camera photographing a screen signs a genuine capture of a staged scene. Validators need not check revocation, metadata such as location may sit outside the hash, and a 2026 preprint found validators disagreeing on the same file, so a result depends on the signer, validator and trust list."
+        },
+        {
+          "description": "The history is complete only while every tool in the workflow supports C2PA. An edit made in an unsupported tool is not recorded, and if the file later passes through a supporting tool, the new signer implicitly vouches for that unrecorded change, so the chain can show fewer steps than took place. The C2PA itself says the approach depends on widespread adoption by tools and platforms."
+        },
+        {
+          "description": "Manifests can disclose more than the creator intends, such as capture time and place, device details, the edit history and, through the separate Creator Assertions Working Group identity extension, who made the content. The C2PA's threat model lists identifying creators and tracking viewers as risks. Assertions can be redacted when a file is reused as an ingredient, but people working in risky settings, such as human-rights documentation, must decide what to include before signing."
+        },
+        {
+          "description": "Support for AI-generated text is immature. Embedding a manifest in plain text, as invisible Unicode characters, entered the specification in version 2.3 and is still marked as under review; the reference SDK supports it only behind an unstable option, and any edit to the text breaks the hash. For language-model output the method is much less dependable than for images, video and audio, where embedding is established."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Content Credentials: C2PA Technical Specification, version 2.4",
+          "url": "https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html",
+          "source_type": "documentation",
+          "citationKey": "ContentCredentialsC2PA"
+        },
+        {
+          "title": "c2pa-rs: Rust SDK for the C2PA specification",
+          "url": "https://github.com/contentauth/c2pa-rs",
+          "source_type": "software_package",
+          "publication_date": "2026-10-11T10:21:29Z",
+          "citationKey": "C2parsRustSDK2026",
+          "abstract": "Rust SDK for the core C2PA (Coalition for Content Provenance and Authenticity) specification"
+        },
+        {
+          "title": "C2PA Technical Specification, version 1.0",
+          "url": "https://spec.c2pa.org/specifications/specifications/1.0/specs/C2PA_Specification.html",
+          "source_type": "technical_paper",
+          "citationKey": "C2PATechnicalSpecification"
+        },
+        {
+          "title": "Using C2PA Tool",
+          "url": "https://github.com/contentauth/c2patool/blob/main/docs/usage.md",
+          "source_type": "tutorial",
+          "citationKey": "UsingC2PATool",
+          "abstract": "Command line tool for displaying and adding C2PA manifests  - contentauth/c2patool"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 1,
+      "acronym": "C2PA",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every image in each weekly validation sample of the generation service's output carried a C2PA manifest, signed with a certificate that chains to the C2PA Trust List, that declares the image AI-generated.",
+          "assuranceGoal": "transparency",
+          "domain": "generative AI"
+        },
+        {
+          "text": "In the provider's stripping and re-encoding tests, generated images whose embedded manifest had been removed were matched to their original manifest through the registered watermark soft binding.",
+          "assuranceGoal": "transparency",
+          "domain": "generative AI"
+        },
+        {
+          "text": "Every reader-submitted image published with a provenance label had a trusted manifest whose hash matched the published file.",
+          "assuranceGoal": "transparency",
+          "domain": "journalism"
+        },
+        {
+          "text": "Each AI edit applied to a claims photograph is recorded as an action in the photograph's signed manifest, naming the tool that made it.",
+          "assuranceGoal": "transparency",
+          "domain": "insurance"
+        }
+      ]
+    },
+    {
+      "slug": "zero-knowledge-proof-of-model-inference",
+      "name": "Zero-Knowledge Proof of Model Inference",
+      "description": "A zero-knowledge proof of model inference lets the owner of a model show an outside party that one specific model, fixed in advance, turns a particular input into a particular output, without revealing the model's weights. The owner publishes a commitment to the weights, a short cryptographic fingerprint such as a hash that binds them without disclosing them, together with a verification key that fixes the model's architecture. The model's arithmetic is converted to whole numbers (quantised) and written as a system of equations called a circuit, and for each input a proving system produces a proof, of a few kilobytes to a few hundred kilobytes, that this circuit, run with weights matching the commitment, turns that input into that output; the input can be public or committed in the same way. Anyone holding the verification key can check the proof in milliseconds to seconds: it shows that the committed model gives that output for that input, while keeping the weights hidden, and says nothing about whether that model is accurate, fair or safe. Unlike homomorphic encryption, which lets a server compute on data it cannot read but gives the caller no evidence of which computation was run, and unlike model signing, which lets someone who holds a model's files check who released them, it lets someone who never sees the weights check individual outputs against them.",
+      "assurance_goals": [
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/architecture/tree-based",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/confidential-verification",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/audit-record",
+        "expertise-needed/cryptography",
+        "expertise-needed/ml-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A credit-scoring vendor publishes the weight commitment in the report of an independent bias and accuracy audit, which was run on the quantised model bound to that commitment. When a refused applicant complains, the lender's complaints team asks the vendor for a proof for that decision and checks it against the published commitment, to confirm that the audited model gives the same refusal on the applicant's data before it reviews the decision itself.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A hospital trust buying chest X-ray triage results from a cloud provider writes into the contract that its clinical engineering team may challenge a random sample of each month's results. For each sampled case the provider must return a proof against the commitment to the model the trust validated, and the team treats a failed or missing proof as evidence that a different model was served, which triggers the contract's audit clause.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An online-safety regulator inspecting the age-estimation service a platform relies on submits its own test images and asks for a proof with each estimate. Its inspectors check each proof against the commitment registered when an accredited laboratory certified the vendor's model, to decide whether the service in use is the certified model, without the vendor handing its proprietary weights to the regulator.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A valid proof shows that the committed weights turn this input into this output. It does not show that the model is accurate, fair or safe, that the input was genuine, or that the service ran the committed model: a different model giving the same output passes too, so spot checks catch a substituted model only on inputs where the two disagree. A commitment carries assurance only if an audit was run on the model it binds."
+        },
+        {
+          "description": "Proving costs far more than running the model. Published figures: 88 seconds per prediction of a 15-million-parameter VGG16 on CIFAR-10 images (zkCNN), about 41 minutes for an ImageNet-scale MobileNet on a large cloud server (Kang et al.), and about 13 minutes for one 2,048-token pass of a 13-billion-parameter language model on a data-centre GPU, after a one-off 16-minute commitment (zkLLM). Proving every output of a busy service is impractical, so protocols prove sampled or disputed outputs."
+        },
+        {
+          "description": "The proof covers a quantised, whole-number version of the model, not the floating-point model that was trained and perhaps audited, and the two can give slightly different outputs. Published attacks plant backdoors that stay dormant at full precision and activate only after quantisation, which EZKL's security notes flag. Audits and accuracy tests must therefore be run on the quantised model that is actually proved, or the commitment and the audit describe different models."
+        },
+        {
+          "description": "The guarantee depends on configuration. If the weights are private inputs with no published commitment, a proof shows only that some weights for the stated architecture give the output. Hashing the weights inside the proof keeps them hidden but costs about as much again as proving the inference. EZKL's cheaper settings, including its Python default, bind the weights without fully hiding them, and its notes warn they can be recovered from enough proofs. The architecture is normally disclosed."
+        },
+        {
+          "description": "Soundness rests on the software as well as the mathematics. A compiler error that leaves the equations under-constrained can let a false proof verify, a risk EZKL's documentation names, and EZKL's proofs rely on public parameters from a multi-party set-up ceremony. Audits cover specific releases (EZKL's covered version 21), so verifiers should fix which tool versions and parameters they accept. EZKL, the most used tool, has had no open-source licence since January 2024."
+        }
+      ],
+      "resources": [
+        {
+          "title": "EZKL Documentation: Getting Started",
+          "url": "https://docs.ezkl.xyz/getting-started/",
+          "source_type": "documentation",
+          "citationKey": "EZKLDocumentationGetting",
+          "abstract": "Let's briefly preview the steps to generate and verify a model:"
+        },
+        {
+          "title": "ezkl",
+          "url": "https://github.com/zkonduit/ezkl",
+          "source_type": "software_package",
+          "publication_date": "2026-10-10T13:13:26Z",
+          "citationKey": "Ezkl2026",
+          "abstract": "Compiles a model exported to ONNX into a Halo2 circuit and proves and verifies its inference from a command line or Python. Source-available, not open source: the Apache-2.0 licence file was removed on 7 January 2024 and the repository now states only \"Copyright (c) 2026 Zkonduit Inc.\", with contributions taken under a contributor licence agreement."
+        },
+        {
+          "title": "Zero Knowledge Proofs for Decision Tree Predictions and Accuracy",
+          "url": "https://doi.org/10.1145/3372297.3417278",
+          "source_type": "technical_paper",
+          "authors": [
+            "Jiaheng Zhang",
+            "Zhiyong Fang",
+            "Yupeng Zhang",
+            "Dawn Song"
+          ],
+          "publication_date": "2020-10-30",
+          "citationKey": "zhangZeroKnowledgeProofs2020"
+        },
+        {
+          "title": "hashed-ezkl: hashing the model inputs and parameters inside the circuit (EZKL example notebook)",
+          "url": "https://github.com/zkonduit/ezkl/blob/main/examples/notebooks/hashed_vis.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "HashedezklHashingModel",
+          "abstract": "ezkl is an engine for doing inference for deep learning models and other computational graphs in a zk-snark (ZKML). Use it from Python, Javascript, or the command line.  - zkonduit/ezkl"
+        },
+        {
+          "title": "zkCNN: Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy",
+          "url": "https://doi.org/10.1145/3460120.3485379",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tianyi Liu",
+            "Xiang Xie",
+            "Yupeng Zhang"
+          ],
+          "publication_date": "2021-11-12",
+          "citationKey": "liuZkCNNZeroKnowledge2021"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 5,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every credit decision referred to the complaints process was accompanied by a proof, checked by the complaints team, that the model whose weight commitment appears in the independent audit report gives that decision on the applicant's data.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "The accuracy and bias figures in the audit report were computed from outputs proven against the same weight commitment that is used in production.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "Every triage result sampled for challenge in the reporting period was supported by a proof that verified against the commitment to the validated model.",
+          "assuranceGoal": "transparency",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For every test image submitted by the regulator's inspectors, the age-estimation service returned a proof that verified against the certified model's commitment.",
+          "assuranceGoal": "transparency",
+          "domain": "online safety"
+        }
+      ]
     }
   ],
-  "count": 51
+  "count": 58
 }

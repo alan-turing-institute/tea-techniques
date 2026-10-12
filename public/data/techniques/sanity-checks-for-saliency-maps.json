@@ -1,0 +1,154 @@
+{
+  "slug": "sanity-checks-for-saliency-maps",
+  "name": "Sanity Checks for Saliency Maps",
+  "description": "Sanity checks for saliency maps are two randomisation tests that show whether an explanation method's output depends on what a neural network has learned, or would look much the same for a network that had learned nothing. In the model parameter randomisation test, the evaluator recomputes explanations for a fixed set of inputs after replacing the trained weights with random ones, either cumulatively from the output layer down towards the input (cascading randomisation) or one layer at a time with the others left trained (independent randomisation). In the data randomisation test, the evaluator trains a copy of the same architecture on the training data with the labels shuffled, until it has memorised them, and compares its explanations with those of the model trained on the true labels. Similarity between original and randomised explanations is measured with rank correlation, with and without absolute values, and with image similarity scores such as the structural similarity index; a method whose maps stay similar fails, because its output cannot reflect the learned weights or the relationship between inputs and labels, as Guided Backpropagation and Guided GradCAM failed in the original study when the upper layers were randomised, while plain gradients and GradCAM passed. Passing is a necessary condition, not proof of a good explanation: it shows a method responds to the model, not that its explanations are faithful or useful.",
+  "assurance_goals": [
+    "Explainability"
+  ],
+  "tags": [
+    "assurance-goal-category/explainability",
+    "assurance-goal-category/explainability/explanation-evaluation",
+    "explanatory-scope/local",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "applicable-models/architecture/neural-networks",
+    "applicable-models/requirements/white-box",
+    "applicable-models/requirements/model-internals",
+    "assurance-goal-category/explainability/property/fidelity",
+    "data-requirements/access-to-training-data",
+    "data-requirements/labelled-data",
+    "data-type/image",
+    "data-type/tabular",
+    "data-type/time-series",
+    "evidence-type/quantitative-metric",
+    "evidence-type/visualisation",
+    "expertise-needed/deep-learning",
+    "expertise-needed/ml-engineering",
+    "technique-type/testing"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A radiology AI group considering saliency maps as a guide to where a chest-radiograph model sees a pneumothorax runs cascading randomisation on the trained network, measuring structural similarity between original and randomised maps after each block. It sets aside methods whose maps stay similar, as several common methods did in a published study of this task, unless a deletion test shows they still track the model, and uses the rest only alongside a separately validated localisation model.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "An insurer's fraud analytics team shows investigators attribution scores for each claim flagged by a neural-network model. Before rollout it runs independent layer randomisation, one layer at a time, and checks that rank correlation without absolute values falls for every layer, so that the scores investigators see depend on the trained weights throughout the network rather than mostly on the claim's raw feature values.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "A wind-farm operator's reliability team uses a one-dimensional convolutional network on gearbox vibration signals and gives maintenance engineers heatmaps over each signal. It runs the data randomisation test by training the same architecture on shuffled fault labels until it fits them, and keeps only heatmap methods whose maps differ clearly between the two networks, since a map that survives shuffled labels cannot show what the network learned about faults.",
+      "goal": "Explainability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "Passing is easy for an explanation that carries no information. Binder et al. show that attribution maps with no correlation between neighbouring pixels score well in model randomisation tests, and that top-down randomisation tends to preserve the scale of forward-pass activations, so even a good explanation can change only so much. They argue the test should not alone decide whether a method is kept: two methods that score poorly on it beat several gradient methods in occlusion-based tests."
+    },
+    {
+      "description": "The verdict depends on how similarity is measured. In the original study, rank correlation with absolute values and structural similarity stayed high for some methods after randomisation while rank correlation without absolute values fell to near zero, because randomisation flipped signs but kept the input's outline. There is no agreed pass threshold and libraries set their own defaults, so the measure, absolute-value setting and threshold must be reported with the result."
+    },
+    {
+      "description": "The similarity measures are sensitive to noise, so a method with noisy maps looks changed by randomisation partly because of its own noise, and its score is overstated. Later work proposes repairs: averaging each explanation over noisy copies of the input before comparing (Smooth MPRT), or comparing how much more complex the explanation becomes after full randomisation (Efficient MPRT); its authors report more reliable results with both."
+    },
+    {
+      "description": "The model parameter test needs the weights and a layered network, so it cannot be run on a model reached only through an interface. The data randomisation test needs the training data and pipeline and a network able to memorise shuffled labels; the original study trained to over 95% training accuracy, which for a large model costs a full training run."
+    },
+    {
+      "description": "Most evidence for the tests comes from image classifiers. Passing says nothing about whether the highlighted regions match what matters in the domain: in a chest-radiograph study, every saliency method, including those that passed the randomisation test, localised abnormalities worse than a dedicated detection or segmentation network."
+    }
+  ],
+  "resources": [
+    {
+      "title": "ModelRandomizationMetric — Xplique documentation",
+      "url": "https://deel-ai.github.io/xplique/latest/api/attributions/metrics/model_randomization/",
+      "source_type": "documentation",
+      "citationKey": "ModelRandomizationMetricXpliqueDocumentation"
+    },
+    {
+      "title": "Quantus (understandable-machine-intelligence-lab/Quantus)",
+      "url": "https://github.com/understandable-machine-intelligence-lab/Quantus",
+      "source_type": "software_package",
+      "citationKey": "QuantusUnderstandablemachineintelligencelabQuantus",
+      "abstract": "[JMLR 2023] Quantus is an eXplainable AI toolkit for responsible evaluation of neural network explanations - understandable-machine-intelligence-lab/Quantus"
+    },
+    {
+      "title": "Sanity Checks for Saliency Maps",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2018/hash/294a8ed24b1ad22ec2e7efea049b8737-Abstract.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Julius Adebayo",
+        "Justin Gilmer",
+        "Michael Muelly",
+        "Ian Goodfellow",
+        "Moritz Hardt",
+        "Been Kim"
+      ],
+      "publication_date": "2018",
+      "citationKey": "adebayoSanityChecksSaliency2018",
+      "abstract": "Saliency methods have emerged as a popular tool to highlight features in an input\ndeemed relevant for the prediction of a learned model. Several saliency methods\nhave been proposed, often guided by visual appeal on image data. In this work, we\npropose an actionable methodology to evaluate what kinds of explanations a given\nmethod can and cannot provide. We find that reliance, solely, on visual assessment\ncan be misleading. Through extensive experiments we show that some existing\nsaliency methods are independent both of the model and of the data generating\nprocess. Consequently, methods that fail the proposed tests are inadequate for\ntasks that are sensitive to either data or model, such as, finding outliers in the data,\nexplaining the relationship between inputs and outputs that the model learned,\nand debugging the model. We interpret our findings through an analogy with\nedge detection in images, a technique that requires neither training data nor model.\nTheory in the case of a linear model and a single-layer convolutional neural network\nsupports our experimental findings."
+    },
+    {
+      "title": "Attribution Randomization Metrics (Sanity Checks) tutorial (Xplique)",
+      "url": "https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y",
+      "source_type": "tutorial",
+      "citationKey": "AttributionRandomizationMetrics"
+    },
+    {
+      "title": "Assessing the Trustworthiness of Saliency Maps for Localizing                     Abnormalities in Medical Imaging",
+      "url": "https://doi.org/10.1148/ryai.2021200267",
+      "source_type": "application_paper",
+      "authors": [
+        "Nishanth Arun",
+        "Nathan Gaw",
+        "Praveer Singh",
+        "Ken Chang",
+        "Mehak Aggarwal",
+        "Bryan Chen",
+        "Katharina Hoebel",
+        "Sharut Gupta",
+        "Jay Patel",
+        "Mishka Gidwani",
+        "Julius Adebayo",
+        "Matthew D. Li",
+        "Jayashree Kalpathy-Cramer"
+      ],
+      "publication_date": "2021-11-1",
+      "citationKey": "arunAssessingTrustworthinessSaliency2021"
+    },
+    {
+      "title": "Gradient-Based Saliency Maps Are Not Trustworthy Visual Explanations of Automated AI Musculoskeletal Diagnoses",
+      "url": "https://doi.org/10.1007/s10278-024-01136-4",
+      "source_type": "application_paper",
+      "authors": [
+        "Kesavan Venkatesh",
+        "Simukayi Mutasa",
+        "Fletcher Moore",
+        "Jeremias Sulam",
+        "Paul H. Yi"
+      ],
+      "publication_date": "2024-5-6",
+      "citationKey": "venkateshGradientBasedSaliencyMaps2024",
+      "abstract": "Saliency maps are popularly used to “explain” decisions made by modern machine learning models, including deep convolutional neural networks (DCNNs). While the resulting heatmaps purportedly indicate important image features, their “trustworthiness,” i.e., utility and robustness, has not been evaluated for musculoskeletal imaging. The purpose of this study was to systematically evaluate the trustworthiness of saliency maps used in disease diagnosis on upper extremity X-ray images. The underlying DCNNs were trained using the Stanford MURA dataset. We studied four trustworthiness criteria—(1) localization accuracy of abnormalities, (2) repeatability, (3) reproducibility, and (4) sensitivity to underlying DCNN weights—across six different gradient-based saliency methods (Grad-CAM (GCAM), gradient explanation (GRAD), integrated gradients (IG), Smoothgrad (SG), smooth IG (SIG), and XRAI). Ground-truth was defined by the consensus of three fellowship-trained musculoskeletal radiologists who each placed bounding boxes around abnormalities on a holdout saliency test set. Compared to radiologists, all saliency methods showed inferior localization (AUPRCs: 0.438 (SG)–0.590 (XRAI); average radiologist AUPRC: 0.816), repeatability (IoUs: 0.427 (SG)–0.551 (IG); average radiologist IOU: 0.613), and reproducibility (IoUs: 0.250 (SG)–0.502 (XRAI); average radiologist IOU: 0.613) on abnormalities such as fractures, orthopedic hardware insertions, and arthritis. Five methods (GCAM, GRAD, IG, SG, XRAI) passed the sensitivity test. Ultimately, no saliency method met all four trustworthiness criteria; therefore, we recommend caution and rigorous evaluation of saliency maps prior to their clinical use."
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 4,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Every saliency method used in the chest-radiograph review tool produced maps whose structural similarity to the original fell below the agreed threshold once the top blocks of the network were randomised, on a held-out sample of radiographs.",
+      "assuranceGoal": "explainability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "For the fraud model's attribution scores, rank correlation without absolute values between original and layer-randomised attributions is below the threshold set in the validation plan for every layer tested.",
+      "assuranceGoal": "explainability",
+      "domain": "finance"
+    },
+    {
+      "text": "Heatmaps from the methods kept for the gearbox dashboard differ between the network trained on true fault labels and the same architecture trained on shuffled labels, by more than the threshold stated in the test report.",
+      "assuranceGoal": "explainability",
+      "domain": "energy"
+    }
+  ]
+}

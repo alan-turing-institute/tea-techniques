@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/requirements/white-box",
     "slug": "applicable-models-requirements-white-box",
-    "count": 36,
+    "count": 40,
     "category": "applicable-models"
   },
   "techniques": [
@@ -6096,7 +6096,553 @@
           "domain": "general"
         }
       ]
+    },
+    {
+      "slug": "sanity-checks-for-saliency-maps",
+      "name": "Sanity Checks for Saliency Maps",
+      "description": "Sanity checks for saliency maps are two randomisation tests that show whether an explanation method's output depends on what a neural network has learned, or would look much the same for a network that had learned nothing. In the model parameter randomisation test, the evaluator recomputes explanations for a fixed set of inputs after replacing the trained weights with random ones, either cumulatively from the output layer down towards the input (cascading randomisation) or one layer at a time with the others left trained (independent randomisation). In the data randomisation test, the evaluator trains a copy of the same architecture on the training data with the labels shuffled, until it has memorised them, and compares its explanations with those of the model trained on the true labels. Similarity between original and randomised explanations is measured with rank correlation, with and without absolute values, and with image similarity scores such as the structural similarity index; a method whose maps stay similar fails, because its output cannot reflect the learned weights or the relationship between inputs and labels, as Guided Backpropagation and Guided GradCAM failed in the original study when the upper layers were randomised, while plain gradients and GradCAM passed. Passing is a necessary condition, not proof of a good explanation: it shows a method responds to the model, not that its explanations are faithful or useful.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/white-box",
+        "applicable-models/requirements/model-internals",
+        "assurance-goal-category/explainability/property/fidelity",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/image",
+        "data-type/tabular",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A radiology AI group considering saliency maps as a guide to where a chest-radiograph model sees a pneumothorax runs cascading randomisation on the trained network, measuring structural similarity between original and randomised maps after each block. It sets aside methods whose maps stay similar, as several common methods did in a published study of this task, unless a deletion test shows they still track the model, and uses the rest only alongside a separately validated localisation model.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "An insurer's fraud analytics team shows investigators attribution scores for each claim flagged by a neural-network model. Before rollout it runs independent layer randomisation, one layer at a time, and checks that rank correlation without absolute values falls for every layer, so that the scores investigators see depend on the trained weights throughout the network rather than mostly on the claim's raw feature values.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A wind-farm operator's reliability team uses a one-dimensional convolutional network on gearbox vibration signals and gives maintenance engineers heatmaps over each signal. It runs the data randomisation test by training the same architecture on shuffled fault labels until it fits them, and keeps only heatmap methods whose maps differ clearly between the two networks, since a map that survives shuffled labels cannot show what the network learned about faults.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Passing is easy for an explanation that carries no information. Binder et al. show that attribution maps with no correlation between neighbouring pixels score well in model randomisation tests, and that top-down randomisation tends to preserve the scale of forward-pass activations, so even a good explanation can change only so much. They argue the test should not alone decide whether a method is kept: two methods that score poorly on it beat several gradient methods in occlusion-based tests."
+        },
+        {
+          "description": "The verdict depends on how similarity is measured. In the original study, rank correlation with absolute values and structural similarity stayed high for some methods after randomisation while rank correlation without absolute values fell to near zero, because randomisation flipped signs but kept the input's outline. There is no agreed pass threshold and libraries set their own defaults, so the measure, absolute-value setting and threshold must be reported with the result."
+        },
+        {
+          "description": "The similarity measures are sensitive to noise, so a method with noisy maps looks changed by randomisation partly because of its own noise, and its score is overstated. Later work proposes repairs: averaging each explanation over noisy copies of the input before comparing (Smooth MPRT), or comparing how much more complex the explanation becomes after full randomisation (Efficient MPRT); its authors report more reliable results with both."
+        },
+        {
+          "description": "The model parameter test needs the weights and a layered network, so it cannot be run on a model reached only through an interface. The data randomisation test needs the training data and pipeline and a network able to memorise shuffled labels; the original study trained to over 95% training accuracy, which for a large model costs a full training run."
+        },
+        {
+          "description": "Most evidence for the tests comes from image classifiers. Passing says nothing about whether the highlighted regions match what matters in the domain: in a chest-radiograph study, every saliency method, including those that passed the randomisation test, localised abnormalities worse than a dedicated detection or segmentation network."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ModelRandomizationMetric — Xplique documentation",
+          "url": "https://deel-ai.github.io/xplique/latest/api/attributions/metrics/model_randomization/",
+          "source_type": "documentation",
+          "citationKey": "ModelRandomizationMetricXpliqueDocumentation"
+        },
+        {
+          "title": "Quantus (understandable-machine-intelligence-lab/Quantus)",
+          "url": "https://github.com/understandable-machine-intelligence-lab/Quantus",
+          "source_type": "software_package",
+          "citationKey": "QuantusUnderstandablemachineintelligencelabQuantus",
+          "abstract": "[JMLR 2023] Quantus is an eXplainable AI toolkit for responsible evaluation of neural network explanations - understandable-machine-intelligence-lab/Quantus"
+        },
+        {
+          "title": "Sanity Checks for Saliency Maps",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2018/hash/294a8ed24b1ad22ec2e7efea049b8737-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Julius Adebayo",
+            "Justin Gilmer",
+            "Michael Muelly",
+            "Ian Goodfellow",
+            "Moritz Hardt",
+            "Been Kim"
+          ],
+          "publication_date": "2018",
+          "citationKey": "adebayoSanityChecksSaliency2018",
+          "abstract": "Saliency methods have emerged as a popular tool to highlight features in an input\ndeemed relevant for the prediction of a learned model. Several saliency methods\nhave been proposed, often guided by visual appeal on image data. In this work, we\npropose an actionable methodology to evaluate what kinds of explanations a given\nmethod can and cannot provide. We find that reliance, solely, on visual assessment\ncan be misleading. Through extensive experiments we show that some existing\nsaliency methods are independent both of the model and of the data generating\nprocess. Consequently, methods that fail the proposed tests are inadequate for\ntasks that are sensitive to either data or model, such as, finding outliers in the data,\nexplaining the relationship between inputs and outputs that the model learned,\nand debugging the model. We interpret our findings through an analogy with\nedge detection in images, a technique that requires neither training data nor model.\nTheory in the case of a linear model and a single-layer convolutional neural network\nsupports our experimental findings."
+        },
+        {
+          "title": "Attribution Randomization Metrics (Sanity Checks) tutorial (Xplique)",
+          "url": "https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y",
+          "source_type": "tutorial",
+          "citationKey": "AttributionRandomizationMetrics"
+        },
+        {
+          "title": "Assessing the Trustworthiness of Saliency Maps for Localizing                     Abnormalities in Medical Imaging",
+          "url": "https://doi.org/10.1148/ryai.2021200267",
+          "source_type": "application_paper",
+          "authors": [
+            "Nishanth Arun",
+            "Nathan Gaw",
+            "Praveer Singh",
+            "Ken Chang",
+            "Mehak Aggarwal",
+            "Bryan Chen",
+            "Katharina Hoebel",
+            "Sharut Gupta",
+            "Jay Patel",
+            "Mishka Gidwani",
+            "Julius Adebayo",
+            "Matthew D. Li",
+            "Jayashree Kalpathy-Cramer"
+          ],
+          "publication_date": "2021-11-1",
+          "citationKey": "arunAssessingTrustworthinessSaliency2021"
+        },
+        {
+          "title": "Gradient-Based Saliency Maps Are Not Trustworthy Visual Explanations of Automated AI Musculoskeletal Diagnoses",
+          "url": "https://doi.org/10.1007/s10278-024-01136-4",
+          "source_type": "application_paper",
+          "authors": [
+            "Kesavan Venkatesh",
+            "Simukayi Mutasa",
+            "Fletcher Moore",
+            "Jeremias Sulam",
+            "Paul H. Yi"
+          ],
+          "publication_date": "2024-5-6",
+          "citationKey": "venkateshGradientBasedSaliencyMaps2024",
+          "abstract": "Saliency maps are popularly used to “explain” decisions made by modern machine learning models, including deep convolutional neural networks (DCNNs). While the resulting heatmaps purportedly indicate important image features, their “trustworthiness,” i.e., utility and robustness, has not been evaluated for musculoskeletal imaging. The purpose of this study was to systematically evaluate the trustworthiness of saliency maps used in disease diagnosis on upper extremity X-ray images. The underlying DCNNs were trained using the Stanford MURA dataset. We studied four trustworthiness criteria—(1) localization accuracy of abnormalities, (2) repeatability, (3) reproducibility, and (4) sensitivity to underlying DCNN weights—across six different gradient-based saliency methods (Grad-CAM (GCAM), gradient explanation (GRAD), integrated gradients (IG), Smoothgrad (SG), smooth IG (SIG), and XRAI). Ground-truth was defined by the consensus of three fellowship-trained musculoskeletal radiologists who each placed bounding boxes around abnormalities on a holdout saliency test set. Compared to radiologists, all saliency methods showed inferior localization (AUPRCs: 0.438 (SG)–0.590 (XRAI); average radiologist AUPRC: 0.816), repeatability (IoUs: 0.427 (SG)–0.551 (IG); average radiologist IOU: 0.613), and reproducibility (IoUs: 0.250 (SG)–0.502 (XRAI); average radiologist IOU: 0.613) on abnormalities such as fractures, orthopedic hardware insertions, and arthritis. Five methods (GCAM, GRAD, IG, SG, XRAI) passed the sensitivity test. Ultimately, no saliency method met all four trustworthiness criteria; therefore, we recommend caution and rigorous evaluation of saliency maps prior to their clinical use."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every saliency method used in the chest-radiograph review tool produced maps whose structural similarity to the original fell below the agreed threshold once the top blocks of the network were randomised, on a held-out sample of radiographs.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For the fraud model's attribution scores, rank correlation without absolute values between original and layer-randomised attributions is below the threshold set in the validation plan for every layer tested.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Heatmaps from the methods kept for the gearbox dashboard differ between the network trained on true fault labels and the same architecture trained on shuffled labels, by more than the threshold stated in the test report.",
+          "assuranceGoal": "explainability",
+          "domain": "energy"
+        }
+      ]
+    },
+    {
+      "slug": "sparse-autoencoder-feature-analysis",
+      "name": "Sparse Autoencoder Feature Analysis",
+      "description": "Sparse autoencoder feature analysis looks for human-interpretable units inside a neural network, usually a language model, by learning from the activations at one layer a large dictionary of directions, called features, such that each activation vector can be rebuilt from only a few of them. Unlike neuron activation analysis it does not take the network's own neurons as the units, since single neurons often respond to several unrelated things, and unlike concept activation vectors it needs no labelled examples of a concept chosen in advance, because the features are found without supervision. The analyst records activations at the chosen layer over a large body of ordinary text and trains an autoencoder, a network with one hidden layer usually several times wider than the layer studied, to reconstruct them while a sparsity penalty keeps most hidden units at zero; the decoder weights of each hidden unit then give one feature direction. Each feature is labelled from the inputs on which it fires most strongly, by a person or by a language model that writes a description, which is then scored on how well it predicts the feature's activations on other text, and the label is tested by removing or amplifying the feature inside the running model and checking the change in output. The output is a catalogue of labelled features with example activations, interpretability scores and measured effects, plus a reconstruction score saying how much of the layer's behaviour the dictionary accounts for; the features can then serve as units for causal mediation analysis, which traces pathways, while this method finds and checks the units themselves.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/model-internals",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/representation-analysis/concept-identification",
+        "assurance-goal-category/explainability/explains/internal-mechanisms",
+        "assurance-goal-category/explainability/property/comprehensibility",
+        "assurance-goal-category/explainability/property/sparsity",
+        "data-requirements/no-special-requirements",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "evidence-type/qualitative-report",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/global",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before deploying an open-weights language model as a customer-service assistant, a bank's AI assurance team uses sparse autoencoders published for that model to find features active on prompts where the assistant should refuse to give investment advice. It tests each candidate by suppressing it and measuring the change in refusal rate, and records which labelled features the refusal behaviour depends on in the model's assurance file.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A bioinformatics group using a protein language model to annotate newly sequenced proteins trains sparse autoencoders on its embeddings and compares the features with database annotations of binding sites, structural motifs and domains. Features that match known biology are used to propose candidate annotations for curators to verify, features that fire widely with no clear meaning are flagged for review, and the model's own annotation accuracy is still tested on held-out proteins.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A team that fine-tuned a language model to triage clinical referral letters lists the sparse autoencoder features that most change the 'urgent' score on a validation set, and checks whether they describe clinical content or properties of the letter, such as the referring practice's template. A template feature among the leading drivers is recorded as a finding and leads to retraining on reformatted letters.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The dictionary does not capture everything the layer carries, and what it misses cannot be inspected. In the originating study, replacing one layer of a small language model with its reconstruction raised perplexity from 25 to 40; a concurrent study recovered 79% of a layer's contribution to the loss in its main run. Not finding a feature for a concept does not show that the model lacks it."
+        },
+        {
+          "description": "The features found are not unique. Larger dictionaries split a feature into narrower ones (one base64 feature at 512 features became three at 4,096), and for a 131,000-feature autoencoder on one layer of Llama 3 8B only about 30% of features were shared by two runs differing only in random seed. A conclusion resting on one feature should name the autoencoder used and be checked on a second run."
+        },
+        {
+          "description": "Labels are hypotheses drawn from the top-activating examples, and automated scores are modest: the first five features reported in the originating study scored between -0.11 and 0.57, and the advantage over simpler decompositions faded in later layers. Back a label with an intervention that changes the output as the label predicts before citing it as evidence."
+        },
+        {
+          "description": "It needs the model's internal activations, plus storage and compute to train an autoencoder for each layer studied (one concurrent study trained on 8 billion activation vectors from a single layer). For large models practitioners often rely on autoencoders released for particular open-weights models, so the method is not available for a model reached only through an API."
+        },
+        {
+          "description": "Being interpretable does not make the features better for a given task. In a 2025 study of detecting concepts from model activations, probes built on autoencoder features did not beat logistic regression on the raw activations on average, and the spurious correlations and data problems they exposed could also be found with simpler baselines. Where detection is the goal, compare against such baselines."
+        }
+      ],
+      "resources": [
+        {
+          "title": "SAELens documentation",
+          "url": "https://decoderesearch.github.io/SAELens/",
+          "source_type": "documentation",
+          "citationKey": "SAELensDocumentation",
+          "abstract": "Docs for Sparse Autoencoder Training and Analysis Library"
+        },
+        {
+          "title": "SAELens (decoderesearch/SAELens)",
+          "url": "https://github.com/decoderesearch/SAELens",
+          "source_type": "software_package",
+          "publication_date": "2026-10-12T09:38:04Z",
+          "citationKey": "SAELensDecoderesearchSAELens2026",
+          "abstract": "Training Sparse Autoencoders on Language Models"
+        },
+        {
+          "title": "Sparse Autoencoders Find Highly Interpretable Features in Language Models",
+          "url": "https://proceedings.iclr.cc/paper_files/paper/2024/hash/1fa1ab11f4bd5f94b2ec20e794dbfa3b-Abstract-Conference.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Robert Huben",
+            "Hoagy Cunningham",
+            "Logan Smith",
+            "Aidan Ewart",
+            "Lee Sharkey"
+          ],
+          "citationKey": "hubenSparseAutoencodersFind"
+        },
+        {
+          "title": "Towards Monosemanticity: Decomposing Language Models With Dictionary Learning",
+          "url": "https://transformer-circuits.pub/2023/monosemantic-features/index.html",
+          "source_type": "technical_paper",
+          "citationKey": "MonosemanticityDecomposingLanguage"
+        },
+        {
+          "title": "Loading and Analysing Pre-Trained Sparse Autoencoders (SAELens tutorial)",
+          "url": "https://github.com/decoderesearch/SAELens/blob/main/tutorials/basic_loading_and_analysing.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "LoadingAnalysingPreTrained",
+          "abstract": "Training Sparse Autoencoders on Language Models. Contribute to decoderesearch/SAELens development by creating an account on GitHub."
+        },
+        {
+          "title": "InterPLM: discovering interpretable features in protein language models via sparse autoencoders",
+          "url": "https://doi.org/10.1038/s41592-025-02836-7",
+          "source_type": "application_paper",
+          "authors": [
+            "Elana Simon",
+            "James Zou"
+          ],
+          "publication_date": "2025-9-29",
+          "citationKey": "simonInterPLMDiscoveringInterpretable2025"
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
+      "acronym": "SAE",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Substituting the sparse autoencoder's reconstruction for the audited layer recovers at least 90% of that layer's contribution to next-token loss on the audit prompts.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        },
+        {
+          "text": "Each feature cited in the refusal analysis has a description that predicts its activations on held-out prompts with a correlation of at least 0.5, and suppressing it lowers the refusal rate on the investment-advice test set by at least 20 percentage points.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "None of the 50 features with the largest effect on the triage model's 'urgent' score on the validation set responds mainly to the referring practice's letter template.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Features in the protein model labelled as binding-site detectors activate on annotated binding-site residues of held-out proteins with a precision of at least 0.8, and the same features appear in a second autoencoder trained with a different seed.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "actionable-recourse-audit",
+      "name": "Actionable Recourse Audit",
+      "description": "An actionable recourse audit checks whether the people a linear classifier refuses, for example for a loan, a job interview or a public service, could change that decision through actions open to them, and how much they would have to change. The auditor first writes an action set saying which features can change and how: immutable features such as age stay fixed, features such as education level can only rise, and each changeable feature gets bounds and a grid of realistic values. Then, for each refused person in a sample drawn from the population the model will serve, an integer programming solver (optimisation software that searches discrete choices exactly) looks through the permitted actions for the cheapest change that flips the decision, measuring cost as the largest shift, in population percentiles, that the change makes to any one feature, and either returns that action or proves that none exists, which a search that simply fails to find a counterfactual cannot do. The audit reports the share of refused people who have recourse and the distribution of its cost, which can be compared across candidate models or broken down by group, and the same solver can list a refused person's cheapest alternative changes (a 'flipset') for a decision notice. Unlike the Contrastive Explanation Method, which explains one prediction through features that must be present or absent, or Diverse Counterfactual Explanations (DiCE), which searches any model for several alternative inputs that would change one decision, the audit works only on linear models but certifies whether any permitted action exists and summarises the answer across a population.",
+      "assurance_goals": [
+        "Transparency",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/linear-models",
+        "applicable-models/architecture/linear-models/logistic",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/notice-and-recourse",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-measurement",
+        "data-requirements/reference-dataset",
+        "data-requirements/sensitive-attributes",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "evidence-type/fairness-metric",
+        "evidence-type/structured-output",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "Before launching a linear model that ranks applications to a housing support scheme, a local authority's analytics team audits recourse on last year's applicants, with age and household size fixed. Its report to the scheme's oversight board gives the share of refused applicants who could qualify through changes the scheme expects, such as completing a tenancy course, and how large those changes are, so the board can decide whether to approve the model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A credit card issuer generates a flipset for each applicant its linear scorecard declines and puts the two cheapest items in the decline letter, for example reducing current debt to a stated amount, together with the other scored features the applicant should keep unchanged, so that following the stated actions would change the decision under the current model.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A lender's model risk committee is shown recourse audits for candidate credit models of almost equal accuracy. It rejects the most accurate, under which some refused applicants had no feasible action because of an 'ever defaulted' feature, adopts a variant that uses recent defaults only, and has the audit re-run each quarter on new applicants, watching younger applicants, who were scarce in the training data.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An employer's analytics team audits its linear screening model for interview invitations and compares the cost of recourse for refused women and men with similar predicted scores. Sex is not a model input, but the cost can still differ by sex. Refused candidates' true suitability is never observed, so the team cannot also match on outcome as the originating study did, and reports any gap with that caveat to its fairness review panel, which decides whether the features need revising.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The proof that no action exists depends on the model being linear, such as logistic regression, a linear support vector machine or a rule set that can be written in linear form. For tree ensembles or neural networks, a local linear approximation can still suggest actions, which then have to be checked on the real model, but a failure to find one proves nothing, so the share of refused people without recourse is no longer a certified figure."
+        },
+        {
+          "description": "Every conclusion rests on the action set and cost the auditor chooses. Bounds that are too tight make people appear to lack recourse; loose bounds let a model 'provide' recourse only through drastic changes, which shows only as high cost; and the default cost treats a one-percentile change as equally hard in every feature unless someone who knows the domain sets how much harder some changes are."
+        },
+        {
+          "description": "The search treats features as changing independently unless the auditor adds constraints. Real actions have knock-on effects: raising income can also raise savings, so a listed action may cost more than needed, or may not change the decision once its effects on other features are counted, as Karimi, Schölkopf and Valera showed for recourse methods that ignore causal relations between features."
+        },
+        {
+          "description": "Recourse is defined for a fixed model. After retraining, an action given in an earlier notice may no longer change the decision, so the audit has to be re-run after each update. An action that changes the prediction need not change the real outcome either: showing a refused applicant how to be approved can lead them into credit they cannot repay."
+        },
+        {
+          "description": "A flipset lists only the features to change, so a person who also changes an undisclosed feature may still be refused unless the notice says what must stay the same. The originating paper builds flipsets from public credit datasets and does not test whether refused people understand them or can act on them. Owners may also resist publishing flipsets, because many of them together can let others reconstruct the model."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Actionable Recourse in Linear Classification",
+          "url": "https://doi.org/10.1145/3287560.3287566",
+          "source_type": "technical_paper",
+          "authors": [
+            "Berk Ustun",
+            "Alexander Spangher",
+            "Yang Liu"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "ustunActionableRecourseLinear2019"
+        },
+        {
+          "title": "actionable-recourse",
+          "url": "https://github.com/ustunb/actionable-recourse",
+          "source_type": "software_package",
+          "publication_date": "2026-07-11T02:55:36Z",
+          "citationKey": "ustunActionablerecourse2026",
+          "abstract": "python tools to check recourse in linear classification"
+        },
+        {
+          "title": "actionable-recourse example: Auditing Recourse",
+          "url": "https://github.com/ustunb/actionable-recourse/blob/master/examples/ex_02_audit_model-effects-of-recourse-demo.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ActionablerecourseExampleAuditing",
+          "abstract": "python tools to check recourse in linear classification - ustunb/actionable-recourse"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every refused applicant in the audit sample, drawn from last year's applications to the scheme, has at least one action under the agreed action set that would make them eligible under the deployed model.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
+        },
+        {
+          "text": "Under the agreed action set, at least half of the declined applicants in the audit sample have an action that would bring approval while moving no feature by more than 25 percentiles of the applicant population.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "Among candidates refused by the screening model with similar predicted scores, the median cost of recourse for women is within five percentile points of that for men.",
+          "assuranceGoal": "fairness",
+          "domain": "employment"
+        },
+        {
+          "text": "Each decline letter lists at least one action that would change the decision under the current scorecard, together with the scored features the applicant must keep unchanged.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        }
+      ]
+    },
+    {
+      "slug": "zero-knowledge-proof-of-model-inference",
+      "name": "Zero-Knowledge Proof of Model Inference",
+      "description": "A zero-knowledge proof of model inference lets the owner of a model show an outside party that one specific model, fixed in advance, turns a particular input into a particular output, without revealing the model's weights. The owner publishes a commitment to the weights, a short cryptographic fingerprint such as a hash that binds them without disclosing them, together with a verification key that fixes the model's architecture. The model's arithmetic is converted to whole numbers (quantised) and written as a system of equations called a circuit, and for each input a proving system produces a proof, of a few kilobytes to a few hundred kilobytes, that this circuit, run with weights matching the commitment, turns that input into that output; the input can be public or committed in the same way. Anyone holding the verification key can check the proof in milliseconds to seconds: it shows that the committed model gives that output for that input, while keeping the weights hidden, and says nothing about whether that model is accurate, fair or safe. Unlike homomorphic encryption, which lets a server compute on data it cannot read but gives the caller no evidence of which computation was run, and unlike model signing, which lets someone who holds a model's files check who released them, it lets someone who never sees the weights check individual outputs against them.",
+      "assurance_goals": [
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/architecture/tree-based",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/confidential-verification",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/audit-record",
+        "expertise-needed/cryptography",
+        "expertise-needed/ml-engineering",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A credit-scoring vendor publishes the weight commitment in the report of an independent bias and accuracy audit, which was run on the quantised model bound to that commitment. When a refused applicant complains, the lender's complaints team asks the vendor for a proof for that decision and checks it against the published commitment, to confirm that the audited model gives the same refusal on the applicant's data before it reviews the decision itself.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "A hospital trust buying chest X-ray triage results from a cloud provider writes into the contract that its clinical engineering team may challenge a random sample of each month's results. For each sampled case the provider must return a proof against the commitment to the model the trust validated, and the team treats a failed or missing proof as evidence that a different model was served, which triggers the contract's audit clause.",
+          "goal": "Transparency"
+        },
+        {
+          "description": "An online-safety regulator inspecting the age-estimation service a platform relies on submits its own test images and asks for a proof with each estimate. Its inspectors check each proof against the commitment registered when an accredited laboratory certified the vendor's model, to decide whether the service in use is the certified model, without the vendor handing its proprietary weights to the regulator.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A valid proof shows that the committed weights turn this input into this output. It does not show that the model is accurate, fair or safe, that the input was genuine, or that the service ran the committed model: a different model giving the same output passes too, so spot checks catch a substituted model only on inputs where the two disagree. A commitment carries assurance only if an audit was run on the model it binds."
+        },
+        {
+          "description": "Proving costs far more than running the model. Published figures: 88 seconds per prediction of a 15-million-parameter VGG16 on CIFAR-10 images (zkCNN), about 41 minutes for an ImageNet-scale MobileNet on a large cloud server (Kang et al.), and about 13 minutes for one 2,048-token pass of a 13-billion-parameter language model on a data-centre GPU, after a one-off 16-minute commitment (zkLLM). Proving every output of a busy service is impractical, so protocols prove sampled or disputed outputs."
+        },
+        {
+          "description": "The proof covers a quantised, whole-number version of the model, not the floating-point model that was trained and perhaps audited, and the two can give slightly different outputs. Published attacks plant backdoors that stay dormant at full precision and activate only after quantisation, which EZKL's security notes flag. Audits and accuracy tests must therefore be run on the quantised model that is actually proved, or the commitment and the audit describe different models."
+        },
+        {
+          "description": "The guarantee depends on configuration. If the weights are private inputs with no published commitment, a proof shows only that some weights for the stated architecture give the output. Hashing the weights inside the proof keeps them hidden but costs about as much again as proving the inference. EZKL's cheaper settings, including its Python default, bind the weights without fully hiding them, and its notes warn they can be recovered from enough proofs. The architecture is normally disclosed."
+        },
+        {
+          "description": "Soundness rests on the software as well as the mathematics. A compiler error that leaves the equations under-constrained can let a false proof verify, a risk EZKL's documentation names, and EZKL's proofs rely on public parameters from a multi-party set-up ceremony. Audits cover specific releases (EZKL's covered version 21), so verifiers should fix which tool versions and parameters they accept. EZKL, the most used tool, has had no open-source licence since January 2024."
+        }
+      ],
+      "resources": [
+        {
+          "title": "EZKL Documentation: Getting Started",
+          "url": "https://docs.ezkl.xyz/getting-started/",
+          "source_type": "documentation",
+          "citationKey": "EZKLDocumentationGetting",
+          "abstract": "Let's briefly preview the steps to generate and verify a model:"
+        },
+        {
+          "title": "ezkl",
+          "url": "https://github.com/zkonduit/ezkl",
+          "source_type": "software_package",
+          "publication_date": "2026-10-10T13:13:26Z",
+          "citationKey": "Ezkl2026",
+          "abstract": "Compiles a model exported to ONNX into a Halo2 circuit and proves and verifies its inference from a command line or Python. Source-available, not open source: the Apache-2.0 licence file was removed on 7 January 2024 and the repository now states only \"Copyright (c) 2026 Zkonduit Inc.\", with contributions taken under a contributor licence agreement."
+        },
+        {
+          "title": "Zero Knowledge Proofs for Decision Tree Predictions and Accuracy",
+          "url": "https://doi.org/10.1145/3372297.3417278",
+          "source_type": "technical_paper",
+          "authors": [
+            "Jiaheng Zhang",
+            "Zhiyong Fang",
+            "Yupeng Zhang",
+            "Dawn Song"
+          ],
+          "publication_date": "2020-10-30",
+          "citationKey": "zhangZeroKnowledgeProofs2020"
+        },
+        {
+          "title": "hashed-ezkl: hashing the model inputs and parameters inside the circuit (EZKL example notebook)",
+          "url": "https://github.com/zkonduit/ezkl/blob/main/examples/notebooks/hashed_vis.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "HashedezklHashingModel",
+          "abstract": "ezkl is an engine for doing inference for deep learning models and other computational graphs in a zk-snark (ZKML). Use it from Python, Javascript, or the command line.  - zkonduit/ezkl"
+        },
+        {
+          "title": "zkCNN: Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy",
+          "url": "https://doi.org/10.1145/3460120.3485379",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tianyi Liu",
+            "Xiang Xie",
+            "Yupeng Zhang"
+          ],
+          "publication_date": "2021-11-12",
+          "citationKey": "liuZkCNNZeroKnowledge2021"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 5,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every credit decision referred to the complaints process was accompanied by a proof, checked by the complaints team, that the model whose weight commitment appears in the independent audit report gives that decision on the applicant's data.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "The accuracy and bias figures in the audit report were computed from outputs proven against the same weight commitment that is used in production.",
+          "assuranceGoal": "transparency",
+          "domain": "finance"
+        },
+        {
+          "text": "Every triage result sampled for challenge in the reporting period was supported by a proof that verified against the commitment to the validated model.",
+          "assuranceGoal": "transparency",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For every test image submitted by the regulator's inspectors, the age-estimation service returned a proof that verified against the certified model's commitment.",
+          "assuranceGoal": "transparency",
+          "domain": "online safety"
+        }
+      ]
     }
   ],
-  "count": 36
+  "count": 40
 }
