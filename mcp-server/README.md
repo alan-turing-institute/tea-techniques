@@ -126,6 +126,8 @@ pnpm dev --local  # Load data from local project files
 
 The image serves stateless MCP Streamable HTTP at `POST /mcp`, health metadata at `GET /healthz` and the catalogue's embedding description at `GET /embedding-spec`. There is **no authentication**; use it on a laptop or private network. Compose publishes port 3100 on loopback only. The existing stdio entry point and all ten MCP tool names remain; `suggest_techniques_for_claim` gains the optional `queryEmbedding` input. The TypeScript method `suggestForClaim` is exposed by the tool named `suggest_techniques_for_claim`.
 
+`POST /mcp` reads at most 256 KB of request body (a call with a 2,560-number vector is about 6 KB): a larger body, whether it declares its length or arrives chunked, gets `413`, and a body that is not JSON gets `400`.
+
 The service runs no model. It holds the catalogue and its vectors, and answers with keyword search plus, when the caller supplies a question vector, semantic search over the vectors. Ranking is off in the image (`RANKING_ENABLED=false`), so results keep the fused retrieval order, `/healthz.rankingAvailable` is false and `/healthz` contacts no other service. Whatever calls the service does the embedding and any ranking itself.
 
 ```sh
@@ -203,7 +205,7 @@ The result is available as both `result.structuredContent` and JSON in `result.c
 }
 ```
 
-`semanticUsed` is true when the semantic search returned results that were fused with the keyword results, and false when the result is keyword-only (no `queryEmbedding`, one that failed its checks, or no loaded vectors). `summary` is the first sentence of the technique's description, at most 200 characters. `tags` lists the technique's tag ids, in the same form as `goals`.
+`semanticUsed` is true when the semantic search returned results that were fused with the keyword results, and false when the result is keyword-only (no `queryEmbedding`, one that failed its checks, or no loaded vectors). `summary` is the first sentence of the technique's description, at most 200 characters. `tags` lists the technique's tag ids, in the same form as `goals`. `embeddingModel` is the model id of the loaded vectors, or `null` when none are loaded.
 
 The optional ranker is separate from retrieval. It runs only where `RANKING_ENABLED` is not `false` and a local Ollama daemon serves `clef-flash`; the image turns it off. `ranked` is true for a result whose `score` is the Noul probability from Clef-Flash, and false when `score` is the retrieval score. When `rankingAvailable` is true, the first `RANKING_CANDIDATES` retrieved candidates (default 4, bounds 1-20) are ranked in one `/v1/systemone` request carrying one question per candidate, and those results carry `ranked: true`. Any remaining retrieved candidates follow them in retrieval order with `ranked: false` and `score` equal to `retrievalScore`, which is on a different scale from the probabilities; compare `score` values only between results that have `ranked: true`. When `rankingAvailable` is false, every result has `ranked: false`, `score` equals `retrievalScore` (a normalized RRF rank score), and the original retrieval order is preserved. Missing/unreachable Ollama, absent models, invalid responses, or any candidate failure cause the whole ranking step to fall back. The request is aborted at `RANKING_DEADLINE_MS` (default 60000). The server does not cancel the ranking request when the MCP caller disconnects: it runs to completion or to its deadline. Concurrent calls each send their own request with their own deadline, and the server does not queue or limit them, so on a host that cannot serve them at once (typically a CPU-only host) a later caller's request may reach its deadline before it is answered, and that caller receives retrieval order with `rankingAvailable` false. No `reason` field is returned. The tool defaults to ten results; direct TypeScript callers can use `suggestForClaim(claim, { limit, context })` (up to twenty). MCP retains its existing flat context arguments.
 
@@ -248,7 +250,7 @@ pnpm generate-embeddings --model=minilm --data-dir=../public/data \
   --output=../public/data/ld/embeddings.json
 ```
 
-`--data-dir/data-version` (written by `scripts/fetch-build-data.mjs`) or `--data-commit` is recorded as the data commit.
+`--data-dir/data-version` (written by `scripts/fetch-build-data.mjs`) or `--data-commit` is recorded as the data commit. The Qwen3 generator refuses a model directory that is not the pinned snapshot: `model.onnx` must have the snapshot's SHA-256 and `model.onnx_data` its exact size (`CATALOGUE_SNAPSHOT` in `scripts/qwen3-onnx.ts`, from the repository's LFS records).
 
 **Ranking.** The optional ranker needs a local Ollama daemon (0.35.1 or newer) with `clef-flash`, whose initial download is about 11–12 GB. [Ollama Clef-Flash model page](https://ollama.com/library/clef-flash). It is off in the image. To use it with the HTTP service run from source, leave `RANKING_ENABLED` unset (or `true`) and set `OLLAMA_URL` to a local daemon (`localhost`, `127.0.0.1`, `[::1]` or `host.docker.internal`); `/healthz.rankingAvailable` then checks whether the daemon lists Clef-Flash, and `/healthz.lastRankingSucceeded` reports the outcome of the most recent ranking call (null before the first). Each tool response records whether ranking actually succeeded.
 
@@ -257,8 +259,7 @@ pnpm generate-embeddings --model=minilm --data-dir=../public/data \
 Run the HTTP service from source against the committed Qwen3 vectors (the directory needs the graph and the vectors file under `ld/`):
 
 ```sh
-mkdir -p generated/data/ld
-cp ../public/data/ld/graph.jsonld generated/data/ld/graph.jsonld     # or the graph at the data cut the vectors were made from
+BUILD_DATA_DIR=generated/data DATA_REF=777cf5e752775b20537e1a499c3998eadc2bc184 node scripts/fetch-build-data.mjs
 cp vectors/embeddings.qwen3.json generated/data/ld/embeddings.json
 pnpm build
 DATA_DIR=generated/data TEA_OFFLINE=1 RANKING_ENABLED=false pnpm start:http
