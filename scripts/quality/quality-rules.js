@@ -36,6 +36,18 @@ export const REQUIRED_SUBTAG_RULES = {
  * - `must`: tag category prefixes that MUST be present (hard gap)
  * - `should`: tag category prefixes that SHOULD be present (soft gap)
  */
+/**
+ * Exemptions from goal-conditional `must` rules.
+ * Key = required prefix, Value = tag prefixes whose presence exempts a technique.
+ * Human-evaluation methods test explanations with the people who use them, so
+ * they have no explanatory scope of their own.
+ */
+export const MUST_EXEMPTIONS = {
+  'explanatory-scope/': [
+    'assurance-goal-category/explainability/human-evaluation',
+  ],
+};
+
 export const GOAL_CONDITIONAL_RULES = {
   Explainability: {
     must: ['explanatory-scope/', 'assurance-goal-category/explainability/'],

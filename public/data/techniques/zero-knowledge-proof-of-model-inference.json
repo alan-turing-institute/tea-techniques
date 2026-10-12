@@ -1,0 +1,131 @@
+{
+  "slug": "zero-knowledge-proof-of-model-inference",
+  "name": "Zero-Knowledge Proof of Model Inference",
+  "description": "A zero-knowledge proof of model inference lets the owner of a model show an outside party that one specific model, fixed in advance, turns a particular input into a particular output, without revealing the model's weights. The owner publishes a commitment to the weights, a short cryptographic fingerprint such as a hash that binds them without disclosing them, together with a verification key that fixes the model's architecture. The model's arithmetic is converted to whole numbers (quantised) and written as a system of equations called a circuit, and for each input a proving system produces a proof, of a few kilobytes to a few hundred kilobytes, that this circuit, run with weights matching the commitment, turns that input into that output; the input can be public or committed in the same way. Anyone holding the verification key can check the proof in milliseconds to seconds: it shows that the committed model gives that output for that input, while keeping the weights hidden, and says nothing about whether that model is accurate, fair or safe. Unlike homomorphic encryption, which lets a server compute on data it cannot read but gives the caller no evidence of which computation was run, and unlike model signing, which lets someone who holds a model's files check who released them, it lets someone who never sees the weights check individual outputs against them.",
+  "assurance_goals": [
+    "Transparency"
+  ],
+  "tags": [
+    "applicable-models/architecture/neural-networks",
+    "applicable-models/architecture/tree-based",
+    "applicable-models/requirements/white-box",
+    "assurance-goal-category/transparency",
+    "assurance-goal-category/transparency/confidential-verification",
+    "data-requirements/no-special-requirements",
+    "data-type/any",
+    "evidence-type/audit-record",
+    "expertise-needed/cryptography",
+    "expertise-needed/ml-engineering",
+    "technique-type/algorithmic",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-implementation",
+    "lifecycle-stage/system-deployment/system-use-and-monitoring"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A credit-scoring vendor publishes the weight commitment in the report of an independent bias and accuracy audit, which was run on the quantised model bound to that commitment. When a refused applicant complains, the lender's complaints team asks the vendor for a proof for that decision and checks it against the published commitment, to confirm that the audited model gives the same refusal on the applicant's data before it reviews the decision itself.",
+      "goal": "Transparency"
+    },
+    {
+      "description": "A hospital trust buying chest X-ray triage results from a cloud provider writes into the contract that its clinical engineering team may challenge a random sample of each month's results. For each sampled case the provider must return a proof against the commitment to the model the trust validated, and the team treats a failed or missing proof as evidence that a different model was served, which triggers the contract's audit clause.",
+      "goal": "Transparency"
+    },
+    {
+      "description": "An online-safety regulator inspecting the age-estimation service a platform relies on submits its own test images and asks for a proof with each estimate. Its inspectors check each proof against the commitment registered when an accredited laboratory certified the vendor's model, to decide whether the service in use is the certified model, without the vendor handing its proprietary weights to the regulator.",
+      "goal": "Transparency"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "A valid proof shows that the committed weights turn this input into this output. It does not show that the model is accurate, fair or safe, that the input was genuine, or that the service ran the committed model: a different model giving the same output passes too, so spot checks catch a substituted model only on inputs where the two disagree. A commitment carries assurance only if an audit was run on the model it binds."
+    },
+    {
+      "description": "Proving costs far more than running the model. Published figures: 88 seconds per prediction of a 15-million-parameter VGG16 on CIFAR-10 images (zkCNN), about 41 minutes for an ImageNet-scale MobileNet on a large cloud server (Kang et al.), and about 13 minutes for one 2,048-token pass of a 13-billion-parameter language model on a data-centre GPU, after a one-off 16-minute commitment (zkLLM). Proving every output of a busy service is impractical, so protocols prove sampled or disputed outputs."
+    },
+    {
+      "description": "The proof covers a quantised, whole-number version of the model, not the floating-point model that was trained and perhaps audited, and the two can give slightly different outputs. Published attacks plant backdoors that stay dormant at full precision and activate only after quantisation, which EZKL's security notes flag. Audits and accuracy tests must therefore be run on the quantised model that is actually proved, or the commitment and the audit describe different models."
+    },
+    {
+      "description": "The guarantee depends on configuration. If the weights are private inputs with no published commitment, a proof shows only that some weights for the stated architecture give the output. Hashing the weights inside the proof keeps them hidden but costs about as much again as proving the inference. EZKL's cheaper settings, including its Python default, bind the weights without fully hiding them, and its notes warn they can be recovered from enough proofs. The architecture is normally disclosed."
+    },
+    {
+      "description": "Soundness rests on the software as well as the mathematics. A compiler error that leaves the equations under-constrained can let a false proof verify, a risk EZKL's documentation names, and EZKL's proofs rely on public parameters from a multi-party set-up ceremony. Audits cover specific releases (EZKL's covered version 21), so verifiers should fix which tool versions and parameters they accept. EZKL, the most used tool, has had no open-source licence since January 2024."
+    }
+  ],
+  "resources": [
+    {
+      "title": "EZKL Documentation: Getting Started",
+      "url": "https://docs.ezkl.xyz/getting-started/",
+      "source_type": "documentation",
+      "citationKey": "EZKLDocumentationGetting",
+      "abstract": "Let's briefly preview the steps to generate and verify a model:"
+    },
+    {
+      "title": "ezkl",
+      "url": "https://github.com/zkonduit/ezkl",
+      "source_type": "software_package",
+      "publication_date": "2026-10-10T13:13:26Z",
+      "citationKey": "Ezkl2026",
+      "abstract": "Compiles a model exported to ONNX into a Halo2 circuit and proves and verifies its inference from a command line or Python. Source-available, not open source: the Apache-2.0 licence file was removed on 7 January 2024 and the repository now states only \"Copyright (c) 2026 Zkonduit Inc.\", with contributions taken under a contributor licence agreement."
+    },
+    {
+      "title": "Zero Knowledge Proofs for Decision Tree Predictions and Accuracy",
+      "url": "https://doi.org/10.1145/3372297.3417278",
+      "source_type": "technical_paper",
+      "authors": [
+        "Jiaheng Zhang",
+        "Zhiyong Fang",
+        "Yupeng Zhang",
+        "Dawn Song"
+      ],
+      "publication_date": "2020-10-30",
+      "citationKey": "zhangZeroKnowledgeProofs2020"
+    },
+    {
+      "title": "hashed-ezkl: hashing the model inputs and parameters inside the circuit (EZKL example notebook)",
+      "url": "https://github.com/zkonduit/ezkl/blob/main/examples/notebooks/hashed_vis.ipynb",
+      "source_type": "tutorial",
+      "citationKey": "HashedezklHashingModel",
+      "abstract": "ezkl is an engine for doing inference for deep learning models and other computational graphs in a zk-snark (ZKML). Use it from Python, Javascript, or the command line.  - zkonduit/ezkl"
+    },
+    {
+      "title": "zkCNN: Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy",
+      "url": "https://doi.org/10.1145/3460120.3485379",
+      "source_type": "technical_paper",
+      "authors": [
+        "Tianyi Liu",
+        "Xiang Xie",
+        "Yupeng Zhang"
+      ],
+      "publication_date": "2021-11-12",
+      "citationKey": "liuZkCNNZeroKnowledge2021"
+    }
+  ],
+  "complexity_rating": 4,
+  "computational_cost_rating": 5,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Every credit decision referred to the complaints process was accompanied by a proof, checked by the complaints team, that the model whose weight commitment appears in the independent audit report gives that decision on the applicant's data.",
+      "assuranceGoal": "transparency",
+      "domain": "finance"
+    },
+    {
+      "text": "The accuracy and bias figures in the audit report were computed from outputs proven against the same weight commitment that is used in production.",
+      "assuranceGoal": "transparency",
+      "domain": "finance"
+    },
+    {
+      "text": "Every triage result sampled for challenge in the reporting period was supported by a proof that verified against the commitment to the validated model.",
+      "assuranceGoal": "transparency",
+      "domain": "healthcare"
+    },
+    {
+      "text": "For every test image submitted by the regulator's inspectors, the age-estimation service returned a proof that verified against the certified model's commitment.",
+      "assuranceGoal": "transparency",
+      "domain": "online safety"
+    }
+  ]
+}

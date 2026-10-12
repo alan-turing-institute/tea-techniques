@@ -1,0 +1,762 @@
+{
+  "goal": "explainability",
+  "dimension": "explanation-evaluation",
+  "subcategories": [],
+  "techniques": [
+    {
+      "slug": "explainer-latency-benchmarking",
+      "name": "Explainer Latency Benchmarking",
+      "description": "Explainer latency benchmarking measures how long an explanation method takes to produce an explanation for a single prediction, on the hardware, software and settings it will run with, and compares the result with the time that the decision it supports allows. The evaluator first sets the time budget, the share of the time the decision allows that is left for the explanation once the prediction is ready, then runs the explainer exactly as it will be deployed (the same model, background data, number of samples and batch size) on a representative set of real inputs, timing each explanation from request to a result ready to display, after warm-up runs and with one-off set-up costs, such as building the explainer, recorded separately. Because the time varies with the model, the data, the hardware and the load on the system, each configuration is timed many times, as machine-learning inference benchmarks such as MLPerf Inference time a model, under realistic concurrent demand where the explainer runs as a shared service, and the result is reported as a distribution: the median, high percentiles such as the 95th or 99th, the slowest case and the share of explanations over budget. Canha et al.'s benchmark framework for explanation methods, which scores methods on properties measurable without human participants, includes this property under the name speed and rates it on a five-level scale with cut-offs at 0.1, 1, 5 and 10 seconds aligned with human response-time limits; the scale suits comparisons between methods, while a claim about a deployment needs the measured percentiles set against that deployment's own budget. The output is a latency profile for each explainer configuration, recorded with its hardware, software versions and load, which shows whether explanations will arrive in time and lets a team choose between explainers and settings on speed alongside the explanation quality measured by other tests.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "assurance-goal-category/explainability/property/efficiency",
+        "explanatory-scope/local",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/software-engineering",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A card issuer shows its fraud analysts a feature attribution beside each held transaction and needs it within the two seconds before the review queue refreshes. Benchmarking on the production server at peak queue load, it finds that a sampling-based explainer misses the budget for about one explanation in twenty while an explainer specific to its tree ensemble stays well inside it, and adopts the second once its attributions pass the same faithfulness tests.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A hospital adding an explanation panel to a sepsis-risk alert in its electronic health record agrees with clinicians that the panel must load within one second of a nurse opening the alert. The informatics team times explanations on the hospital's own servers with a week of real alerts at typical volume, reports the 95th percentile and the slowest case against that limit, and repeats the measurement after each model or software update.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "An online marketplace shows each seller the main reasons its moderation model held a new listing for review, and the page must update within three seconds. Before launch, the team times the service on its production servers with a week of recorded traffic replayed at its real pace; the first request after each quiet period is far slower because the explainer and its background data load on demand. It keeps a loaded explainer running, re-measures, and reports the slowest case.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Speed and explanation quality trade off through the explainer's settings. Sampling-based explainers run faster with fewer samples or a smaller background dataset, but SHAP's documentation notes that more samples give lower-variance estimates, so a faster setting gives noisier explanations. A latency result holds only for the settings tested, and must be measured at the settings whose faithfulness and stability were checked, or a configuration may meet the budget with untested explanations."
+        },
+        {
+          "description": "Times depend on the hardware, the implementation and the load at the moment of measurement, which Canha et al. single out as the main caveat on their speed metric, so a figure from a developer's workstation does not carry over to a shared production server or an edge device. Any change to the model, the explainer version, the hardware or the traffic pattern calls for re-measurement, and the configuration must be recorded with the result for it to be checked or repeated."
+        },
+        {
+          "description": "Claims about the slowest cases need many timed explanations. MLPerf Inference, which sets tail-latency bounds for model inference in the same way, sizes its runs so that a 99th-percentile bound holds with 99 per cent confidence, which at its chosen margin takes about 263,000 queries. A few hundred timings can support a claim about the median but not about the 99th percentile, and a single timed run supports neither."
+        },
+        {
+          "description": "A fast explanation is not necessarily a good one. Latency says nothing about whether an explanation reflects what the model did or whether people can use it, and it leaves out the time a person needs to read it. It supports a claim about explanations only alongside tests of faithfulness and stability and, where people act on the explanations, a study of whether they can use them within the time available."
+        },
+        {
+          "description": "The budget has to come from the decision, not from a generic scale. Canha et al.'s cut-offs reflect general limits on human response time, which may be looser or tighter than a particular workflow allows, and a budget that leaves out the time to run the model, move the data and display the result will be met in the benchmark and missed in use; MLPerf likewise derives its server-scenario latency bounds from the user's overall time target."
+        }
+      ],
+      "resources": [
+        {
+          "title": "A Functionally-Grounded Benchmark Framework for XAI Methods: Insights and Foundations from a Systematic Literature Review",
+          "url": "https://doi.org/10.1145/3737445",
+          "source_type": "technical_paper",
+          "authors": [
+            "Dulce Canha",
+            "Sylvain Kubler",
+            "Kary Främling",
+            "Guy Fagherazzi"
+          ],
+          "publication_date": "2025-7-14",
+          "citationKey": "canhaFunctionallyGroundedBenchmarkFramework2025"
+        },
+        {
+          "title": "MLPerf Inference Benchmark",
+          "url": "https://doi.org/10.1109/isca45697.2020.00045",
+          "source_type": "technical_paper",
+          "authors": [
+            "Vijay Janapa Reddi",
+            "Christine Cheng",
+            "David Kanter",
+            "Peter Mattson",
+            "Guenther Schmuelling",
+            "Carole-Jean Wu",
+            "Brian Anderson",
+            "Maximilien Breughe",
+            "Mark Charlebois",
+            "William Chou",
+            "Ramesh Chukka",
+            "Cody Coleman",
+            "Sam Davis",
+            "Pan Deng",
+            "Greg Diamos",
+            "Jared Duke",
+            "Dave Fick",
+            "J. Scott Gardner",
+            "Itay Hubara",
+            "Sachin Idgunji",
+            "Thomas B. Jablin",
+            "Jeff Jiao",
+            "Tom St. John",
+            "Pankaj Kanwar",
+            "David Lee",
+            "Jeffery Liao",
+            "Anton Lokhmotov",
+            "Francisco Massa",
+            "Peng Meng",
+            "Paulius Micikevicius",
+            "Colin Osborne",
+            "Gennady Pekhimenko",
+            "Arun Tejusve Raghunath Rajan",
+            "Dilip Sequeira",
+            "Ashish Sirasao",
+            "Fei Sun",
+            "Hanlin Tang",
+            "Michael Thomson",
+            "Frank Wei",
+            "Ephrem Wu",
+            "Lingjie Xu",
+            "Koichi Yamada",
+            "Bing Yu",
+            "George Yuan",
+            "Aaron Zhong",
+            "Peizhao Zhang",
+            "Yuchen Zhou"
+          ],
+          "publication_date": "2020-5",
+          "citationKey": "reddiMLPerfInferenceBenchmark2020"
+        },
+        {
+          "title": "PyTorch Benchmark (PyTorch recipe)",
+          "url": "https://docs.pytorch.org/tutorials/recipes/recipes/benchmark.html",
+          "source_type": "tutorial",
+          "citationKey": "PyTorchBenchmarkPyTorch"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 2,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On the production review server at peak queue load, 99 per cent of feature attributions for held transactions were delivered within the two-second budget set by the fraud-review workflow, measured over more than 300,000 explanations.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "The explainer configuration whose latency was benchmarked, including its background data and number of samples, is the same configuration whose faithfulness and stability were evaluated.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        },
+        {
+          "text": "After the latest model update, explanation latency was re-measured on the hospital's production servers at typical alert volume, and both the 95th percentile and the slowest case remained within the one-second limit agreed with clinical users.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "On the listing-review service's production servers, with a week of recorded traffic replayed at its real pace, both the 95th-percentile and the slowest explanation times, including requests after quiet periods, were within the three-second budget.",
+          "assuranceGoal": "explainability",
+          "domain": "e-commerce"
+        }
+      ]
+    },
+    {
+      "slug": "deletion-and-insertion-curves",
+      "name": "Deletion and Insertion Curves",
+      "description": "Deletion and insertion curves test whether a feature-attribution explanation, such as a heatmap over an image or highlighted words in a text, puts first the input features the model actually relies on. For the deletion curve, the evaluator removes features in the order the explanation ranks them, most important first, replacing each with a neutral value such as zero, the dataset mean, random noise or a blurred copy, and records the model's score for the explained class after each step; a faithful ranking makes the score fall quickly, so a smaller area under the curve is better (equivalently, a larger area over it, the AOPC score Samek et al. report). The insertion curve runs the other way: it starts from an input with every feature removed or blurred, restores features in ranked order, and rewards a fast rise. For text, the same procedure is often reported as comprehensiveness (how far the predicted-class probability drops when the top-ranked words are deleted) and sufficiency (how far it drops when only those words are kept), either at one cut-off or averaged over cut-offs from the top 1% to the top 50% of words. Explanation methods are compared on the same model, inputs and replacement value, against a random ranking as a baseline, and the result shows how well the ranking tracks the model's behaviour, not whether the highlighted features make sense to a person.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability/property/fidelity",
+        "data-requirements/no-special-requirements",
+        "data-type/image",
+        "data-type/text",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/evaluation-design",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A hospital's cardiology informatics team has a deep network that measures intervals and amplitudes from 12-lead ECGs and must choose which heatmap method to show cardiologists. It perturbs the highest-ranked sample points first, one per step, tracks the rise in measurement error over several thousand ECGs, and compares each method's area under the error curve with that of random heatmaps. Because expert preferences and the curves can disagree, it reports both before choosing.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A regulator's data team routes consumer complaints with a fine-tuned transformer classifier and wants to highlight for caseworkers the words behind each routing decision. Before choosing between two word-attribution methods, it computes comprehensiveness and sufficiency on a validation sample at the 1, 5, 10, 20 and 50% cut-offs and adopts a method only if it clearly beats randomly ranked words on both measures.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A rail operator's engineering team uses an image classifier to flag defects in track inspection photographs and wants heatmaps that point inspectors to the defect. It runs deletion with pixels set to a constant and insertion from a blurred image for three heatmap methods, then repeats the deletion run with a second replacement value, and adopts a method only if it ranks first under both.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Removing pixels or words produces inputs unlike anything the model was trained on, so part of the drop in score can be the model reacting to an unfamiliar input rather than to the loss of the information the explanation pointed to, and the shape of the removed region can itself carry class information. Results are least trustworthy when large parts of the input are removed; variants that retrain the model or fill removed pixels from their neighbours reduce the effect."
+        },
+        {
+          "description": "The score depends on how features are removed and in what order. On one image classifier, the best-ranked method changed when removed pixels were set to the dataset mean instead of random colours, removing the least relevant pixels first ranked the methods roughly in reverse of removing the most relevant first, and rankings varied from image to image. A comparison holds only for the stated replacement value, order, step size and fraction removed, and should be checked under a second replacement."
+        },
+        {
+          "description": "Only the order of the attribution scores counts, not their size, so explanations with very different magnitudes can receive the same score. Taking absolute values of signed attributions changes the order and hence the result. The curves cannot tell an explanation that ranks the right features but gives them misleading magnitudes from one that gets both right; that needs a measure that uses the attribution values."
+        },
+        {
+          "description": "The curves show whether the ranking tracks the model, not whether the explanation is useful or correct for the domain: a model that relies on a spurious cue receives a faithful explanation of that cue. In a study of ECG models, ECG experts' choice of the best heatmap method disagreed considerably with the perturbation ranking, so a good curve does not show that experts will find the explanation helpful."
+        },
+        {
+          "description": "Each curve needs one model evaluation per step, for every input and method compared, so fine-grained curves over large images, long documents or big test sets are expensive. In the original region-perturbation study, two settings over 5,040 images each, with 100 steps repeated ten times because the replacement values were random, took roughly 36 hours on a workstation with 20 hyper-threaded Xeon cores in 2015. Coarser steps cut the cost but make the curve less able to separate methods."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Deletion — Xplique documentation",
+          "url": "https://deel-ai.github.io/xplique/latest/api/attributions/metrics/deletion/",
+          "source_type": "documentation",
+          "citationKey": "DeletionXpliqueDocumentation"
+        },
+        {
+          "title": "Xplique (deel-ai/xplique)",
+          "url": "https://github.com/deel-ai/xplique",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T04:32:57Z",
+          "citationKey": "XpliqueDeelaiXplique2026",
+          "abstract": "👋 Xplique is a Neural Networks Explainability Toolbox"
+        },
+        {
+          "title": "Evaluating the Visualization of What a Deep Neural Network Has Learned",
+          "url": "https://doi.org/10.1109/tnnls.2016.2599820",
+          "source_type": "technical_paper",
+          "authors": [
+            "Wojciech Samek",
+            "Alexander Binder",
+            "Gregoire Montavon",
+            "Sebastian Lapuschkin",
+            "Klaus-Robert Muller"
+          ],
+          "publication_date": "2017-11",
+          "citationKey": "samekEvaluatingVisualizationWhat2017"
+        },
+        {
+          "title": "RISE: Randomized Input Sampling for Explanation of Black-box Models",
+          "url": "https://bmva-archive.org.uk/bmvc/2018/contents/papers/1064.pdf",
+          "source_type": "technical_paper",
+          "authors": [
+            "Vitali Petsiuk",
+            "Abir Das",
+            "Kate Saenko"
+          ],
+          "publication_date": "2018",
+          "citationKey": "RISERandomizedInput"
+        },
+        {
+          "title": "ERASER: A Benchmark to Evaluate Rationalized NLP Models",
+          "url": "https://doi.org/10.18653/v1/2020.acl-main.408",
+          "source_type": "technical_paper",
+          "authors": [
+            "Jay DeYoung",
+            "Sarthak Jain",
+            "Nazneen Fatema Rajani",
+            "Eric Lehman",
+            "Caiming Xiong",
+            "Richard Socher",
+            "Byron C. Wallace"
+          ],
+          "publication_date": "2020",
+          "citationKey": "deyoungERASERBenchmarkEvaluate2020"
+        },
+        {
+          "title": "Attribution Metrics tutorial (Xplique)",
+          "url": "https://colab.research.google.com/drive/1WEpVpFSq-oL1Ejugr8Ojb3tcbqXIOPBg",
+          "source_type": "tutorial",
+          "citationKey": "AttributionMetricsTutorial"
+        },
+        {
+          "title": "Evaluating gradient-based explanation methods for neural network ECG analysis using heatmaps",
+          "url": "https://doi.org/10.1093/jamia/ocae280",
+          "source_type": "application_paper",
+          "authors": [
+            "Andrea Marheim Storås",
+            "Steffen Mæland",
+            "Jonas L Isaksen",
+            "Steven Alexander Hicks",
+            "Vajira Thambawita",
+            "Claus Graff",
+            "Hugo Lewi Hammer",
+            "Pål Halvorsen",
+            "Michael Alexander Riegler",
+            "Jørgen K Kanters"
+          ],
+          "publication_date": "2024-11-6",
+          "citationKey": "storasEvaluatingGradientbasedExplanation2024"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Across a held-out set of ECGs, perturbing the sample points ranked highest by the selected heatmap method raises the interval-measurement error faster than perturbing points ranked by random heatmaps, by at least the margin set in the validation plan, measured by the area under the error curve over the first 15 perturbation steps.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "The word highlights shown to complaint caseworkers exceed randomly ranked words by at least the margin set in the validation plan on both comprehensiveness and sufficiency (higher comprehensiveness, lower sufficiency) on the validation sample, averaged over the 1, 5, 10, 20 and 50% cut-offs.",
+          "assuranceGoal": "explainability",
+          "domain": "public sector"
+        },
+        {
+          "text": "The heatmap method used in the track-inspection tool has a smaller deletion area and a larger insertion area than the other candidate methods on the validation images, under both replacement values tested.",
+          "assuranceGoal": "explainability",
+          "domain": "transport"
+        }
+      ]
+    },
+    {
+      "slug": "explanation-infidelity",
+      "name": "Explanation Infidelity",
+      "description": "Explanation infidelity scores a feature-attribution explanation (one importance score per input feature) by how well it predicts what the model does when the input is changed. The evaluator chooses a distribution of meaningful perturbations, for example small random noise around a reference input, or setting random subsets of features or square patches of an image to a reference value, and draws many perturbations from it. For each one it compares the change in output that the explanation predicts, the sum over features of each feature's perturbation multiplied by its attribution score, with the change the model actually shows, its output on the original input minus its output on the perturbed one. Infidelity is the average squared difference between the two, estimated by random sampling, so lower is better; Yeh et al. (2019), who proposed it, showed that several common explanation methods each have the lowest infidelity for one particular perturbation distribution, so the distribution chosen defines what counts as faithful in a given test. Scores are averaged over a set of inputs and compared across explanation methods, or across settings of one method, under the same perturbations; unlike a deletion curve, the score uses the size of each attribution as well as its rank.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability/property/fidelity",
+        "data-requirements/no-special-requirements",
+        "data-type/image",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning",
+        "technique-type/metric"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A bank's model-risk team must choose which attribution method supplies the reason scores shown to credit analysts for a neural-network default model. It computes infidelity on held-out applications for three candidate methods, with perturbations that set random subsets of features to a documented reference applicant and with rescaling switched on, and records the perturbation distribution in the validation report beside the method it selects.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A manufacturer's quality team uses a convolutional network to flag defects in weld radiographs and smooths its gradient heatmaps by averaging them over noisy copies of each image. It sets the amount of noise by computing infidelity under square-patch perturbations sized to typical defects on validation radiographs and choosing the level with the lowest score, since in the original study infidelity first fell and then rose as smoothing increased.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A hospital's clinical AI team retrains its deterioration-risk model each quarter and shows ward staff the attribution scores behind each alert. After every retraining it recomputes rescaled infidelity on the latest validation data, with the perturbations fixed at first validation, for the deployed attribution settings and two alternatives, and holds the release for review if the deployed settings are no longer the lowest, since the absolute score also moves with the retrained model.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "What counts as faithful is set by the perturbation distribution. Yeh et al. show that several common explanations each have the lowest possible infidelity for one particular distribution (for example, Shapley values for the feature-subset scheme that SHAP uses), so a comparison can be won by choosing matching perturbations. The distribution should be fixed in advance and justified by the question the explanation is meant to answer."
+        },
+        {
+          "description": "The score is a squared error between predicted and actual changes in output, so it depends on the scale of the attribution scores: two methods that rank features identically but on different scales get different infidelity. Yeh et al. rescale each explanation optimally before scoring, and Captum offers this rescaling as an option that is off by default; without it, comparisons across methods mislead."
+        },
+        {
+          "description": "Some attribution methods multiply each feature's sensitivity by the input's distance from a reference and others do not, and the perturbation term has to be computed to match. Yeh et al. compare the two kinds separately, and Captum asks the user to state which kind is being scored; getting this wrong produces a score that reflects the mismatch rather than the explanation."
+        },
+        {
+          "description": "It follows from the definition, though Yeh et al. do not discuss it, that the predicted change is a sum of per-feature effects. Where the model's response to the chosen perturbations is not additive, as when pixels within an object or words within a phrase interact, no attribution can reach zero infidelity. The floor is the same for every method scored on the same model and perturbations, so rankings stand, but the score is not the explanation's error alone and cannot be compared across models."
+        },
+        {
+          "description": "The score is an average over random perturbations, each needing a model evaluation. Yeh et al. used 1,000 perturbations per input; Captum's default is 10. Few samples give noisy scores, so small differences between methods need repeated runs, while many samples multiply the cost by the inputs, methods and settings compared. Quantus's built-in version perturbs square patches and so handles image data only."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Metrics — Captum API reference",
+          "url": "https://captum.ai/api/metrics.html",
+          "source_type": "documentation",
+          "citationKey": "MetricsCaptumAPI",
+          "abstract": "Model Interpretability for PyTorch"
+        },
+        {
+          "title": "captum",
+          "url": "https://github.com/meta-pytorch/captum",
+          "source_type": "software_package",
+          "publication_date": "2019-08-27",
+          "citationKey": "meta-pytorchCaptum2019",
+          "abstract": "Model interpretability and understanding for PyTorch"
+        },
+        {
+          "title": "On the (In)fidelity and Sensitivity of Explanations",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2019/hash/a7471fdc77b3435276507cc8f2dc2569-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Chih-Kuan Yeh",
+            "Cheng-Yu Hsieh",
+            "Arun Suggala",
+            "David I Inouye",
+            "Pradeep K Ravikumar"
+          ],
+          "publication_date": "2019",
+          "citationKey": "yehInfidelitySensitivityExplanations2019",
+          "abstract": "We consider objective evaluation measures of saliency explanations for complex black-box machine learning models. We propose simple robust variants of two notions that have been considered in recent literature: (in)fidelity, and sensitivity. We analyze optimal explanations with respect to both these measures, and while the optimal explanation for sensitivity is a vacuous constant explanation, the optimal explanation for infidelity is a novel combination of two popular explanation methods. By varying the perturbation distribution that defines infidelity, we obtain novel explanations by optimizing infidelity, which we show to out-perform existing explanations in both quantitative and qualitative measurements. Another salient question given these measures is how to modify any given explanation to have better values with respect to these measures. We propose a simple modification based on lowering sensitivity, and moreover show that when done appropriately, we could simultaneously improve both sensitivity as well as fidelity."
+        },
+        {
+          "title": "ImageNet Example All Metrics (Quantus tutorial)",
+          "url": "https://github.com/understandable-machine-intelligence-lab/Quantus/blob/main/tutorials/Tutorial_ImageNet_Example_All_Metrics.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "ImageNetExampleAll",
+          "abstract": "[JMLR 2023] Quantus is an eXplainable AI toolkit for responsible evaluation of neural network explanations - understandable-machine-intelligence-lab/Quantus"
+        },
+        {
+          "title": "Investigations on Explainable Artificial Intelligence methods for the deep learning classification of fibre layup defect in the automated composite manufacturing",
+          "url": "https://doi.org/10.1016/j.compositesb.2021.109160",
+          "source_type": "application_paper",
+          "authors": [
+            "Sebastian Meister",
+            "Mahdieu Wermes",
+            "Jan Stüve",
+            "Roger M. Groves"
+          ],
+          "publication_date": "2021-11",
+          "citationKey": "meisterInvestigationsExplainableArtificial2021"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Under the documented perturbation distribution, the attribution method that supplies credit analysts' reason scores has the lowest rescaled infidelity of the candidate methods on the held-out applications.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "The smoothing level used for weld-radiograph heatmaps gives lower mean infidelity under square-patch perturbations than the unsmoothed heatmaps on the validation radiographs.",
+          "assuranceGoal": "explainability",
+          "domain": "manufacturing"
+        },
+        {
+          "text": "After each quarterly retraining, the deployed attribution settings have the lowest rescaled infidelity of the settings compared on current validation data, under the perturbation distribution fixed when the explainer was first validated.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        }
+      ]
+    },
+    {
+      "slug": "explanation-max-sensitivity",
+      "name": "Explanation Max-Sensitivity",
+      "description": "Explanation max-sensitivity measures how stable an explanation is: whether inputs that differ only slightly, in ways that should not change the answer, receive very different explanations. For each input, the evaluator samples many nearby points within a small radius (for example, no feature moved by more than 0.02 on a 0 to 1 scale), recomputes the explanation at each with the same explanation method, and records the largest distance between a recomputed explanation and the original; Yeh et al. (2019) defined the measure and estimated it by random sampling. Dividing each change in the explanation by the distance the input moved, and taking the largest ratio, gives the closely related local Lipschitz estimate of Alvarez-Melis and Jaakkola (2018), which they maximised with an optimiser rather than by sampling; the two are not interchangeable, because the ratio is dominated by the smallest input changes and can be unbounded where max-sensitivity is finite, so they can rank methods differently. Lower scores mean a more stable explanation, and scores are compared across explanation methods, or across settings of one method, on the same inputs, radius and distance measure. The test treats the explanation method as a black box, so it applies to attribution scores from any method, but on its own it says nothing about faithfulness: a constant explanation that ignores the model is perfectly stable.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability/property/consistency",
+        "data-requirements/no-special-requirements",
+        "data-type/image",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "technique-type/metric"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A consumer lender tells declined applicants the main reasons for each decision, taken from Shapley-value attributions of its credit model. Its model-risk team measures max-sensitivity on a sample of declined applications, perturbing features only within bounds the lending policy treats as immaterial, to choose between two sampling budgets for the explainer, because applicants who differ trivially should not be given different main reasons.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "An Earth-observation team comparing attribution methods for a multi-label land-cover classifier on satellite image patches computes max-sensitivity for each method together with a most-relevant-first deletion curve, and short-lists methods that do well on both. Pairing the two matters because smoothing an explanation lowers its sensitivity, and a stable method is worth choosing only if it also tracks the model.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A vehicle perception team averages gradient heatmaps over noisy copies of each camera frame to steady them for safety reviewers. It sets the noise level by tracking max-sensitivity and infidelity together on validation frames as the level rises, and picks the point where sensitivity has levelled off before infidelity starts to increase, since too much smoothing produces stable maps that no longer reflect the detector.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A low score does not mean the explanation is right. The most stable explanation possible is a constant one that ignores the model, and heavy smoothing keeps lowering sensitivity while eventually making the explanation less faithful. Max-sensitivity should be reported with a measure of faithfulness on the same inputs, and a method should not be chosen for stability alone."
+        },
+        {
+          "description": "The sampled maximum is a lower bound on the true worst case: with a handful of random samples per input (Captum's default is 10), the largest change found can be far below the largest that exists. Deliberately chosen perturbations that leave the prediction unchanged can alter explanations dramatically, so a low score does not show that explanations resist manipulation."
+        },
+        {
+          "description": "The number depends on settings that differ between tools: the radius, the distance measure for inputs and explanations, the number of samples and whether explanations are normalised first. By default Captum samples 10 points within a radius of 0.02 and Quantus 200 points within 0.2, ten times wider, while Yeh et al. used 50 points within 0.1 and normalised explanations to unit length. Scores are comparable only under identical settings and identically scaled inputs."
+        },
+        {
+          "description": "A high score can come from the model rather than the explanation method. Near a decision boundary, or where the model's output changes quickly, a faithful explanation should change, and Yeh et al. note that explanations built from the model's own sensitivity can be more sensitive than the model. Perturbations that change the prediction should be excluded or reported separately."
+        },
+        {
+          "description": "The test assumes inputs can be nudged by small continuous amounts. For words, categories or other discrete inputs no such small change exists, and the fallback of comparing explanations of similar examples already in the test data is weaker and depends on how many close neighbours the data contain. The per-unit Lipschitz form can be unbounded for gradient explanations of ReLU networks, one reason Yeh et al. prefer the undivided maximum, which stays finite."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Metrics — Captum API reference",
+          "url": "https://captum.ai/api/metrics.html",
+          "source_type": "documentation",
+          "citationKey": "MetricsCaptumAPI",
+          "abstract": "Model Interpretability for PyTorch"
+        },
+        {
+          "title": "captum",
+          "url": "https://github.com/meta-pytorch/captum",
+          "source_type": "software_package",
+          "publication_date": "2019-08-27",
+          "citationKey": "meta-pytorchCaptum2019",
+          "abstract": "Model interpretability and understanding for PyTorch"
+        },
+        {
+          "title": "On the (In)fidelity and Sensitivity of Explanations",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2019/hash/a7471fdc77b3435276507cc8f2dc2569-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Chih-Kuan Yeh",
+            "Cheng-Yu Hsieh",
+            "Arun Suggala",
+            "David I Inouye",
+            "Pradeep K Ravikumar"
+          ],
+          "publication_date": "2019",
+          "citationKey": "yehInfidelitySensitivityExplanations2019",
+          "abstract": "We consider objective evaluation measures of saliency explanations for complex black-box machine learning models. We propose simple robust variants of two notions that have been considered in recent literature: (in)fidelity, and sensitivity. We analyze optimal explanations with respect to both these measures, and while the optimal explanation for sensitivity is a vacuous constant explanation, the optimal explanation for infidelity is a novel combination of two popular explanation methods. By varying the perturbation distribution that defines infidelity, we obtain novel explanations by optimizing infidelity, which we show to out-perform existing explanations in both quantitative and qualitative measurements. Another salient question given these measures is how to modify any given explanation to have better values with respect to these measures. We propose a simple modification based on lowering sensitivity, and moreover show that when done appropriately, we could simultaneously improve both sensitivity as well as fidelity."
+        },
+        {
+          "title": "On the Robustness of Interpretability Methods",
+          "url": "https://arxiv.org/abs/1806.08049",
+          "source_type": "technical_paper",
+          "authors": [
+            "David Alvarez-Melis",
+            "Tommi S. Jaakkola"
+          ],
+          "publication_date": "2018-06-21",
+          "citationKey": "alvarez-melisRobustnessInterpretabilityMethods2018",
+          "abstract": "We argue that robustness of explanations---i.e., that similar inputs should give rise to similar explanations---is a key desideratum for interpretability. We introduce metrics to quantify robustness and demonstrate that current methods do not perform well according to these metrics. Finally, we propose ways that robustness can be enforced on existing interpretability approaches."
+        },
+        {
+          "title": "Getting started — Quantus documentation",
+          "url": "https://quantus.readthedocs.io/en/latest/getting_started/getting_started_example.html",
+          "source_type": "tutorial",
+          "citationKey": "GettingStartedQuantus"
+        },
+        {
+          "title": "Evaluating explainable artificial intelligence methods for multi-label deep learning classification tasks in remote sensing",
+          "url": "https://doi.org/10.1016/j.jag.2021.102520",
+          "source_type": "application_paper",
+          "authors": [
+            "Ioannis Kakogeorgiou",
+            "Konstantinos Karantzalos"
+          ],
+          "publication_date": "2021-12",
+          "citationKey": "kakogeorgiouEvaluatingExplainableArtificial2021"
+        },
+        {
+          "title": "Investigations on Explainable Artificial Intelligence methods for the deep learning classification of fibre layup defect in the automated composite manufacturing",
+          "url": "https://doi.org/10.1016/j.compositesb.2021.109160",
+          "source_type": "application_paper",
+          "authors": [
+            "Sebastian Meister",
+            "Mahdieu Wermes",
+            "Jan Stüve",
+            "Roger M. Groves"
+          ],
+          "publication_date": "2021-11",
+          "citationKey": "meisterInvestigationsExplainableArtificial2021"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "On a held-out sample of declined applications, the largest change in normalised attribution scores under perturbations within the lending policy's immaterial bounds stays below the agreed threshold for at least 95% of applications.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "The attribution method used for land-cover analysts has the lowest mean max-sensitivity of the candidate methods on the validation patches at the stated radius and sample count, and a steeper deletion curve than a random ranking.",
+          "assuranceGoal": "explainability",
+          "domain": "environmental"
+        },
+        {
+          "text": "At the noise level used to smooth the perception system's heatmaps, mean infidelity on validation frames is no higher than at any lower level tested, and mean max-sensitivity is within the tolerance stated in the test plan of the lowest value reached across the levels tested.",
+          "assuranceGoal": "explainability",
+          "domain": "autonomous systems"
+        }
+      ]
+    },
+    {
+      "slug": "sanity-checks-for-saliency-maps",
+      "name": "Sanity Checks for Saliency Maps",
+      "description": "Sanity checks for saliency maps are two randomisation tests that show whether an explanation method's output depends on what a neural network has learned, or would look much the same for a network that had learned nothing. In the model parameter randomisation test, the evaluator recomputes explanations for a fixed set of inputs after replacing the trained weights with random ones, either cumulatively from the output layer down towards the input (cascading randomisation) or one layer at a time with the others left trained (independent randomisation). In the data randomisation test, the evaluator trains a copy of the same architecture on the training data with the labels shuffled, until it has memorised them, and compares its explanations with those of the model trained on the true labels. Similarity between original and randomised explanations is measured with rank correlation, with and without absolute values, and with image similarity scores such as the structural similarity index; a method whose maps stay similar fails, because its output cannot reflect the learned weights or the relationship between inputs and labels, as Guided Backpropagation and Guided GradCAM failed in the original study when the upper layers were randomised, while plain gradients and GradCAM passed. Passing is a necessary condition, not proof of a good explanation: it shows a method responds to the model, not that its explanations are faithful or useful.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/white-box",
+        "applicable-models/requirements/model-internals",
+        "assurance-goal-category/explainability/property/fidelity",
+        "data-requirements/access-to-training-data",
+        "data-requirements/labelled-data",
+        "data-type/image",
+        "data-type/tabular",
+        "data-type/time-series",
+        "evidence-type/quantitative-metric",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A radiology AI group considering saliency maps as a guide to where a chest-radiograph model sees a pneumothorax runs cascading randomisation on the trained network, measuring structural similarity between original and randomised maps after each block. It sets aside methods whose maps stay similar, as several common methods did in a published study of this task, unless a deletion test shows they still track the model, and uses the rest only alongside a separately validated localisation model.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "An insurer's fraud analytics team shows investigators attribution scores for each claim flagged by a neural-network model. Before rollout it runs independent layer randomisation, one layer at a time, and checks that rank correlation without absolute values falls for every layer, so that the scores investigators see depend on the trained weights throughout the network rather than mostly on the claim's raw feature values.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A wind-farm operator's reliability team uses a one-dimensional convolutional network on gearbox vibration signals and gives maintenance engineers heatmaps over each signal. It runs the data randomisation test by training the same architecture on shuffled fault labels until it fits them, and keeps only heatmap methods whose maps differ clearly between the two networks, since a map that survives shuffled labels cannot show what the network learned about faults.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Passing is easy for an explanation that carries no information. Binder et al. show that attribution maps with no correlation between neighbouring pixels score well in model randomisation tests, and that top-down randomisation tends to preserve the scale of forward-pass activations, so even a good explanation can change only so much. They argue the test should not alone decide whether a method is kept: two methods that score poorly on it beat several gradient methods in occlusion-based tests."
+        },
+        {
+          "description": "The verdict depends on how similarity is measured. In the original study, rank correlation with absolute values and structural similarity stayed high for some methods after randomisation while rank correlation without absolute values fell to near zero, because randomisation flipped signs but kept the input's outline. There is no agreed pass threshold and libraries set their own defaults, so the measure, absolute-value setting and threshold must be reported with the result."
+        },
+        {
+          "description": "The similarity measures are sensitive to noise, so a method with noisy maps looks changed by randomisation partly because of its own noise, and its score is overstated. Later work proposes repairs: averaging each explanation over noisy copies of the input before comparing (Smooth MPRT), or comparing how much more complex the explanation becomes after full randomisation (Efficient MPRT); its authors report more reliable results with both."
+        },
+        {
+          "description": "The model parameter test needs the weights and a layered network, so it cannot be run on a model reached only through an interface. The data randomisation test needs the training data and pipeline and a network able to memorise shuffled labels; the original study trained to over 95% training accuracy, which for a large model costs a full training run."
+        },
+        {
+          "description": "Most evidence for the tests comes from image classifiers. Passing says nothing about whether the highlighted regions match what matters in the domain: in a chest-radiograph study, every saliency method, including those that passed the randomisation test, localised abnormalities worse than a dedicated detection or segmentation network."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ModelRandomizationMetric — Xplique documentation",
+          "url": "https://deel-ai.github.io/xplique/latest/api/attributions/metrics/model_randomization/",
+          "source_type": "documentation",
+          "citationKey": "ModelRandomizationMetricXpliqueDocumentation"
+        },
+        {
+          "title": "Quantus (understandable-machine-intelligence-lab/Quantus)",
+          "url": "https://github.com/understandable-machine-intelligence-lab/Quantus",
+          "source_type": "software_package",
+          "citationKey": "QuantusUnderstandablemachineintelligencelabQuantus",
+          "abstract": "[JMLR 2023] Quantus is an eXplainable AI toolkit for responsible evaluation of neural network explanations - understandable-machine-intelligence-lab/Quantus"
+        },
+        {
+          "title": "Sanity Checks for Saliency Maps",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2018/hash/294a8ed24b1ad22ec2e7efea049b8737-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Julius Adebayo",
+            "Justin Gilmer",
+            "Michael Muelly",
+            "Ian Goodfellow",
+            "Moritz Hardt",
+            "Been Kim"
+          ],
+          "publication_date": "2018",
+          "citationKey": "adebayoSanityChecksSaliency2018",
+          "abstract": "Saliency methods have emerged as a popular tool to highlight features in an input\ndeemed relevant for the prediction of a learned model. Several saliency methods\nhave been proposed, often guided by visual appeal on image data. In this work, we\npropose an actionable methodology to evaluate what kinds of explanations a given\nmethod can and cannot provide. We find that reliance, solely, on visual assessment\ncan be misleading. Through extensive experiments we show that some existing\nsaliency methods are independent both of the model and of the data generating\nprocess. Consequently, methods that fail the proposed tests are inadequate for\ntasks that are sensitive to either data or model, such as, finding outliers in the data,\nexplaining the relationship between inputs and outputs that the model learned,\nand debugging the model. We interpret our findings through an analogy with\nedge detection in images, a technique that requires neither training data nor model.\nTheory in the case of a linear model and a single-layer convolutional neural network\nsupports our experimental findings."
+        },
+        {
+          "title": "Attribution Randomization Metrics (Sanity Checks) tutorial (Xplique)",
+          "url": "https://colab.research.google.com/drive/13lNkZqKajRJ63XllkQddgrPOYF1Xv9-Y",
+          "source_type": "tutorial",
+          "citationKey": "AttributionRandomizationMetrics"
+        },
+        {
+          "title": "Assessing the Trustworthiness of Saliency Maps for Localizing                     Abnormalities in Medical Imaging",
+          "url": "https://doi.org/10.1148/ryai.2021200267",
+          "source_type": "application_paper",
+          "authors": [
+            "Nishanth Arun",
+            "Nathan Gaw",
+            "Praveer Singh",
+            "Ken Chang",
+            "Mehak Aggarwal",
+            "Bryan Chen",
+            "Katharina Hoebel",
+            "Sharut Gupta",
+            "Jay Patel",
+            "Mishka Gidwani",
+            "Julius Adebayo",
+            "Matthew D. Li",
+            "Jayashree Kalpathy-Cramer"
+          ],
+          "publication_date": "2021-11-1",
+          "citationKey": "arunAssessingTrustworthinessSaliency2021"
+        },
+        {
+          "title": "Gradient-Based Saliency Maps Are Not Trustworthy Visual Explanations of Automated AI Musculoskeletal Diagnoses",
+          "url": "https://doi.org/10.1007/s10278-024-01136-4",
+          "source_type": "application_paper",
+          "authors": [
+            "Kesavan Venkatesh",
+            "Simukayi Mutasa",
+            "Fletcher Moore",
+            "Jeremias Sulam",
+            "Paul H. Yi"
+          ],
+          "publication_date": "2024-5-6",
+          "citationKey": "venkateshGradientBasedSaliencyMaps2024",
+          "abstract": "Saliency maps are popularly used to “explain” decisions made by modern machine learning models, including deep convolutional neural networks (DCNNs). While the resulting heatmaps purportedly indicate important image features, their “trustworthiness,” i.e., utility and robustness, has not been evaluated for musculoskeletal imaging. The purpose of this study was to systematically evaluate the trustworthiness of saliency maps used in disease diagnosis on upper extremity X-ray images. The underlying DCNNs were trained using the Stanford MURA dataset. We studied four trustworthiness criteria—(1) localization accuracy of abnormalities, (2) repeatability, (3) reproducibility, and (4) sensitivity to underlying DCNN weights—across six different gradient-based saliency methods (Grad-CAM (GCAM), gradient explanation (GRAD), integrated gradients (IG), Smoothgrad (SG), smooth IG (SIG), and XRAI). Ground-truth was defined by the consensus of three fellowship-trained musculoskeletal radiologists who each placed bounding boxes around abnormalities on a holdout saliency test set. Compared to radiologists, all saliency methods showed inferior localization (AUPRCs: 0.438 (SG)–0.590 (XRAI); average radiologist AUPRC: 0.816), repeatability (IoUs: 0.427 (SG)–0.551 (IG); average radiologist IOU: 0.613), and reproducibility (IoUs: 0.250 (SG)–0.502 (XRAI); average radiologist IOU: 0.613) on abnormalities such as fractures, orthopedic hardware insertions, and arthritis. Five methods (GCAM, GRAD, IG, SG, XRAI) passed the sensitivity test. Ultimately, no saliency method met all four trustworthiness criteria; therefore, we recommend caution and rigorous evaluation of saliency maps prior to their clinical use."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every saliency method used in the chest-radiograph review tool produced maps whose structural similarity to the original fell below the agreed threshold once the top blocks of the network were randomised, on a held-out sample of radiographs.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "For the fraud model's attribution scores, rank correlation without absolute values between original and layer-randomised attributions is below the threshold set in the validation plan for every layer tested.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "Heatmaps from the methods kept for the gearbox dashboard differ between the network trained on true fault labels and the same architecture trained on shuffled labels, by more than the threshold stated in the test report.",
+          "assuranceGoal": "explainability",
+          "domain": "energy"
+        }
+      ]
+    }
+  ],
+  "count": 5
+}

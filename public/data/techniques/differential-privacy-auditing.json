@@ -1,0 +1,159 @@
+{
+  "slug": "differential-privacy-auditing",
+  "name": "Differential Privacy Auditing",
+  "description": "Differential privacy auditing tests whether a training procedure that claims a differential privacy guarantee at a stated budget (epsilon, where smaller means stronger privacy) loses more privacy in practice than the claim allows, by measuring a statistical lower bound on its true epsilon. The guarantee itself comes from a mathematical proof, and membership inference testing reports attack success on real records for any model; the audit instead controls which records are present and asks whether the code that was run honours the proof, so it can expose an implementation bug or accounting error but can never confirm the guarantee. The auditor builds two training sets that differ only by one or a few planted records, called canaries and often crafted to be easy to detect, trains the model many times on each, and applies a fixed test to every trained model to guess whether the canary was present. Confidence intervals for the test's true-positive and false-positive rates, such as Clopper-Pearson intervals for a proportion, are converted into a value of epsilon that the procedure must exceed at a stated confidence level, such as 99 per cent; a bound above the claimed epsilon shows that the claim is false for that implementation. Because hundreds of training runs are costly, a later design needs only one: many canaries are each included or left out at random, the test guesses which were included, and the share of correct guesses gives the bound, which is looser than the many-run design's.",
+  "assurance_goals": [
+    "Privacy"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/white-box",
+    "assurance-goal-category/privacy",
+    "assurance-goal-category/privacy/leakage-testing",
+    "data-requirements/access-to-training-data",
+    "data-type/any",
+    "evidence-type/quantitative-metric",
+    "evidence-type/statistical-test",
+    "expertise-needed/privacy-engineering",
+    "expertise-needed/statistics",
+    "expertise-needed/ml-engineering",
+    "technique-type/testing",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation"
+  ],
+  "example_use_cases": [
+    {
+      "description": "Before an NHS trust releases a readmission-risk model trained with an open-source differential privacy library at a claimed epsilon of 3, its data science team audits the exact code and settings: it trains several hundred models with and without a planted mislabelled record and signs off only if the 99 per cent lower bound stays below 3, recording that the audit could have caught a violation but cannot prove the guarantee.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "The maintainers of a differentially private training library run a white-box audit on every release: the auditor sees each intermediate model update and inserts a gradient crafted to be easy to detect, so a change to the clipping or noise-sampling code that silently weakens the guarantee pushes the lower bound above the budget the library reports and fails the build.",
+      "goal": "Privacy"
+    },
+    {
+      "description": "A mobile keyboard team training a next-word model with federated learning under a claimed user-level guarantee adds simulated canary users to its single production training run, each included or left out at random and enough of them that a bound above the claim is reachable, and checks the one-run lower bound against the claim, because retraining the federated model hundreds of times is not feasible.",
+      "goal": "Privacy"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "A result below the claim proves nothing. The bound is only as strong as the audit behind it: weak canaries, a test that sees only the final model, or too few runs or canaries can give bounds far below the claimed epsilon (one library's documented single-run audit with 1,000 canaries reported 0.42 for a model trained at epsilon 68.5, and 5.5 for one trained without differential privacy). Only a bound above the claim is conclusive, and a pass must not be reported as confirming the guarantee."
+    },
+    {
+      "description": "The number of training runs caps what can be detected. With 500 runs per training set and 99 per cent confidence, the largest bound the original method can report is about 4.5 even if the test never errs, so it cannot show a claimed epsilon of 8 to be false; larger budgets need many more runs or a different design. In the single-run design the number of canaries sets the cap in the same way."
+    },
+    {
+      "description": "Bounds come close to the claim only under the strongest access. For DP-SGD on natural data, audits match the claimed epsilon when the auditor sees every intermediate update and inserts crafted gradients, the setting the standard proof assumes. With crafted input records, seeing every update helps only slightly over the final model, and with the final model most of the original audit's bounds were roughly 7 to 12 times below the claim. A result holds only for the access and canaries it assumed."
+    },
+    {
+      "description": "It is expensive. The original method trained 500 models per training set to choose the test's threshold and another 500 per set to estimate its error rates, which is impractical for large models. The single-run design avoids this but gives looser bounds, which weaken further when only the final model is seen and the model cannot memorise all the canaries or other training data is added."
+    },
+    {
+      "description": "It checks one implementation, configuration and pair of datasets. A change of clipping norm, batch size, random initialisation or library version needs a new audit, and canaries that are typical rather than worst-case can miss a violation that affects only unusual records, giving false confidence about the risk to outliers."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Auditing Differential Privacy Lower Bound (Privacy Meter documentation)",
+      "url": "https://github.com/privacytrustlab/ml_privacy_meter/blob/master/documentation/dpaudit.md",
+      "source_type": "documentation",
+      "citationKey": "AuditingDifferentialPrivacy",
+      "abstract": "Privacy Meter: An open-source library to audit data privacy in statistical and machine learning algorithms. - privacytrustlab/ml_privacy_meter"
+    },
+    {
+      "title": "Privacy Meter (privacytrustlab/ml_privacy_meter)",
+      "url": "https://github.com/privacytrustlab/ml_privacy_meter",
+      "source_type": "software_package",
+      "publication_date": "2026-10-06T18:26:21Z",
+      "citationKey": "PrivacyMeterPrivacytrustlab2026",
+      "abstract": "Privacy Meter: An open-source library to audit data privacy in statistical and machine learning algorithms."
+    },
+    {
+      "title": "Auditing Differentially Private Machine Learning: How Private is Private SGD?",
+      "url": "https://proceedings.neurips.cc/paper/2020/hash/fc4ddc15f9f4b4b06ef7844d6bb53abf-Abstract.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Matthew Jagielski",
+        "Jonathan Ullman",
+        "Alina Oprea"
+      ],
+      "publication_date": "2020",
+      "citationKey": "jagielskiAuditingDifferentiallyPrivate2020",
+      "abstract": "We investigate whether Differentially Private SGD offers better privacy in practice than what is guaranteed by its state-of-the-art analysis. We do so via novel data poisoning attacks, which we show correspond to realistic privacy attacks. While previous work (Ma et al., arXiv 2019) proposed this connection between differential privacy and data poisoning as a defense against data poisoning, our use as a tool for understanding the privacy of a specific mechanism is new. More generally, our work takes a quantitative, empirical approach to understanding the privacy afforded by specific implementations of differentially private algorithms that we believe has the potential to complement and influence analytical work on differential privacy."
+    },
+    {
+      "title": "Privacy Meter Demo: Auditing Differential Privacy Lower Bound (notebook)",
+      "url": "https://github.com/privacytrustlab/ml_privacy_meter/blob/master/demo_audit_dp.ipynb",
+      "source_type": "tutorial",
+      "citationKey": "PrivacyMeterDemo",
+      "abstract": "Privacy Meter: An open-source library to audit data privacy in statistical and machine learning algorithms. - privacytrustlab/ml_privacy_meter"
+    },
+    {
+      "title": "Privacy Auditing of Large Language Models",
+      "url": "https://openreview.net/forum?id=60Vd7QOXlM",
+      "source_type": "application_paper",
+      "authors": [
+        "Ashwinee Panda",
+        "Xinyu Tang",
+        "Milad Nasr",
+        "Christopher A. Choquette-Choo",
+        "Prateek Mittal"
+      ],
+      "citationKey": "PrivacyAuditingLarge"
+    },
+    {
+      "title": "Tight Auditing of Differentially Private Machine Learning",
+      "url": "https://www.usenix.org/conference/usenixsecurity23/presentation/nasr",
+      "source_type": "application_paper",
+      "authors": [
+        "Milad Nasr",
+        "Jamie Hayes",
+        "Thomas Steinke",
+        "Borja Balle",
+        "Florian Tramèr",
+        "Matthew Jagielski",
+        "Nicholas Carlini",
+        "Andreas Terzis"
+      ],
+      "publication_date": "2023",
+      "citationKey": "nasrTightAuditingDifferentially2023"
+    },
+    {
+      "title": "Privacy Auditing with One (1) Training Run",
+      "url": "https://papers.nips.cc/paper_files/paper/2023/hash/9a6f6e0d6781d1cb8689192408946d73-Abstract-Conference.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Thomas Steinke",
+        "Milad Nasr",
+        "Matthew Jagielski"
+      ],
+      "publication_date": "2023",
+      "citationKey": "steinkePrivacyAuditingOne2023"
+    }
+  ],
+  "complexity_rating": 4,
+  "computational_cost_rating": 4,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "A 99 per cent confidence audit of the exact training code and settings used for the readmission model, with planted records designed to be easy to detect, found no evidence that its privacy loss exceeds the claimed epsilon of 3.",
+      "assuranceGoal": "privacy",
+      "domain": "healthcare"
+    },
+    {
+      "text": "Every release of the training library passes a white-box audit in which the measured lower bound on epsilon stays below the budget the library reports for the audited configuration.",
+      "assuranceGoal": "privacy",
+      "domain": "general"
+    },
+    {
+      "text": "An audit of the previous version of the training code gave a 99 per cent lower bound on epsilon of 3.9 against a claimed budget of 1, showing an implementation error, and a re-audit of the corrected code found no bound above 1.",
+      "assuranceGoal": "privacy",
+      "domain": "general"
+    },
+    {
+      "text": "In a single-run audit of the federated keyboard model's training, with enough randomly included canary users that a bound above the claimed user-level epsilon could have been reported, the 95 per cent lower bound stayed below the claim.",
+      "assuranceGoal": "privacy",
+      "domain": "general"
+    }
+  ]
+}

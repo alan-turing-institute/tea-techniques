@@ -9,7 +9,7 @@
     {
       "slug": "counterfactual-fairness-assessment",
       "name": "Counterfactual Fairness Assessment",
-      "description": "Counterfactual Fairness Assessment evaluates whether a model's predictions would remain unchanged if an individual's protected attributes (race, gender, age) were different, whilst keeping all other causally legitimate factors constant. The technique requires constructing a causal graph that maps relationships between variables, then using do-calculus or structural causal models to simulate counterfactual scenarios. For example, it asks: 'Would this loan application still be approved if the applicant were a different race, holding constant their actual qualifications and economic circumstances?' This individual-level fairness criterion helps identify when decisions depend improperly on protected characteristics.",
+      "description": "Counterfactual Fairness Assessment tests a model against the criterion of Kusner et al. (2017): a model is counterfactually fair if each individual's prediction would have had the same distribution had their protected attribute, such as race or sex, been different, with everything that attribute causes changed accordingly. The assessor first writes down a causal model, a graph of which variables cause which, covering the protected attribute, the model's inputs and unobserved background factors, and fits its equations to data. For each individual, the fitted model is used to infer the background factors from what was observed (abduction), set the protected attribute to another value (action) and recompute every input the attribute influences (prediction), giving a counterfactual version of that person. The model under test is run on the factual and counterfactual inputs, and the gap between the two predictions, per individual or as a distance between the two prediction distributions, is the evidence: distributions that lie on top of each other indicate counterfactual fairness under the assumed causal model. Every causal effect of the attribute counts as unfair, including effects that run through inputs it influences, such as test scores, which is what separates this criterion from versions that allow some pathways.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -26,41 +26,46 @@
         "evidence-type/fairness-metric",
         "expertise-needed/causal-inference",
         "expertise-needed/domain-expertise",
-        "expertise-needed/ethics",
-        "expertise-needed/ml-engineering",
-        "explanatory-scope/local",
+        "expertise-needed/statistics",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/model-testing-and-validation",
         "technique-type/testing"
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating a hiring algorithm by testing whether qualified candidates would receive the same evaluation scores if their gender were different, whilst controlling for actual skills, experience, and education, revealing whether gender bias affects recruitment decisions.",
+          "description": "A law school's admissions office uses a model to predict first-year grades from entrance-test scores and undergraduate grades. Its analysts build a causal model in which race and sex influence both inputs alongside an unobserved knowledge factor, fit it to past cohorts, and compare each applicant's predicted grade under actual and counterfactual race. A systematic shift shows that leaving race out of the inputs did not make the model counterfactually fair.",
           "goal": "Fairness"
         },
         {
-          "description": "Assessing a criminal sentencing model by examining whether defendants with identical criminal histories and case circumstances would receive the same sentence recommendations regardless of their race, identifying potential discriminatory patterns in judicial AI systems.",
+          "description": "A credit risk team, working with economists, specifies a causal graph in which an applicant's ethnicity affects income and neighbourhood but not repayment behaviour directly, fits it to its applicant data, and checks whether the approval model's scores change for the counterfactual applicants. The result goes to the model risk committee together with the graph, because the conclusion holds only under that graph.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A public employment service reviewing a model that predicts job-seekers' risk of long-term unemployment from education and work history specifies, with labour-market researchers, how sex and migration background influence those inputs. It tests whether individual risk scores would change under counterfactual sex or migration background before the scores are used to allocate support.",
           "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Requires explicit specification of causal relationships between variables, which involves subjective assumptions about what constitutes legitimate versus illegitimate causal pathways."
+          "description": "The verdict rests on a causal model that cannot be checked against data: Kusner et al. note that counterfactual assumptions are generally unfalsifiable, even with experimental data, and should be treated as provisional. Different plausible graphs can give different verdicts, so a result is only as credible as the graph reported with it, and testing alternative graphs is part of the assessment."
         },
         {
-          "description": "May be mathematically impossible to satisfy simultaneously with other fairness criteria (like statistical parity), forcing practitioners to choose between competing fairness definitions."
+          "description": "A common cause left out of the graph, such as school quality affecting both test scores and later grades, biases the counterfactuals without any warning sign. Kilbertus et al. (2019) show that counterfactual fairness is sensitive to such unmeasured confounding and give tools to bound the effect for additive noise models, which adds a further analysis to do."
         },
         {
-          "description": "Implementation complexity is high, requiring sophisticated causal inference techniques and structural causal models that are difficult to construct and validate."
+          "description": "Every effect of the attribute counts as unfair, so a model that legitimately uses an input the attribute influences fails the test. Kusner et al. note that in practice few observed variables are unaffected by the attribute. Where some pathways are acceptable, for example where qualifications differ for reasons a decision may properly reflect, this criterion is stricter than the decision calls for."
         },
         {
-          "description": "Depends heavily on the quality and completeness of the causal graph, which may be incorrect or missing important confounding variables."
+          "description": "Computing individual counterfactuals requires a fitted probabilistic model of the unobserved background factors; the original study fitted it in Stan, and DoWhy's counterfactual function needs mechanisms with additive noise and supports only continuous variables. With categorical inputs, many variables or unstructured data such as text and images, the assessment becomes hard to run or yields a spread of counterfactuals rather than one."
+        },
+        {
+          "description": "The counterfactual people are simulated by the fitted causal model, not observed. If its equations fit the data poorly or miss interactions, the counterfactual inputs are implausible and the measured gap reflects the causal model's errors as much as the predictor's; DoWhy's documentation notes counterfactual estimates are approximate for this reason."
         }
       ],
       "resources": [
         {
           "title": "Counterfactual Fairness",
-          "url": "https://proceedings.neurips.cc/paper/2017/file/a486cd07e4ac3d270571622f4f316ec5-Paper.pdf",
+          "url": "https://proceedings.neurips.cc/paper/2017/hash/a486cd07e4ac3d270571622f4f316ec5-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
             "Matt J. Kusner",
@@ -69,64 +74,70 @@
             "Ricardo Silva"
           ],
           "publication_date": "2017-12-04",
-          "citationKey": "kusnerCounterfactualFairness2017"
+          "citationKey": "kusnerCounterfactualFairness2017",
+          "abstract": "Machine learning can impact people with legal or ethical consequences when it is used to automate decisions in areas such as insurance, lending, hiring, and predictive policing. In many of these scenarios, previous decisions have been made that are unfairly biased against certain subpopulations, for example those of a particular race, gender, or sexual orientation. Since this past data may be biased, machine learning predictors must account for this to avoid perpetuating or creating discriminatory practices. In this paper, we develop a framework for modeling fairness using tools from causal inference. Our definition of counterfactual fairness captures the intuition that a decision is fair towards an individual if it the same in (a) the actual world and (b) a counterfactual world where the individual belonged to a different demographic group. We demonstrate our framework on a real-world problem of fair prediction of success in law school."
         },
         {
-          "title": "fairlearn",
-          "url": "https://github.com/fairlearn/fairlearn",
+          "title": "DoWhy user guide: Computing Counterfactuals",
+          "url": "https://www.pywhy.org/dowhy/main/user_guide/causal_tasks/what_if/counterfactuals.html",
+          "source_type": "documentation",
+          "citationKey": "DoWhyUserGuide"
+        },
+        {
+          "title": "DoWhy: a Python library for causal inference (py-why/dowhy)",
+          "url": "https://github.com/py-why/dowhy",
           "source_type": "software_package",
-          "publication_date": "2018-05-15",
-          "citationKey": "fairlearnFairlearn2018",
-          "abstract": "A Python package to assess and improve fairness of machine learning models."
+          "publication_date": "2026-10-07T17:59:52Z",
+          "citationKey": "DoWhyPythonLibrary2026",
+          "abstract": "DoWhy is a Python library for causal inference that supports explicit modeling and testing of causal assumptions. DoWhy is based on a unified language for causal inference, combining causal graphical models and potential outcomes frameworks."
         },
         {
-          "title": "Counterfactual Fairness in Text Classification through Robustness",
-          "url": "http://arxiv.org/abs/1809.10610v2",
-          "source_type": "technical_paper",
+          "title": "Code for 'Counterfactual Fairness' (NIPS 2017) (mkusner/counterfactual-fairness)",
+          "url": "https://github.com/mkusner/counterfactual-fairness",
+          "source_type": "software_package",
+          "publication_date": "2026-08-11T16:20:35Z",
+          "citationKey": "mkusnerCodeCounterfactualFairness2026",
+          "abstract": "Code for \"Counterfactual Fairness\" (NIPS2017)"
+        },
+        {
+          "title": "DoWhy example notebook: Counterfactual Fairness",
+          "url": "https://www.pywhy.org/dowhy/main/example_notebooks/counterfactual_fairness_dowhy.html",
+          "source_type": "tutorial",
+          "citationKey": "DoWhyExampleNotebook"
+        },
+        {
+          "title": "Counterfactual Fairness Evaluation of Machine Learning Models on Educational Datasets",
+          "url": "https://doi.org/10.1007/978-3-031-98284-2_7",
+          "source_type": "application_paper",
           "authors": [
-            "Sahaj Garg",
-            "Vincent Perot",
-            "Nicole Limtiaco",
-            "Ankur Taly",
-            "Ed H. Chi",
-            "Alex Beutel"
+            "Woojin Kim",
+            "Hyeoncheol Kim"
           ],
-          "publication_date": "2018-09-27",
-          "citationKey": "gargCounterfactualFairnessText2018",
-          "abstract": "In this paper, we study counterfactual fairness in text classification, which asks the question: How would the prediction change if the sensitive attribute referenced in the example were different? Toxicity classifiers demonstrate a counterfactual fairness issue by predicting that \"Some people are gay\" is toxic while \"Some people are straight\" is nontoxic. We offer a metric, counterfactual token fairness (CTF), for measuring this particular form of fairness in text classifiers, and describe its relationship with group fairness. Further, we offer three approaches, blindness, counterfactual augmentation, and counterfactual logit pairing (CLP), for optimizing counterfactual token fairness during training, bridging the robustness and fairness literature. Empirically, we find that blindness and CLP address counterfactual token fairness. The methods do not harm classifier performance, and have varying tradeoffs with group fairness. These approaches, both for measurement and optimization, provide a new path forward for addressing fairness concerns in text classification."
+          "publication_date": "2025-7-29",
+          "citationKey": "kimCounterfactualFairnessEvaluation2025"
         }
       ],
       "complexity_rating": 5,
       "computational_cost_rating": 3,
       "related_techniques": [
-        "sensitivity-analysis-for-fairness",
+        "causal-discrimination-testing",
         "path-specific-counterfactual-fairness-assessment",
         "demographic-parity-assessment"
       ],
       "sample_claims": [
         {
-          "text": "The hiring system's candidate evaluations remain consistent under hypothetical changes to applicant demographics when qualifications and experience are held constant",
+          "text": "Under the causal model agreed with the admissions committee, each applicant's predicted first-year grade has the same distribution under their actual and counterfactual race.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The loan approval model's creditworthiness assessments are invariant to the applicant's race when economic circumstances and financial history remain unchanged",
+          "text": "Under the documented causal graph linking ethnicity, income and neighbourhood, the credit model's approval scores do not change when applicants' ethnicity is counterfactually altered.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The treatment recommendation system produces identical clinical decisions regardless of patient gender when medical history and symptoms are causally equivalent",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The benefit allocation system's eligibility determinations are unaffected by hypothetical changes to an individual's protected characteristics when their genuine need and circumstances are held constant",
+          "text": "The unemployment-risk model's individual scores are unchanged under counterfactual sex and migration background, given the causal model reviewed by labour-market researchers, and the sensitivity of that result to unmeasured confounding has been bounded.",
           "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The autonomous system's risk assessments yield the same safety decisions for individuals with different demographic attributes but identical situational factors",
-          "domain": "autonomous systems",
           "assuranceGoal": "fairness"
         }
       ]
@@ -194,38 +205,30 @@
       ],
       "resources": [
         {
-          "title": "Transformer Interpretability Beyond Attention Visualization",
-          "url": "https://arxiv.org/abs/2012.09838",
-          "source_type": "technical_paper",
-          "authors": [
-            "Hila Chefer",
-            "Shir Gur",
-            "Lior Wolf"
-          ],
-          "publication_date": "2020-12-17",
-          "citationKey": "cheferTransformerInterpretabilityAttention2020",
-          "abstract": "Self-attention techniques, and specifically Transformers, are dominating the field of text processing and are becoming increasingly popular in computer vision classification tasks. In order to visualize the parts of the image that led to a certain classification, existing methods either rely on the obtained attention maps or employ heuristic propagation along the attention graph. In this work, we propose a novel way to compute relevancy for Transformer networks. The method assigns local relevance based on the Deep Taylor Decomposition principle and then propagates these relevancy scores through the layers. This propagation involves attention layers and skip connections, which challenge existing methods. Our solution is based on a specific formulation that is shown to maintain the total relevancy across layers. We benchmark our method on very recent visual Transformer networks, as well as on a text classification problem, and demonstrate a clear advantage over the existing explainability methods."
+          "title": "pyvene documentation",
+          "url": "https://stanfordnlp.github.io/pyvene/",
+          "source_type": "documentation",
+          "citationKey": "PyveneDocumentation"
         },
         {
-          "title": "Efficient Automated Circuit Discovery in Transformers using Contextual Decomposition",
-          "url": "http://arxiv.org/abs/2407.00886v3",
-          "source_type": "technical_paper",
-          "authors": [
-            "Aliyah R. Hsu",
-            "Georgia Zhou",
-            "Yeshwanth Cherapanamjeri",
-            "Yaxuan Huang",
-            "Anobel Y. Odisho",
-            "Peter R. Carroll",
-            "Bin Yu"
-          ],
-          "publication_date": "2024-07-01",
-          "citationKey": "r.hsuEfficientAutomatedCircuit2024",
-          "abstract": "Automated mechanistic interpretation research has attracted great interest due to its potential to scale explanations of neural network internals to large models. Existing automated circuit discovery work relies on activation patching or its approximations to identify subgraphs in models for specific tasks (circuits). They often suffer from slow runtime, approximation errors, and specific requirements of metrics, such as non-zero gradients. In this work, we introduce contextual decomposition for transformers (CD-T) to build interpretable circuits in large language models. CD-T can produce circuits of arbitrary level of abstraction, and is the first able to produce circuits as fine-grained as attention heads at specific sequence positions efficiently. CD-T consists of a set of mathematical equations to isolate contribution of model features. Through recursively computing contribution of all nodes in a computational graph of a model using CD-T followed by pruning, we are able to reduce circuit discovery runtime from hours to seconds compared to state-of-the-art baselines. On three standard circuit evaluation datasets (indirect object identification, greater-than comparisons, and docstring completion), we demonstrate that CD-T outperforms ACDC and EAP by better recovering the manual circuits with an average of 97% ROC AUC under low runtimes. In addition, we provide evidence that faithfulness of CD-T circuits is not due to random chance by showing our circuits are 80% more faithful than random circuits of up to 60% of the original model size. Finally, we show CD-T circuits are able to perfectly replicate original models' behavior (faithfulness $ = 1$) using fewer nodes than the baselines for all tasks. Our results underscore the great promise of CD-T for efficient automated mechanistic interpretability, paving the way for new insights into the workings of large language models."
+          "title": "pyvene: A Library for Understanding and Improving PyTorch Models via Interventions",
+          "url": "https://github.com/stanfordnlp/pyvene",
+          "source_type": "software_package",
+          "publication_date": "2026-10-05T22:52:40Z",
+          "citationKey": "PyveneLibraryUnderstanding2026",
+          "abstract": "Stanford NLP Python library for understanding and improving PyTorch models via interventions"
         },
         {
-          "title": "Causal Mediation Analysis for Interpreting Neural NLP: The Case of Gender Bias",
-          "url": "http://arxiv.org/abs/2004.12265v2",
+          "title": "CausalMediationAnalysis (code for Vig et al. 2020)",
+          "url": "https://github.com/sebastianGehrmann/CausalMediationAnalysis",
+          "source_type": "software_package",
+          "publication_date": "2026-07-15T15:19:41Z",
+          "citationKey": "gehrmannCausalMediationAnalysisCodeVig2026",
+          "abstract": "Code for the paper \"Causal Mediation Analysis for Interpreting Neural NLP: The Case of Gender Bias\""
+        },
+        {
+          "title": "Investigating Gender Bias in Language Models Using Causal Mediation Analysis",
+          "url": "https://proceedings.neurips.cc/paper/2020/hash/92650b2e92217715fe312e6fa7b90d82-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
             "Jesse Vig",
@@ -241,13 +244,49 @@
           "publication_date": "2020-04-26",
           "citationKey": "vigCausalMediationAnalysis2020",
           "abstract": "Common methods for interpreting neural models in natural language processing typically examine either their structure or their behavior, but not both. We propose a methodology grounded in the theory of causal mediation analysis for interpreting which parts of a model are causally implicated in its behavior. It enables us to analyze the mechanisms by which information flows from input to output through various model components, known as mediators. We apply this methodology to analyze gender bias in pre-trained Transformer language models. We study the role of individual neurons and attention heads in mediating gender bias across three datasets designed to gauge a model's sensitivity to gender bias. Our mediation analysis reveals that gender bias effects are (i) sparse, concentrated in a small part of the network; (ii) synergistic, amplified or repressed by different components; and (iii) decomposable into effects flowing directly from the input and indirectly through the mediators."
+        },
+        {
+          "title": "Causal Tracing (ROME) — pyvene tutorial",
+          "url": "https://github.com/stanfordnlp/pyvene/blob/main/tutorials/advanced_tutorials/Causal_Tracing.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "CausalTracingROME",
+          "abstract": "Stanford NLP Python library for understanding and improving PyTorch models via interventions - stanfordnlp/pyvene"
+        },
+        {
+          "title": "Causal Analysis of Syntactic Agreement Mechanisms in Neural Language Models",
+          "url": "https://doi.org/10.18653/v1/2021.acl-long.144",
+          "source_type": "application_paper",
+          "authors": [
+            "Matthew Finlayson",
+            "Aaron Mueller",
+            "Sebastian Gehrmann",
+            "Stuart Shieber",
+            "Tal Linzen",
+            "Yonatan Belinkov"
+          ],
+          "publication_date": "2021",
+          "citationKey": "finlaysonCausalAnalysisSyntactic2021",
+          "abstract": "Targeted syntactic evaluations have demonstrated the ability of language models to perform subject-verb agreement given difficult contexts. To elucidate the mechanisms by which the models accomplish this behavior, this study applies causal mediation analysis to pre-trained neural language models. We investigate the magnitude of models’ preferences for grammatical inflections, as well as whether neurons process subject-verb agreement similarly across sentences with different syntactic structures. We uncover similarities and differences across architectures and model sizes—notably, that larger models do not necessarily learn stronger preferences. We also observe two distinct mechanisms for producing subject-verb agreement depending on the syntactic structure of the input sentence. Finally, we find that language models rely on similar sets of neurons when given sentences with similar syntactic structure."
+        },
+        {
+          "title": "Locating and Editing Factual Associations in GPT",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2022/hash/6f1d43d5a82a37e89b0665b33bf3a182-Abstract-Conference.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Kevin Meng",
+            "David Bau",
+            "Alex Andonian",
+            "Yonatan Belinkov"
+          ],
+          "publication_date": "2022",
+          "citationKey": "mengLocatingEditingFactual2022"
         }
       ],
       "complexity_rating": 5,
       "computational_cost_rating": 4,
       "related_techniques": [
-        "attention-visualisation-in-transformers",
-        "feature-attribution-with-integrated-gradients-in-nlp",
+        "attention-weight-analysis",
+        "integrated-gradients",
         "neuron-activation-analysis"
       ],
       "sample_claims": [
@@ -325,23 +364,82 @@
       ],
       "resources": [
         {
-          "title": "Path-Specific Counterfactual Fairness via Dividend Correction",
-          "url": "https://www.semanticscholar.org/paper/197367ee337e8838fd2ef1a887101ddc84eb0612",
+          "title": "Causal Fairness Analysis — faircause vignettes",
+          "url": "https://dplecko.com/CFA/",
+          "source_type": "documentation",
+          "citationKey": "CausalFairnessAnalysis"
+        },
+        {
+          "title": "faircause: Causal Fairness Analysis (dplecko/CFA)",
+          "url": "https://github.com/dplecko/CFA",
+          "source_type": "software_package",
+          "publication_date": "2026-09-22T23:51:50Z",
+          "citationKey": "dpleckoFaircauseCausalFairness2026",
+          "abstract": "Causal Fairness Analysis"
+        },
+        {
+          "title": "Path-Specific Counterfactual Fairness",
+          "url": "https://doi.org/10.1609/aaai.v33i01.33017801",
           "source_type": "technical_paper",
           "authors": [
-            "Daisuke Hatano",
-            "Satoshi Hara",
-            "Hiromi Arai"
+            "Silvia Chiappa"
+          ],
+          "publication_date": "2019-7-17",
+          "citationKey": "chiappaPathSpecificCounterfactualFairness2019",
+          "abstract": "We consider the problem of learning fair decision systems from data in which a sensitive attribute might affect the decision along both fair and unfair pathways. We introduce a counterfactual approach to disregard effects along unfair pathways that does not incur in the same loss of individual-specific information as previous approaches. Our method corrects observations adversely affected by the sensitive attribute, and uses these to form a decision. We leverage recent developments in deep learning and approximate inference to develop a VAE-type method that is widely applicable to complex nonlinear models."
+        },
+        {
+          "title": "A Causal Framework for Discovering and Removing Direct and Indirect Discrimination",
+          "url": "https://doi.org/10.24963/ijcai.2017/549",
+          "source_type": "technical_paper",
+          "authors": [
+            "Lu Zhang",
+            "Yongkai Wu",
+            "Xintao Wu"
+          ],
+          "publication_date": "2017-8",
+          "citationKey": "zhangCausalFrameworkDiscovering2017",
+          "abstract": "In this paper, we investigate the problem of discovering both direct and indirect discrimination from the historical data, and removing the discriminatory effects before the data is used for predictive analysis (e.g., building classifiers). The main drawback of existing methods is that they cannot distinguish the part of influence that is really caused by discrimination from all correlated influences. In our approach, we make use of the causal network to capture the causal structure of the data. Then we model direct and indirect discrimination as the path-specific effects, which accurately identify the two types of discrimination as the causal effects transmitted along different paths in the network. Based on that, we propose an effective algorithm for discovering direct and indirect discrimination, as well as an algorithm for precisely removing both types of discrimination while retaining good data utility. Experiments using the real dataset show the effectiveness of our approaches."
+        },
+        {
+          "title": "Causal Fairness Analysis: A Causal Toolkit for Fair Machine Learning",
+          "url": "https://doi.org/10.1561/2200000106",
+          "source_type": "technical_paper",
+          "authors": [
+            "Drago Plečko",
+            "Elias Bareinboim"
+          ],
+          "publication_date": "2024-1-31",
+          "citationKey": "pleckoCausalFairnessAnalysis2024",
+          "abstract": "Decision-making systems based on AI and machine learning have been used throughout a wide range of real-world scenarios, including healthcare, law enforcement, education, and finance. It is no longer far-fetched to envision a future where autonomous systems will drive entire business decisions and, more broadly, support large-scale decision-making infrastructure to solve society’s most challenging problems. Issues of unfairness and discrimination are pervasive when decisions are being made by humans, and remain (or are potentially amplified) when decisions are made using machines with little transparency, accountability, and fairness. In this monograph, we introduce a framework for causal fairness analysis with the intent of filling in this gap, i.e., understanding, modeling, and possibly solving issues of fairness in decision-making settings. The main insight of our approach will be to link the quantification of the disparities present in the observed data with the underlying, often unobserved, collection of causal mechanisms that generate the disparity in the first place, a challenge we call the Fundamental Problem of Causal Fairness Analysis (FPCFA). In order to solve the FPCFA, we study the problem of decomposing variations and empirical measures of fairness that attribute such variations to structural mechanisms and different units of the population. Our effort culminates in the Fairness Map, the first systematic attempt to organize and explain the relationship between various criteria found in the literature. Finally, we study which causal assumptions are minimally needed for performing causal fairness analysis and propose the Fairness Cookbook, which allows one to assess the existence of disparate impact and disparate treatment."
+        },
+        {
+          "title": "Causal Fairness Analysis vignette: Census bias detection",
+          "url": "https://dplecko.com/CFA/pages/t1-census.html",
+          "source_type": "tutorial",
+          "citationKey": "CausalFairnessAnalysisa"
+        },
+        {
+          "title": "Path-specific effects for pulse-oximetry guided decisions in critical care",
+          "url": "https://doi.org/10.48550/arXiv.2506.12371",
+          "source_type": "application_paper",
+          "authors": [
+            "Kevin Zhang",
+            "Yonghan Jung",
+            "Divyat Mahajan",
+            "Karthikeyan Shanmugam",
+            "Shalmali Joshi"
           ],
           "publication_date": "2025",
-          "citationKey": "hatanoPathSpecificCounterfactualFairness2025"
+          "citationKey": "zhangPathspecificEffectsPulseoximetry2025",
+          "abstract": "Identifying and measuring biases associated with sensitive attributes is a crucial consideration in healthcare to prevent treatment disparities. One prominent issue is inaccurate pulse oximeter readings, which tend to overestimate oxygen saturation for dark-skinned patients and misrepresent supplemental oxygen needs. Most existing research has revealed statistical disparities linking device measurement errors to patient outcomes in intensive care units (ICUs) without causal formalization. This study causally investigates how racial discrepancies in oximetry measurements affect invasive ventilation in ICU settings. We employ a causal inference-based approach using path-specific effects to isolate the impact of bias by race on clinical decision-making. To estimate these effects, we leverage a doubly robust estimator, propose its self-normalized variant for improved sample efficiency, and provide novel finite-sample guarantees. Our methodology is validated on semi-synthetic data and applied to two large real-world health datasets: MIMIC-IV and eICU. Contrary to prior work, our analysis reveals minimal impact of racial discrepancies on invasive ventilation rates. However, path-specific effects mediated by oxygen saturation disparity are more pronounced on ventilation duration, and the severity differs across datasets. Our work provides a novel pipeline for investigating potential disparities in clinical decision-making and, more importantly, highlights the necessity of causal methods to robustly assess fairness in healthcare."
         }
       ],
       "complexity_rating": 5,
       "computational_cost_rating": 4,
       "related_techniques": [
         "counterfactual-fairness-assessment",
-        "sensitivity-analysis-for-fairness"
+        "causal-discrimination-testing"
       ],
       "sample_claims": [
         {

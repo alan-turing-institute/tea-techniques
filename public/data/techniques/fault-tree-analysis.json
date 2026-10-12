@@ -1,0 +1,126 @@
+{
+  "slug": "fault-tree-analysis",
+  "name": "Fault Tree Analysis",
+  "description": "Fault tree analysis (FTA) is a deductive, top-down method that starts from one undesired system-level event, such as an automated braking function failing to brake for an obstacle, and works backwards to the combinations of lower-level events that could cause it. The analyst builds a tree of logic gates beneath that top event: an OR gate means any one of its inputs is enough to cause the event above it, an AND gate means all of its inputs must occur together, and the branches end in basic events such as a hardware failure, a human error or a software error. Solving the tree gives its minimal cut sets, the smallest combinations of basic events that produce the top event (a set with a single event is a single point of failure), and, when each basic event has a probability, the probability of the top event, which can be checked against a target or used to set a probability budget for each part. In a system with a machine-learning component, the model's errors enter the tree as basic events of their own, which unlike random hardware failures happen during normal operation at a rate that has to be measured on test or operational data, often depend on conditions such as weather or occlusion that can be added beneath it as conditioning events, and can be correlated from one input to the next. Working down from an acceptable top-event probability turns the model's share into a budget for its error rate, which becomes a performance requirement on the model; the tree shows where model errors matter in the system and how much error it can tolerate, but not why the model makes them.",
+  "assurance_goals": [
+    "Safety"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/safety",
+    "assurance-goal-category/safety/hazard-analysis",
+    "data-requirements/no-special-requirements",
+    "data-type/any",
+    "evidence-type/structured-output",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/safety-engineering",
+    "expertise-needed/statistics",
+    "expertise-needed/domain-expertise",
+    "technique-type/process",
+    "lifecycle-stage/project-design",
+    "lifecycle-stage/project-design/project-planning",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-implementation"
+  ],
+  "example_use_cases": [
+    {
+      "description": "An avionics team designing an emergency braking system for taxiing aircraft, in which a neural network detects 'No Entry' signs, builds a quantitative fault tree for loss of the restricted-area alert, budgets the detector's misses beside the hardware failures, converts that budget into a maximum per-frame miss probability for the network, and checks on recorded taxi data whether misses in successive frames are independent, as the calculation assumes.",
+      "goal": "Safety"
+    },
+    {
+      "description": "A driving-automation developer analysing the top event 'object not detected in time' adds weather, occlusion and lighting as triggering conditions beneath the camera detector's miss event. Quantifying the tree with rates measured on its own test drives shows which conditions dominate, and it uses the result to decide where a second sensor is needed before widening the vehicle's operating domain.",
+      "goal": "Safety"
+    },
+    {
+      "description": "A hospital pharmacy planning to add a machine-learning dose checker beside pharmacist review draws a tree for 'harmful overdose reaches the patient', with an AND gate requiring both the checker and the pharmacist to miss the error. The analysis shows the claimed risk reduction holds only if the two misses are independent, so the team plans an audit of whether pharmacists check less carefully once the checker is live.",
+      "goal": "Safety"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "The tree explains only the top events the analysts choose and the causes they think of. Hazards nobody posed as a top event, and losses that arise from interactions between parts that each worked as specified, do not appear, so a fault tree needs a prior hazard identification to decide which top events matter."
+    },
+    {
+      "description": "A probability for a model-error event is only as good as the data it was measured on. A miss rate estimated on test data holds for the conditions and input mix in that data and changes when the operating environment shifts, so the top-event probability can be badly wrong in conditions the test set under-represents. The main aerospace safety-assessment guidance gives no method for such performance failures, so each assessment has to justify its own."
+    },
+    {
+      "description": "Quantifying a tree usually assumes basic events are independent, and machine-learning errors often are not: misses on successive camera frames are correlated, and one condition such as fog can degrade a model and the sensor or person meant to back it up at the same time. Unmodelled dependence makes an AND gate look far more protective than it is, so dependence must be checked on data or modelled explicitly."
+    },
+    {
+      "description": "The model appears in the tree as one or a few basic events, so the analysis says how often the model may err and where its errors matter, not why it errs or which inputs cause the errors. The triggering conditions added beneath a model-error event are only those the analysts already suspect, and finding others needs analysis of the model and its data."
+    },
+    {
+      "description": "Building and maintaining a tree for a large system is laborious, and it must be revised whenever the architecture or the model changes. Quantification needs a probability for every basic event, and for software, human and model events those numbers are often unavailable or disputed; aviation software guidance, for example, does not accept software reliability rates in the system safety assessment."
+    }
+  ],
+  "resources": [
+    {
+      "title": "IEC 61025:2006 Fault tree analysis (FTA)",
+      "url": "https://webstore.iec.ch/en/publication/4311",
+      "source_type": "documentation",
+      "citationKey": "IEC610252006"
+    },
+    {
+      "title": "Public Fault Tree Analyser (PFTA)",
+      "url": "https://github.com/public-fta/pfta",
+      "source_type": "software_package",
+      "citationKey": "PublicFaultTree",
+      "abstract": "Public Fault Tree Analyser (PFTA): free and open-source fault tree analysis - public-fta/pfta"
+    },
+    {
+      "title": "Fault Tree Handbook (NUREG-0492)",
+      "url": "https://www.nrc.gov/reading-rm/doc-collections/nuregs/staff/sr0492/index",
+      "source_type": "technical_paper",
+      "citationKey": "FaultTreeHandbook"
+    },
+    {
+      "title": "Fault Tree Handbook with Aerospace Applications (Version 1.1)",
+      "url": "https://extapps.ksc.nasa.gov/reliability/Documents/Fault_Tree_Handbook_with_Aerospace_Applications_August_2002.pdf",
+      "source_type": "tutorial",
+      "citationKey": "FaultTreeHandbooka"
+    },
+    {
+      "title": "Safety Assessment of a Machine Learning-Based Aircraft Emergency Braking System: A Case Study",
+      "url": "https://doi.org/10.1109/dasc62030.2024.10749696",
+      "source_type": "application_paper",
+      "authors": [
+        "Konstantin Dmitriev",
+        "Julian Rhein",
+        "Lukas Beller",
+        "Johannes Bröcker",
+        "Evangelos Huber",
+        "Johann Schumann",
+        "Florian Holzapfel"
+      ],
+      "publication_date": "2024-9-29",
+      "citationKey": "dmitrievSafetyAssessmentMachine2024"
+    }
+  ],
+  "complexity_rating": 3,
+  "computational_cost_rating": 2,
+  "acronym": "FTA",
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "The quantified fault tree shows the probability of losing the restricted-area proximity alert, including the contribution of the sign detector's misses, to be below 1 in 1,000 per flight hour.",
+      "assuranceGoal": "safety",
+      "domain": "transport"
+    },
+    {
+      "text": "Measured on recorded taxi data, the sign detector's per-frame miss probability is below the budget derived from the fault tree, and the independence assumption used to derive that budget has been checked on the same data.",
+      "assuranceGoal": "safety",
+      "domain": "transport"
+    },
+    {
+      "text": "No minimal cut set for the top event 'object not detected in time' consists of the camera-based detector's miss alone.",
+      "assuranceGoal": "safety",
+      "domain": "autonomous systems"
+    },
+    {
+      "text": "The estimated probability of a harmful overdose reaching a patient accounts for dependence between the dose checker's misses and the pharmacist's, rather than assuming they are independent.",
+      "assuranceGoal": "safety",
+      "domain": "healthcare"
+    }
+  ]
+}

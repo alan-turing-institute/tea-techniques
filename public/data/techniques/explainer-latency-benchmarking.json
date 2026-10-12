@@ -1,0 +1,159 @@
+{
+  "slug": "explainer-latency-benchmarking",
+  "name": "Explainer Latency Benchmarking",
+  "description": "Explainer latency benchmarking measures how long an explanation method takes to produce an explanation for a single prediction, on the hardware, software and settings it will run with, and compares the result with the time that the decision it supports allows. The evaluator first sets the time budget, the share of the time the decision allows that is left for the explanation once the prediction is ready, then runs the explainer exactly as it will be deployed (the same model, background data, number of samples and batch size) on a representative set of real inputs, timing each explanation from request to a result ready to display, after warm-up runs and with one-off set-up costs, such as building the explainer, recorded separately. Because the time varies with the model, the data, the hardware and the load on the system, each configuration is timed many times, as machine-learning inference benchmarks such as MLPerf Inference time a model, under realistic concurrent demand where the explainer runs as a shared service, and the result is reported as a distribution: the median, high percentiles such as the 95th or 99th, the slowest case and the share of explanations over budget. Canha et al.'s benchmark framework for explanation methods, which scores methods on properties measurable without human participants, includes this property under the name speed and rates it on a five-level scale with cut-offs at 0.1, 1, 5 and 10 seconds aligned with human response-time limits; the scale suits comparisons between methods, while a claim about a deployment needs the measured percentiles set against that deployment's own budget. The output is a latency profile for each explainer configuration, recorded with its hardware, software versions and load, which shows whether explanations will arrive in time and lets a team choose between explainers and settings on speed alongside the explanation quality measured by other tests.",
+  "assurance_goals": [
+    "Explainability"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/explainability",
+    "assurance-goal-category/explainability/explanation-evaluation",
+    "assurance-goal-category/explainability/property/efficiency",
+    "explanatory-scope/local",
+    "data-requirements/no-special-requirements",
+    "data-type/any",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/software-engineering",
+    "expertise-needed/ml-engineering",
+    "technique-type/testing",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "lifecycle-stage/system-deployment",
+    "lifecycle-stage/system-deployment/system-implementation"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A card issuer shows its fraud analysts a feature attribution beside each held transaction and needs it within the two seconds before the review queue refreshes. Benchmarking on the production server at peak queue load, it finds that a sampling-based explainer misses the budget for about one explanation in twenty while an explainer specific to its tree ensemble stays well inside it, and adopts the second once its attributions pass the same faithfulness tests.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "A hospital adding an explanation panel to a sepsis-risk alert in its electronic health record agrees with clinicians that the panel must load within one second of a nurse opening the alert. The informatics team times explanations on the hospital's own servers with a week of real alerts at typical volume, reports the 95th percentile and the slowest case against that limit, and repeats the measurement after each model or software update.",
+      "goal": "Explainability"
+    },
+    {
+      "description": "An online marketplace shows each seller the main reasons its moderation model held a new listing for review, and the page must update within three seconds. Before launch, the team times the service on its production servers with a week of recorded traffic replayed at its real pace; the first request after each quiet period is far slower because the explainer and its background data load on demand. It keeps a loaded explainer running, re-measures, and reports the slowest case.",
+      "goal": "Explainability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "Speed and explanation quality trade off through the explainer's settings. Sampling-based explainers run faster with fewer samples or a smaller background dataset, but SHAP's documentation notes that more samples give lower-variance estimates, so a faster setting gives noisier explanations. A latency result holds only for the settings tested, and must be measured at the settings whose faithfulness and stability were checked, or a configuration may meet the budget with untested explanations."
+    },
+    {
+      "description": "Times depend on the hardware, the implementation and the load at the moment of measurement, which Canha et al. single out as the main caveat on their speed metric, so a figure from a developer's workstation does not carry over to a shared production server or an edge device. Any change to the model, the explainer version, the hardware or the traffic pattern calls for re-measurement, and the configuration must be recorded with the result for it to be checked or repeated."
+    },
+    {
+      "description": "Claims about the slowest cases need many timed explanations. MLPerf Inference, which sets tail-latency bounds for model inference in the same way, sizes its runs so that a 99th-percentile bound holds with 99 per cent confidence, which at its chosen margin takes about 263,000 queries. A few hundred timings can support a claim about the median but not about the 99th percentile, and a single timed run supports neither."
+    },
+    {
+      "description": "A fast explanation is not necessarily a good one. Latency says nothing about whether an explanation reflects what the model did or whether people can use it, and it leaves out the time a person needs to read it. It supports a claim about explanations only alongside tests of faithfulness and stability and, where people act on the explanations, a study of whether they can use them within the time available."
+    },
+    {
+      "description": "The budget has to come from the decision, not from a generic scale. Canha et al.'s cut-offs reflect general limits on human response time, which may be looser or tighter than a particular workflow allows, and a budget that leaves out the time to run the model, move the data and display the result will be met in the benchmark and missed in use; MLPerf likewise derives its server-scenario latency bounds from the user's overall time target."
+    }
+  ],
+  "resources": [
+    {
+      "title": "A Functionally-Grounded Benchmark Framework for XAI Methods: Insights and Foundations from a Systematic Literature Review",
+      "url": "https://doi.org/10.1145/3737445",
+      "source_type": "technical_paper",
+      "authors": [
+        "Dulce Canha",
+        "Sylvain Kubler",
+        "Kary Främling",
+        "Guy Fagherazzi"
+      ],
+      "publication_date": "2025-7-14",
+      "citationKey": "canhaFunctionallyGroundedBenchmarkFramework2025"
+    },
+    {
+      "title": "MLPerf Inference Benchmark",
+      "url": "https://doi.org/10.1109/isca45697.2020.00045",
+      "source_type": "technical_paper",
+      "authors": [
+        "Vijay Janapa Reddi",
+        "Christine Cheng",
+        "David Kanter",
+        "Peter Mattson",
+        "Guenther Schmuelling",
+        "Carole-Jean Wu",
+        "Brian Anderson",
+        "Maximilien Breughe",
+        "Mark Charlebois",
+        "William Chou",
+        "Ramesh Chukka",
+        "Cody Coleman",
+        "Sam Davis",
+        "Pan Deng",
+        "Greg Diamos",
+        "Jared Duke",
+        "Dave Fick",
+        "J. Scott Gardner",
+        "Itay Hubara",
+        "Sachin Idgunji",
+        "Thomas B. Jablin",
+        "Jeff Jiao",
+        "Tom St. John",
+        "Pankaj Kanwar",
+        "David Lee",
+        "Jeffery Liao",
+        "Anton Lokhmotov",
+        "Francisco Massa",
+        "Peng Meng",
+        "Paulius Micikevicius",
+        "Colin Osborne",
+        "Gennady Pekhimenko",
+        "Arun Tejusve Raghunath Rajan",
+        "Dilip Sequeira",
+        "Ashish Sirasao",
+        "Fei Sun",
+        "Hanlin Tang",
+        "Michael Thomson",
+        "Frank Wei",
+        "Ephrem Wu",
+        "Lingjie Xu",
+        "Koichi Yamada",
+        "Bing Yu",
+        "George Yuan",
+        "Aaron Zhong",
+        "Peizhao Zhang",
+        "Yuchen Zhou"
+      ],
+      "publication_date": "2020-5",
+      "citationKey": "reddiMLPerfInferenceBenchmark2020"
+    },
+    {
+      "title": "PyTorch Benchmark (PyTorch recipe)",
+      "url": "https://docs.pytorch.org/tutorials/recipes/recipes/benchmark.html",
+      "source_type": "tutorial",
+      "citationKey": "PyTorchBenchmarkPyTorch"
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 2,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "On the production review server at peak queue load, 99 per cent of feature attributions for held transactions were delivered within the two-second budget set by the fraud-review workflow, measured over more than 300,000 explanations.",
+      "assuranceGoal": "explainability",
+      "domain": "finance"
+    },
+    {
+      "text": "The explainer configuration whose latency was benchmarked, including its background data and number of samples, is the same configuration whose faithfulness and stability were evaluated.",
+      "assuranceGoal": "explainability",
+      "domain": "general"
+    },
+    {
+      "text": "After the latest model update, explanation latency was re-measured on the hospital's production servers at typical alert volume, and both the 95th percentile and the slowest case remained within the one-second limit agreed with clinical users.",
+      "assuranceGoal": "explainability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "On the listing-review service's production servers, with a week of recorded traffic replayed at its real pace, both the 95th-percentile and the slowest explanation times, including requests after quiet periods, were within the three-second budget.",
+      "assuranceGoal": "explainability",
+      "domain": "e-commerce"
+    }
+  ]
+}

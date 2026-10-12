@@ -1,0 +1,125 @@
+{
+  "slug": "rolling-origin-evaluation",
+  "name": "Rolling-Origin Evaluation",
+  "description": "Rolling-origin evaluation, also called time-series cross-validation or backtesting, estimates how accurately a forecasting model will predict the future by repeatedly recreating the position it will be in when used: trained only on data up to a point in time, it forecasts the period that follows. The evaluator chooses a first forecast origin (the last time point the model may see) late enough to leave adequate training data, fits the model on the data up to that origin, forecasts every step of a fixed horizon ahead, for example one to seven days, and records the error at each lead time against the values later observed. The origin then moves forward by one step or a block of steps and the process repeats, with the model either refitted at each origin on all the data so far or on a window of fixed length (recalibration, in Tashman's terms), or kept unchanged and simply given the new observations as inputs (updating), whichever matches how it will be maintained in service. Because every forecast uses only data from before its origin, the method avoids the leakage of future information that randomly shuffled cross-validation can cause on time-ordered data, and because it uses many test periods rather than the single one of a fixed train-test split, its result depends less on which period happened to be held out. The output is the forecast error, under whatever error measure suits the forecast, broken down by lead time and by origin date for each candidate model, which supports claims about expected accuracy on unseen future data over a stated horizon and shows how that accuracy varies across seasons and conditions.",
+  "assurance_goals": [
+    "Reliability"
+  ],
+  "tags": [
+    "applicable-models/architecture/model-agnostic",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/performance-assessment",
+    "data-requirements/labelled-data",
+    "data-requirements/access-to-training-data",
+    "data-type/time-series",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/statistics",
+    "expertise-needed/ml-engineering",
+    "technique-type/testing",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-selection-and-training",
+    "lifecycle-stage/model-development/model-testing-and-validation"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A regional electricity distributor deciding whether to replace its regression model for day-ahead substation demand with a gradient-boosted model evaluates both over the last two years, with an origin each day at the time forecasts are issued, a horizon of the next 48 half-hours and weekly refitting, as planned for operation. It compares error at each lead time and in each season, and switches only after finding the new model better in winter peaks as well as on average.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A national weather service's post-processing team testing a machine-learning correction for station temperature forecasts places origins every day over three years, with lead times of one to ten days, and refits the correction monthly as it would in service. Error by lead time and by month shows whether the correction still helps at the longest lead times and whether its gain in winter holds in all three winters rather than one.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A hospital's operations analysts choosing a model to forecast emergency admissions one to fourteen days ahead for staff rotas compare a seasonal statistical model with a neural network, using weekly origins over two years that include two winter peaks. They report error at the seven-day lead time the rota planners use, and keep the simpler model because the neural network's advantage disappears at that horizon.",
+      "goal": "Reliability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "Refitting at every origin multiplies training cost by the number of origins: daily origins over two years means more than 700 fits. Machine-learning forecasters are often refitted only now and then and otherwise just fed new data, which Hewamalage et al. describe as common practice; that is cheaper but measures something different, so the refit schedule in the evaluation must match the one planned for deployment or the errors do not describe the deployed system."
+    },
+    {
+      "description": "The time-ordered split prevents leakage only through the split itself. Scaling, smoothing, decomposition, feature selection or tuning done on the whole series before splitting, or features summarising a period not yet over at the forecast time, still let future information in. Hewamalage et al. show a model beating the best possible forecast of a random walk only because a decomposition was fitted to the whole series; every such step must be redone within each origin."
+    },
+    {
+      "description": "Errors from neighbouring origins share most of their training data and, for multi-step horizons, overlapping test periods, so they are correlated: an average over hundreds of origins is less precise than the count suggests, and the spread across origins is not a confidence interval. Deciding whether one model beats another needs a test designed for serially correlated forecast errors, such as the Diebold-Mariano test, not a plain comparison of average errors."
+    },
+    {
+      "description": "The first origins have little training data, so their errors can overstate those of a model trained on the full history, and a short series leaves few test periods and a noisy average. For purely autoregressive models (past values as the only inputs) on stationary series, whose errors show no remaining autocorrelation, Bergmeir et al. show that standard k-fold cross-validation remains valid, and Hewamalage et al. recommend it for short series as it uses the data more efficiently."
+    },
+    {
+      "description": "It measures how the model would have performed over the history available, not how it will perform after a change that history does not contain, such as a new tariff, a replaced sensor or an abrupt structural break; Hewamalage et al. note that no evaluation design can anticipate a break that lies only in the future. Results should be stated for the periods and conditions they cover and repeated as new data arrive."
+    }
+  ],
+  "resources": [
+    {
+      "title": "Out-of-sample tests of forecasting accuracy: an analysis and review",
+      "url": "https://doi.org/10.1016/s0169-2070(00)00065-0",
+      "source_type": "technical_paper",
+      "authors": [
+        "Leonard J. Tashman"
+      ],
+      "publication_date": "2000-10",
+      "citationKey": "tashmanOutofsampleTestsForecasting2000"
+    },
+    {
+      "title": "Forecast evaluation for data scientists: common pitfalls and best practices",
+      "url": "https://doi.org/10.1007/s10618-022-00894-5",
+      "source_type": "technical_paper",
+      "authors": [
+        "Hansika Hewamalage",
+        "Klaus Ackermann",
+        "Christoph Bergmeir"
+      ],
+      "publication_date": "2022-12-2",
+      "citationKey": "hewamalageForecastEvaluationData2022"
+    },
+    {
+      "title": "evaluate: evaluate forecaster using timeseries cross-validation (sktime documentation)",
+      "url": "https://www.sktime.net/docs/api-reference/sktimeforecastingmodel-evaluationevaluate/",
+      "source_type": "documentation",
+      "citationKey": "EvaluateEvaluateForecaster",
+      "abstract": "Evaluate forecaster using timeseries cross-validation."
+    },
+    {
+      "title": "sktime: a unified framework for machine learning with time series",
+      "url": "https://github.com/sktime/sktime",
+      "source_type": "software_package",
+      "publication_date": "2026-10-12T10:02:42Z",
+      "citationKey": "SktimeUnifiedFramework2026",
+      "abstract": "A unified framework for machine learning with time series"
+    },
+    {
+      "title": "Forecasting: Principles and Practice (3rd ed.), section 5.10: Time series cross-validation",
+      "url": "https://otexts.com/fpp3/toolbox.html#sec-tscv",
+      "source_type": "tutorial",
+      "citationKey": "ForecastingPrinciplesPractice"
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 4,
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Across daily forecast origins over the two most recent years, the new day-ahead demand model has a lower mean absolute error than the current model at every lead time from one to 48 half-hours, and the difference is significant under a test designed for serially correlated forecast errors.",
+      "assuranceGoal": "reliability",
+      "domain": "energy"
+    },
+    {
+      "text": "With weekly refitting matching the planned retraining schedule, the seven-day-ahead admissions forecast stayed within the agreed error limit in every month of the two-year rolling-origin evaluation, including both winters.",
+      "assuranceGoal": "reliability",
+      "domain": "healthcare"
+    },
+    {
+      "text": "Every scaling, feature-selection and tuning step behind the reported forecast errors used only data available before each forecast origin.",
+      "assuranceGoal": "reliability",
+      "domain": "general"
+    },
+    {
+      "text": "The temperature correction reduces ten-day-ahead forecast error in each of the three winters covered by the rolling-origin evaluation, not only on average across them.",
+      "assuranceGoal": "reliability",
+      "domain": "environmental"
+    }
+  ]
+}

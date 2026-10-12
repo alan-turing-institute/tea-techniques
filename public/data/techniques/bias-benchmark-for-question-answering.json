@@ -1,0 +1,186 @@
+{
+  "slug": "bias-benchmark-for-question-answering",
+  "name": "Bias Benchmark for Question Answering",
+  "description": "The Bias Benchmark for Question Answering (BBQ) is a fixed set of about 58,500 multiple-choice reading questions that tests whether a language model's answers rely on social stereotypes, across nine social dimensions (age, disability status, gender identity, nationality, physical appearance, race and ethnicity, religion, socio-economic status and sexual orientation) and two combinations of them, using stereotypes documented as harmful in US English-speaking contexts (Parrish et al., 2022). Each item describes two people from different groups and asks a question that points at a stereotype, such as who is bad at maths, with three answers to choose from: either person, or an answer such as 'cannot be determined'; in the ambiguous version the passage does not say which person the question is about, so 'cannot be determined' is correct, and in the disambiguated version an added sentence settles it. Items come in balanced sets that swap the two groups and their order and pair each negative question with a non-negative one, so that a model which simply prefers one group whatever the question is not counted as stereotyping. From the model's chosen answers (generated, or picked by comparing the probabilities it gives the three options) the test reports accuracy in each version and a bias score per category from -100% to 100%: the share of answers naming a person that follow the stereotype, rescaled so that 0 means no consistent direction and a negative score leans against the stereotype, and in the ambiguous version multiplied by the error rate, so that stereotyped guesses weigh more when the model guesses often; it also reports how far accuracy falls when the correct answer goes against the stereotype. Unlike substituting identity terms into a deployer's own inputs, or varying the people shown in few-shot examples, BBQ is a fixed external question set that tests what a model concludes about people when the text does, and does not, support a conclusion.",
+  "assurance_goals": [
+    "Fairness"
+  ],
+  "tags": [
+    "applicable-models/architecture/neural-networks/transformer/llm",
+    "applicable-models/requirements/black-box",
+    "assurance-goal-category/fairness",
+    "assurance-goal-category/fairness/bias-measurement",
+    "data-requirements/test-scenarios",
+    "data-type/text",
+    "evidence-type/fairness-metric",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/evaluation-design",
+    "expertise-needed/ml-engineering",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-selection-and-training",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "technique-type/testing"
+  ],
+  "example_use_cases": [
+    {
+      "description": "A government department choosing between three language models for a service that answers citizens' questions about benefits runs the full BBQ set on each, with the same prompt, answer extraction and scoring for all three. It compares accuracy and both bias scores category by category, rules out any model whose ambiguous-context bias score in any category is further from zero, in either direction, than a limit set before testing, and records that the result covers US stereotypes only.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "A recruitment software company fine-tuning an open-weight model to answer HR helpdesk questions runs BBQ on the base model and on every fine-tuned version through the same evaluation harness, logging each answer. A release is blocked if any category's ambiguous-context bias score moves further from zero than the base model's by more than an agreed margin, or if the accuracy gap between items whose correct answer matches the stereotype and items whose correct answer goes against it widens.",
+      "goal": "Fairness"
+    },
+    {
+      "description": "An NHS trust's digital team preparing a health-information assistant needs evidence about UK stereotypes, which BBQ was not built for. Following the procedure used to build a Korean version, it keeps templates that transfer, changes target groups where UK stereotypes differ, drops those that do not apply, writes UK-specific ones, surveys members of the UK public to confirm each stereotype and its target group, and reports results on the original and adapted sets side by side.",
+      "goal": "Fairness"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "BBQ's stereotypes, and most of its categories, come from US English-speaking contexts, and its authors say results should not be used as evidence about other cultures. Adapting it to Korean meant changing target groups, dropping templates and adding four categories, and a machine-translated BBQ gave different bias scores from the adapted version (Jin et al., 2024). For a UK deployment the original set says nothing about UK-specific stereotypes."
+    },
+    {
+      "description": "A low bias score is weak evidence that a model is unbiased. Each category rests on about 25 templates with very short passages and three fixed answers; the authors warn that a low score is not proof of an unbiased model, and that for a model used on very different text BBQ is unlikely to be a valid measure. It counts only stereotypes that change the chosen answer, so it misses bias that shifts the model's probabilities without changing its choice."
+    },
+    {
+      "description": "The bias score leaves out 'cannot be determined' answers and has a sign, so it must be read with accuracy and by its distance from zero. A model that always gives that answer has full accuracy and a zero bias score on ambiguous items, yet fails every disambiguated one. A negative score means answers lean against the stereotype, as HELM found for most of the models it tested (Liang et al., 2023); a one-sided limit such as 'below 5%' passes such a model."
+    },
+    {
+      "description": "Scores depend on the prompt format and on how answers are extracted or scored, so they compare only across models tested the same way. In the original study one UnifiedQA model, given the same items in two input formats, scored 2.4 and 18.6 on ambiguous gender-identity items. Results for a single template rest on few items (one reported example has 72), so they are noisy and should be combined across templates for the same stereotype."
+    },
+    {
+      "description": "It is weak evidence about bias against people with two combined identities. In the original study, results on the two intersectional categories (race by gender, race by socio-economic status) were too inconsistent for the authors to conclude that models responded to more than one aspect of identity, and the lm-evaluation-harness task notes that these categories are not really taken into account in its bias scores."
+    }
+  ],
+  "resources": [
+    {
+      "title": "BBQ: Repository for the Bias Benchmark for QA dataset (nyu-mll/BBQ)",
+      "url": "https://github.com/nyu-mll/BBQ",
+      "source_type": "documentation",
+      "publication_date": "2026-10-08T09:56:07Z",
+      "citationKey": "BBQRepositoryBias2026",
+      "abstract": "Repository for the Bias Benchmark for QA dataset."
+    },
+    {
+      "title": "Language Model Evaluation Harness (EleutherAI/lm-evaluation-harness)",
+      "url": "https://github.com/EleutherAI/lm-evaluation-harness",
+      "source_type": "software_package",
+      "publication_date": "2026-10-12T04:54:54Z",
+      "citationKey": "LanguageModelEvaluation2026",
+      "abstract": "A framework for few-shot evaluation of language models."
+    },
+    {
+      "title": "BBQ: A hand-built bias benchmark for question answering",
+      "url": "https://doi.org/10.18653/v1/2022.findings-acl.165",
+      "source_type": "technical_paper",
+      "authors": [
+        "Alicia Parrish",
+        "Angelica Chen",
+        "Nikita Nangia",
+        "Vishakh Padmakumar",
+        "Jason Phang",
+        "Jana Thompson",
+        "Phu Mon Htut",
+        "Samuel Bowman"
+      ],
+      "publication_date": "2022",
+      "citationKey": "parrishBBQHandbuiltBias2022"
+    },
+    {
+      "title": "KoBBQ: Korean Bias Benchmark for Question Answering",
+      "url": "https://doi.org/10.1162/tacl_a_00661",
+      "source_type": "application_paper",
+      "authors": [
+        "Jiho Jin",
+        "Jiseon Kim",
+        "Nayeon Lee",
+        "Haneul Yoo",
+        "Alice Oh",
+        "Hwaran Lee"
+      ],
+      "publication_date": "2024",
+      "citationKey": "jinKoBBQKoreanBias2024"
+    },
+    {
+      "title": "Holistic Evaluation of Language Models",
+      "url": "https://arxiv.org/abs/2211.09110",
+      "source_type": "application_paper",
+      "authors": [
+        "Percy Liang",
+        "Rishi Bommasani",
+        "Tony Lee",
+        "Dimitris Tsipras",
+        "Dilara Soylu",
+        "Michihiro Yasunaga",
+        "Yian Zhang",
+        "Deepak Narayanan",
+        "Yuhuai Wu",
+        "Ananya Kumar",
+        "Benjamin Newman",
+        "Binhang Yuan",
+        "Bobby Yan",
+        "Ce Zhang",
+        "Christian Cosgrove",
+        "Christopher D. Manning",
+        "Christopher Ré",
+        "Diana Acosta-Navas",
+        "Drew A. Hudson",
+        "Eric Zelikman",
+        "Esin Durmus",
+        "Faisal Ladhak",
+        "Frieda Rong",
+        "Hongyu Ren",
+        "Huaxiu Yao",
+        "Jue Wang",
+        "Keshav Santhanam",
+        "Laurel Orr",
+        "Lucia Zheng",
+        "Mert Yuksekgonul",
+        "Mirac Suzgun",
+        "Nathan Kim",
+        "Neel Guha",
+        "Niladri Chatterji",
+        "Omar Khattab",
+        "Peter Henderson",
+        "Qian Huang",
+        "Ryan Chi",
+        "Sang Michael Xie",
+        "Shibani Santurkar",
+        "Surya Ganguli",
+        "Tatsunori Hashimoto",
+        "Thomas Icard",
+        "Tianyi Zhang",
+        "Vishrav Chaudhary",
+        "William Wang",
+        "Xuechen Li",
+        "Yifan Mai",
+        "Yuhui Zhang",
+        "Yuta Koreeda"
+      ],
+      "publication_date": "2023-10-01",
+      "citationKey": "liangHolisticEvaluationLanguage2023",
+      "abstract": "Language models (LMs) are becoming the foundation for almost all major language technologies, but their capabilities, limitations, and risks are not well understood. We present Holistic Evaluation of Language Models (HELM) to improve the transparency of language models. First, we taxonomize the vast space of potential scenarios (i.e. use cases) and metrics (i.e. desiderata) that are of interest for LMs. Then we select a broad subset based on coverage and feasibility, noting what's missing or underrepresented (e.g. question answering for neglected English dialects, metrics for trustworthiness). Second, we adopt a multi-metric approach: We measure 7 metrics (accuracy, calibration, robustness, fairness, bias, toxicity, and efficiency) for each of 16 core scenarios when possible (87.5% of the time). This ensures metrics beyond accuracy don't fall to the wayside, and that trade-offs are clearly exposed. We also perform 7 targeted evaluations, based on 26 targeted scenarios, to analyze specific aspects (e.g. reasoning, disinformation). Third, we conduct a large-scale evaluation of 30 prominent language models (spanning open, limited-access, and closed models) on all 42 scenarios, 21 of which were not previously used in mainstream LM evaluation. Prior to HELM, models on average were evaluated on just 17.9% of the core HELM scenarios, with some prominent models not sharing a single scenario in common. We improve this to 96.0%: now all 30 models have been densely benchmarked on the same core scenarios and metrics under standardized conditions. Our evaluation surfaces 25 top-level findings. For full transparency, we release all raw model prompts and completions publicly for further analysis, as well as a general modular toolkit. We intend for HELM to be a living benchmark for the community, continuously updated with new scenarios, metrics, and models."
+    }
+  ],
+  "complexity_rating": 2,
+  "computational_cost_rating": 3,
+  "acronym": "BBQ",
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "Under the department's fixed prompt and scoring, the selected model's ambiguous-context BBQ bias score was between -5% and +5% in each of the nine categories, and its accuracy on disambiguated items differed by less than 2 percentage points between items whose correct answer matched the stereotype and items whose correct answer did not.",
+      "assuranceGoal": "fairness",
+      "domain": "public sector"
+    },
+    {
+      "text": "No fine-tuned release of the HR helpdesk model has an ambiguous-context BBQ bias score more than 2 percentage points further from zero than the base model's in any category, measured with the same harness version, prompt and scoring.",
+      "assuranceGoal": "fairness",
+      "domain": "general"
+    },
+    {
+      "text": "On a UK-adapted version of BBQ, whose stereotypes and target groups were confirmed by a survey of the UK public before use, the health-information assistant's ambiguous-context bias score was between -5% and +5% in every category and its accuracy on disambiguated items was above 90%.",
+      "assuranceGoal": "fairness",
+      "domain": "healthcare"
+    }
+  ]
+}

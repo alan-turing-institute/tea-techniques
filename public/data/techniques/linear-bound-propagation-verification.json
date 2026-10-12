@@ -1,0 +1,165 @@
+{
+  "slug": "linear-bound-propagation-verification",
+  "name": "Linear Bound Propagation Verification",
+  "description": "Linear bound propagation verification proves that a trained neural network meets a stated property for every input in a defined region, for example that no small change to the pixels of an image alters its class, or that a controller's output stays within limits across a box of sensor readings. CROWN, the named method, replaces each neuron's activation function with two straight lines that bound it from above and below over the values that neuron can take, then works backwards from the outputs through the layers to express an upper and a lower bound on each output as a linear function of the input, and evaluates those functions over the region to obtain guaranteed numerical bounds. If the bounds show the property holds (for a classifier, that the correct class's score stays above every other class's), it is proved for the whole region; because the straight lines over-approximate the network, bounds that fail to show it leave the case undecided, so bound propagation on its own is sound but incomplete. The alpha-beta-CROWN tool tightens the bounds by tuning the lines with gradient-based optimisation and by branch and bound: for a ReLU network it splits undecided neurons into their active and inactive cases and bounds each part separately, which given enough time settles every case, making the tool complete for ReLU networks, but at a cost that can grow exponentially with the number of neurons split, so in practice each run ends as verified, falsified (a counterexample input found) or timed out. Running on graphics processors, it reaches convolutional networks with millions of parameters, larger than exact constraint solvers usually handle, at the price of leaving hard cases undecided.",
+  "assurance_goals": [
+    "Safety",
+    "Reliability"
+  ],
+  "tags": [
+    "applicable-models/architecture/neural-networks",
+    "applicable-models/requirements/white-box",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/robustness",
+    "assurance-goal-category/safety",
+    "assurance-goal-category/safety/verification",
+    "data-requirements/test-scenarios",
+    "data-type/image",
+    "data-type/tabular",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/deep-learning",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/safety-engineering",
+    "lifecycle-stage/model-development",
+    "lifecycle-stage/model-development/model-testing-and-validation",
+    "technique-type/algorithmic"
+  ],
+  "example_use_cases": [
+    {
+      "description": "An avionics supplier's verification team checks the network that flags wildfires in airborne infrared images. For each background crop in a held-out set taken from real flight logs, it uses alpha-beta-CROWN to prove that the detector's confidence never falls as a planted fire signal grows stronger within the specified range, lists the crops where a counterexample is found, and enters the proved cases in the safety case as evidence for that consistency requirement.",
+      "goal": "Safety"
+    },
+    {
+      "description": "A transmission system operator replaces slow time-domain simulation with a neural network that predicts whether the grid stays stable after a fault, inside the optimiser that plans generator dispatch. At each candidate dispatch its engineers use alpha-beta-CROWN to certify that the stability prediction holds for every combination of wind, solar and load within the forecast uncertainty, and raise the stability margin wherever certification fails before the plan is issued.",
+      "goal": "Safety"
+    },
+    {
+      "description": "A pharmaceutical packaging line uses a convolutional classifier to accept or reject blister packs from camera images. Before each model release the quality team reports certified accuracy on held-out images: the share for which CROWN bounds prove that no change of up to 2/255 in any pixel can flip the decision, a bound set above the largest per-pixel noise measured on the line's cameras. A release whose certified accuracy falls well below its ordinary accuracy goes back for retraining.",
+      "goal": "Reliability"
+    }
+  ],
+  "limitations": [
+    {
+      "description": "Bound propagation on its own is incomplete: when the bounds are too loose to show the property, the case stays undecided, which is not evidence either way. Branch and bound settles more cases, but the problem is NP-complete in general, so hard cases end in a time-out. In an industrial study of an airborne wildfire detector, every query for a monotonicity property was settled, while 62 per cent of the queries for a sensor-blur property timed out."
+    },
+    {
+      "description": "The property must be written as a region of inputs, such as every image within a small per-pixel change of a test image or a box of sensor values, plus a linear condition on the outputs. Rotation, lighting, weather or blur are not regions of that kind; covering them means modelling them first, for example with a separate network that generates plausible blur, and the accuracy of that model then has to be argued separately."
+    },
+    {
+      "description": "Robustness is proved one region at a time, usually around each test input, so certified accuracy on a test set is evidence about those inputs and that perturbation only. It does not carry over to new inputs from operation, and a classifier certified around every test image can still misclassify an unperturbed image it has not seen."
+    },
+    {
+      "description": "It needs the whole network in a supported form (PyTorch or ONNX) and, beyond small networks, a graphics processor with enough memory: most of the tool's example configurations were tested on a 24 GB GPU, and its documented branch-and-bound support for ReLU image models reaches residual networks of about 20 layers. Layers the library does not support need their bounds written by hand, and its documented reach of millions of parameters is far below the size of large language models."
+    },
+    {
+      "description": "The guarantee covers the network alone. Pre-processing, sensor faults and, for a controller, the plant it drives and how errors build up over time are outside it, so a proof that a policy network never outputs an unsafe command for any state in a box does not show that the controlled system stays safe; that needs a separate analysis of the closed loop."
+    }
+  ],
+  "resources": [
+    {
+      "title": "alpha-beta-CROWN usage documentation",
+      "url": "https://github.com/Verified-Intelligence/alpha-beta-CROWN/blob/main/complete_verifier/docs/abcrown_usage.md",
+      "source_type": "documentation",
+      "citationKey": "AlphabetaCROWNUsageDocumentation",
+      "abstract": "alpha-beta-CROWN: An Efficient, Scalable and GPU Accelerated Neural Network Verifier (winner of VNN-COMP 2021, 2022, 2023, 2024, 2025) - Verified-Intelligence/alpha-beta-CROWN"
+    },
+    {
+      "title": "alpha-beta-CROWN: a fast and scalable neural network verifier with efficient bound propagation",
+      "url": "https://github.com/Verified-Intelligence/alpha-beta-CROWN",
+      "source_type": "software_package",
+      "citationKey": "AlphabetaCROWNFastScalable",
+      "abstract": "alpha-beta-CROWN: An Efficient, Scalable and GPU Accelerated Neural Network Verifier (winner of VNN-COMP 2021, 2022, 2023, 2024, 2025) - Verified-Intelligence/alpha-beta-CROWN"
+    },
+    {
+      "title": "Efficient Neural Network Robustness Certification with General Activation Functions",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2018/hash/d04863f100d59b3eb688a11f95b0ae60-Abstract.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Huan Zhang",
+        "Tsui-Wei Weng",
+        "Pin-Yu Chen",
+        "Cho-Jui Hsieh",
+        "Luca Daniel"
+      ],
+      "publication_date": "2018",
+      "citationKey": "zhangEfficientNeuralNetwork2018",
+      "abstract": "Finding minimum distortion of adversarial examples and thus certifying robustness in neural networks classifiers is known to be a challenging problem. Nevertheless, recently it has been shown to be possible to give a non-trivial certified lower bound of minimum distortion, and some recent progress has been made towards this direction by exploiting the piece-wise linear nature of ReLU activations. However, a generic robustness certification for \\textit{general} activation functions still remains largely unexplored. To address this issue, in this paper we introduce CROWN, a general framework to certify robustness of neural networks with general activation functions. The novelty in our algorithm consists of bounding a given activation function with linear and quadratic functions, hence allowing it to tackle general activation functions including but not limited to the four popular choices: ReLU, tanh, sigmoid and arctan. In addition, we facilitate the search for a tighter certified lower bound by \\textit{adaptively} selecting appropriate surrogates for each neuron activation. Experimental results show that CROWN on ReLU networks can notably improve the certified lower bounds compared to the current state-of-the-art algorithm Fast-Lin, while having comparable computational efficiency. Furthermore, CROWN also demonstrates its effectiveness and flexibility on networks with general activation functions, including tanh, sigmoid and arctan."
+    },
+    {
+      "title": "Beta-CROWN: Efficient Bound Propagation with Per-neuron Split Constraints for Neural Network Robustness Verification",
+      "url": "https://proceedings.neurips.cc/paper_files/paper/2021/hash/fac7fead96dafceaf80c1daffeae82a4-Abstract.html",
+      "source_type": "technical_paper",
+      "authors": [
+        "Shiqi Wang",
+        "Huan Zhang",
+        "Kaidi Xu",
+        "Xue Lin",
+        "Suman Jana",
+        "Cho-Jui Hsieh",
+        "J. Zico Kolter"
+      ],
+      "publication_date": "2021",
+      "citationKey": "wangBetaCROWNEfficientBound2021"
+    },
+    {
+      "title": "Quick Start — auto_LiRPA documentation",
+      "url": "https://auto-lirpa.readthedocs.io/en/latest/quick-start.html",
+      "source_type": "tutorial",
+      "citationKey": "QuickStartAuto_LiRPA"
+    },
+    {
+      "title": "veriFIRE: An Industrial Case Study in Verifying Consistency Properties for a DNN-Based Wildfire Detection System",
+      "url": "https://doi.org/10.1007/978-3-032-32357-6_17",
+      "source_type": "application_paper",
+      "authors": [
+        "Idan Refaeli",
+        "Maya Swisa",
+        "Itay Buchnik",
+        "Alon Zada",
+        "Guy Amir",
+        "Elad Mandelbaum",
+        "Ziv Freund",
+        "Guy Katz"
+      ],
+      "publication_date": "2026-7-18",
+      "citationKey": "refaeliVeriFIREIndustrialCase2026"
+    },
+    {
+      "title": "Neural Network Certification Informed Power System Transient Stability Preventive Control With Renewable Energy",
+      "url": "https://doi.org/10.1109/tpwrs.2025.3577025",
+      "source_type": "application_paper",
+      "authors": [
+        "Tong Su",
+        "Junbo Zhao"
+      ],
+      "publication_date": "2025-11",
+      "citationKey": "suNeuralNetworkCertification2025"
+    }
+  ],
+  "complexity_rating": 4,
+  "computational_cost_rating": 4,
+  "acronym": "CROWN",
+  "related_techniques": [],
+  "sample_claims": [
+    {
+      "text": "For every background crop in the verification set, the wildfire detection network's confidence does not decrease as fire intensity increases within the specified range.",
+      "assuranceGoal": "safety",
+      "domain": "aviation"
+    },
+    {
+      "text": "At each dispatch issued by the preventive control planner, the stability-prediction network's output is certified unchanged for all wind, solar and load values within the forecast uncertainty set.",
+      "assuranceGoal": "safety",
+      "domain": "energy"
+    },
+    {
+      "text": "For at least 95 per cent of held-out inspection images, no change of up to 2/255 in any pixel can alter the classifier's accept or reject decision.",
+      "assuranceGoal": "reliability",
+      "domain": "manufacturing"
+    },
+    {
+      "text": "For every state in the specified operating region, the controller network's commanded torque stays within the actuator's safe limits.",
+      "assuranceGoal": "safety",
+      "domain": "robotics"
+    }
+  ]
+}

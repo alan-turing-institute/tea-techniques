@@ -1,59 +1,66 @@
 {
   "slug": "prompt-robustness-testing",
   "name": "Prompt Robustness Testing",
-  "description": "Prompt robustness testing evaluates how consistently models perform when prompts undergo minor variations in wording, formatting, or structure. This technique systematically paraphrases prompts, reorders elements, changes formatting (capitalisation, punctuation), and tests semantically equivalent variations to measure output consistency. Testing assesses robustness by identifying when superficial prompt changes cause dramatic performance swings, helping developers create robust prompt templates and understand model reliability boundaries.",
+  "description": "Prompt robustness testing measures how much a language model's answers, or its performance on a task, change when the prompt is varied in ways that should not matter: rewording an instruction, changing formatting, punctuation or capitalisation, reordering elements, or introducing the typos and synonym swaps real users make. The tester starts from a set of task prompts with known correct answers, generates variants of each that keep its meaning, either from templates of plausible formats or with automated perturbation tools such as PromptBench, and runs the model on every variant. The result is reported as the spread of performance across variants, for example the gap between the best and worst format or the drop in accuracy under perturbation, together with the variants that changed the answer. Reporting the spread rather than one score matters because results from a single prompt template are brittle: on one widely used open model, accuracy differed by up to 76 points across formatting changes that kept the meaning.",
   "assurance_goals": [
     "Reliability",
     "Explainability"
   ],
   "tags": [
     "applicable-models/architecture/neural-networks/transformer/llm",
+    "applicable-models/paradigm/generative",
     "applicable-models/requirements/black-box",
-    "assurance-goal-category/reliability",
-    "assurance-goal-category/reliability/robustness",
     "assurance-goal-category/explainability",
     "assurance-goal-category/explainability/explains/decision-boundaries",
-    "data-type/text",
+    "assurance-goal-category/explainability/uncertainty-analysis/sensitivity-testing",
+    "assurance-goal-category/reliability",
+    "assurance-goal-category/reliability/robustness",
     "data-requirements/no-special-requirements",
+    "data-type/text",
+    "evidence-type/quantitative-metric",
+    "expertise-needed/domain-expertise",
+    "expertise-needed/evaluation-design",
+    "expertise-needed/linguistics",
+    "expertise-needed/ml-engineering",
+    "expertise-needed/statistics",
+    "explanatory-scope/global",
     "lifecycle-stage/model-development",
     "lifecycle-stage/model-development/model-testing-and-validation",
-    "technique-type/testing",
-    "evidence-type/quantitative-metric",
-    "expertise-needed/ml-engineering",
-    "expertise-needed/domain-expertise",
-    "expertise-needed/linguistics",
-    "expertise-needed/evaluation-design",
-    "explanatory-scope/global"
+    "technique-type/testing"
   ],
   "example_use_cases": [
     {
-      "description": "Testing whether a medical triage chatbot gives consistent urgency assessments when patients describe symptoms using different phrasings, ensuring reliable advice regardless of communication style.",
+      "description": "A digital health provider testing a symptom-triage chatbot rewrites each benchmark scenario as a brief layperson message, a detailed account, a clinician's summary and an anxious message, and checks that the urgency category stays the same across all four, treating any change as a failure to investigate before release.",
       "goal": "Reliability"
     },
     {
-      "description": "Testing a customer service routing AI to identify which keywords and phrases are critical for correctly categorising support requests versus which formatting variations inappropriately change routing decisions, enabling clearer user guidance.",
+      "description": "A public-sector team choosing between candidate language models for classifying citizen enquiries evaluates each across a set of plausible prompt formats and instruction paraphrases, and compares models on worst-format and average accuracy rather than on a single prompt, because the ranking of models can change with the template.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A bank validating a model that summarises suspicious-transaction reports checks that the risk category it extracts does not change when the same activity is described with different terminology, abbreviations or layout, as reports from different branches would be.",
+      "goal": "Reliability"
+    },
+    {
+      "description": "A support team testing a request-routing model varies one element of each request at a time to separate the words that change the routing decision from formatting changes that should not, and uses the result to write guidance on how customers should phrase requests.",
       "goal": "Explainability"
-    },
-    {
-      "description": "Validating that a fraud detection AI maintains consistent risk assessments when financial transactions are described using varied terminology, abbreviations, or formats, ensuring reliable protection regardless of how suspicious activities are reported.",
-      "goal": "Reliability"
     }
   ],
   "limitations": [
     {
-      "description": "Vast space of possible prompt variations makes exhaustive testing infeasible, requiring sampling strategies that may miss important edge cases."
+      "description": "The space of possible prompt variants is unbounded, so a test samples it. A model can pass on every variant tried and still fail on a phrasing nobody generated, and the conclusion holds only for the kinds of variation the test set covers."
     },
     {
-      "description": "Defining 'semantically equivalent' prompts can be subjective, especially for complex or nuanced instructions."
+      "description": "Whether a variant keeps the meaning of the original is a judgement. Automated perturbations such as typos and synonym swaps can change meaning or produce text no user would write, especially in specialised language, so variant sets need checking by someone who knows the domain."
     },
     {
-      "description": "Some brittleness may be unavoidable due to fundamental model limitations rather than fixable through prompt engineering."
+      "description": "Results do not transfer between models: which formats work well correlated only weakly across models in a large study, and robustness to one domain's phrasing says little about another's. The test has to be rerun for each model version, each prompt template change and each domain."
     },
     {
-      "description": "Testing reveals brittleness but doesn't necessarily provide clear paths to mitigation beyond avoiding problematic variations."
+      "description": "Every variant multiplies the number of model calls, and for open-ended answers each response may need scoring by a domain expert rather than against a fixed label. Testing many formats across many examples and candidate models quickly becomes costly."
     },
     {
-      "description": "Robustness patterns may not transfer across domains—a model robust to medical terminology variations might still be brittle to legal phrasings, requiring separate testing for each application domain."
+      "description": "It shows that outputs are brittle, not why. Choosing the best-scoring template on the same variants used to test it gives an optimistic estimate of how that template will perform on new inputs, so template selection and the final robustness measurement need separate data."
     }
   ],
   "resources": [
@@ -68,60 +75,107 @@
       "citationKey": "promptbenchdevelopersPromptbenchIntroductionPromptbench2023"
     },
     {
-      "title": "acceptance-bench",
-      "url": "https://github.com/ellydee/acceptance-bench",
+      "title": "microsoft/promptbench: A unified evaluation framework for large language models",
+      "url": "https://github.com/microsoft/promptbench",
       "source_type": "software_package",
-      "publication_date": "2025-10-16",
-      "citationKey": "ellydeeAcceptancebench2025",
-      "abstract": "A robust LLM evaluation framework measuring acceptance vs refusal across difficulty levels. Features multi-prompt variation testing, temperature sweeping, and LLM-as-judge evaluation. Current focus: creative writing benchmarks including erotica generation tasks."
+      "publication_date": "2026-10-08T03:24:39Z",
+      "citationKey": "MicrosoftPromptbenchUnified2026",
+      "abstract": "A unified evaluation framework for large language models"
     },
     {
-      "title": "A Guide on Effective LLM Assessment with DeepEval",
-      "url": "https://www.analyticsvidhya.com/blog/2025/01/llm-assessment-with-deepeval",
+      "title": "PromptRobust: Towards Evaluating the Robustness of Large Language Models on Adversarial Prompts",
+      "url": "https://doi.org/10.1145/3689217.3690621",
+      "source_type": "technical_paper",
+      "authors": [
+        "Kaijie Zhu",
+        "Jindong Wang",
+        "Jiaheng Zhou",
+        "Zichen Wang",
+        "Hao Chen",
+        "Yidong Wang",
+        "Linyi Yang",
+        "Wei Ye",
+        "Yue Zhang",
+        "Neil Gong",
+        "Xing Xie"
+      ],
+      "publication_date": "2023-11-19",
+      "citationKey": "zhuPromptRobustEvaluatingRobustness2023",
+      "abstract": "The increasing reliance on Large Language Models (LLMs) across academia and industry necessitates a comprehensive understanding of their robustness to prompts. In response to this vital need, we introduce PromptRobust, a robustness benchmark designed to measure LLMs' resilience to adversarial prompts. This study uses a plethora of adversarial textual attacks targeting prompts across multiple levels: character, word, sentence, and semantic. The adversarial prompts, crafted to mimic plausible user errors like typos or synonyms, aim to evaluate how slight deviations can affect LLM outcomes while maintaining semantic integrity. These prompts are then employed in diverse tasks including sentiment analysis, natural language inference, reading comprehension, machine translation, and math problem-solving. Our study generates 4, 788 adversarial prompts, meticulously evaluated over 8 tasks and 13 datasets. Our findings demonstrate that contemporary LLMs are not robust to adversarial prompts. Furthermore, we present comprehensive analysis to understand the mystery behind prompt robustness and its transferability. We then offer insightful robustness analysis, beneficial to both researchers and everyday users. Code is available at https://github.com/microsoft/promptbench."
+    },
+    {
+      "title": "State of What Art? A Call for Multi-Prompt LLM Evaluation",
+      "url": "https://doi.org/10.1162/tacl_a_00681",
+      "source_type": "technical_paper",
+      "authors": [
+        "Moran Mizrahi",
+        "Guy Kaplan",
+        "Dan Malkin",
+        "Rotem Dror",
+        "Dafna Shahaf",
+        "Gabriel Stanovsky"
+      ],
+      "publication_date": "2024",
+      "citationKey": "mizrahiStateWhatArt2024",
+      "abstract": "Recent advances in LLMs have led to an abundance of evaluation benchmarks, which typically rely on a single instruction template per task. We create a large-scale collection of instruction paraphrases and comprehensively analyze the brittleness introduced by single-prompt evaluations across 6.5M instances, involving 20 different LLMs and 39 tasks from 3 benchmarks. We find that different instruction templates lead to very different performance, both absolute and relative. Instead, we propose a set of diverse metrics on multiple instruction paraphrases, specifically tailored for different use cases (e.g., LLM vs. downstream development), ensuring a more reliable and meaningful assessment of LLM capabilities. We show that our metrics provide new insights into the strengths and limitations of current LLMs."
+    },
+    {
+      "title": "Prompt Attack - promptbench documentation",
+      "url": "https://promptbench.readthedocs.io/en/latest/examples/prompt_attack.html",
       "source_type": "tutorial",
-      "authors": [
-        "Nibedita Dutta"
-      ],
-      "publication_date": "2025-01-24",
-      "citationKey": "duttaGuideEffectiveLLM2025"
+      "citationKey": "PromptAttackPromptbench"
     },
     {
-      "title": "Prompt engineering",
-      "url": "https://huggingface.co/docs/transformers/en/tasks/prompting",
-      "source_type": "documentation",
-      "publication_date": "2019",
-      "citationKey": "PromptEngineering2019"
+      "title": "Quantifying Language Models' Sensitivity to Spurious Features in Prompt Design or: How I learned to start worrying about prompt formatting",
+      "url": "https://doi.org/10.48550/arXiv.2310.11324",
+      "source_type": "technical_paper",
+      "authors": [
+        "Melanie Sclar",
+        "Yejin Choi",
+        "Yulia Tsvetkov",
+        "Alane Suhr"
+      ],
+      "publication_date": "2023",
+      "citationKey": "sclarQuantifyingLanguageModels2023",
+      "abstract": "As large language models (LLMs) are adopted as a fundamental component of language technologies, it is crucial to accurately characterize their performance. Because choices in prompt design can strongly influence model behavior, this design process is critical in effectively using any modern pre-trained generative language model. In this work, we focus on LLM sensitivity to a quintessential class of meaning-preserving design choices: prompt formatting. We find that several widely used open-source LLMs are extremely sensitive to subtle changes in prompt formatting in few-shot settings, with performance differences of up to 76 accuracy points when evaluated using LLaMA-2-13B. Sensitivity remains even when increasing model size, the number of few-shot examples, or performing instruction tuning. Our analysis suggests that work evaluating LLMs with prompting-based methods would benefit from reporting a range of performance across plausible prompt formats, instead of the currently-standard practice of reporting performance on a single format. We also show that format performance only weakly correlates between models, which puts into question the methodological validity of comparing models with an arbitrarily chosen, fixed prompt format. To facilitate systematic analysis we propose FormatSpread, an algorithm that rapidly evaluates a sampled set of plausible prompt formats for a given task, and reports the interval of expected performance without accessing model weights. Furthermore, we present a suite of analyses that characterize the nature of this sensitivity, including exploring the influence of particular atomic perturbations and the internal representation of particular formats."
     },
     {
-      "title": "Prompt Engineering UI (Experimental) | MLflow",
-      "url": "https://mlflow.org/docs/latest/genai/prompt-registry/prompt-engineering",
-      "source_type": "documentation",
+      "title": "Prompt sensitivity of large language models in orthodontic patient counseling: a scenario-based experimental study",
+      "url": "https://doi.org/10.1186/s12903-026-09058-z",
+      "source_type": "application_paper",
       "authors": [
-        "MLflow Developers"
+        "Ersin Yıldırım",
+        "Esra Tunalı",
+        "Şeniz Karaçay"
       ],
-      "publication_date": "2018",
-      "citationKey": "mlflowdevelopersPromptEngineeringUI2018"
+      "publication_date": "2026-6-27",
+      "citationKey": "yildirimPromptSensitivityLarge2026",
+      "abstract": "BACKGROUND: Large language models (LLMs) are increasingly used as accessible sources of health information, including orthodontic patient counseling. While previous studies have evaluated the accuracy and reliability of AI-generated responses, the effect of prompt formulation on the safety and quality of orthodontic advice remains unclear. Understanding prompt sensitivity is essential for assessing the real-world reliability of conversational AI systems, as patient queries are typically expressed in diverse linguistic forms. METHODS: This in silico experimental study evaluated prompt sensitivity using 24 standardized orthodontic clinical scenarios. Each scenario was queried using four prompt formulations (brief layperson, detailed patient, professional clinical, and anxiety-driven), resulting in 96 prompts. These were submitted to four LLMs (ChatGPT, Gemini, Copilot, and Claude), generating 384 responses. Responses were independently evaluated by two orthodontic experts using a predefined expert scoring rubric across accuracy, safety, completeness, and clarity. Consensus scores were analyzed using the Friedman test for prompt effects and the Kruskal-Wallis test for model comparisons. Unsafe response rates and prompt robustness indices were also calculated. RESULTS: Safety scores did not differ significantly across prompt formulations (χ²(3) = 3.40, p = 0.334) or between models (H = 0.17, p = 0.982). A total of 5 of 384 responses (1.3%) were classified as unsafe. Prompt robustness analysis demonstrated low variability (mean prompt robustness index = 0.15). Response length differed significantly across prompt types (p = 0.0029), whereas response time did not (p = 0.998). A significant difference in clarity scores was observed across models (p = 0.029), with post hoc analysis indicating higher clarity scores for ChatGPT than Claude (adjusted p = 0.020). CONCLUSIONS: LLMs demonstrated consistent and clinically safe performance in orthodontic patient counseling, with minimal sensitivity to prompt formulation. While prompt wording influenced response length, it did not affect clinical reliability. Differences between models were primarily related to clarity rather than content. LLMs may provide stable informational support across diverse patient queries; however, their outputs should remain adjunctive to professional care."
     }
   ],
   "related_techniques": [
-    "prompt-sensitivity-analysis",
     "prompt-injection-testing",
     "red-teaming",
     "adversarial-training-evaluation"
   ],
   "sample_claims": [
     {
-      "text": "The medical triage system provides consistent urgency assessments regardless of how patients phrase their symptom descriptions",
+      "text": "The triage assistant assigns the same urgency category to each benchmark scenario whether the patient's description is brief, detailed, clinical or anxious in style",
       "domain": "healthcare",
       "assuranceGoal": "reliability"
     },
     {
-      "text": "The customer routing system's categorisation decisions remain stable when support requests are reformatted or reworded whilst maintaining semantic meaning",
-      "domain": "general",
+      "text": "The enquiry-classification model's accuracy stays within a stated margin of its mean across every prompt template and instruction paraphrase in the evaluation set",
+      "domain": "public sector",
       "assuranceGoal": "reliability"
     },
     {
-      "text": "The decision boundaries governing query classification are identifiable through systematic analysis of which input variations trigger different categorisation outcomes",
+      "text": "The risk category extracted from suspicious-transaction reports does not change when the same activity is described with different terminology or layout",
+      "domain": "finance",
+      "assuranceGoal": "reliability"
+    },
+    {
+      "text": "The changes that alter the routing model's decisions have been identified and are changes to the content of a request, not to its formatting",
       "domain": "general",
       "assuranceGoal": "explainability"
     }

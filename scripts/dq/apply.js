@@ -24,13 +24,23 @@
  *       "acronym": "..."
  *     },
  *     "resources": {
- *       "keep": ["citekey", ...],         // existing keys to keep (default: all)
+ *       "keep": ["citekey", ...],         // optional check: every current key
+ *                                         // must appear here or in drop
  *       "drop": [{ "citekey": "...", "reason": "..." }],
  *       "add":  [{ "citekey": "...", "slot": "documentation", "reason": "..." }],
+ *       "update": [{ "citekey": "...", "slot": "tutorial", "url": "...",
+ *                    "reason": "..." }],  // Zotero-side edits for the writer
  *       "empty": { "software_package": "what was searched and why nothing fits" }
  *     },
  *     "notes": "anything the writer should know"
  *   }
+ *
+ * The resources after the run are the current keys minus "drop" plus "add".
+ * "keep" never removes anything: when it is given, a current key missing from
+ * both lists is a problem and the proposal is skipped. Slot names use the
+ * underscore form (documentation, software_package, technical_paper, tutorial,
+ * application_paper). "update" changes nothing here; it is reported so the
+ * writer retags or corrects the item in Zotero before the export refreshes.
  *
  * "add" citekeys must already resolve in public/data/zotero-resources.json:
  * the writer adds items to the Zotero group first, the auto-export refreshes
@@ -156,41 +166,52 @@ function slotOf(item) {
   return typeTag ? typeTag.tag.replace('type:', '').replace(/-/g, '_') : null;
 }
 
+function keepAndDropProblems(current, spec) {
+  const dropKeys = new Set((spec.drop ?? []).map((d) => d.citekey));
+  const keepKeys = spec.keep ?? [];
+  const notCurrent = (key) => !current.includes(key);
+  const unaccounted = (key) => !(keepKeys.includes(key) || dropKeys.has(key));
+  return [
+    ...keepKeys
+      .filter(notCurrent)
+      .map((key) => `keep lists "${key}" which is not a current resource`),
+    ...(spec.keep ? current : [])
+      .filter(unaccounted)
+      .map((key) => `current resource "${key}" is in neither keep nor drop`),
+    ...[...dropKeys]
+      .filter(notCurrent)
+      .map((key) => `drop lists "${key}" which is not a current resource`),
+  ];
+}
+
+function addProblem(add, zotero) {
+  const item = zotero.get(add.citekey);
+  if (!item) {
+    return `add "${add.citekey}" does not resolve in zotero-resources.json`;
+  }
+  if (add.slot && slotOf(item) !== add.slot) {
+    return `add "${add.citekey}" is tagged type:${slotOf(item)} in Zotero, proposal says ${add.slot}`;
+  }
+  return null;
+}
+
 function checkResourceSpec(current, spec, zotero) {
-  const problems = [];
-  for (const key of spec.keep ?? []) {
-    if (!current.includes(key)) {
-      problems.push(`keep lists "${key}" which is not a current resource`);
-    }
-  }
-  for (const d of spec.drop ?? []) {
-    if (!current.includes(d.citekey)) {
-      problems.push(
-        `drop lists "${d.citekey}" which is not a current resource`
-      );
-    }
-  }
-  for (const add of spec.add ?? []) {
-    const item = zotero.get(add.citekey);
-    if (!item) {
-      problems.push(
-        `add "${add.citekey}" does not resolve in zotero-resources.json`
-      );
-    } else if (add.slot && slotOf(item) !== add.slot) {
-      problems.push(
-        `add "${add.citekey}" is tagged type:${slotOf(item)} in Zotero, proposal says ${add.slot}`
-      );
-    }
-  }
-  return problems;
+  const unresolved = (u) =>
+    !(current.includes(u.citekey) || zotero.has(u.citekey));
+  return [
+    ...keepAndDropProblems(current, spec),
+    ...(spec.update ?? [])
+      .filter(unresolved)
+      .map((u) => `update names "${u.citekey}" which does not resolve`),
+    ...(spec.add ?? []).map((add) => addProblem(add, zotero)).filter(Boolean),
+  ];
 }
 
 function mergeResources(current, spec, zotero) {
-  const keep = spec.keep ?? current;
   const dropKeys = new Set((spec.drop ?? []).map((d) => d.citekey));
   const addKeys = (spec.add ?? []).map((a) => a.citekey);
   const next = [
-    ...new Set([...keep.filter((k) => !dropKeys.has(k)), ...addKeys]),
+    ...new Set([...current.filter((k) => !dropKeys.has(k)), ...addKeys]),
   ];
   const rank = (k) => {
     const i = SLOT_ORDER.indexOf(slotOf(zotero.get(k)) ?? '');
@@ -229,7 +250,13 @@ function applyResourceSpec(before, after, spec, zotero) {
     slot,
     note,
   }));
-  return { problems, changed, emptySlots };
+  const updates = (spec.update ?? []).map((u) => ({
+    citekey: u.citekey,
+    slot: u.slot ?? null,
+    url: u.url ?? null,
+    reason: u.reason ?? '',
+  }));
+  return { problems, changed, emptySlots, updates };
 }
 
 function schemaProblems(validate, record) {
@@ -246,7 +273,7 @@ function applyProposal(before, proposal, zotero, validate) {
   const fields = applyFields(before, after, proposal.fields ?? {});
   const resources = proposal.resources
     ? applyResourceSpec(before, after, proposal.resources, zotero)
-    : { problems: [], changed: [], emptySlots: [] };
+    : { problems: [], changed: [], emptySlots: [], updates: [] };
   const problems = [...fields.problems, ...resources.problems];
   if (problems.length === 0) {
     problems.push(...schemaProblems(validate, after));
@@ -261,6 +288,7 @@ function applyProposal(before, proposal, zotero, validate) {
     changed: [...fields.changed, ...resources.changed],
     problems,
     emptySlots,
+    updates: resources.updates,
   };
 }
 
@@ -302,6 +330,16 @@ function printReport(args, report, emptySlotCount) {
   }
   for (const s of report.skipped) {
     log(`${mode}SKIPPED ${s.slug}: ${s.problems.join('; ')}`);
+  }
+  for (const a of report.applied) {
+    for (const u of a.updates ?? []) {
+      const what = [u.slot && `type:${u.slot}`, u.url && `url ${u.url}`]
+        .filter(Boolean)
+        .join(', ');
+      log(
+        `${mode}ZOTERO EDIT ${a.slug}: ${u.citekey} -> ${what} (${u.reason})`
+      );
+    }
   }
   log(
     `${mode}${report.applied.length} applied, ${report.skipped.length} skipped, ${emptySlotCount} empty-slot records`
@@ -362,6 +400,7 @@ async function main() {
       slug: proposal.slug,
       run: proposal.run ?? null,
       changed: result.changed,
+      updates: result.updates,
       resources: {
         before: before.resources?.length ?? 0,
         after: result.after.resources?.length ?? 0,

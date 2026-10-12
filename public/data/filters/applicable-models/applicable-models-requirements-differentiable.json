@@ -2,115 +2,161 @@
   "tag": {
     "name": "applicable-models/requirements/differentiable",
     "slug": "applicable-models-requirements-differentiable",
-    "count": 8,
+    "count": 9,
     "category": "applicable-models"
   },
   "techniques": [
     {
       "slug": "integrated-gradients",
       "name": "Integrated Gradients",
-      "description": "Integrated Gradients is an attribution technique that explains a model's prediction by quantifying the contribution of each input feature. It works by accumulating gradients along a straight path from a user-defined baseline input (e.g., a black image or an all-zero vector) to the actual input. This path integral ensures that the attributions satisfy fundamental axioms like completeness (attributions sum up to the difference between the prediction and the baseline prediction) and sensitivity (non-zero attributions for features that change the prediction). The output is a set of importance scores, often visualised as heatmaps, indicating which parts of the input were most influential for the model's decision.",
+      "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
       "assurance_goals": [
-        "Explainability"
+        "Explainability",
+        "Fairness"
       ],
       "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/differentiable",
+        "applicable-models/requirements/gradient-access",
         "assurance-goal-category/explainability",
         "assurance-goal-category/explainability/attribution-methods/gradient-based",
         "assurance-goal-category/explainability/explains/feature-importance",
         "assurance-goal-category/explainability/property/completeness",
-        "assurance-goal-category/explainability/property/consistency",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
         "data-requirements/reference-dataset",
-        "data-type/any",
+        "data-type/image",
+        "data-type/tabular",
+        "data-type/text",
         "evidence-type/quantitative-metric",
         "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
         "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
         "explanatory-scope/local",
-        "technique-type/algorithmic",
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/differentiable",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a medical image classification model to understand which specific pixels or regions in an X-ray image contribute most to a diagnosis of pneumonia, ensuring the model focuses on relevant pathological features rather than artifacts.",
+          "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading.",
           "goal": "Explainability"
         },
         {
-          "description": "Explaining the sentiment prediction of a natural language processing model by highlighting which words or phrases in a review most strongly influenced its classification as positive or negative, revealing the model's interpretative focus.",
+          "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question.",
           "goal": "Explainability"
+        },
+        {
+          "description": "A trust-and-safety team investigating false positives in a toxic-content classifier aggregates token attributions over wrongly flagged posts to see whether identity terms, such as the name of a religion or a sexual orientation, rather than abusive language drive the score, and adds counter-examples to the training data where they do.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A lender's model-risk team runs Integrated Gradients over a classifier that reads the free-text statements in loan applications, ranking the most highly attributed words across a sample of declined applications to check whether words that reveal a protected characteristic, or stand in for one, carry weight in the decision.",
+          "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Requires a carefully chosen and meaningful baseline input; an inappropriate baseline can lead to misleading or uninformative attributions."
+          "description": "Attributions are measured against the baseline and no choice is neutral. Features that match the baseline score near zero even when the model relies on them: with a black-image baseline, dark pixels on the object get little credit. A comparison of blurred, noise and training-data baselines found none best, so the baseline is an assumption to state and to vary before drawing conclusions."
         },
         {
-          "description": "The model must be differentiable, which limits its direct application to models with non-differentiable components or discrete inputs without workarounds."
+          "description": "Requires gradient access to a differentiable model, so it cannot explain tree ensembles, rule-based components or a model reached only through an API. For text, the path runs through token embeddings whose intermediate points are not real words, and subword tokenisation splits a word across several scores that must be recombined before a reviewer can read them."
         },
         {
-          "description": "Computationally more expensive than simple gradient-based methods, as it requires multiple gradient calculations along the integration path."
+          "description": "Each explanation needs one gradient computation per step along the path; the original authors found 20 to 300 steps were usually enough for the scores to sum to within 5% of the output difference. Explaining long documents, high-resolution images or a large audit sample therefore costs tens to hundreds of forward and backward passes per prediction."
         },
         {
-          "description": "While satisfying completeness, the attributions can sometimes be visually noisy or difficult for humans to interpret intuitively, especially for complex inputs."
+          "description": "A score shows how sensitive the output was to a feature along one straight path, not that the feature causes the outcome in the world or that removing it would change the decision. Maps over neighbouring pixels or tokens are often noisy, and a plausible-looking heatmap does not show that the model's reasoning is sound."
         }
       ],
       "resources": [
         {
-          "title": "Integrated-Gradients",
-          "url": "https://github.com/ankurtaly/Integrated-Gradients",
-          "source_type": "software_package",
-          "publication_date": "2016-11-04",
-          "citationKey": "ankurtalyIntegratedGradients2016",
-          "abstract": "Attributing predictions made by the Inception network using the Integrated Gradients method"
+          "title": "Integrated Gradients — Captum API reference",
+          "url": "https://captum.ai/api/integrated_gradients.html",
+          "source_type": "documentation",
+          "citationKey": "IntegratedGradientsCaptum",
+          "abstract": "Model Interpretability for PyTorch"
         },
         {
           "title": "captum",
-          "url": "https://github.com/pytorch/captum",
+          "url": "https://github.com/meta-pytorch/captum",
           "source_type": "software_package",
           "publication_date": "2019-08-27",
           "citationKey": "meta-pytorchCaptum2019",
           "abstract": "Model interpretability and understanding for PyTorch"
         },
         {
-          "title": "Maximum Entropy Baseline for Integrated Gradients",
-          "url": "http://arxiv.org/abs/2204.05948v1",
+          "title": "Axiomatic Attribution for Deep Networks",
+          "url": "https://proceedings.mlr.press/v70/sundararajan17a.html",
           "source_type": "technical_paper",
           "authors": [
-            "Hanxiao Tan"
+            "Mukund Sundararajan",
+            "Ankur Taly",
+            "Qiqi Yan"
           ],
-          "publication_date": "2022-04-12",
-          "citationKey": "tanMaximumEntropyBaseline2022",
-          "abstract": "Integrated Gradients (IG), one of the most popular explainability methods available, still remains ambiguous in the selection of baseline, which may seriously impair the credibility of the explanations. This study proposes a new uniform baseline, i.e., the Maximum Entropy Baseline, which is consistent with the \"uninformative\" property of baselines defined in IG. In addition, we propose an improved ablating evaluation approach incorporating the new baseline, where the information conservativeness is maintained. We explain the linear transformation invariance of IG baselines from an information perspective. Finally, we assess the reliability of the explanations generated by different explainability methods and different IG baselines through extensive evaluation experiments."
+          "publication_date": "2017-03-04",
+          "citationKey": "sundararajanAxiomaticAttributionDeep2017",
+          "abstract": "We study the problem of attributing the prediction of a deep network to its input features, a problem previously studied by several other works. We identify two fundamental axioms---Sensitivity and Implementation Invariance that attribution methods ought to satisfy. We show that they are not satisfied by most known attribution methods, which we consider to be a fundamental weakness of those methods. We use the axioms to guide the design of a new attribution method called Integrated Gradients. Our method requires no modification to the original network and is extremely simple to implement; it just needs a few calls to the standard gradient operator. We apply this method to a couple of image models, a couple of text models and a chemistry model, demonstrating its ability to debug networks, to extract rules from a network, and to enable users to engage with models better."
         },
         {
-          "title": "Integrated Gradients from Scratch | Towards Data Science",
-          "url": "https://towardsdatascience.com/integrated-gradients-from-scratch-b46311e4ab4",
+          "title": "Integrated gradients — TensorFlow Core tutorials",
+          "url": "https://www.tensorflow.org/tutorials/interpretability/integrated_gradients",
+          "source_type": "tutorial",
+          "citationKey": "IntegratedGradientsTensorFlow"
+        },
+        {
+          "title": "Using a Deep Learning Algorithm and Integrated Gradients Explanation to Assist Grading for Diabetic Retinopathy",
+          "url": "https://doi.org/10.1016/j.ophtha.2018.11.016",
+          "source_type": "application_paper",
+          "authors": [
+            "Rory Sayres",
+            "Ankur Taly",
+            "Ehsan Rahimy",
+            "Katy Blumer",
+            "David Coz",
+            "Naama Hammel",
+            "Jonathan Krause",
+            "Arunachalam Narayanaswamy",
+            "Zahra Rastegar",
+            "Derek Wu",
+            "Shawn Xu",
+            "Scott Barb",
+            "Anthony Joseph",
+            "Michael Shumski",
+            "Jesse Smith",
+            "Arjun B. Sood",
+            "Greg S. Corrado",
+            "Lily Peng",
+            "Dale R. Webster"
+          ],
+          "publication_date": "2019-4",
+          "citationKey": "sayresUsingDeepLearning2019",
+          "abstract": "PURPOSE: To understand the impact of deep learning diabetic retinopathy (DR) algorithms on physician readers in computer-assisted settings. DESIGN: Evaluation of diagnostic technology. PARTICIPANTS: One thousand seven hundred ninety-six retinal fundus images from 1612 diabetic patients. METHODS: Ten ophthalmologists (5 general ophthalmologists, 4 retina specialists, 1 retina fellow) read images for DR severity based on the International Clinical Diabetic Retinopathy disease severity scale in each of 3 conditions: unassisted, grades only, or grades plus heatmap. Grades-only assistance comprised a histogram of DR predictions (grades) from a trained deep-learning model. For grades plus heatmap, we additionally showed explanatory heatmaps. MAIN OUTCOME MEASURES: For each experiment arm, we computed sensitivity and specificity of each reader and the algorithm for different levels of DR severity against an adjudicated reference standard. We also measured accuracy (exact 5-class level agreement and Cohen's quadratically weighted κ), reader-reported confidence (5-point Likert scale), and grading time. RESULTS: Readers graded more accurately with model assistance than without for the grades-only condition (P < 0.001). Grades plus heatmaps improved accuracy for patients with DR (P < 0.001), but reduced accuracy for patients without DR (P = 0.006). Both forms of assistance increased readers' sensitivity moderate-or-worse DR: unassisted: mean, 79.4% [95% confidence interval (CI), 72.3%-86.5%]; grades only: mean, 87.5% [95% CI, 85.1%-89.9%]; grades plus heatmap: mean, 88.7% [95% CI, 84.9%-92.5%] without a corresponding drop in specificity (unassisted: mean, 96.6% [95% CI, 95.9%-97.4%]; grades only: mean, 96.1% [95% CI, 95.5%-96.7%]; grades plus heatmap: mean, 95.5% [95% CI, 94.8%-96.1%]). Algorithmic assistance increased the accuracy of retina specialists above that of the unassisted reader or model alone; and increased grading confidence and grading time across all readers. For most cases, grades plus heatmap was only as effective as grades only. Over the course of the experiment, grading time decreased across all conditions, although most sharply for grades plus heatmap. CONCLUSIONS: Deep learning algorithms can improve the accuracy of, and confidence in, DR diagnosis in an assisted read setting. They also may increase grading time, although these effects may be ameliorated with experience."
+        },
+        {
+          "title": "Visualizing the Impact of Feature Attribution Baselines",
+          "url": "https://doi.org/10.23915/distill.00022",
           "source_type": "tutorial",
           "authors": [
-            "Alexey Kravets"
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee",
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee"
           ],
-          "publication_date": "2021-10-14",
-          "citationKey": "kravetsIntegratedGradientsScratch2021"
+          "publication_date": "2020",
+          "citationKey": "sturmfelsVisualizingImpactFeature2020"
         },
         {
-          "title": "Understanding Integrated Gradients with SmoothTaylor for Deep Neural Network Attribution",
-          "url": "http://arxiv.org/abs/2004.10484v2",
-          "source_type": "technical_paper",
-          "authors": [
-            "Gary S. W. Goh",
-            "Sebastian Lapuschkin",
-            "Leander Weber",
-            "Wojciech Samek",
-            "Alexander Binder"
-          ],
-          "publication_date": "2020-04-22",
-          "citationKey": "s.w.gohUnderstandingIntegratedGradients2020",
-          "abstract": "Integrated Gradients as an attribution method for deep neural network models offers simple implementability. However, it suffers from noisiness of explanations which affects the ease of interpretability. The SmoothGrad technique is proposed to solve the noisiness issue and smoothen the attribution maps of any gradient-based attribution method. In this paper, we present SmoothTaylor as a novel theoretical concept bridging Integrated Gradients and SmoothGrad, from the Taylor's theorem perspective. We apply the methods to the image classification problem, using the ILSVRC2012 ImageNet object recognition dataset, and a couple of pretrained image models to generate attribution maps. These attribution maps are empirically evaluated using quantitative measures for sensitivity and noise level. We further propose adaptive noising to optimize for the noise scale hyperparameter value. From our experiments, we find that the SmoothTaylor approach together with adaptive noising is able to generate better quality saliency maps with lesser noise and higher sensitivity to the relevant points in the input space as compared to Integrated Gradients."
+          "title": "Interpreting BERT Models (Part 1) — Captum tutorial",
+          "url": "https://captum.ai/tutorials/Bert_SQUAD_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingBERTModels",
+          "abstract": "Model Interpretability for PyTorch"
         }
       ],
       "complexity_rating": 4,
@@ -123,29 +169,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are attributable to specific anatomical features rather than spurious image artifacts",
+          "text": "The retinopathy grading model's referral predictions are attributable to lesion regions in the retinal image rather than to imaging artefacts, as shown by Integrated Gradients review of a stratified sample of graded cases",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The feature importance scores provided to credit analysts sum exactly to the difference between the model's prediction and its neutral baseline",
+          "text": "The attribution scores given to credit analysts for each decision sum, within a stated tolerance, to the difference between the model's score for the applicant and its score for the documented reference applicant",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The perception system's object detection decisions are traceable to specific visual elements within the sensor input",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's attribution of prediction confidence to input measurements respects the principle that zero-valued features receive proportional credit",
-          "domain": "environmental",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's explanation quantifies each input feature's contribution along the path from a neutral reference state to the actual input",
+          "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
           "domain": "general",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         }
       ]
     },
@@ -210,8 +256,31 @@
       ],
       "resources": [
         {
+          "title": "DeepLIFT Documentation - Captum",
+          "url": "https://captum.ai/api/deep_lift.html",
+          "source_type": "documentation",
+          "publication_date": "2019",
+          "citationKey": "DeepLIFTDocumentationCaptum2019"
+        },
+        {
+          "title": "captum",
+          "url": "https://github.com/meta-pytorch/captum",
+          "source_type": "software_package",
+          "publication_date": "2019-08-27",
+          "citationKey": "meta-pytorchCaptum2019",
+          "abstract": "Model interpretability and understanding for PyTorch"
+        },
+        {
+          "title": "DeepLIFT (kundajelab/deeplift)",
+          "url": "https://github.com/kundajelab/deeplift",
+          "source_type": "software_package",
+          "publication_date": "2026-09-30T17:26:28Z",
+          "citationKey": "DeepLIFTKundajelabDeeplift2026",
+          "abstract": "Public facing deeplift repo"
+        },
+        {
           "title": "Learning Important Features Through Propagating Activation Differences",
-          "url": "http://arxiv.org/abs/1704.02685v2",
+          "url": "https://proceedings.mlr.press/v70/shrikumar17a.html",
           "source_type": "technical_paper",
           "authors": [
             "Avanti Shrikumar",
@@ -223,17 +292,9 @@
           "abstract": "The purported \"black box\" nature of neural networks is a barrier to adoption in applications where interpretability is essential. Here we present DeepLIFT (Deep Learning Important FeaTures), a method for decomposing the output prediction of a neural network on a specific input by backpropagating the contributions of all neurons in the network to every feature of the input. DeepLIFT compares the activation of each neuron to its 'reference activation' and assigns contribution scores according to the difference. By optionally giving separate consideration to positive and negative contributions, DeepLIFT can also reveal dependencies which are missed by other approaches. Scores can be computed efficiently in a single backward pass. We apply DeepLIFT to models trained on MNIST and simulated genomic data, and show significant advantages over gradient-based methods. Video tutorial: http://goo.gl/qKb7pL, ICML slides: bit.ly/deeplifticmlslides, ICML talk: https://vimeo.com/238275076, code: http://goo.gl/RM8jvH."
         },
         {
-          "title": "captum",
-          "url": "https://github.com/pytorch/captum",
-          "source_type": "software_package",
-          "publication_date": "2019-08-27",
-          "citationKey": "meta-pytorchCaptum2019",
-          "abstract": "Model interpretability and understanding for PyTorch"
-        },
-        {
           "title": "Tutorial A3: DeepLIFT/SHAP — tangermeme v0.1.0 documentation",
           "url": "https://tangermeme.readthedocs.io/en/latest/tutorials/Tutorial_A3_Deep_LIFT_SHAP.html",
-          "source_type": "documentation",
+          "source_type": "tutorial",
           "authors": [
             "Tangermeme Developers"
           ],
@@ -241,11 +302,23 @@
           "citationKey": "tangermemedevelopersTutorialA3DeepLIFT2023"
         },
         {
-          "title": "DeepLIFT Documentation - Captum",
-          "url": "https://captum.ai/api/deep_lift.html",
-          "source_type": "documentation",
-          "publication_date": "2019",
-          "citationKey": "DeepLIFTDocumentationCaptum2019"
+          "title": "Interpreting a CIFAR-10 TorchVision model with Captum",
+          "url": "https://captum.ai/tutorials/CIFAR_TorchVision_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingCIFAR10TorchVision",
+          "abstract": "Model Interpretability for PyTorch"
+        },
+        {
+          "title": "An Attribution Deep Learning Interpretation Model for Landslide Susceptibility Mapping in the Three Gorges Reservoir Area",
+          "url": "https://doi.org/10.1109/tgrs.2023.3323668",
+          "source_type": "application_paper",
+          "authors": [
+            "Cheng Chen",
+            "Lei Fan"
+          ],
+          "publication_date": "2023",
+          "citationKey": "chenAttributionDeepLearning2023",
+          "abstract": "Deep learning (DL) models are increasingly used for landslide susceptibility mapping (LSM) due to their higher accuracy. However, due to the lack of explanations of the influence of input contributing factors by current DL models, accurately identifying the cause of each landslide remains challenging. This study proposes a novel interpretable DL model named Deep-Attention-LSF, which assigns significance scores to contributing factors at local levels for attributing landslide susceptibility. This model considers the significance scores of input factors to more accurately predict landslide occurrence. DeepLIFT is used as an attribution branching network for interpreting the relationship between input factors and each landslide event. Subsequently, a landslide classification network formed by combining convolutional neural network and long short-term memory is used to predict the landslide occurrence in the entire study area. The performance of Deep-Attention-LSF is tested using the landslide inventory map of Three Gorges reservoir area and the associated maps of 18 landslide-related factors. The accuracy, recall, precision, and F1-score of our model were 0.9645, 0.9583, 0.9676, and 0.9522, respectively. These suggest that our model outperformed the compared models, including self-attention LSM, frequency-ratio-attention LSM, bagging and random subspace naive bayes tree, gradient boosting decision tree, random forest, information value model and enhanced C5.0 decision tree model. Deep-Attention-LSF provided reasonable explanations for landslide attributions by comparison with field investigation reports for four specific landslide cases. Combining the interpretation of Deep-Attention-LSF with field investigations can provide more comprehensive information for evaluating specific landslides, providing a useful tool for landslide prevention and management."
         }
       ],
       "complexity_rating": 4,
@@ -348,6 +421,25 @@
       ],
       "resources": [
         {
+          "title": "Getting started — zennit documentation",
+          "url": "https://zennit.readthedocs.io/en/latest/getting-started.html",
+          "source_type": "documentation",
+          "authors": [
+            "Zennit Developers"
+          ],
+          "citationKey": "zennitdevelopersGettingStartedZennit"
+        },
+        {
+          "title": "Layer-wise Relevance Propagation eXplains Transformers (LXT) documentation",
+          "url": "https://lxt.readthedocs.io/en/latest/",
+          "source_type": "documentation",
+          "authors": [
+            "Lxt Developers"
+          ],
+          "publication_date": "2024",
+          "citationKey": "lxtdevelopersLayerwiseRelevancePropagation2024"
+        },
+        {
           "title": "LRP-eXplains-Transformers",
           "url": "https://github.com/rachtibat/LRP-eXplains-Transformers",
           "source_type": "software_package",
@@ -364,27 +456,16 @@
           "abstract": "The LRP Toolbox provides simple and accessible stand-alone implementations of LRP for artificial neural networks supporting Matlab and Python. The Toolbox realizes LRP functionality for the Caffe Deep Learning Framework as an extension of Caffe source code published in 10/2015."
         },
         {
-          "title": "Getting started — zennit documentation",
-          "url": "https://zennit.readthedocs.io/en/latest/getting-started.html",
-          "source_type": "documentation",
-          "authors": [
-            "Zennit Developers"
-          ],
-          "citationKey": "zennitdevelopersGettingStartedZennit"
-        },
-        {
-          "title": "Layer-wise Relevance Propagation eXplains Transformers (LXT) documentation",
-          "url": "https://lxt.readthedocs.io",
-          "source_type": "documentation",
-          "authors": [
-            "Lxt Developers"
-          ],
-          "publication_date": "2024",
-          "citationKey": "lxtdevelopersLayerwiseRelevancePropagation2024"
+          "title": "Zennit (chr5tphr/zennit)",
+          "url": "https://github.com/chr5tphr/zennit",
+          "source_type": "software_package",
+          "publication_date": "2026-09-19T18:14:02Z",
+          "citationKey": "andersZennitChr5tphrZennit2026",
+          "abstract": "Zennit is a high-level framework in Python using PyTorch for explaining/exploring neural networks using attribution methods like LRP."
         },
         {
           "title": "On Pixel-Wise Explanations for Non-Linear Classifier Decisions by Layer-Wise Relevance Propagation",
-          "url": "https://journals.plos.org/plosone/article",
+          "url": "https://doi.org/10.1371/journal.pone.0130140",
           "source_type": "technical_paper",
           "authors": [
             "Sebastian Bach",
@@ -395,7 +476,43 @@
             "Wojciech Samek"
           ],
           "publication_date": "2015-07-10",
-          "citationKey": "bachPixelWiseExplanationsNonLinear2015"
+          "citationKey": "bachPixelWiseExplanationsNonLinear2015",
+          "abstract": "Understanding and interpreting classification decisions of automated image classification systems is of high value in many applications, as it allows to verify the reasoning of the system and provides additional information to the human expert. Although machine learning methods are solving very successfully a plethora of tasks, they have in most cases the disadvantage of acting as a black box, not providing any information about what made them arrive at a particular decision. This work proposes a general solution to the problem of understanding classification decisions by pixel-wise decomposition of nonlinear classifiers. We introduce a methodology that allows to visualize the contributions of single pixels to predictions for kernel-based classifiers over Bag of Words features and for multilayered neural networks. These pixel contributions can be visualized as heatmaps and are provided to a human expert who can intuitively not only verify the validity of the classification decision, but also focus further analysis on regions of potential interest. We evaluate our method for classifiers trained on PASCAL VOC 2009 images, synthetic image data containing geometric shapes, the MNIST handwritten digits data set and for the pre-trained ImageNet model available as part of the Caffe open source package."
+        },
+        {
+          "title": "Tutorial: Implementing Layer-Wise Relevance Propagation",
+          "url": "https://git.tu-berlin.de/gmontavon/lrp-tutorial",
+          "source_type": "tutorial",
+          "citationKey": "TutorialImplementingLayerWise",
+          "abstract": "GitLab Enterprise Edition"
+        },
+        {
+          "title": "Layer-Wise Relevance Propagation: An Overview",
+          "url": "https://doi.org/10.1007/978-3-030-28954-6_10",
+          "source_type": "tutorial",
+          "authors": [
+            "Grégoire Montavon",
+            "Alexander Binder",
+            "Sebastian Lapuschkin",
+            "Wojciech Samek",
+            "Klaus-Robert Müller"
+          ],
+          "publication_date": "2019",
+          "citationKey": "montavonLayerWiseRelevancePropagation2019"
+        },
+        {
+          "title": "Layer-Wise Relevance Propagation for Explaining Deep Neural Network Decisions in MRI-Based Alzheimer's Disease Classification",
+          "url": "https://doi.org/10.3389/fnagi.2019.00194",
+          "source_type": "application_paper",
+          "authors": [
+            "Moritz Böhle",
+            "Fabian Eitel",
+            "Martin Weygandt",
+            "Kerstin Ritter"
+          ],
+          "publication_date": "2019-7-31",
+          "citationKey": "bohleLayerWiseRelevancePropagation2019",
+          "abstract": "Deep neural networks have led to state-of-the-art results in many medical imaging tasks including Alzheimer's disease (AD) detection based on structural magnetic resonance imaging (MRI) data. However, the network decisions are often perceived as being highly non-transparent, making it difficult to apply these algorithms in clinical routine. In this study, we propose using layer-wise relevance propagation (LRP) to visualize convolutional neural network decisions for AD based on MRI data. Similarly to other visualization methods, LRP produces a heatmap in the input space indicating the importance/relevance of each voxel contributing to the final classification outcome. In contrast to susceptibility maps produced by guided backpropagation (\"Which change in voxels would change the outcome most?\"), the LRP method is able to directly highlight positive contributions to the network classification in the input space. In particular, we show that (1) the LRP method is very specific for individuals (\"Why does this person have AD?\") with high inter-patient variability, (2) there is very little relevance for AD in healthy controls and (3) areas that exhibit a lot of relevance correlate well with what is known from literature. To quantify the latter, we compute size-corrected metrics of the summed relevance per brain area, e.g., relevance density or relevance gain. Although these metrics produce very individual \"fingerprints\" of relevance patterns for AD patients, a lot of importance is put on areas in the temporal lobe including the hippocampus. After discussing several limitations such as sensitivity toward the underlying model and computation parameters, we conclude that LRP might have a high potential to assist clinicians in explaining neural network decisions for diagnosing AD (and potentially other diseases) based on structural MRI data."
         }
       ],
       "complexity_rating": 5,
@@ -490,8 +607,30 @@
       ],
       "resources": [
         {
+          "title": "Analyzer — iNNvestigate documentation",
+          "url": "https://innvestigate.readthedocs.io/en/latest/modules/analyzer.html",
+          "source_type": "documentation",
+          "citationKey": "AnalyzerINNvestigateDocumentation"
+        },
+        {
+          "title": "lrp_toolbox",
+          "url": "https://github.com/sebastian-lapuschkin/lrp_toolbox",
+          "source_type": "software_package",
+          "publication_date": "2016-05-26",
+          "citationKey": "sebastian-lapuschkinLrp_toolbox2016",
+          "abstract": "The LRP Toolbox provides simple and accessible stand-alone implementations of LRP for artificial neural networks supporting Matlab and Python. The Toolbox realizes LRP functionality for the Caffe Deep Learning Framework as an extension of Caffe source code published in 10/2015."
+        },
+        {
+          "title": "iNNvestigate (albermax/innvestigate)",
+          "url": "https://github.com/albermax/innvestigate",
+          "source_type": "software_package",
+          "publication_date": "2026-10-08T17:01:50Z",
+          "citationKey": "alberINNvestigateAlbermaxInnvestigate2026",
+          "abstract": "A toolbox to iNNvestigate neural networks' predictions!"
+        },
+        {
           "title": "Explaining NonLinear Classification Decisions with Deep Taylor Decomposition",
-          "url": "http://arxiv.org/abs/1512.02479v1",
+          "url": "https://doi.org/10.1016/j.patcog.2016.11.008",
           "source_type": "technical_paper",
           "authors": [
             "Grégoire Montavon",
@@ -505,24 +644,16 @@
           "abstract": "Nonlinear methods such as Deep Neural Networks (DNNs) are the gold standard for various challenging machine learning problems, e.g., image classification, natural language processing or human action recognition. Although these methods perform impressively well, they have a significant disadvantage, the lack of transparency, limiting the interpretability of the solution and thus the scope of application in practice. Especially DNNs act as black boxes due to their multilayer nonlinear structure. In this paper we introduce a novel methodology for interpreting generic multilayer neural networks by decomposing the network classification decision into contributions of its input elements. Although our focus is on image classification, the method is applicable to a broad set of input data, learning tasks and network architectures. Our method is based on deep Taylor decomposition and efficiently utilizes the structure of the network by backpropagating the explanations from the output to the input layer. We evaluate the proposed method empirically on the MNIST and ILSVRC data sets."
         },
         {
-          "title": "A Rigorous Study Of The Deep Taylor Decomposition",
-          "url": "http://arxiv.org/abs/2211.08425v1",
-          "source_type": "technical_paper",
+          "title": "Methods for interpreting and understanding deep neural networks",
+          "url": "https://doi.org/10.1016/j.dsp.2017.10.011",
+          "source_type": "tutorial",
           "authors": [
-            "Leon Sixt",
-            "Tim Landgraf"
+            "Grégoire Montavon",
+            "Wojciech Samek",
+            "Klaus-Robert Müller"
           ],
-          "publication_date": "2022-11-14",
-          "citationKey": "sixtRigorousStudyDeep2022",
-          "abstract": "Saliency methods attempt to explain deep neural networks by highlighting the most salient features of a sample. Some widely used methods are based on a theoretical framework called Deep Taylor Decomposition (DTD), which formalizes the recursive application of the Taylor Theorem to the network's layers. However, recent work has found these methods to be independent of the network's deeper layers and appear to respond only to lower-level image structure. Here, we investigate the DTD theory to better understand this perplexing behavior and found that the Deep Taylor Decomposition is equivalent to the basic gradient$\\times$input method when the Taylor root points (an important parameter of the algorithm chosen by the user) are locally constant. If the root points are locally input-dependent, then one can justify any explanation. In this case, the theory is under-constrained. In an empirical evaluation, we find that DTD roots do not lie in the same linear regions as the input - contrary to a fundamental assumption of the Taylor theorem. The theoretical foundations of DTD were cited as a source of reliability for the explanations. However, our findings urge caution in making such claims."
-        },
-        {
-          "title": "lrp_toolbox",
-          "url": "https://github.com/sebastian-lapuschkin/lrp_toolbox",
-          "source_type": "software_package",
-          "publication_date": "2016-05-26",
-          "citationKey": "sebastian-lapuschkinLrp_toolbox2016",
-          "abstract": "The LRP Toolbox provides simple and accessible stand-alone implementations of LRP for artificial neural networks supporting Matlab and Python. The Toolbox realizes LRP functionality for the Caffe Deep Learning Framework as an extension of Caffe source code published in 10/2015."
+          "publication_date": "2018-2",
+          "citationKey": "montavonMethodsInterpretingUnderstanding2018"
         }
       ],
       "complexity_rating": 5,
@@ -618,6 +749,29 @@
       ],
       "resources": [
         {
+          "title": "Saliency — Captum API reference",
+          "url": "https://captum.ai/api/saliency.html",
+          "source_type": "documentation",
+          "citationKey": "SaliencyCaptumAPI",
+          "abstract": "Model Interpretability for PyTorch"
+        },
+        {
+          "title": "pytorch-cnn-visualizations",
+          "url": "https://github.com/utkuozbulak/pytorch-cnn-visualizations",
+          "source_type": "software_package",
+          "publication_date": "2017-10-21",
+          "citationKey": "utkuozbulakPytorchcnnvisualizations2017",
+          "abstract": "Pytorch implementation of convolutional neural network visualization techniques"
+        },
+        {
+          "title": "captum",
+          "url": "https://github.com/meta-pytorch/captum",
+          "source_type": "software_package",
+          "publication_date": "2019-08-27",
+          "citationKey": "meta-pytorchCaptum2019",
+          "abstract": "Model interpretability and understanding for PyTorch"
+        },
+        {
           "title": "Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency Maps",
           "url": "https://arxiv.org/abs/1312.6034",
           "source_type": "technical_paper",
@@ -631,30 +785,26 @@
           "abstract": "This paper addresses the visualisation of image classification models, learnt using deep Convolutional Networks (ConvNets). We consider two visualisation techniques, based on computing the gradient of the class score with respect to the input image. The first one generates an image, which maximises the class score [Erhan et al., 2009], thus visualising the notion of the class, captured by a ConvNet. The second technique computes a class saliency map, specific to a given image and class. We show that such maps can be employed for weakly supervised object segmentation using classification ConvNets. Finally, we establish the connection between the gradient-based ConvNet visualisation methods and deconvolutional networks [Zeiler et al., 2013]."
         },
         {
-          "title": "pytorch-cnn-visualizations",
-          "url": "https://github.com/utkuozbulak/pytorch-cnn-visualizations",
-          "source_type": "software_package",
-          "publication_date": "2017-10-21",
-          "citationKey": "utkuozbulakPytorchcnnvisualizations2017",
-          "abstract": "Pytorch implementation of convolutional neural network visualization techniques"
+          "title": "Interpreting a CIFAR-10 TorchVision model with Captum",
+          "url": "https://captum.ai/tutorials/CIFAR_TorchVision_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingCIFAR10TorchVision",
+          "abstract": "Model Interpretability for PyTorch"
         },
         {
-          "title": "Concepts of Saliency and Explainability in AI",
-          "url": "https://xaitk-saliency.readthedocs.io/en/latest/xaitk_explanation.html",
-          "source_type": "documentation",
+          "title": "Gradient-Based Saliency Maps Are Not Trustworthy Visual Explanations of Automated AI Musculoskeletal Diagnoses",
+          "url": "https://doi.org/10.1007/s10278-024-01136-4",
+          "source_type": "application_paper",
           "authors": [
-            "Xaitk-saliency Developers"
+            "Kesavan Venkatesh",
+            "Simukayi Mutasa",
+            "Fletcher Moore",
+            "Jeremias Sulam",
+            "Paul H. Yi"
           ],
-          "citationKey": "xaitk-saliencydevelopersConceptsSaliencyExplainability"
-        },
-        {
-          "title": "Occlusion Saliency Example",
-          "url": "https://xaitk-saliency.readthedocs.io/en/latest/examples/OcclusionSaliency.html",
-          "source_type": "documentation",
-          "authors": [
-            "Xaitk-saliency Developers"
-          ],
-          "citationKey": "xaitk-saliencydevelopersOcclusionSaliencyExample"
+          "publication_date": "2024-5-6",
+          "citationKey": "venkateshGradientBasedSaliencyMaps2024",
+          "abstract": "Saliency maps are popularly used to “explain” decisions made by modern machine learning models, including deep convolutional neural networks (DCNNs). While the resulting heatmaps purportedly indicate important image features, their “trustworthiness,” i.e., utility and robustness, has not been evaluated for musculoskeletal imaging. The purpose of this study was to systematically evaluate the trustworthiness of saliency maps used in disease diagnosis on upper extremity X-ray images. The underlying DCNNs were trained using the Stanford MURA dataset. We studied four trustworthiness criteria—(1) localization accuracy of abnormalities, (2) repeatability, (3) reproducibility, and (4) sensitivity to underlying DCNN weights—across six different gradient-based saliency methods (Grad-CAM (GCAM), gradient explanation (GRAD), integrated gradients (IG), Smoothgrad (SG), smooth IG (SIG), and XRAI). Ground-truth was defined by the consensus of three fellowship-trained musculoskeletal radiologists who each placed bounding boxes around abnormalities on a holdout saliency test set. Compared to radiologists, all saliency methods showed inferior localization (AUPRCs: 0.438 (SG)–0.590 (XRAI); average radiologist AUPRC: 0.816), repeatability (IoUs: 0.427 (SG)–0.551 (IG); average radiologist IOU: 0.613), and reproducibility (IoUs: 0.250 (SG)–0.502 (XRAI); average radiologist IOU: 0.613) on abnormalities such as fractures, orthopedic hardware insertions, and arthritis. Five methods (GCAM, GRAD, IG, SG, XRAI) passed the sensitivity test. Ultimately, no saliency method met all four trustworthiness criteria; therefore, we recommend caution and rigorous evaluation of saliency maps prior to their clinical use."
         }
       ],
       "complexity_rating": 3,
@@ -699,8 +849,7 @@
       "description": "Influence functions quantify how much each training example influenced a model's predictions by computing the change in prediction that would occur if that training example were removed and the model retrained. Using calculus and the implicit function theorem, they approximate this 'leave-one-out' effect without actually retraining the model by computing gradients and Hessian information. This mathematical approach reveals which specific training examples were most responsible for pushing the model toward or away from particular predictions, enabling practitioners to trace problematic outputs back to their root causes in the training data.",
       "assurance_goals": [
         "Explainability",
-        "Fairness",
-        "Privacy"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -720,8 +869,6 @@
         "assurance-goal-category/explainability/property/fidelity",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/privacy",
-        "assurance-goal-category/privacy/leakage-testing",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
@@ -742,10 +889,6 @@
         {
           "description": "Auditing a loan approval model for discriminatory patterns by identifying which training examples most influenced rejections of minority applicants, revealing whether biased historical decisions are driving current unfair outcomes.",
           "goal": "Fairness"
-        },
-        {
-          "description": "Assessing membership inference risks in a medical model by identifying whether certain patient records have disproportionate influence on predictions, indicating potential data leakage vulnerabilities.",
-          "goal": "Privacy"
         }
       ],
       "limitations": [
@@ -764,8 +907,30 @@
       ],
       "resources": [
         {
+          "title": "The influence function — pyDVL documentation",
+          "url": "https://pydvl.org/stable/influence/",
+          "source_type": "documentation",
+          "citationKey": "InfluenceFunctionPyDVL",
+          "abstract": "None"
+        },
+        {
+          "title": "influence-release (kohpangwei/influence-release)",
+          "url": "https://github.com/kohpangwei/influence-release",
+          "source_type": "software_package",
+          "publication_date": "2026-08-29T16:45:24Z",
+          "citationKey": "kohpangweiInfluencereleaseKohpangweiInfluencerelease2026"
+        },
+        {
+          "title": "Kronfluence (pomonam/kronfluence)",
+          "url": "https://github.com/pomonam/kronfluence",
+          "source_type": "software_package",
+          "publication_date": "2026-10-01T19:38:07Z",
+          "citationKey": "baeKronfluencePomonamKronfluence2026",
+          "abstract": "Influence Functions with (Eigenvalue-corrected) Kronecker-Factored Approximate Curvature"
+        },
+        {
           "title": "Understanding Black-box Predictions via Influence Functions",
-          "url": "https://www.semanticscholar.org/paper/08ad8fad21f6ec4cda4d56be1ca5e146b7c913a1",
+          "url": "https://proceedings.mlr.press/v70/koh17a.html",
           "source_type": "technical_paper",
           "authors": [
             "Pang Wei Koh",
@@ -776,60 +941,24 @@
           "abstract": "How can we explain the predictions of a black-box model? In this paper, we use influence functions — a classic technique from robust statistics — to trace a model's prediction through the learning algorithm and back to its training data, thereby identifying training points most responsible for a given prediction. To scale up influence functions to modern machine learning settings, we develop a simple, efficient implementation that requires only oracle access to gradients and Hessian-vector products. We show that even on non-convex and non-differentiable models where the theory breaks down, approximations to influence functions can still provide valuable information. On linear models and convolutional neural networks, we demonstrate that influence functions are useful for multiple purposes: understanding model behavior, debugging models, detecting dataset errors, and even creating visually-indistinguishable training-set attacks."
         },
         {
-          "title": "pytorch_influence_functions",
-          "url": "https://github.com/nimarb/pytorch_influence_functions",
-          "source_type": "software_package",
-          "publication_date": "2019-11-30",
-          "citationKey": "nimarbPytorch_influence_functions2019",
-          "abstract": "This is a PyTorch reimplementation of Influence Functions from the ICML2017 best paper: Understanding Black-box Predictions via Influence Functions by Pang Wei Koh and Percy Liang."
+          "title": "Kronfluence CIFAR-10 example",
+          "url": "https://github.com/pomonam/kronfluence/blob/main/examples/cifar/README.md",
+          "source_type": "tutorial",
+          "citationKey": "KronfluenceCIFAR10Example",
+          "abstract": "Influence Functions with (Eigenvalue-corrected) Kronecker-Factored Approximate Curvature - pomonam/kronfluence"
         },
         {
-          "title": "What is Your Data Worth to GPT? LLM-Scale Data Valuation with Influence Functions",
-          "url": "https://www.semanticscholar.org/paper/f33f3dece9f34c1ec5417dccf9e0acf592d8e8cb",
-          "source_type": "technical_paper",
+          "title": "Explaining Black Box Predictions and Unveiling Data Artifacts through Influence Functions",
+          "url": "https://doi.org/10.18653/v1/2020.acl-main.492",
+          "source_type": "application_paper",
           "authors": [
-            "Sang Keun Choe",
-            "Hwijeen Ahn",
-            "Juhan Bae",
-            "Kewen Zhao",
-            "Minsoo Kang",
-            "Youngseog Chung",
-            "Adithya Pratapa",
-            "Willie Neiswanger",
-            "Emma Strubell",
-            "Teruko Mitamura",
-            "Jeff G. Schneider",
-            "Eduard H. Hovy",
-            "Roger B. Grosse",
-            "Eric P. Xing"
+            "Xiaochuang Han",
+            "Byron C. Wallace",
+            "Yulia Tsvetkov"
           ],
-          "publication_date": "2024",
-          "citationKey": "keunchoeWhatYourData2024",
-          "abstract": "Large language models (LLMs) are trained on a vast amount of human-written data, but data providers often remain uncredited. In response to this issue, data valuation (or data attribution), which quantifies the contribution or value of each data to the model output, has been discussed as a potential solution. Nevertheless, applying existing data valuation methods to recent LLMs and their vast training datasets has been largely limited by prohibitive compute and memory costs. In this work, we focus on influence functions, a popular gradient-based data valuation method, and significantly improve its scalability with an efficient gradient projection strategy called LoGra that leverages the gradient structure in backpropagation. We then provide a theoretical motivation of gradient projection approaches to influence functions to promote trust in the data valuation process. Lastly, we lower the barrier to implementing data valuation systems by introducing LogIX, a software package that can transform existing training code into data valuation code with minimal effort. In our data valuation experiments, LoGra achieves competitive accuracy against more expensive baselines while showing up to 6,500x improvement in throughput and 5x reduction in GPU memory usage when applied to Llama3-8B-Instruct and the 1B-token dataset."
-        },
-        {
-          "title": "Scaling Up Influence Functions",
-          "url": "https://www.semanticscholar.org/paper/ef2a773c3c7848a6cc16b18164be5f8876a310af",
-          "source_type": "technical_paper",
-          "authors": [
-            "Andrea Schioppa",
-            "Polina Zablotskaia",
-            "David Vilar",
-            "Artem Sokolov"
-          ],
-          "publication_date": "2021",
-          "citationKey": "schioppaScalingInfluenceFunctions2021",
-          "abstract": "We address efficient calculation of influence functions for tracking predictions back to the training data. We propose and analyze a new approach to speeding up the inverse Hessian calculation based on Arnoldi iteration. With this improvement, we achieve, to the best of our knowledge, the first successful implementation of influence functions that scales to full-size (language and vision) Transformer models with several hundreds of millions of parameters. We evaluate our approach in image classification and sequence-to-sequence tasks with tens to a hundred of millions of training examples. Our code is available at https://github.com/google-research/jax-influence."
-        },
-        {
-          "title": "Welcome to torch-influence's API Reference! — torch-influence 0.1.0 ...",
-          "url": "https://torch-influence.readthedocs.io",
-          "source_type": "documentation",
-          "authors": [
-            "Torch-influence Developers"
-          ],
-          "publication_date": "2023",
-          "citationKey": "torch-influencedevelopersWelcomeTorchinfluencesAPI2023"
+          "publication_date": "2020",
+          "citationKey": "hanExplainingBlackBox2020",
+          "abstract": "Modern deep learning models for NLP are notoriously opaque.This has motivated the development of methods for interpreting such models, e.g., via gradient-based saliency maps or the visualization of attention weights.Such approaches aim to provide explanations for a particular model prediction by highlighting important words in the corresponding input text.While this might be useful for tasks where decisions are explicitly influenced by individual tokens in the input, we suspect that such highlighting is not always suitable for tasks where model decisions should be driven by more complex reasoning.In this work, we investigate the use of influence functions for NLP, providing an alternative approach to interpreting neural text classifiers.Influence functions explain the decisions of a model by identifying influential training examples.Despite the promise of this approach, influence functions have not yet been extensively evaluated in the context of NLP, a gap addressed by this work.We conduct a comparison between influence functions and common word-saliency methods on representative tasks.As suspected, we find that influence functions are particularly useful for natural language inference, a task in which 'saliency maps' may not provide clear interpretation.Furthermore, we develop a new quantitative measure based on influence functions that can reveal artifacts in training data."
         }
       ],
       "complexity_rating": 5,
@@ -855,11 +984,6 @@
           "text": "The welfare eligibility system's rejections can be traced to specific training cases to identify discriminatory patterns",
           "domain": "public sector",
           "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The medical model's predictions reveal which patient records from the training set had disproportionate influence on diagnostic outputs",
-          "domain": "healthcare",
-          "assuranceGoal": "privacy"
         },
         {
           "text": "The perception system's object classification decisions are traceable to specific labeled examples from the training corpus",
@@ -932,8 +1056,31 @@
       ],
       "resources": [
         {
+          "title": "CEM — Alibi Explain documentation",
+          "url": "https://docs.seldon.ai/alibi-explain/explanations/methods/cem",
+          "source_type": "documentation",
+          "publication_date": "2024-07-08",
+          "citationKey": "CEMAlibiExplain2024"
+        },
+        {
+          "title": "alibi",
+          "url": "https://github.com/SeldonIO/alibi",
+          "source_type": "software_package",
+          "publication_date": "2019-02-26",
+          "citationKey": "seldonioAlibi2019",
+          "abstract": "Algorithms for explaining machine learning models"
+        },
+        {
+          "title": "AI Explainability 360 (Trusted-AI/AIX360)",
+          "url": "https://github.com/Trusted-AI/AIX360",
+          "source_type": "software_package",
+          "publication_date": "2026-10-06T08:52:44Z",
+          "citationKey": "AIExplainability3602026",
+          "abstract": "Interpretability and explainability of data and machine learning models"
+        },
+        {
           "title": "Explanations based on the Missing: Towards Contrastive Explanations with Pertinent Negatives",
-          "url": "http://arxiv.org/abs/1802.07623v2",
+          "url": "https://proceedings.neurips.cc/paper/2018/hash/c5ff2543b53f4cc0ad3819a36752467b-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
             "Amit Dhurandhar",
@@ -949,26 +1096,26 @@
           "abstract": "In this paper we propose a novel method that provides contrastive explanations justifying the classification of an input by a black box classifier such as a deep neural network. Given an input we find what should be %necessarily and minimally and sufficiently present (viz. important object pixels in an image) to justify its classification and analogously what should be minimally and necessarily \\emph{absent} (viz. certain background pixels). We argue that such explanations are natural for humans and are used commonly in domains such as health care and criminology. What is minimally but critically \\emph{absent} is an important part of an explanation, which to the best of our knowledge, has not been explicitly identified by current explanation methods that explain predictions of neural networks. We validate our approach on three real datasets obtained from diverse domains; namely, a handwritten digits dataset MNIST, a large procurement fraud dataset and a brain activity strength dataset. In all three cases, we witness the power of our approach in generating precise explanations that are also easy for human experts to understand and evaluate."
         },
         {
-          "title": "Interpretable Machine Learning",
-          "url": "https://christophm.github.io/interpretable-ml-book/interpretability.html",
-          "source_type": "documentation",
-          "publication_date": "2019",
-          "citationKey": "InterpretableMachineLearning2019a"
+          "title": "Contrastive Explanations Method (CEM) applied to MNIST — Alibi Explain",
+          "url": "https://docs.seldon.ai/alibi-explain/explanations/examples/contrastive-explanation-method/cem_mnist",
+          "source_type": "tutorial",
+          "publication_date": "2024-07-08",
+          "citationKey": "ContrastiveExplanationsMethod2024"
         },
         {
-          "title": "Benchmarking and survey of explanation methods for black box models",
-          "url": "https://core.ac.uk/download/599106733.pdf",
-          "source_type": "technical_paper",
+          "title": "Understanding How CNNs Recognize Facial Expressions: A Case Study with LIME and CEM",
+          "url": "https://doi.org/10.3390/s23010131",
+          "source_type": "application_paper",
           "authors": [
-            "Bodria Francesco",
-            "Giannotti Fosca",
-            "Guidotti R.",
-            "Naretto Francesca",
-            "Pedreschi Dino",
-            "Rinzivillo S."
+            "Guillermo del Castillo Torres",
+            "Maria Francesca Roig-Maimó",
+            "Miquel Mascaró-Oliver",
+            "Esperança Amengual-Alcover",
+            "Ramon Mas-Sansó"
           ],
-          "publication_date": "2023-01-01",
-          "citationKey": "francescoBenchmarkingSurveyExplanation2023"
+          "publication_date": "2022-12-23",
+          "citationKey": "delcastillotorresUnderstandingHowCNNs2022",
+          "abstract": "Recognizing facial expressions has been a persistent goal in the scientific community. Since the rise of artificial intelligence, convolutional neural networks (CNN) have become popular to recognize facial expressions, as images can be directly used as input. Current CNN models can achieve high recognition rates, but they give no clue about their reasoning process. Explainable artificial intelligence (XAI) has been developed as a means to help to interpret the results obtained by machine learning models. When dealing with images, one of the most-used XAI techniques is LIME. LIME highlights the areas of the image that contribute to a classification. As an alternative to LIME, the CEM method appeared, providing explanations in a way that is natural for human classification: besides highlighting what is sufficient to justify a classification, it also identifies what should be absent to maintain it and to distinguish it from another classification. This study presents the results of comparing LIME and CEM applied over complex images such as facial expression images. While CEM could be used to explain the results on images described with a reduced number of features, LIME would be the method of choice when dealing with images described with a huge number of features."
         }
       ],
       "complexity_rating": 5,
@@ -1066,6 +1213,16 @@
       ],
       "resources": [
         {
+          "title": "aif360.sklearn.inprocessing.AdversarialDebiasing — aif360 0.6.1 ...",
+          "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.sklearn.inprocessing.AdversarialDebiasing.html",
+          "source_type": "documentation",
+          "authors": [
+            "Aif360 Developers"
+          ],
+          "publication_date": "2018",
+          "citationKey": "aif360developersAif360sklearninprocessingAdversarialDebiasingAif3600612018"
+        },
+        {
           "title": "AIF360",
           "url": "https://github.com/Trusted-AI/AIF360",
           "source_type": "software_package",
@@ -1075,7 +1232,7 @@
         },
         {
           "title": "On the Fairness ROAD: Robust Optimization for Adversarial Debiasing",
-          "url": "https://www.semanticscholar.org/paper/0c887592d781538a1b5c2168eae541b563c0ba9a",
+          "url": "https://openreview.net/forum?id=xnhvVtZtLD",
           "source_type": "technical_paper",
           "authors": [
             "Vincent Grari",
@@ -1089,28 +1246,39 @@
           "abstract": "In the field of algorithmic fairness, significant attention has been put on group fairness criteria, such as Demographic Parity and Equalized Odds. Nevertheless, these objectives, measured as global averages, have raised concerns about persistent local disparities between sensitive groups. In this work, we address the problem of local fairness, which ensures that the predictor is unbiased not only in terms of expectations over the whole population, but also within any subregion of the feature space, unknown at training time. To enforce this objective, we introduce ROAD, a novel approach that leverages the Distributionally Robust Optimization (DRO) framework within a fair adversarial learning objective, where an adversary tries to infer the sensitive attribute from the predictions. Using an instance-level re-weighting strategy, ROAD is designed to prioritize inputs that are likely to be locally unfair, i.e. where the adversary faces the least difficulty in reconstructing the sensitive attribute. Numerical experiments demonstrate the effectiveness of our method: it achieves Pareto dominance with respect to local fairness and accuracy for a given global fairness level across three standard datasets, and also enhances fairness generalization under distribution shift."
         },
         {
-          "title": "aif360.sklearn.inprocessing.AdversarialDebiasing — aif360 0.6.1 ...",
-          "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.sklearn.inprocessing.AdversarialDebiasing.html",
-          "source_type": "documentation",
-          "authors": [
-            "Aif360 Developers"
-          ],
-          "publication_date": "2018",
-          "citationKey": "aif360developersAif360sklearninprocessingAdversarialDebiasingAif3600612018"
-        },
-        {
-          "title": "Towards Learning an Unbiased Classifier from Biased Data via Conditional Adversarial Debiasing",
-          "url": "http://arxiv.org/abs/2103.06179v1",
+          "title": "Mitigating Unwanted Biases with Adversarial Learning",
+          "url": "https://doi.org/10.1145/3278721.3278779",
           "source_type": "technical_paper",
           "authors": [
-            "Christian Reimers",
-            "Paul Bodesheim",
-            "Jakob Runge",
-            "Joachim Denzler"
+            "Brian Hu Zhang",
+            "Blake Lemoine",
+            "Margaret Mitchell"
           ],
-          "publication_date": "2021-03-10",
-          "citationKey": "reimersLearningUnbiasedClassifier2021",
-          "abstract": "Bias in classifiers is a severe issue of modern deep learning methods, especially for their application in safety- and security-critical areas. Often, the bias of a classifier is a direct consequence of a bias in the training dataset, frequently caused by the co-occurrence of relevant features and irrelevant ones. To mitigate this issue, we require learning algorithms that prevent the propagation of bias from the dataset into the classifier. We present a novel adversarial debiasing method, which addresses a feature that is spuriously connected to the labels of training images but statistically independent of the labels for test images. Thus, the automatic identification of relevant features during training is perturbed by irrelevant features. This is the case in a wide range of bias-related problems for many computer vision tasks, such as automatic skin cancer detection or driver assistance. We argue by a mathematical proof that our approach is superior to existing techniques for the abovementioned bias. Our experiments show that our approach performs better than state-of-the-art techniques on a well-known benchmark dataset with real-world images of cats and dogs."
+          "publication_date": "2018-12-27",
+          "citationKey": "zhangMitigatingUnwantedBiases2018",
+          "abstract": "Machine learning is a tool for building models that accurately represent input training data. When undesired biases concerning demographic groups are in the training data, well-trained models will reflect those biases. We present a framework for mitigating such biases by including a variable for the group of interest and simultaneously learning a predictor and an adversary. The input to the network X, here text or census data, produces a prediction Y, such as an analogy completion or income bracket, while the adversary tries to model a protected variable Z, here gender or zip code. The objective is to maximize the predictor's ability to predict Y while minimizing the adversary's ability to predict Z. Applied to analogy completion, this method results in accurate predictions that exhibit less evidence of stereotyping Z. When applied to a classification task using the UCI Adult (Census) Dataset, it results in a predictive model that does not lose much accuracy while achieving very close to equality of odds (Hardt, et al., 2016). The method is flexible and applicable to multiple definitions of fairness as well as a wide range of gradient-based learning models, including both regression and classification tasks."
+        },
+        {
+          "title": "AIF360 demo: Adversarial Debiasing (notebook)",
+          "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/demo_adversarial_debiasing.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AIF360DemoAdversarial",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models. - Trusted-AI/AIF360"
+        },
+        {
+          "title": "An adversarial training framework for mitigating algorithmic biases in clinical machine learning",
+          "url": "https://doi.org/10.1038/s41746-023-00805-y",
+          "source_type": "application_paper",
+          "authors": [
+            "Jenny Yang",
+            "Andrew A. S. Soltan",
+            "David W. Eyre",
+            "Yang Yang",
+            "David A. Clifton"
+          ],
+          "publication_date": "2023-3-29",
+          "citationKey": "yangAdversarialTrainingFramework2023",
+          "abstract": "Machine learning is becoming increasingly prominent in healthcare. Although its benefits are clear, growing attention is being given to how these tools may exacerbate existing biases and disparities. In this study, we introduce an adversarial training framework that is capable of mitigating biases that may have been acquired through data collection. We demonstrate this proposed framework on the real-world task of rapidly predicting COVID-19, and focus on mitigating site-specific (hospital) and demographic (ethnicity) biases. Using the statistical definition of equalized odds, we show that adversarial training improves outcome fairness, while still achieving clinically-effective screening performances (negative predictive values >0.98). We compare our method to previous benchmarks, and perform prospective and external validation across four independent hospital cohorts. Our method can be generalized to any outcomes, models, and definitions of fairness."
         }
       ],
       "complexity_rating": 4,
@@ -1146,7 +1314,142 @@
           "assuranceGoal": "fairness"
         }
       ]
+    },
+    {
+      "slug": "gnnexplainer",
+      "name": "GNNExplainer",
+      "description": "GNNExplainer explains one prediction of a graph neural network, a model that passes information along the edges of a graph such as a molecule, a payment network or a mesh of weather grid points, by finding a small subgraph and a small set of input features that most support that prediction. Explanation methods for flat inputs, such as SHAP and LIME, give each input feature its own score and have no built-in notion of a connection between two nodes; this method scores the connections themselves, restricted to the part of the graph the model actually reads for the prediction (its computation graph, the neighbourhood within as many hops as the model has message-passing layers). It learns a mask with a value between 0 and 1 for each edge of that computation graph and for each node-feature dimension by gradient descent: the masked graph is fed to the model, and the masks are adjusted to keep the predicted label as likely as possible while penalties keep the total mask small and push values towards 0 or 1. Edges and features whose mask values fall below a threshold are then dropped, leaving a compact subgraph and feature subset that can be drawn over the input graph; the same procedure explains node labels, predicted links and whole-graph labels, and the original paper also aligns the explanations of many nodes of one class into a summary pattern. It needs gradient access to the model, and each explanation is a separate optimisation.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/gradient-access",
+        "applicable-models/requirements/differentiable",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/property/sparsity",
+        "data-requirements/no-special-requirements",
+        "evidence-type/structured-output",
+        "evidence-type/visualisation",
+        "expertise-needed/deep-learning",
+        "expertise-needed/domain-expertise",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "data-type/graph",
+        "applicable-models/architecture/neural-networks/graph"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A pharmaceutical company's computational toxicology team uses a graph neural network to flag candidate molecules as likely mutagenic. For each flagged compound it reviews the substructure and atom features GNNExplainer selects and checks them against known structural alerts such as nitro groups, to decide whether a flag rests on chemistry the team recognises before the compound is deprioritised.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A bank's financial-crime unit scores accounts with a graph neural network over its payment network to flag likely money-mule accounts. Investigators receive with each flag the explanation subgraph of counterparties and transfers and the account features it selected, and use them to decide whether to escalate; model validators sample explanations to check that flags do not rest mainly on features such as branch or account-opening channel.",
+          "goal": "Explainability"
+        },
+        {
+          "description": "A weather service's model evaluation team runs the regression mode of the PyTorch Geometric implementation on a small set of high-impact forecasts from a graph-based forecasting model, such as the predicted rainfall total at one location. Forecasters check whether the connections and input variables selected, for example humidity upwind, are physically plausible, and the team deletes the selected connections to confirm the forecast changes, before such forecasts feed a warning service.",
+          "goal": "Explainability"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Each explanation is a separate optimisation, run for a set number of steps (100 by default in the PyTorch Geometric implementation), so explaining many nodes or graphs is slow and explanations of similar cases are not required to agree. A view of the model as a whole needs an extra step, such as the class-level summary in the original paper, or a method that trains one explainer for all instances."
+        },
+        {
+          "description": "The masks are soft during optimisation, so the model is run on graphs whose edges and features are scaled by fractions it never saw in training, and these values can add meaning or noise of their own. The objective is not convex and the masks start at random: in a 2024 benchmark, the ten-edge explanations from runs with different seeds overlapped by a Jaccard index of only 0.18 to 0.80 across six datasets. The final subgraph also depends on the threshold used to cut the mask."
+        },
+        {
+          "description": "The size of the explanation is set by the user, not found. The original experiments fixed it at the known size of the planted pattern on synthetic graphs and at 10 edges and 5 features on real ones, and the PyTorch Geometric implementation advises tuning the size penalty to the graph's average degree. A compact explanation can therefore leave out structure the model uses."
+        },
+        {
+          "description": "Most evidence that it finds the right structure comes from synthetic graphs with planted patterns, and a trained model need not use the planted edges, so agreement with them can mislead. A 2023 benchmark found graph explainers, this one included, less faithful when linked nodes tend to differ and when the deciding structure is large. Check fidelity on your own model, for example by deleting the explanation and measuring the change."
+        },
+        {
+          "description": "It assumes the computation graph is small. The computation graph grows with every message-passing layer, so in a mesh-based forecasting model that passes messages many times along long-range edges (GraphCast uses 16 such layers) it probably spans most of the mesh: the mask then covers most edges and compactness comes from the size penalty, not the model. This has not been tested. PyTorch Geometric applies the mask inside its own message-passing layers, so the model must use them or be adapted."
+        }
+      ],
+      "resources": [
+        {
+          "title": "torch_geometric.explain.algorithm.GNNExplainer (PyG documentation)",
+          "url": "https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.explain.algorithm.GNNExplainer.html",
+          "source_type": "documentation",
+          "citationKey": "Torch_geometricexplainalgorithmGNNExplainerPyGDocumentation"
+        },
+        {
+          "title": "PyTorch Geometric (pyg-team/pytorch_geometric)",
+          "url": "https://github.com/pyg-team/pytorch_geometric",
+          "source_type": "software_package",
+          "publication_date": "2025",
+          "citationKey": "feyPyTorchGeometricPygteam2025",
+          "abstract": "Graph Neural Network Library for PyTorch"
+        },
+        {
+          "title": "GNNExplainer: Generating Explanations for Graph Neural Networks",
+          "url": "https://proceedings.neurips.cc/paper/2019/hash/d80b7040b773199015de6d3b4293c8ff-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Zhitao Ying",
+            "Dylan Bourgeois",
+            "Jiaxuan You",
+            "Marinka Zitnik",
+            "Jure Leskovec"
+          ],
+          "publication_date": "2019",
+          "citationKey": "yingGNNExplainerGeneratingExplanations2019",
+          "abstract": "Graph Neural Networks (GNNs) are a powerful tool for machine learning on graphs.GNNs combine node feature information with the graph structure by \nrecursively passing neural messages along edges of the input graph. However, incorporating both graph structure and feature information leads to complex models,\nand explaining predictions made by GNNs remains unsolved. Here\nwe propose GNNExplainer, the first general, model-agnostic approach for providing interpretable explanations for predictions of any GNN-based model on any graph-based machine learning task. Given an instance, GNNExplainer identifies a compact subgraph structure and a small subset of node features that have a crucial role in GNN's prediction. \nFurther, GNNExplainer  can generate consistent and concise explanations for an entire class of instances.\nWe formulate GNNExplainer as an optimization task that maximizes the mutual information between a GNN's prediction and distribution of possible subgraph structures. Experiments on synthetic and real-world graphs show that our approach can identify important graph structures as well as node features, and outperforms baselines by 17.1% on average. GNNExplainer  provides a variety of benefits, from the ability to visualize semantically relevant structures to interpretability, to giving insights into errors of faulty GNNs."
+        },
+        {
+          "title": "Explaining Graph Neural Networks (PyG tutorial)",
+          "url": "https://pytorch-geometric.readthedocs.io/en/latest/tutorial/explain.html",
+          "source_type": "tutorial",
+          "citationKey": "ExplainingGraphNeural"
+        },
+        {
+          "title": "Investigating Brain Connectivity with Graph Neural Networks and GNNExplainer",
+          "url": "https://doi.org/10.1109/icpr56361.2022.9956201",
+          "source_type": "application_paper",
+          "authors": [
+            "Maksim Zhdanov",
+            "Saskia Steinmann",
+            "Nico Hoffmann"
+          ],
+          "publication_date": "2022-8-21",
+          "citationKey": "zhdanovInvestigatingBrainConnectivity2022"
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "For at least 90% of the validation molecules the toxicity model flags as mutagenic, the explanation subgraph contains a recognised structural alert, and deleting the explanation subgraph removes the flag for at least 80% of them.",
+          "assuranceGoal": "explainability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Across 300 sampled money-mule flags, branch and account-opening channel are never among the three node features with the highest mask values in the explanation.",
+          "assuranceGoal": "explainability",
+          "domain": "finance"
+        },
+        {
+          "text": "For each of the 20 high-impact rainfall forecasts reviewed, forecasters judged the selected connections and input variables physically plausible, and removing the selected connections changed the forecast total by more than the agreed tolerance.",
+          "assuranceGoal": "explainability",
+          "domain": "environmental"
+        },
+        {
+          "text": "Repeating each reviewed explanation from five random starting masks gives ten highest-weighted edge sets whose pairwise Jaccard index is at least 0.8.",
+          "assuranceGoal": "explainability",
+          "domain": "general"
+        }
+      ]
     }
   ],
-  "count": 8
+  "count": 9
 }

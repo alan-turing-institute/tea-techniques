@@ -2,115 +2,161 @@
   "tag": {
     "name": "assurance-goal-category/explainability/attribution-methods/gradient-based",
     "slug": "assurance-goal-category-explainability-attribution-methods-gradient-based",
-    "count": 7,
+    "count": 6,
     "category": "assurance-goal-category"
   },
   "techniques": [
     {
       "slug": "integrated-gradients",
       "name": "Integrated Gradients",
-      "description": "Integrated Gradients is an attribution technique that explains a model's prediction by quantifying the contribution of each input feature. It works by accumulating gradients along a straight path from a user-defined baseline input (e.g., a black image or an all-zero vector) to the actual input. This path integral ensures that the attributions satisfy fundamental axioms like completeness (attributions sum up to the difference between the prediction and the baseline prediction) and sensitivity (non-zero attributions for features that change the prediction). The output is a set of importance scores, often visualised as heatmaps, indicating which parts of the input were most influential for the model's decision.",
+      "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
       "assurance_goals": [
-        "Explainability"
+        "Explainability",
+        "Fairness"
       ],
       "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/differentiable",
+        "applicable-models/requirements/gradient-access",
         "assurance-goal-category/explainability",
         "assurance-goal-category/explainability/attribution-methods/gradient-based",
         "assurance-goal-category/explainability/explains/feature-importance",
         "assurance-goal-category/explainability/property/completeness",
-        "assurance-goal-category/explainability/property/consistency",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
         "data-requirements/reference-dataset",
-        "data-type/any",
+        "data-type/image",
+        "data-type/tabular",
+        "data-type/text",
         "evidence-type/quantitative-metric",
         "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
         "expertise-needed/deep-learning",
+        "expertise-needed/ml-engineering",
         "explanatory-scope/local",
-        "technique-type/algorithmic",
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/parametric",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/differentiable",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic"
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a medical image classification model to understand which specific pixels or regions in an X-ray image contribute most to a diagnosis of pneumonia, ensuring the model focuses on relevant pathological features rather than artifacts.",
+          "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading.",
           "goal": "Explainability"
         },
         {
-          "description": "Explaining the sentiment prediction of a natural language processing model by highlighting which words or phrases in a review most strongly influenced its classification as positive or negative, revealing the model's interpretative focus.",
+          "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question.",
           "goal": "Explainability"
+        },
+        {
+          "description": "A trust-and-safety team investigating false positives in a toxic-content classifier aggregates token attributions over wrongly flagged posts to see whether identity terms, such as the name of a religion or a sexual orientation, rather than abusive language drive the score, and adds counter-examples to the training data where they do.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A lender's model-risk team runs Integrated Gradients over a classifier that reads the free-text statements in loan applications, ranking the most highly attributed words across a sample of declined applications to check whether words that reveal a protected characteristic, or stand in for one, carry weight in the decision.",
+          "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Requires a carefully chosen and meaningful baseline input; an inappropriate baseline can lead to misleading or uninformative attributions."
+          "description": "Attributions are measured against the baseline and no choice is neutral. Features that match the baseline score near zero even when the model relies on them: with a black-image baseline, dark pixels on the object get little credit. A comparison of blurred, noise and training-data baselines found none best, so the baseline is an assumption to state and to vary before drawing conclusions."
         },
         {
-          "description": "The model must be differentiable, which limits its direct application to models with non-differentiable components or discrete inputs without workarounds."
+          "description": "Requires gradient access to a differentiable model, so it cannot explain tree ensembles, rule-based components or a model reached only through an API. For text, the path runs through token embeddings whose intermediate points are not real words, and subword tokenisation splits a word across several scores that must be recombined before a reviewer can read them."
         },
         {
-          "description": "Computationally more expensive than simple gradient-based methods, as it requires multiple gradient calculations along the integration path."
+          "description": "Each explanation needs one gradient computation per step along the path; the original authors found 20 to 300 steps were usually enough for the scores to sum to within 5% of the output difference. Explaining long documents, high-resolution images or a large audit sample therefore costs tens to hundreds of forward and backward passes per prediction."
         },
         {
-          "description": "While satisfying completeness, the attributions can sometimes be visually noisy or difficult for humans to interpret intuitively, especially for complex inputs."
+          "description": "A score shows how sensitive the output was to a feature along one straight path, not that the feature causes the outcome in the world or that removing it would change the decision. Maps over neighbouring pixels or tokens are often noisy, and a plausible-looking heatmap does not show that the model's reasoning is sound."
         }
       ],
       "resources": [
         {
-          "title": "Integrated-Gradients",
-          "url": "https://github.com/ankurtaly/Integrated-Gradients",
-          "source_type": "software_package",
-          "publication_date": "2016-11-04",
-          "citationKey": "ankurtalyIntegratedGradients2016",
-          "abstract": "Attributing predictions made by the Inception network using the Integrated Gradients method"
+          "title": "Integrated Gradients — Captum API reference",
+          "url": "https://captum.ai/api/integrated_gradients.html",
+          "source_type": "documentation",
+          "citationKey": "IntegratedGradientsCaptum",
+          "abstract": "Model Interpretability for PyTorch"
         },
         {
           "title": "captum",
-          "url": "https://github.com/pytorch/captum",
+          "url": "https://github.com/meta-pytorch/captum",
           "source_type": "software_package",
           "publication_date": "2019-08-27",
           "citationKey": "meta-pytorchCaptum2019",
           "abstract": "Model interpretability and understanding for PyTorch"
         },
         {
-          "title": "Maximum Entropy Baseline for Integrated Gradients",
-          "url": "http://arxiv.org/abs/2204.05948v1",
+          "title": "Axiomatic Attribution for Deep Networks",
+          "url": "https://proceedings.mlr.press/v70/sundararajan17a.html",
           "source_type": "technical_paper",
           "authors": [
-            "Hanxiao Tan"
+            "Mukund Sundararajan",
+            "Ankur Taly",
+            "Qiqi Yan"
           ],
-          "publication_date": "2022-04-12",
-          "citationKey": "tanMaximumEntropyBaseline2022",
-          "abstract": "Integrated Gradients (IG), one of the most popular explainability methods available, still remains ambiguous in the selection of baseline, which may seriously impair the credibility of the explanations. This study proposes a new uniform baseline, i.e., the Maximum Entropy Baseline, which is consistent with the \"uninformative\" property of baselines defined in IG. In addition, we propose an improved ablating evaluation approach incorporating the new baseline, where the information conservativeness is maintained. We explain the linear transformation invariance of IG baselines from an information perspective. Finally, we assess the reliability of the explanations generated by different explainability methods and different IG baselines through extensive evaluation experiments."
+          "publication_date": "2017-03-04",
+          "citationKey": "sundararajanAxiomaticAttributionDeep2017",
+          "abstract": "We study the problem of attributing the prediction of a deep network to its input features, a problem previously studied by several other works. We identify two fundamental axioms---Sensitivity and Implementation Invariance that attribution methods ought to satisfy. We show that they are not satisfied by most known attribution methods, which we consider to be a fundamental weakness of those methods. We use the axioms to guide the design of a new attribution method called Integrated Gradients. Our method requires no modification to the original network and is extremely simple to implement; it just needs a few calls to the standard gradient operator. We apply this method to a couple of image models, a couple of text models and a chemistry model, demonstrating its ability to debug networks, to extract rules from a network, and to enable users to engage with models better."
         },
         {
-          "title": "Integrated Gradients from Scratch | Towards Data Science",
-          "url": "https://towardsdatascience.com/integrated-gradients-from-scratch-b46311e4ab4",
+          "title": "Integrated gradients — TensorFlow Core tutorials",
+          "url": "https://www.tensorflow.org/tutorials/interpretability/integrated_gradients",
+          "source_type": "tutorial",
+          "citationKey": "IntegratedGradientsTensorFlow"
+        },
+        {
+          "title": "Using a Deep Learning Algorithm and Integrated Gradients Explanation to Assist Grading for Diabetic Retinopathy",
+          "url": "https://doi.org/10.1016/j.ophtha.2018.11.016",
+          "source_type": "application_paper",
+          "authors": [
+            "Rory Sayres",
+            "Ankur Taly",
+            "Ehsan Rahimy",
+            "Katy Blumer",
+            "David Coz",
+            "Naama Hammel",
+            "Jonathan Krause",
+            "Arunachalam Narayanaswamy",
+            "Zahra Rastegar",
+            "Derek Wu",
+            "Shawn Xu",
+            "Scott Barb",
+            "Anthony Joseph",
+            "Michael Shumski",
+            "Jesse Smith",
+            "Arjun B. Sood",
+            "Greg S. Corrado",
+            "Lily Peng",
+            "Dale R. Webster"
+          ],
+          "publication_date": "2019-4",
+          "citationKey": "sayresUsingDeepLearning2019",
+          "abstract": "PURPOSE: To understand the impact of deep learning diabetic retinopathy (DR) algorithms on physician readers in computer-assisted settings. DESIGN: Evaluation of diagnostic technology. PARTICIPANTS: One thousand seven hundred ninety-six retinal fundus images from 1612 diabetic patients. METHODS: Ten ophthalmologists (5 general ophthalmologists, 4 retina specialists, 1 retina fellow) read images for DR severity based on the International Clinical Diabetic Retinopathy disease severity scale in each of 3 conditions: unassisted, grades only, or grades plus heatmap. Grades-only assistance comprised a histogram of DR predictions (grades) from a trained deep-learning model. For grades plus heatmap, we additionally showed explanatory heatmaps. MAIN OUTCOME MEASURES: For each experiment arm, we computed sensitivity and specificity of each reader and the algorithm for different levels of DR severity against an adjudicated reference standard. We also measured accuracy (exact 5-class level agreement and Cohen's quadratically weighted κ), reader-reported confidence (5-point Likert scale), and grading time. RESULTS: Readers graded more accurately with model assistance than without for the grades-only condition (P < 0.001). Grades plus heatmaps improved accuracy for patients with DR (P < 0.001), but reduced accuracy for patients without DR (P = 0.006). Both forms of assistance increased readers' sensitivity moderate-or-worse DR: unassisted: mean, 79.4% [95% confidence interval (CI), 72.3%-86.5%]; grades only: mean, 87.5% [95% CI, 85.1%-89.9%]; grades plus heatmap: mean, 88.7% [95% CI, 84.9%-92.5%] without a corresponding drop in specificity (unassisted: mean, 96.6% [95% CI, 95.9%-97.4%]; grades only: mean, 96.1% [95% CI, 95.5%-96.7%]; grades plus heatmap: mean, 95.5% [95% CI, 94.8%-96.1%]). Algorithmic assistance increased the accuracy of retina specialists above that of the unassisted reader or model alone; and increased grading confidence and grading time across all readers. For most cases, grades plus heatmap was only as effective as grades only. Over the course of the experiment, grading time decreased across all conditions, although most sharply for grades plus heatmap. CONCLUSIONS: Deep learning algorithms can improve the accuracy of, and confidence in, DR diagnosis in an assisted read setting. They also may increase grading time, although these effects may be ameliorated with experience."
+        },
+        {
+          "title": "Visualizing the Impact of Feature Attribution Baselines",
+          "url": "https://doi.org/10.23915/distill.00022",
           "source_type": "tutorial",
           "authors": [
-            "Alexey Kravets"
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee",
+            "Pascal Sturmfels",
+            "Scott Lundberg",
+            "Su-In Lee"
           ],
-          "publication_date": "2021-10-14",
-          "citationKey": "kravetsIntegratedGradientsScratch2021"
+          "publication_date": "2020",
+          "citationKey": "sturmfelsVisualizingImpactFeature2020"
         },
         {
-          "title": "Understanding Integrated Gradients with SmoothTaylor for Deep Neural Network Attribution",
-          "url": "http://arxiv.org/abs/2004.10484v2",
-          "source_type": "technical_paper",
-          "authors": [
-            "Gary S. W. Goh",
-            "Sebastian Lapuschkin",
-            "Leander Weber",
-            "Wojciech Samek",
-            "Alexander Binder"
-          ],
-          "publication_date": "2020-04-22",
-          "citationKey": "s.w.gohUnderstandingIntegratedGradients2020",
-          "abstract": "Integrated Gradients as an attribution method for deep neural network models offers simple implementability. However, it suffers from noisiness of explanations which affects the ease of interpretability. The SmoothGrad technique is proposed to solve the noisiness issue and smoothen the attribution maps of any gradient-based attribution method. In this paper, we present SmoothTaylor as a novel theoretical concept bridging Integrated Gradients and SmoothGrad, from the Taylor's theorem perspective. We apply the methods to the image classification problem, using the ILSVRC2012 ImageNet object recognition dataset, and a couple of pretrained image models to generate attribution maps. These attribution maps are empirically evaluated using quantitative measures for sensitivity and noise level. We further propose adaptive noising to optimize for the noise scale hyperparameter value. From our experiments, we find that the SmoothTaylor approach together with adaptive noising is able to generate better quality saliency maps with lesser noise and higher sensitivity to the relevant points in the input space as compared to Integrated Gradients."
+          "title": "Interpreting BERT Models (Part 1) — Captum tutorial",
+          "url": "https://captum.ai/tutorials/Bert_SQUAD_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingBERTModels",
+          "abstract": "Model Interpretability for PyTorch"
         }
       ],
       "complexity_rating": 4,
@@ -123,29 +169,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are attributable to specific anatomical features rather than spurious image artifacts",
+          "text": "The retinopathy grading model's referral predictions are attributable to lesion regions in the retinal image rather than to imaging artefacts, as shown by Integrated Gradients review of a stratified sample of graded cases",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The feature importance scores provided to credit analysts sum exactly to the difference between the model's prediction and its neutral baseline",
+          "text": "The attribution scores given to credit analysts for each decision sum, within a stated tolerance, to the difference between the model's score for the applicant and its score for the documented reference applicant",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The perception system's object detection decisions are traceable to specific visual elements within the sensor input",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's attribution of prediction confidence to input measurements respects the principle that zero-valued features receive proportional credit",
-          "domain": "environmental",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's explanation quantifies each input feature's contribution along the path from a neutral reference state to the actual input",
+          "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
           "domain": "general",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         }
       ]
     },
@@ -210,8 +256,31 @@
       ],
       "resources": [
         {
+          "title": "DeepLIFT Documentation - Captum",
+          "url": "https://captum.ai/api/deep_lift.html",
+          "source_type": "documentation",
+          "publication_date": "2019",
+          "citationKey": "DeepLIFTDocumentationCaptum2019"
+        },
+        {
+          "title": "captum",
+          "url": "https://github.com/meta-pytorch/captum",
+          "source_type": "software_package",
+          "publication_date": "2019-08-27",
+          "citationKey": "meta-pytorchCaptum2019",
+          "abstract": "Model interpretability and understanding for PyTorch"
+        },
+        {
+          "title": "DeepLIFT (kundajelab/deeplift)",
+          "url": "https://github.com/kundajelab/deeplift",
+          "source_type": "software_package",
+          "publication_date": "2026-09-30T17:26:28Z",
+          "citationKey": "DeepLIFTKundajelabDeeplift2026",
+          "abstract": "Public facing deeplift repo"
+        },
+        {
           "title": "Learning Important Features Through Propagating Activation Differences",
-          "url": "http://arxiv.org/abs/1704.02685v2",
+          "url": "https://proceedings.mlr.press/v70/shrikumar17a.html",
           "source_type": "technical_paper",
           "authors": [
             "Avanti Shrikumar",
@@ -223,17 +292,9 @@
           "abstract": "The purported \"black box\" nature of neural networks is a barrier to adoption in applications where interpretability is essential. Here we present DeepLIFT (Deep Learning Important FeaTures), a method for decomposing the output prediction of a neural network on a specific input by backpropagating the contributions of all neurons in the network to every feature of the input. DeepLIFT compares the activation of each neuron to its 'reference activation' and assigns contribution scores according to the difference. By optionally giving separate consideration to positive and negative contributions, DeepLIFT can also reveal dependencies which are missed by other approaches. Scores can be computed efficiently in a single backward pass. We apply DeepLIFT to models trained on MNIST and simulated genomic data, and show significant advantages over gradient-based methods. Video tutorial: http://goo.gl/qKb7pL, ICML slides: bit.ly/deeplifticmlslides, ICML talk: https://vimeo.com/238275076, code: http://goo.gl/RM8jvH."
         },
         {
-          "title": "captum",
-          "url": "https://github.com/pytorch/captum",
-          "source_type": "software_package",
-          "publication_date": "2019-08-27",
-          "citationKey": "meta-pytorchCaptum2019",
-          "abstract": "Model interpretability and understanding for PyTorch"
-        },
-        {
           "title": "Tutorial A3: DeepLIFT/SHAP — tangermeme v0.1.0 documentation",
           "url": "https://tangermeme.readthedocs.io/en/latest/tutorials/Tutorial_A3_Deep_LIFT_SHAP.html",
-          "source_type": "documentation",
+          "source_type": "tutorial",
           "authors": [
             "Tangermeme Developers"
           ],
@@ -241,11 +302,23 @@
           "citationKey": "tangermemedevelopersTutorialA3DeepLIFT2023"
         },
         {
-          "title": "DeepLIFT Documentation - Captum",
-          "url": "https://captum.ai/api/deep_lift.html",
-          "source_type": "documentation",
-          "publication_date": "2019",
-          "citationKey": "DeepLIFTDocumentationCaptum2019"
+          "title": "Interpreting a CIFAR-10 TorchVision model with Captum",
+          "url": "https://captum.ai/tutorials/CIFAR_TorchVision_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingCIFAR10TorchVision",
+          "abstract": "Model Interpretability for PyTorch"
+        },
+        {
+          "title": "An Attribution Deep Learning Interpretation Model for Landslide Susceptibility Mapping in the Three Gorges Reservoir Area",
+          "url": "https://doi.org/10.1109/tgrs.2023.3323668",
+          "source_type": "application_paper",
+          "authors": [
+            "Cheng Chen",
+            "Lei Fan"
+          ],
+          "publication_date": "2023",
+          "citationKey": "chenAttributionDeepLearning2023",
+          "abstract": "Deep learning (DL) models are increasingly used for landslide susceptibility mapping (LSM) due to their higher accuracy. However, due to the lack of explanations of the influence of input contributing factors by current DL models, accurately identifying the cause of each landslide remains challenging. This study proposes a novel interpretable DL model named Deep-Attention-LSF, which assigns significance scores to contributing factors at local levels for attributing landslide susceptibility. This model considers the significance scores of input factors to more accurately predict landslide occurrence. DeepLIFT is used as an attribution branching network for interpreting the relationship between input factors and each landslide event. Subsequently, a landslide classification network formed by combining convolutional neural network and long short-term memory is used to predict the landslide occurrence in the entire study area. The performance of Deep-Attention-LSF is tested using the landslide inventory map of Three Gorges reservoir area and the associated maps of 18 landslide-related factors. The accuracy, recall, precision, and F1-score of our model were 0.9645, 0.9583, 0.9676, and 0.9522, respectively. These suggest that our model outperformed the compared models, including self-attention LSM, frequency-ratio-attention LSM, bagging and random subspace naive bayes tree, gradient boosting decision tree, random forest, information value model and enhanced C5.0 decision tree model. Deep-Attention-LSF provided reasonable explanations for landslide attributions by comparison with field investigation reports for four specific landslide cases. Combining the interpretation of Deep-Attention-LSF with field investigations can provide more comprehensive information for evaluating specific landslides, providing a useful tool for landslide prevention and management."
         }
       ],
       "complexity_rating": 4,
@@ -339,8 +412,30 @@
       ],
       "resources": [
         {
+          "title": "Analyzer — iNNvestigate documentation",
+          "url": "https://innvestigate.readthedocs.io/en/latest/modules/analyzer.html",
+          "source_type": "documentation",
+          "citationKey": "AnalyzerINNvestigateDocumentation"
+        },
+        {
+          "title": "lrp_toolbox",
+          "url": "https://github.com/sebastian-lapuschkin/lrp_toolbox",
+          "source_type": "software_package",
+          "publication_date": "2016-05-26",
+          "citationKey": "sebastian-lapuschkinLrp_toolbox2016",
+          "abstract": "The LRP Toolbox provides simple and accessible stand-alone implementations of LRP for artificial neural networks supporting Matlab and Python. The Toolbox realizes LRP functionality for the Caffe Deep Learning Framework as an extension of Caffe source code published in 10/2015."
+        },
+        {
+          "title": "iNNvestigate (albermax/innvestigate)",
+          "url": "https://github.com/albermax/innvestigate",
+          "source_type": "software_package",
+          "publication_date": "2026-10-08T17:01:50Z",
+          "citationKey": "alberINNvestigateAlbermaxInnvestigate2026",
+          "abstract": "A toolbox to iNNvestigate neural networks' predictions!"
+        },
+        {
           "title": "Explaining NonLinear Classification Decisions with Deep Taylor Decomposition",
-          "url": "http://arxiv.org/abs/1512.02479v1",
+          "url": "https://doi.org/10.1016/j.patcog.2016.11.008",
           "source_type": "technical_paper",
           "authors": [
             "Grégoire Montavon",
@@ -354,24 +449,16 @@
           "abstract": "Nonlinear methods such as Deep Neural Networks (DNNs) are the gold standard for various challenging machine learning problems, e.g., image classification, natural language processing or human action recognition. Although these methods perform impressively well, they have a significant disadvantage, the lack of transparency, limiting the interpretability of the solution and thus the scope of application in practice. Especially DNNs act as black boxes due to their multilayer nonlinear structure. In this paper we introduce a novel methodology for interpreting generic multilayer neural networks by decomposing the network classification decision into contributions of its input elements. Although our focus is on image classification, the method is applicable to a broad set of input data, learning tasks and network architectures. Our method is based on deep Taylor decomposition and efficiently utilizes the structure of the network by backpropagating the explanations from the output to the input layer. We evaluate the proposed method empirically on the MNIST and ILSVRC data sets."
         },
         {
-          "title": "A Rigorous Study Of The Deep Taylor Decomposition",
-          "url": "http://arxiv.org/abs/2211.08425v1",
-          "source_type": "technical_paper",
+          "title": "Methods for interpreting and understanding deep neural networks",
+          "url": "https://doi.org/10.1016/j.dsp.2017.10.011",
+          "source_type": "tutorial",
           "authors": [
-            "Leon Sixt",
-            "Tim Landgraf"
+            "Grégoire Montavon",
+            "Wojciech Samek",
+            "Klaus-Robert Müller"
           ],
-          "publication_date": "2022-11-14",
-          "citationKey": "sixtRigorousStudyDeep2022",
-          "abstract": "Saliency methods attempt to explain deep neural networks by highlighting the most salient features of a sample. Some widely used methods are based on a theoretical framework called Deep Taylor Decomposition (DTD), which formalizes the recursive application of the Taylor Theorem to the network's layers. However, recent work has found these methods to be independent of the network's deeper layers and appear to respond only to lower-level image structure. Here, we investigate the DTD theory to better understand this perplexing behavior and found that the Deep Taylor Decomposition is equivalent to the basic gradient$\\times$input method when the Taylor root points (an important parameter of the algorithm chosen by the user) are locally constant. If the root points are locally input-dependent, then one can justify any explanation. In this case, the theory is under-constrained. In an empirical evaluation, we find that DTD roots do not lie in the same linear regions as the input - contrary to a fundamental assumption of the Taylor theorem. The theoretical foundations of DTD were cited as a source of reliability for the explanations. However, our findings urge caution in making such claims."
-        },
-        {
-          "title": "lrp_toolbox",
-          "url": "https://github.com/sebastian-lapuschkin/lrp_toolbox",
-          "source_type": "software_package",
-          "publication_date": "2016-05-26",
-          "citationKey": "sebastian-lapuschkinLrp_toolbox2016",
-          "abstract": "The LRP Toolbox provides simple and accessible stand-alone implementations of LRP for artificial neural networks supporting Matlab and Python. The Toolbox realizes LRP functionality for the Caffe Deep Learning Framework as an extension of Caffe source code published in 10/2015."
+          "publication_date": "2018-2",
+          "citationKey": "montavonMethodsInterpretingUnderstanding2018"
         }
       ],
       "complexity_rating": 5,
@@ -467,6 +554,29 @@
       ],
       "resources": [
         {
+          "title": "Saliency — Captum API reference",
+          "url": "https://captum.ai/api/saliency.html",
+          "source_type": "documentation",
+          "citationKey": "SaliencyCaptumAPI",
+          "abstract": "Model Interpretability for PyTorch"
+        },
+        {
+          "title": "pytorch-cnn-visualizations",
+          "url": "https://github.com/utkuozbulak/pytorch-cnn-visualizations",
+          "source_type": "software_package",
+          "publication_date": "2017-10-21",
+          "citationKey": "utkuozbulakPytorchcnnvisualizations2017",
+          "abstract": "Pytorch implementation of convolutional neural network visualization techniques"
+        },
+        {
+          "title": "captum",
+          "url": "https://github.com/meta-pytorch/captum",
+          "source_type": "software_package",
+          "publication_date": "2019-08-27",
+          "citationKey": "meta-pytorchCaptum2019",
+          "abstract": "Model interpretability and understanding for PyTorch"
+        },
+        {
           "title": "Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency Maps",
           "url": "https://arxiv.org/abs/1312.6034",
           "source_type": "technical_paper",
@@ -480,30 +590,26 @@
           "abstract": "This paper addresses the visualisation of image classification models, learnt using deep Convolutional Networks (ConvNets). We consider two visualisation techniques, based on computing the gradient of the class score with respect to the input image. The first one generates an image, which maximises the class score [Erhan et al., 2009], thus visualising the notion of the class, captured by a ConvNet. The second technique computes a class saliency map, specific to a given image and class. We show that such maps can be employed for weakly supervised object segmentation using classification ConvNets. Finally, we establish the connection between the gradient-based ConvNet visualisation methods and deconvolutional networks [Zeiler et al., 2013]."
         },
         {
-          "title": "pytorch-cnn-visualizations",
-          "url": "https://github.com/utkuozbulak/pytorch-cnn-visualizations",
-          "source_type": "software_package",
-          "publication_date": "2017-10-21",
-          "citationKey": "utkuozbulakPytorchcnnvisualizations2017",
-          "abstract": "Pytorch implementation of convolutional neural network visualization techniques"
+          "title": "Interpreting a CIFAR-10 TorchVision model with Captum",
+          "url": "https://captum.ai/tutorials/CIFAR_TorchVision_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingCIFAR10TorchVision",
+          "abstract": "Model Interpretability for PyTorch"
         },
         {
-          "title": "Concepts of Saliency and Explainability in AI",
-          "url": "https://xaitk-saliency.readthedocs.io/en/latest/xaitk_explanation.html",
-          "source_type": "documentation",
+          "title": "Gradient-Based Saliency Maps Are Not Trustworthy Visual Explanations of Automated AI Musculoskeletal Diagnoses",
+          "url": "https://doi.org/10.1007/s10278-024-01136-4",
+          "source_type": "application_paper",
           "authors": [
-            "Xaitk-saliency Developers"
+            "Kesavan Venkatesh",
+            "Simukayi Mutasa",
+            "Fletcher Moore",
+            "Jeremias Sulam",
+            "Paul H. Yi"
           ],
-          "citationKey": "xaitk-saliencydevelopersConceptsSaliencyExplainability"
-        },
-        {
-          "title": "Occlusion Saliency Example",
-          "url": "https://xaitk-saliency.readthedocs.io/en/latest/examples/OcclusionSaliency.html",
-          "source_type": "documentation",
-          "authors": [
-            "Xaitk-saliency Developers"
-          ],
-          "citationKey": "xaitk-saliencydevelopersOcclusionSaliencyExample"
+          "publication_date": "2024-5-6",
+          "citationKey": "venkateshGradientBasedSaliencyMaps2024",
+          "abstract": "Saliency maps are popularly used to “explain” decisions made by modern machine learning models, including deep convolutional neural networks (DCNNs). While the resulting heatmaps purportedly indicate important image features, their “trustworthiness,” i.e., utility and robustness, has not been evaluated for musculoskeletal imaging. The purpose of this study was to systematically evaluate the trustworthiness of saliency maps used in disease diagnosis on upper extremity X-ray images. The underlying DCNNs were trained using the Stanford MURA dataset. We studied four trustworthiness criteria—(1) localization accuracy of abnormalities, (2) repeatability, (3) reproducibility, and (4) sensitivity to underlying DCNN weights—across six different gradient-based saliency methods (Grad-CAM (GCAM), gradient explanation (GRAD), integrated gradients (IG), Smoothgrad (SG), smooth IG (SIG), and XRAI). Ground-truth was defined by the consensus of three fellowship-trained musculoskeletal radiologists who each placed bounding boxes around abnormalities on a holdout saliency test set. Compared to radiologists, all saliency methods showed inferior localization (AUPRCs: 0.438 (SG)–0.590 (XRAI); average radiologist AUPRC: 0.816), repeatability (IoUs: 0.427 (SG)–0.551 (IG); average radiologist IOU: 0.613), and reproducibility (IoUs: 0.250 (SG)–0.502 (XRAI); average radiologist IOU: 0.613) on abnormalities such as fractures, orthopedic hardware insertions, and arthritis. Five methods (GCAM, GRAD, IG, SG, XRAI) passed the sensitivity test. Ultimately, no saliency method met all four trustworthiness criteria; therefore, we recommend caution and rigorous evaluation of saliency maps prior to their clinical use."
         }
       ],
       "complexity_rating": 3,
@@ -607,8 +713,30 @@
       ],
       "resources": [
         {
+          "title": "pytorch-grad-cam documentation (Jupyter Book)",
+          "url": "https://jacobgil.github.io/pytorch-gradcam-book/introduction.html",
+          "source_type": "documentation",
+          "citationKey": "PytorchgradcamDocumentationJupyter"
+        },
+        {
+          "title": "pytorch-grad-cam",
+          "url": "https://github.com/jacobgil/pytorch-grad-cam",
+          "source_type": "software_package",
+          "publication_date": "2017-05-31",
+          "citationKey": "jacobgilPytorchgradcam2017",
+          "abstract": "Advanced AI Explainability for computer vision.  Support for CNNs, Vision Transformers, Classification, Object detection, Segmentation, Image similarity and more."
+        },
+        {
+          "title": "grad-cam-pytorch",
+          "url": "https://github.com/kazuto1011/grad-cam-pytorch",
+          "source_type": "software_package",
+          "publication_date": "2017-05-18",
+          "citationKey": "kazuto1011Gradcampytorch2017",
+          "abstract": "PyTorch re-implementation of Grad-CAM (+ vanilla/guided backpropagation, deconvnet, and occlusion sensitivity maps)"
+        },
+        {
           "title": "Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization",
-          "url": "https://arxiv.org/abs/1610.02391",
+          "url": "https://doi.org/10.1007/s11263-019-01228-7",
           "source_type": "technical_paper",
           "authors": [
             "Ramprasaath R. Selvaraju",
@@ -623,14 +751,6 @@
           "abstract": "We propose a technique for producing \"visual explanations\" for decisions from a large class of CNN-based models, making them more transparent. Our approach - Gradient-weighted Class Activation Mapping (Grad-CAM), uses the gradients of any target concept, flowing into the final convolutional layer to produce a coarse localization map highlighting important regions in the image for predicting the concept. Grad-CAM is applicable to a wide variety of CNN model-families: (1) CNNs with fully-connected layers, (2) CNNs used for structured outputs, (3) CNNs used in tasks with multimodal inputs or reinforcement learning, without any architectural changes or re-training. We combine Grad-CAM with fine-grained visualizations to create a high-resolution class-discriminative visualization and apply it to off-the-shelf image classification, captioning, and visual question answering (VQA) models, including ResNet-based architectures. In the context of image classification models, our visualizations (a) lend insights into their failure modes, (b) are robust to adversarial images, (c) outperform previous methods on localization, (d) are more faithful to the underlying model and (e) help achieve generalization by identifying dataset bias. For captioning and VQA, we show that even non-attention based models can localize inputs. We devise a way to identify important neurons through Grad-CAM and combine it with neuron names to provide textual explanations for model decisions. Finally, we design and conduct human studies to measure if Grad-CAM helps users establish appropriate trust in predictions from models and show that Grad-CAM helps untrained users successfully discern a 'stronger' nodel from a 'weaker' one even when both make identical predictions. Our code is available at https://github.com/ramprs/grad-cam/, along with a demo at http://gradcam.cloudcv.org, and a video at youtu.be/COjUB9Izk6E."
         },
         {
-          "title": "pytorch-grad-cam",
-          "url": "https://github.com/jacobgil/pytorch-grad-cam",
-          "source_type": "software_package",
-          "publication_date": "2017-05-31",
-          "citationKey": "jacobgilPytorchgradcam2017",
-          "abstract": "Advanced AI Explainability for computer vision.  Support for CNNs, Vision Transformers, Classification, Object detection, Segmentation, Image similarity and more."
-        },
-        {
           "title": "Grad-CAM: Visualize class activation maps with Keras, TensorFlow ...",
           "url": "https://pyimagesearch.com/2020/03/09/grad-cam-visualize-class-activation-maps-with-keras-tensorflow-and-deep-learning",
           "source_type": "tutorial",
@@ -641,17 +761,19 @@
           "citationKey": "rosebrockGradCAMVisualizeClass2020"
         },
         {
-          "title": "grad-cam-pytorch",
-          "url": "https://github.com/kazuto1011/grad-cam-pytorch",
-          "source_type": "software_package",
-          "publication_date": "2017-05-18",
-          "citationKey": "kazuto1011Gradcampytorch2017",
-          "abstract": "PyTorch re-implementation of Grad-CAM (+ vanilla/guided backpropagation, deconvnet, and occlusion sensitivity maps)"
+          "title": "Grad-CAM class activation visualization — Keras code example",
+          "url": "https://keras.io/examples/vision/grad_cam/",
+          "source_type": "tutorial",
+          "authors": [
+            "Keras Team"
+          ],
+          "citationKey": "teamGradCAMClassActivation",
+          "abstract": "Keras documentation: Grad-CAM class activation visualization"
         },
         {
           "title": "A Tutorial on Explainable Image Classification for Dementia Stages Using Convolutional Neural Network and Gradient-weighted Class Activation Mapping",
-          "url": "https://www.semanticscholar.org/paper/8b1139cb06cfe5ba69e2fd05e1450b43df031a02",
-          "source_type": "technical_paper",
+          "url": "https://doi.org/10.3233/SHTI251444",
+          "source_type": "application_paper",
           "authors": [
             "Kevin Kam Fung Yuen"
           ],
@@ -660,14 +782,26 @@
           "abstract": "This paper presents a tutorial of an explainable approach using Convolutional Neural Network (CNN) and Gradient-weighted Class Activation Mapping (Grad-CAM) to classify four progressive dementia stages based on open MRI brain images. The detailed implementation steps are demonstrated with an explanation. Whilst the proposed CNN architecture is demonstrated to achieve more than 99% accuracy for the test dataset, the computational procedure of CNN remains a black box. The visualisation based on Grad-CAM is attempted to explain such very high accuracy and may provide useful information for physicians. Future motivation based on this work is discussed."
         },
         {
-          "title": "A Guide to Grad-CAM in Deep Learning - Analytics Vidhya",
-          "url": "https://www.analyticsvidhya.com/blog/2023/12/grad-cam-in-deep-learning",
-          "source_type": "tutorial",
+          "title": "Benchmarking saliency methods for chest X-ray interpretation",
+          "url": "https://doi.org/10.1038/s42256-022-00536-x",
+          "source_type": "application_paper",
           "authors": [
-            "Neha Vishwakarma"
+            "Adriel Saporta",
+            "Xiaotong Gui",
+            "Ashwin Agrawal",
+            "Anuj Pareek",
+            "Steven Q. H. Truong",
+            "Chanh D. T. Nguyen",
+            "Van-Doan Ngo",
+            "Jayne Seekins",
+            "Francis G. Blankenberg",
+            "Andrew Y. Ng",
+            "Matthew P. Lungren",
+            "Pranav Rajpurkar"
           ],
-          "publication_date": "2023-12-15",
-          "citationKey": "vishwakarmaGuideGradCAMDeep2023"
+          "publication_date": "2022-10-10",
+          "citationKey": "saportaBenchmarkingSaliencyMethods2022",
+          "abstract": "Saliency methods, which produce heat maps that highlight the areas of the medical image that influence model prediction, are often presented to clinicians as an aid in diagnostic decision-making. However, rigorous investigation of the accuracy and reliability of these strategies is necessary before they are integrated into the clinical setting. In this work, we quantitatively evaluate seven saliency methods, including Grad-CAM, across multiple neural network architectures using two evaluation metrics. We establish the first human benchmark for chest X-ray segmentation in a multilabel classification set-up, and examine under what clinical conditions saliency maps might be more prone to failure in localizing important pathologies compared with a human expert benchmark. We find that (1) while Grad-CAM generally localized pathologies better than the other evaluated saliency methods, all seven performed significantly worse compared with the human benchmark, (2) the gap in localization performance between Grad-CAM and the human benchmark was largest for pathologies that were smaller in size and had shapes that were more complex, and (3) model confidence was positively correlated with Grad-CAM localization performance. Our work demonstrates that several important limitations of saliency methods must be addressed before we can rely on them for deep learning explainability in medical imaging."
         }
       ],
       "complexity_rating": 3,
@@ -713,8 +847,7 @@
       "description": "Influence functions quantify how much each training example influenced a model's predictions by computing the change in prediction that would occur if that training example were removed and the model retrained. Using calculus and the implicit function theorem, they approximate this 'leave-one-out' effect without actually retraining the model by computing gradients and Hessian information. This mathematical approach reveals which specific training examples were most responsible for pushing the model toward or away from particular predictions, enabling practitioners to trace problematic outputs back to their root causes in the training data.",
       "assurance_goals": [
         "Explainability",
-        "Fairness",
-        "Privacy"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -734,8 +867,6 @@
         "assurance-goal-category/explainability/property/fidelity",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/privacy",
-        "assurance-goal-category/privacy/leakage-testing",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
@@ -756,10 +887,6 @@
         {
           "description": "Auditing a loan approval model for discriminatory patterns by identifying which training examples most influenced rejections of minority applicants, revealing whether biased historical decisions are driving current unfair outcomes.",
           "goal": "Fairness"
-        },
-        {
-          "description": "Assessing membership inference risks in a medical model by identifying whether certain patient records have disproportionate influence on predictions, indicating potential data leakage vulnerabilities.",
-          "goal": "Privacy"
         }
       ],
       "limitations": [
@@ -778,8 +905,30 @@
       ],
       "resources": [
         {
+          "title": "The influence function — pyDVL documentation",
+          "url": "https://pydvl.org/stable/influence/",
+          "source_type": "documentation",
+          "citationKey": "InfluenceFunctionPyDVL",
+          "abstract": "None"
+        },
+        {
+          "title": "influence-release (kohpangwei/influence-release)",
+          "url": "https://github.com/kohpangwei/influence-release",
+          "source_type": "software_package",
+          "publication_date": "2026-08-29T16:45:24Z",
+          "citationKey": "kohpangweiInfluencereleaseKohpangweiInfluencerelease2026"
+        },
+        {
+          "title": "Kronfluence (pomonam/kronfluence)",
+          "url": "https://github.com/pomonam/kronfluence",
+          "source_type": "software_package",
+          "publication_date": "2026-10-01T19:38:07Z",
+          "citationKey": "baeKronfluencePomonamKronfluence2026",
+          "abstract": "Influence Functions with (Eigenvalue-corrected) Kronecker-Factored Approximate Curvature"
+        },
+        {
           "title": "Understanding Black-box Predictions via Influence Functions",
-          "url": "https://www.semanticscholar.org/paper/08ad8fad21f6ec4cda4d56be1ca5e146b7c913a1",
+          "url": "https://proceedings.mlr.press/v70/koh17a.html",
           "source_type": "technical_paper",
           "authors": [
             "Pang Wei Koh",
@@ -790,60 +939,24 @@
           "abstract": "How can we explain the predictions of a black-box model? In this paper, we use influence functions — a classic technique from robust statistics — to trace a model's prediction through the learning algorithm and back to its training data, thereby identifying training points most responsible for a given prediction. To scale up influence functions to modern machine learning settings, we develop a simple, efficient implementation that requires only oracle access to gradients and Hessian-vector products. We show that even on non-convex and non-differentiable models where the theory breaks down, approximations to influence functions can still provide valuable information. On linear models and convolutional neural networks, we demonstrate that influence functions are useful for multiple purposes: understanding model behavior, debugging models, detecting dataset errors, and even creating visually-indistinguishable training-set attacks."
         },
         {
-          "title": "pytorch_influence_functions",
-          "url": "https://github.com/nimarb/pytorch_influence_functions",
-          "source_type": "software_package",
-          "publication_date": "2019-11-30",
-          "citationKey": "nimarbPytorch_influence_functions2019",
-          "abstract": "This is a PyTorch reimplementation of Influence Functions from the ICML2017 best paper: Understanding Black-box Predictions via Influence Functions by Pang Wei Koh and Percy Liang."
+          "title": "Kronfluence CIFAR-10 example",
+          "url": "https://github.com/pomonam/kronfluence/blob/main/examples/cifar/README.md",
+          "source_type": "tutorial",
+          "citationKey": "KronfluenceCIFAR10Example",
+          "abstract": "Influence Functions with (Eigenvalue-corrected) Kronecker-Factored Approximate Curvature - pomonam/kronfluence"
         },
         {
-          "title": "What is Your Data Worth to GPT? LLM-Scale Data Valuation with Influence Functions",
-          "url": "https://www.semanticscholar.org/paper/f33f3dece9f34c1ec5417dccf9e0acf592d8e8cb",
-          "source_type": "technical_paper",
+          "title": "Explaining Black Box Predictions and Unveiling Data Artifacts through Influence Functions",
+          "url": "https://doi.org/10.18653/v1/2020.acl-main.492",
+          "source_type": "application_paper",
           "authors": [
-            "Sang Keun Choe",
-            "Hwijeen Ahn",
-            "Juhan Bae",
-            "Kewen Zhao",
-            "Minsoo Kang",
-            "Youngseog Chung",
-            "Adithya Pratapa",
-            "Willie Neiswanger",
-            "Emma Strubell",
-            "Teruko Mitamura",
-            "Jeff G. Schneider",
-            "Eduard H. Hovy",
-            "Roger B. Grosse",
-            "Eric P. Xing"
+            "Xiaochuang Han",
+            "Byron C. Wallace",
+            "Yulia Tsvetkov"
           ],
-          "publication_date": "2024",
-          "citationKey": "keunchoeWhatYourData2024",
-          "abstract": "Large language models (LLMs) are trained on a vast amount of human-written data, but data providers often remain uncredited. In response to this issue, data valuation (or data attribution), which quantifies the contribution or value of each data to the model output, has been discussed as a potential solution. Nevertheless, applying existing data valuation methods to recent LLMs and their vast training datasets has been largely limited by prohibitive compute and memory costs. In this work, we focus on influence functions, a popular gradient-based data valuation method, and significantly improve its scalability with an efficient gradient projection strategy called LoGra that leverages the gradient structure in backpropagation. We then provide a theoretical motivation of gradient projection approaches to influence functions to promote trust in the data valuation process. Lastly, we lower the barrier to implementing data valuation systems by introducing LogIX, a software package that can transform existing training code into data valuation code with minimal effort. In our data valuation experiments, LoGra achieves competitive accuracy against more expensive baselines while showing up to 6,500x improvement in throughput and 5x reduction in GPU memory usage when applied to Llama3-8B-Instruct and the 1B-token dataset."
-        },
-        {
-          "title": "Scaling Up Influence Functions",
-          "url": "https://www.semanticscholar.org/paper/ef2a773c3c7848a6cc16b18164be5f8876a310af",
-          "source_type": "technical_paper",
-          "authors": [
-            "Andrea Schioppa",
-            "Polina Zablotskaia",
-            "David Vilar",
-            "Artem Sokolov"
-          ],
-          "publication_date": "2021",
-          "citationKey": "schioppaScalingInfluenceFunctions2021",
-          "abstract": "We address efficient calculation of influence functions for tracking predictions back to the training data. We propose and analyze a new approach to speeding up the inverse Hessian calculation based on Arnoldi iteration. With this improvement, we achieve, to the best of our knowledge, the first successful implementation of influence functions that scales to full-size (language and vision) Transformer models with several hundreds of millions of parameters. We evaluate our approach in image classification and sequence-to-sequence tasks with tens to a hundred of millions of training examples. Our code is available at https://github.com/google-research/jax-influence."
-        },
-        {
-          "title": "Welcome to torch-influence's API Reference! — torch-influence 0.1.0 ...",
-          "url": "https://torch-influence.readthedocs.io",
-          "source_type": "documentation",
-          "authors": [
-            "Torch-influence Developers"
-          ],
-          "publication_date": "2023",
-          "citationKey": "torch-influencedevelopersWelcomeTorchinfluencesAPI2023"
+          "publication_date": "2020",
+          "citationKey": "hanExplainingBlackBox2020",
+          "abstract": "Modern deep learning models for NLP are notoriously opaque.This has motivated the development of methods for interpreting such models, e.g., via gradient-based saliency maps or the visualization of attention weights.Such approaches aim to provide explanations for a particular model prediction by highlighting important words in the corresponding input text.While this might be useful for tasks where decisions are explicitly influenced by individual tokens in the input, we suspect that such highlighting is not always suitable for tasks where model decisions should be driven by more complex reasoning.In this work, we investigate the use of influence functions for NLP, providing an alternative approach to interpreting neural text classifiers.Influence functions explain the decisions of a model by identifying influential training examples.Despite the promise of this approach, influence functions have not yet been extensively evaluated in the context of NLP, a gap addressed by this work.We conduct a comparison between influence functions and common word-saliency methods on representative tasks.As suspected, we find that influence functions are particularly useful for natural language inference, a task in which 'saliency maps' may not provide clear interpretation.Furthermore, we develop a new quantitative measure based on influence functions that can reveal artifacts in training data."
         }
       ],
       "complexity_rating": 5,
@@ -871,11 +984,6 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The medical model's predictions reveal which patient records from the training set had disproportionate influence on diagnostic outputs",
-          "domain": "healthcare",
-          "assuranceGoal": "privacy"
-        },
-        {
           "text": "The perception system's object classification decisions are traceable to specific labeled examples from the training corpus",
           "domain": "autonomous systems",
           "assuranceGoal": "explainability"
@@ -883,9 +991,9 @@
       ]
     },
     {
-      "slug": "internal-review-boards",
-      "name": "Internal Review Boards",
-      "description": "Internal Review Boards (IRBs) provide independent, systematic evaluation of AI/ML projects throughout their lifecycle to identify ethical, safety, and societal risks before they materialise. Typically composed of multidisciplinary experts including ethicists, domain specialists, legal counsel, community representatives, and technical staff, IRBs review project proposals, assess potential harms to individuals and communities, evaluate mitigation strategies, and establish ongoing monitoring requirements. Unlike traditional research ethics committees, AI-focused IRBs address algorithmic bias, fairness concerns, privacy implications, and societal impact at scale, providing essential governance for responsible AI development and deployment.",
+      "slug": "algorithm-review-boards",
+      "name": "Algorithm Review Boards",
+      "description": "An algorithm review board is a standing, multidisciplinary body inside an organisation that examines proposed AI systems or AI research projects at set points and decides whether, and on what conditions, they may proceed. The literature also calls these bodies AI ethics boards or AI review boards. They differ from an Institutional Review Board (IRB), which protects the human subjects of research, because they also weigh harms to the people a system will affect and to society. A risk-based triage decides which projects need full review; the project team then submits a written account of the system's purpose, data, foreseeable harms and planned mitigations, and members drawn from technical, legal, ethical and domain backgrounds, sometimes with people from affected communities, question the team and iterate on that account with them. The board approves, approves with conditions such as a monitoring plan or a re-review date, or rejects, and the output is a dated decision record with its reasons and conditions that later reviews and audits can check against what was built.",
       "assurance_goals": [
         "General",
         "Transparency"
@@ -916,47 +1024,47 @@
       ],
       "example_use_cases": [
         {
-          "description": "Reviewing a proposed criminal risk assessment tool to evaluate potential discriminatory impacts, privacy implications, and societal consequences before development begins, ensuring vulnerable communities are protected from algorithmic harm.",
-          "goal": "Safety"
+          "description": "A hospital group's algorithm review board examines a sepsis early-warning model before a ward pilot. It approves the pilot on condition of a monitoring plan for alert rates and missed cases, names who may switch the model off, and sets a re-review once six months of local performance data are in, before any wider roll-out.",
+          "goal": "General"
         },
         {
-          "description": "Evaluating a hiring algorithm for bias across demographic groups, requiring algorithmic audits and ongoing monitoring to ensure equitable treatment of all candidates and compliance with employment law.",
-          "goal": "Fairness"
+          "description": "A bank's board reviews a proposed credit-limit model before launch. It asks the team for its disparate-impact analysis by protected group and for evidence that applicants can contest a decision, and withholds approval until both are supplied, so the decision to deploy rests with a body outside the development team.",
+          "goal": "General"
         },
         {
-          "description": "Establishing transparent governance processes for a healthcare AI system, requiring clear documentation of decision-making criteria, model limitations, and performance metrics that can be communicated to patients and regulators.",
+          "description": "A university AI research programme releases grant funding only after each project has passed an ethics and society review, in which researchers state the risks their work poses to society and to particular groups, commit to mitigations, and revise them with an interdisciplinary faculty panel.",
+          "goal": "General"
+        },
+        {
+          "description": "A government department publishes the board's decision record for a benefits-triage tool, giving the reasons for approval, the conditions attached and the re-review date, so that its oversight committee and the public can see what was examined, by whom and when, and check later that the conditions were met.",
           "goal": "Transparency"
         }
       ],
       "limitations": [
         {
-          "description": "Can significantly slow development timelines and increase project costs, potentially making organisations less competitive or delaying beneficial AI applications from reaching users."
+          "description": "Review adds time and cost to every project that goes through it, and organisations under commercial pressure may route work around the board or narrow its remit, so the board's coverage, not just its existence, needs to be shown."
         },
         {
-          "description": "Effectiveness heavily depends on board composition, with inadequate diversity or expertise leading to blind spots in risk assessment and biased decision-making."
+          "description": "Its judgements are only as good as its membership. A board without the relevant technical, domain or community expertise will miss harms that fall outside what its members know, and a board drawn mainly from inside the team's own reporting line is open to group-think."
         },
         {
-          "description": "May face internal pressure to approve revenue-generating projects or strategic initiatives, compromising independence and rigorous ethical evaluation."
+          "description": "Independence is hard to keep inside an organisation. Practitioners report tension between profit and the cost of responsible-AI review, and a board can come under pressure to approve projects that leadership has already committed to, which weakens it most where review matters most."
         },
         {
-          "description": "Limited authority or enforcement mechanisms can result in recommendations being ignored, particularly when they conflict with business objectives or technical constraints."
+          "description": "Without authority to stop or delay a project, and a way to check that its conditions are met, a board's recommendations can be ignored. Evidence from a board is strong only when its decision record shows what it could block and what happened to its conditions."
         },
         {
-          "description": "Risk of becoming bureaucratic or box-ticking exercises rather than substantive evaluations, especially in organisations without strong ethical leadership or clear accountability structures."
+          "description": "There is no agreed measure of whether a board works, and review can become box-ticking. A record that a project was reviewed shows that a process ran, not that the review was substantive or that its concerns were addressed."
         }
       ],
       "resources": [
         {
-          "title": "Investigating Algorithm Review Boards for Organizational Responsible Artificial Intelligence Governance",
-          "url": "https://link.springer.com/article/10.1007/s43681-024-00574-8",
-          "source_type": "technical_paper",
-          "authors": [
-            "Emily Hadley",
-            "Alan Blatecky",
-            "Megan Comfort"
-          ],
-          "publication_date": "2024-09-16",
-          "citationKey": "hadleyInvestigatingAlgorithmReview2024"
+          "title": "Looking before we leap: Expanding ethical review processes for AI and data science research",
+          "url": "https://www.adalovelaceinstitute.org/report/looking-before-we-leap/",
+          "source_type": "documentation",
+          "publication_date": "2022/12/13",
+          "citationKey": "LookingWeLeap2022",
+          "abstract": "Expanding ethical review processes for AI and data science research"
         },
         {
           "title": "How to design an AI ethics board",
@@ -970,41 +1078,111 @@
           "publication_date": "2025-04-01",
           "citationKey": "schuettHowDesignAI2025",
           "abstract": "The development and deployment of artificial intelligence (AI) systems poses significant risks to society. To reduce these risks to an acceptable level, AI companies need an effective risk management process and sound risk governance. In this paper, we explore a particular way in which AI companies can improve their risk governance: by setting up an AI ethics board. We identify five key design choices: (1) What responsibilities should the board have? (2) What should its legal structure be? (3) Who should sit on the board? (4) How should it make decisions? (5) And what resources does it need? We break each of these questions down into more specific sub-questions, list options, and discuss how different design choices affect the board’s ability to reduce societal risks from AI. Several failures have shown that designing an AI ethics board can be challenging. This paper provides a toolbox that can help AI companies to overcome these challenges."
+        },
+        {
+          "title": "Designing Artificial Intelligence Review Boards: Creating Risk Metrics for Review of AI",
+          "url": "https://doi.org/10.1109/istas48451.2019.8937942",
+          "source_type": "technical_paper",
+          "authors": [
+            "Sara R. Jordan"
+          ],
+          "publication_date": "2019-11",
+          "citationKey": "jordanDesigningArtificialIntelligence2019",
+          "abstract": "Discussions of the need for a review committee dedicated to ethical oversight of artificial intelligence (AI) research have not yet advanced to organization design discussions. What are the essential components for an AI research review board? Based upon precedent for composition and conduct of high-technology review boards, one essential component is a risk-adjusted review mechanism that assists review boards in the categorization of research needing review. In this paper, risk assessment tools are developed based upon lessons learned from other review boards, such as Institutional Biosafety Committees."
+        },
+        {
+          "title": "Ethics and society review: Ethics reflection as a precondition to research funding",
+          "url": "https://doi.org/10.1073/pnas.2117261118",
+          "source_type": "technical_paper",
+          "authors": [
+            "Michael S. Bernstein",
+            "Margaret Levi",
+            "David Magnus",
+            "Betsy A. Rajala",
+            "Debra Satz",
+            "Quinn Waeiss"
+          ],
+          "publication_date": "2021-12-21",
+          "citationKey": "bernsteinEthicsSocietyReview2021",
+          "abstract": "Researchers in areas as diverse as computer science and political science must increasingly navigate the possible risks of their research to society. However, the history of medical experiments on vulnerable individuals influenced many research ethics reviews to focus exclusively on risks to human subjects rather than risks to human society. We describe an Ethics and Society Review board (ESR), which fills this moral gap by facilitating ethical and societal reflection as a requirement to access grant funding: Researchers cannot receive grant funding from participating programs until the researchers complete the ESR process for their proposal. Researchers author an initial statement describing their proposed research’s risks to society, subgroups within society, and globally and commit to mitigation strategies for these risks. An interdisciplinary faculty panel iterates with the researchers to refine these risks and mitigation strategies. We describe a mixed-method evaluation of the ESR over 1 y, in partnership with an artificial intelligence grant program run by Stanford HAI. Surveys and interviews of researchers who interacted with the ESR found 100% (95% CI: 87 to 100%) were willing to continue submitting future projects to the ESR, and 58% (95% CI: 37 to 77%) felt that it had influenced the design of their research project. The ESR panel most commonly identified issues of harms to minority groups, inclusion of diverse stakeholders in the research plan, dual use, and representation in datasets. These principles, paired with possible mitigation strategies, offer scaffolding for future research designs."
+        },
+        {
+          "title": "ESR Process & Toolkit — Stanford Ethics & Society Review",
+          "url": "https://esr.stanford.edu/esr-process-toolkit/",
+          "source_type": "tutorial",
+          "citationKey": "ESRProcessToolkit",
+          "abstract": "The Ethics and Society Review is improving ethical reflection in research by bringing together a panel of ethics experts to help researchers identify and mitigate negative ethical or societal aspects of their research and elevate the positive."
+        },
+        {
+          "title": "Investigating Algorithm Review Boards for Organizational Responsible Artificial Intelligence Governance",
+          "url": "https://doi.org/10.1007/s43681-024-00574-8",
+          "source_type": "application_paper",
+          "authors": [
+            "Emily Hadley",
+            "Alan Blatecky",
+            "Megan Comfort"
+          ],
+          "publication_date": "2024-09-16",
+          "citationKey": "hadleyInvestigatingAlgorithmReview2024",
+          "abstract": "Organizations are increasingly developing and utilizing artificial intelligence (AI) tools. Responsible AI (RAI) governance approaches including algorithm review board (ARBs) have emerged as important mechanisms to address potential AI risks and harms. We interviewed 17 technical contributors at a variety of organizations about their experiences with internal RAI governance. We summarized the first detailed findings on ARBs in practice, including their membership, scope, and measures of success. We confirmed known ARBs in finance sectors and revealed extensive use of ARBs in health sectors. Our findings suggest that Institutional Review Boards alone are insufficient for algorithm governance and that ARBs are used in tandem with other RAI approaches. Integration with existing processes and leadership buy-in were considered critical to the success of internal RAI governance. Financial tensions between profit and the cost of RAI were a major concern for many participants. Future work should explore measurements of success for ARBs and expand analysis of ARBs to other industries leading in AI implementation."
+        },
+        {
+          "title": "A framework for the oversight and local deployment of safe and high-quality prediction models",
+          "url": "https://doi.org/10.1093/jamia/ocac078",
+          "source_type": "application_paper",
+          "authors": [
+            "Armando D Bedoya",
+            "Nicoleta J Economou-Zavlanos",
+            "Benjamin A Goldstein",
+            "Allison Young",
+            "J Eric Jelovsek",
+            "Cara O’Brien",
+            "Amanda B Parrish",
+            "Scott Elengold",
+            "Kay Lytle",
+            "Suresh Balu",
+            "Erich Huang",
+            "Eric G Poon",
+            "Michael J Pencina"
+          ],
+          "publication_date": "2022-5-31",
+          "citationKey": "bedoyaFrameworkOversightLocal2022",
+          "abstract": "Artificial intelligence/machine learning models are being rapidly developed and used in clinical practice. However, many models are deployed without a clear understanding of clinical or operational impact and frequently lack monitoring plans that can detect potential safety signals. There is a lack of consensus in establishing governance to deploy, pilot, and monitor algorithms within operational healthcare delivery workflows. Here, we describe a governance framework that combines current regulatory best practices and lifecycle management of predictive models being used for clinical care. Since January 2021, we have successfully added models to our governance portfolio and are currently managing 52 models."
         }
       ],
       "complexity_rating": 4,
       "computational_cost_rating": 1,
-      "acronym": "IRBs",
       "related_techniques": [
         "human-in-the-loop-safeguards",
         "model-cards",
-        "model-development-audit-trails"
+        "mlflow-experiment-tracking",
+        "data-version-control"
       ],
       "sample_claims": [
         {
-          "text": "The deployment of high-risk AI systems is subject to independent multidisciplinary review before operational use",
+          "text": "Every high-risk AI system was reviewed and approved by the organisation's algorithm review board before operational use, and the board could have blocked deployment",
           "domain": "general",
-          "assuranceGoal": "safety"
+          "assuranceGoal": "general"
         },
         {
-          "text": "The hiring algorithm's potential discriminatory impacts are evaluated by experts representing diverse perspectives before deployment",
+          "text": "The conditions the review board attached to the credit-limit model's approval, including a disparate-impact analysis by protected group and a re-review date, were met before and after launch",
           "domain": "finance",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "general"
         },
         {
-          "text": "The criminal risk assessment tool undergoes ethical review by community representatives and legal counsel before use in sentencing decisions",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
+          "text": "The clinical decision-support model was deployed under a monitoring plan and re-review schedule set by a multidisciplinary review board independent of the development team",
+          "domain": "healthcare",
+          "assuranceGoal": "general"
         },
         {
-          "text": "The diagnostic AI system's development and deployment decisions are traceable to independent board reviews that assessed patient safety risks",
+          "text": "The diagnostic AI system's development and deployment decisions are traceable to dated board decision records that state the risks assessed, the reasons for approval and the conditions attached",
           "domain": "healthcare",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The autonomous vehicle system's safety-critical design choices are subject to ongoing monitoring requirements established by an independent review board",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
+          "text": "The review board's decision record for the risk assessment tool, with its reasons and conditions, is available to the oversight body and the public",
+          "domain": "public sector",
+          "assuranceGoal": "transparency"
         }
       ]
     },
@@ -1077,8 +1255,72 @@
       ],
       "resources": [
         {
+          "title": "OWASP GenAI Red Teaming Guide",
+          "url": "https://genai.owasp.org/resource/genai-red-teaming-guide/",
+          "source_type": "documentation",
+          "authors": [
+            "OWASPGenAIProject Editor"
+          ],
+          "citationKey": "editorOWASPGenAIRed",
+          "abstract": "Discover the GenAI Red Teaming Guide for comprehensive strategies to identify and mitigate security risks in AI-driven systems through red teaming techniques."
+        },
+        {
+          "title": "PyRIT: The Python Risk Identification Tool for generative AI",
+          "url": "https://github.com/microsoft/PyRIT",
+          "source_type": "software_package",
+          "publication_date": "2024-02",
+          "citationKey": "microsoftPyRITPythonRisk2024",
+          "abstract": "The Python Risk Identification Tool for generative AI (PyRIT) is an open source framework built to empower security professionals and engineers to proactively identify risks in generative AI systems."
+        },
+        {
+          "title": "Red Teaming Language Models to Reduce Harms: Methods, Scaling Behaviors, and Lessons Learned",
+          "url": "https://doi.org/10.48550/arXiv.2209.07858",
+          "source_type": "technical_paper",
+          "authors": [
+            "Deep Ganguli",
+            "Liane Lovitt",
+            "Jackson Kernion",
+            "Amanda Askell",
+            "Yuntao Bai",
+            "Saurav Kadavath",
+            "Ben Mann",
+            "Ethan Perez",
+            "Nicholas Schiefer",
+            "Kamal Ndousse",
+            "Andy Jones",
+            "Sam Bowman",
+            "Anna Chen",
+            "Tom Conerly",
+            "Nova DasSarma",
+            "Dawn Drain",
+            "Nelson Elhage",
+            "Sheer El-Showk",
+            "Stanislav Fort",
+            "Zac Hatfield-Dodds",
+            "Tom Henighan",
+            "Danny Hernandez",
+            "Tristan Hume",
+            "Josh Jacobson",
+            "Scott Johnston",
+            "Shauna Kravec",
+            "Catherine Olsson",
+            "Sam Ringer",
+            "Eli Tran-Johnson",
+            "Dario Amodei",
+            "Tom Brown",
+            "Nicholas Joseph",
+            "Sam McCandlish",
+            "Chris Olah",
+            "Jared Kaplan",
+            "Jack Clark"
+          ],
+          "publication_date": "2022-11-22",
+          "citationKey": "ganguliRedTeamingLanguage2022",
+          "abstract": "We describe our early efforts to red team language models in order to simultaneously discover, measure, and attempt to reduce their potentially harmful outputs. We make three main contributions. First, we investigate scaling behaviors for red teaming across 3 model sizes (2.7B, 13B, and 52B parameters) and 4 model types: a plain language model (LM); an LM prompted to be helpful, honest, and harmless; an LM with rejection sampling; and a model trained to be helpful and harmless using reinforcement learning from human feedback (RLHF). We find that the RLHF models are increasingly difficult to red team as they scale, and we find a flat trend with scale for the other model types. Second, we release our dataset of 38,961 red team attacks for others to analyze and learn from. We provide our own analysis of the data and find a variety of harmful outputs, which range from offensive language to more subtly harmful non-violent unethical outputs. Third, we exhaustively describe our instructions, processes, statistical methodologies, and uncertainty about red teaming. We hope that this transparency accelerates our ability to work together as a community in order to develop shared norms, practices, and technical standards for how to red team language models."
+        },
+        {
           "title": "Red Teaming LLM Applications - DeepLearning.AI",
-          "url": "https://www.deeplearning.ai/short-courses/red-teaming-llm-applications",
+          "url": "https://www.deeplearning.ai/courses/red-teaming-llm-applications",
           "source_type": "tutorial",
           "authors": [
             "Matteo Dora",
@@ -1088,56 +1330,94 @@
           "citationKey": "doraRedTeamingLLM2025"
         },
         {
-          "title": "PyRIT: The Python Risk Identification Tool for generative AI",
-          "url": "https://github.com/Azure/PyRIT",
-          "source_type": "software_package",
-          "publication_date": "2024-02",
-          "citationKey": "microsoftPyRITPythonRisk2024",
-          "abstract": "The Python Risk Identification Tool for generative AI (PyRIT) is an open source framework built to empower security professionals and engineers to proactively identify risks in generative AI systems."
-        },
-        {
-          "title": "Building Safe GenAI Applications: An End-to-End Overview of Red Teaming for Large Language Models",
-          "url": "https://www.semanticscholar.org/paper/a2fb135fc4bfa323bc92dd498ba45bcaf7259a02",
-          "source_type": "technical_paper",
+          "title": "Red teaming ChatGPT in medicine to yield real-world insights on model behavior",
+          "url": "https://doi.org/10.1038/s41746-025-01542-0",
+          "source_type": "application_paper",
           "authors": [
-            "Alberto Purpura",
-            "Sahil Wadhwa",
-            "Jesse Zymet",
-            "Akshay Gupta",
-            "Andy Luo",
-            "Melissa Kazemi Rad",
-            "Swapnil Shinde",
-            "M. Sorower"
+            "Crystal T. Chang",
+            "Hodan Farah",
+            "Haiwen Gui",
+            "Shawheen Justin Rezaei",
+            "Charbel Bou-Khalil",
+            "Ye-Jean Park",
+            "Akshay Swaminathan",
+            "Jesutofunmi A. Omiye",
+            "Akaash Kolluri",
+            "Akash Chaurasia",
+            "Alejandro Lozano",
+            "Alice Heiman",
+            "Allison Sihan Jia",
+            "Amit Kaushal",
+            "Angela Jia",
+            "Angelica Iacovelli",
+            "Archer Yang",
+            "Arghavan Salles",
+            "Arpita Singhal",
+            "Balasubramanian Narasimhan",
+            "Benjamin Belai",
+            "Benjamin H. Jacobson",
+            "Binglan Li",
+            "Celeste H. Poe",
+            "Chandan Sanghera",
+            "Chenming Zheng",
+            "Conor Messer",
+            "Damien Varid Kettud",
+            "Deven Pandya",
+            "Dhamanpreet Kaur",
+            "Diana Hla",
+            "Diba Dindoust",
+            "Dominik Moehrle",
+            "Duncan Ross",
+            "Ellaine Chou",
+            "Eric Lin",
+            "Fateme Nateghi Haredasht",
+            "Ge Cheng",
+            "Irena Gao",
+            "Jacob Chang",
+            "Jake Silberg",
+            "Jason A. Fries",
+            "Jiapeng Xu",
+            "Joe Jamison",
+            "John S. Tamaresis",
+            "Jonathan H. Chen",
+            "Joshua Lazaro",
+            "Juan M. Banda",
+            "Julie J. Lee",
+            "Karen Ebert Matthys",
+            "Kirsten R. Steffner",
+            "Lu Tian",
+            "Luca Pegolotti",
+            "Malathi Srinivasan",
+            "Maniragav Manimaran",
+            "Matthew Schwede",
+            "Minghe Zhang",
+            "Minh Nguyen",
+            "Mohsen Fathzadeh",
+            "Qian Zhao",
+            "Rika Bajra",
+            "Rohit Khurana",
+            "Ruhana Azam",
+            "Rush Bartlett",
+            "Sang T. Truong",
+            "Scott L. Fleming",
+            "Shriti Raj",
+            "Solveig Behr",
+            "Sonia Onyeka",
+            "Sri Muppidi",
+            "Tarek Bandali",
+            "Tiffany Y. Eulalio",
+            "Wenyuan Chen",
+            "Xuanyu Zhou",
+            "Yanan Ding",
+            "Ying Cui",
+            "Yuqi Tan",
+            "Yutong Liu",
+            "Nigam Shah",
+            "Roxana Daneshjou"
           ],
-          "publication_date": "2025",
-          "citationKey": "purpuraBuildingSafeGenAI2025",
-          "abstract": "The rapid growth of Large Language Models (LLMs) presents significant privacy, security, and ethical concerns. While much research has proposed methods for defending LLM systems against misuse by malicious actors, researchers have recently complemented these efforts with an offensive approach that involves red teaming, i.e., proactively attacking LLMs with the purpose of identifying their vulnerabilities. This paper provides a concise and practical overview of the LLM red teaming literature, structured so as to describe a multi-component system end-to-end. To motivate red teaming we survey the initial safety needs of some high-profile LLMs, and then dive into the different components of a red teaming system as well as software packages for implementing them. We cover various attack methods, strategies for attack-success evaluation, metrics for assessing experiment outcomes, as well as a host of other considerations. Our survey will be useful for any reader who wants to rapidly obtain a grasp of the major red teaming concepts for their own use in practical applications."
-        },
-        {
-          "title": "Effective Automation to Support the Human Infrastructure in AI Red Teaming",
-          "url": "https://www.semanticscholar.org/paper/c42dcb3a795f970d657ee46537553634eea2b014",
-          "source_type": "technical_paper",
-          "authors": [
-            "Alice Qian Zhang",
-            "Jina Suh",
-            "Mary L. Gray",
-            "Hong Shen"
-          ],
-          "publication_date": "2025",
-          "citationKey": "qianzhangEffectiveAutomationSupport2025",
-          "abstract": "This forum focuses on the conditions and futures of the labor underpinning technology production and maintenance. We welcome standalone articles as well as interviews and conversations about all tech labor within the global supply chain of digital technologies. --- Seyram Avle and Sarah Fox, Editors"
-        },
-        {
-          "title": "Trojan Activation Attack: Red-Teaming Large Language Models using Steering Vectors for Safety-Alignment",
-          "url": "https://www.semanticscholar.org/paper/598df44f1d21a5d1fe3940c0bb2a6128a62c1c15",
-          "source_type": "technical_paper",
-          "authors": [
-            "Haoran Wang",
-            "Kai Shu"
-          ],
-          "publication_date": "2023",
-          "citationKey": "wangTrojanActivationAttack2023",
-          "abstract": "To ensure AI safety, instruction-tuned Large Language Models (LLMs) are specifically trained to ensure alignment, which refers to making models behave in accordance with human intentions. While these models have demonstrated commendable results on various safety benchmarks, the vulnerability of their safety alignment has not been extensively studied. This is particularly troubling given the potential harm that LLMs can inflict. Existing attack methods on LLMs often rely on poisoned training data or the injection of malicious prompts. These approaches compromise the stealthiness and generalizability of the attacks, making them susceptible to detection. Additionally, these models often demand substantial computational resources for implementation, making them less practical for real-world applications. In this work, we study a different attack scenario, called Trojan Activation Attack (TA2), which injects trojan steering vectors into the activation layers of LLMs. These malicious steering vectors can be triggered at inference time to steer the models toward attacker-desired behaviors by manipulating their activations. Our experiment results on four primary alignment tasks show that TA2 is highly effective and adds little or no overhead to attack efficiency. Additionally, we discuss potential countermeasures against such activation attacks."
+          "publication_date": "2025-3-7",
+          "citationKey": "changRedTeamingChatGPT2025",
+          "abstract": "Red teaming, the practice of adversarially exposing unexpected or undesired model behaviors, is critical towards improving equity and accuracy of large language models, but non-model creator-affiliated red teaming is scant in healthcare. We convened teams of clinicians, medical and engineering students, and technical professionals (80 participants total) to stress-test models with real-world clinical cases and categorize inappropriate responses along axes of safety, privacy, hallucinations/accuracy, and bias. Six medically-trained reviewers re-analyzed prompt-response pairs and added qualitative annotations. Of 376 unique prompts (1504 responses), 20.1% were inappropriate (GPT-3.5: 25.8%; GPT-4.0: 16%; GPT-4.0 with Internet: 17.8%). Subsequently, we show the utility of our benchmark by testing GPT-4o, a model released after our event (20.4% inappropriate). 21.5% of responses appropriate with GPT-3.5 were inappropriate in updated models. We share insights for constructing red teaming prompts, and present our benchmark for iterative model assessments."
         }
       ],
       "complexity_rating": 4,
@@ -1147,7 +1427,7 @@
         "jailbreak-resistance-testing",
         "prompt-injection-testing",
         "safety-envelope-testing",
-        "internal-review-boards"
+        "algorithm-review-boards"
       ],
       "sample_claims": [
         {
@@ -1240,37 +1520,56 @@
       ],
       "resources": [
         {
-          "title": "Article 14: Human Oversight | EU Artificial Intelligence Act",
-          "url": "https://artificialintelligenceact.eu/article/14/",
-          "source_type": "tutorial",
-          "citationKey": "Article14Human"
-        },
-        {
-          "title": "HumanSignal/label-studio",
-          "url": "https://github.com/HumanSignal/label-studio",
-          "source_type": "software_package",
-          "publication_date": "2026-02-06T04:48:38Z",
-          "citationKey": "HumanSignalLabelstudio2026",
-          "abstract": "Label Studio is a multi-type data labeling and annotation tool with standardized output format"
-        },
-        {
-          "title": "Human-in-the-Loop AI: A Comprehensive Guide",
-          "url": "https://www.holisticai.com/blog/human-in-the-loop-ai",
-          "source_type": "tutorial",
-          "publication_date": "2024-10-04",
-          "citationKey": "HumanintheLoopAIComprehensive2024"
-        },
-        {
           "title": "Improving the Applicability of AI for Psychiatric Applications through Human-in-the-loop Methodologies",
-          "url": "https://core.ac.uk/download/544064129.pdf",
-          "source_type": "technical_paper",
+          "url": "https://doi.org/10.1093/schbul/sbac038",
+          "source_type": "application_paper",
           "authors": [
-            "Chandler, Chelsea",
-            "Elvevåg, Brita",
-            "Foltz, Peter W."
+            "Chelsea Chandler",
+            "Brita Elvevåg",
+            "Peter W. Foltz"
           ],
           "publication_date": "2022-01-01",
-          "citationKey": "chelseaImprovingApplicabilityAI2022"
+          "citationKey": "chelseaImprovingApplicabilityAI2022",
+          "abstract": "Objectives Machine learning (ML) and natural language processing have great potential to improve efficiency and accuracy in diagnosis, treatment recommendations, predictive interventions, and scarce resource allocation within psychiatry. Researchers often conceptualize such an approach as operating in isolation without much need for human involvement, yet it remains crucial to harness human-in-the-loop practices when developing and implementing such techniques as their absence may be catastrophic. We advocate for building ML-based technologies that collaborate with experts within psychiatry in all stages of implementation and use to increase model performance while simultaneously increasing the practicality, robustness, and reliability of the process. Methods We showcase pitfalls of the traditional ML framework and explain how it can be improved with human-in-the-loop techniques. Specifically, we applied active learning strategies to the automatic scoring of a story recall task and compared the results to a traditional approach. Results Human-in-the-loop methodologies supplied a greater understanding of where the model was least confident or had knowledge gaps during training. As compared to the traditional framework, less than half of the training data were needed to reach a given accuracy. Conclusions Human-in-the-loop ML is an approach to data collection and model creation that harnesses active learning to select the most critical data needed to increase a model’s accuracy and generalizability more efficiently than classic random sampling would otherwise allow. Such techniques may additionally operate as safeguards from spurious predictions and can aid in decreasing disparities that artificial intelligence systems otherwise propagate."
+        },
+        {
+          "title": "A model for types and levels of human interaction with automation",
+          "url": "https://doi.org/10.1109/3468.844354",
+          "source_type": "technical_paper",
+          "authors": [
+            "R. Parasuraman",
+            "T.B. Sheridan",
+            "C.D. Wickens"
+          ],
+          "publication_date": "2000-5",
+          "citationKey": "parasuramanModelTypesLevels2000",
+          "abstract": "Technical developments in computer hardware and software now make it possible to introduce automation into virtually all aspects of human-machine systems. Given these technical capabilities, which system functions should be automated and to what extent? We outline a model for types and levels of automation that provides a framework and an objective basis for making such choices. Appropriate selection is important because automation does not merely supplant but changes human activity and can impose new coordination demands on the human operator. We propose that automation can be applied to four broad classes of functions: 1) information acquisition; 2) information analysis; 3) decision and action selection; and 4) action implementation. Within each of these types, automation can be applied across a continuum of levels from low to high, i.e., from fully manual to fully automatic. A particular system can involve automation of all four types at different levels. The human performance consequences of particular types and levels of automation constitute primary evaluative criteria for automation design using our model. Secondary evaluative criteria include automation reliability and the costs of decision/action consequences, among others. Examples of recommended types and levels of automation are provided to illustrate the application of the model to automation design."
+        },
+        {
+          "title": "Tutorial: Get Started in the Amazon A2I Console",
+          "url": "https://docs.aws.amazon.com/sagemaker/latest/dg/a2i-get-started-console.html",
+          "source_type": "tutorial",
+          "citationKey": "TutorialGetStarted",
+          "abstract": "Tutorial on using the Amazon A2I console to leverage Augmented AI for document review using Amazon Textract or image moderation using Amazon Rekognition."
+        },
+        {
+          "title": "When combinations of humans and AI are useful: A systematic review and meta-analysis",
+          "url": "https://doi.org/10.1038/s41562-024-02024-1",
+          "source_type": "application_paper",
+          "authors": [
+            "Michelle Vaccaro",
+            "Abdullah Almaatouq",
+            "Thomas Malone"
+          ],
+          "publication_date": "2024-10-28",
+          "citationKey": "vaccaroWhenCombinationsHumans2024",
+          "abstract": "Inspired by the increasing use of artificial intelligence (AI) to augment humans, researchers have studied human–AI systems involving different tasks, systems and populations. Despite such a large body of work, we lack a broad conceptual understanding of when combinations of humans and AI are better than either alone. Here we addressed this question by conducting a preregistered systematic review and meta-analysis of 106 experimental studies reporting 370 effect sizes. We searched an interdisciplinary set of databases (the Association for Computing Machinery Digital Library, the Web of Science and the Association for Information Systems eLibrary) for studies published between 1 January 2020 and 30 June 2023. Each study was required to include an original human-participants experiment that evaluated the performance of humans alone, AI alone and human–AI combinations. First, we found that, on average, human–AI combinations performed significantly worse than the best of humans or AI alone (Hedges’ g = −0.23; 95% confidence interval, −0.39 to −0.07). Second, we found performance losses in tasks that involved making decisions and significantly greater gains in tasks that involved creating content. Finally, when humans outperformed AI alone, we found performance gains in the combination, but when AI outperformed humans alone, we found losses. Limitations of the evidence assessed here include possible publication bias and variations in the study designs analysed. Overall, these findings highlight the heterogeneity of the effects of human–AI collaboration and point to promising avenues for improving human–AI systems."
+        },
+        {
+          "title": "Article 14: Human Oversight | EU Artificial Intelligence Act",
+          "url": "https://artificialintelligenceact.eu/article/14/",
+          "source_type": "documentation",
+          "citationKey": "Article14Human"
         },
         {
           "title": "Human-in-the-loop machine learning: a state of the art",
@@ -1286,29 +1585,13 @@
           "publication_date": "2023-04-01",
           "citationKey": "mosqueira-reyHumanintheloopMachineLearning2023",
           "abstract": "Researchers are defining new types of interactions between humans and machine learning algorithms generically called human-in-the-loop machine learning. Depending on who is in control of the learning process, we can identify: active learning, in which the system remains in control; interactive machine learning, in which there is a closer interaction between users and learning systems; and machine teaching, where human domain experts have control over the learning process. Aside from control, humans can also be involved in the learning process in other ways. In curriculum learning human domain experts try to impose some structure on the examples presented to improve the learning; in explainable AI the focus is on the ability of the model to explain to humans why a given solution was chosen. This collaboration between AI models and humans should not be limited only to the learning process; if we go further, we can see other terms that arise such as Usable and Useful AI. In this paper we review the state of the art of the techniques involved in the new forms of relationship between humans and ML algorithms. Our contribution is not merely listing the different approaches, but to provide definitions clarifying confusing, varied and sometimes contradictory terms; to elucidate and determine the boundaries between the different methods; and to correlate all the techniques searching for the connections and influences between them."
-        },
-        {
-          "title": "A Survey of Human-in-the-loop for Machine Learning",
-          "url": "http://arxiv.org/abs/2108.00941",
-          "source_type": "technical_paper",
-          "authors": [
-            "Xingjiao Wu",
-            "Luwei Xiao",
-            "Yixuan Sun",
-            "Junhang Zhang",
-            "Tianlong Ma",
-            "Liang He"
-          ],
-          "publication_date": "10/2022",
-          "citationKey": "wuSurveyHumanintheloopMachine2022",
-          "abstract": "Human-in-the-loop aims to train an accurate prediction model with minimum cost by integrating human knowledge and experience. Humans can provide training data for machine learning applications and directly accomplish tasks that are hard for computers in the pipeline with the help of machine-based approaches. In this paper, we survey existing works on human-in-the-loop from a data perspective and classify them into three categories with a progressive relationship: (1) the work of improving model performance from data processing, (2) the work of improving model performance through interventional model training, and (3) the design of the system independent human-in-the-loop. Using the above categorization, we summarize major approaches in the field; along with their technical strengths/ weaknesses, we have simple classification and discussion in natural language processing, computer vision, and others. Besides, we provide some open challenges and opportunities. This survey intends to provide a high-level summarization for human-in-the-loop and motivates interested readers to consider approaches for designing effective human-in-the-loop solutions."
         }
       ],
       "complexity_rating": 2,
       "computational_cost_rating": 2,
       "related_techniques": [
         "confidence-thresholding",
-        "internal-review-boards",
+        "algorithm-review-boards",
         "runtime-monitoring-and-circuit-breakers"
       ],
       "sample_claims": [
@@ -1402,22 +1685,41 @@
       ],
       "resources": [
         {
-          "title": "A Novel Dynamic Confidence Threshold Estimation AI Algorithm for Enhanced Object Detection",
-          "url": "https://www.semanticscholar.org/paper/93cda7adfa043c969639e094d6c27b1c4d507208",
+          "title": "Tuning the decision threshold for class prediction — scikit-learn user guide",
+          "url": "https://scikit-learn.org/stable/modules/classification_threshold.html",
+          "source_type": "documentation",
+          "citationKey": "TuningDecisionThreshold",
+          "abstract": "Classification is best divided into two parts: the statistical problem of learning a model to predict, ideally, class probabilities;, the decision problem to take concrete action based on those pro..."
+        },
+        {
+          "title": "scikit-learn",
+          "url": "https://github.com/scikit-learn/scikit-learn",
+          "source_type": "software_package",
+          "citationKey": "Scikitlearn",
+          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
+        },
+        {
+          "title": "On optimum recognition error and reject tradeoff",
+          "url": "https://doi.org/10.1109/tit.1970.1054406",
           "source_type": "technical_paper",
           "authors": [
-            "Mounika Thatikonda",
-            "M. Pk",
-            "Fathi H. Amsaad"
+            "C. Chow"
           ],
-          "publication_date": "2024",
-          "citationKey": "thatikondaNovelDynamicConfidence2024",
-          "abstract": "Object detection (OD) is a significant component in the field of computer vision applications, ranging from autonomous vehicles to ensuring security in Department of Defense (DoD) systems. Despite the huge progress that has been made, the accuracy of the models in various situations is limited to static detection parameters like confidence threshold and NMS threshold. The static method of deciding the thresholds may lessen the effect of detections, thereby impacting the mean average precision (mAP) score and the overall efficacy of OD models in real-world scenarios. To overcome this drawback, this study introduced a novel approach that dynamically adjusts the confidence threshold and NMS threshold based on statistical measures of the entire object representation in a data plane. The COCO Dataset was chosen to evaluate the performance of dynamic threshold techniques across five different pre-trained state-of-the-art models like YOLO v5, Faster R-CNN, FCOS, RetinaNet, and SSD300. Among all the models, Faster R-CNN outperformed others with a mAP of 56.11 %. This dynamic approach makes the OD models more reliable by improving the adaptability and robustness of object detection models."
+          "publication_date": "1970-1",
+          "citationKey": "chowOptimumRecognitionError1970",
+          "abstract": "The performance of a pattern recognition system is characterized by its error and reject tradeoff. This paper describes an optimum rejection rule and presents a general relation between the error and reject probabilities and some simple properties of the tradeoff in the optimum recognition system. The error rate can be directly evaluated from the reject function. Some practical implications of the results are discussed. Examples in normal distributions and uniform distributions are given."
+        },
+        {
+          "title": "Post-tuning the decision threshold for cost-sensitive learning — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/model_selection/plot_cost_sensitive_learning.html",
+          "source_type": "tutorial",
+          "citationKey": "PosttuningDecisionThreshold",
+          "abstract": "Once a classifier is trained, the output of the predict method outputs class label predictions corresponding to a thresholding of either the decision_function or the predict_proba output. For a bin..."
         },
         {
           "title": "Improving speech recognition accuracy with multi-confidence thresholding",
-          "url": "https://www.semanticscholar.org/paper/bef1c8668115675f786e5a3c6d165f268e399e9d",
-          "source_type": "technical_paper",
+          "url": "https://doi.org/10.21437/Interspeech.2006-450",
+          "source_type": "application_paper",
           "authors": [
             "Shuangyu Chang"
           ],
@@ -1425,26 +1727,26 @@
           "citationKey": "changImprovingSpeechRecognition2006"
         },
         {
-          "title": "Improving the Robustness and Generalization of Deep Neural Network with Confidence Threshold Reduction",
-          "url": "http://arxiv.org/abs/2206.00913v2",
-          "source_type": "technical_paper",
+          "title": "Leveraging uncertainty information from deep neural networks for disease detection",
+          "url": "https://doi.org/10.1038/s41598-017-17876-z",
+          "source_type": "application_paper",
           "authors": [
-            "Xiangyuan Yang",
-            "Jie Lin",
-            "Hanlin Zhang",
-            "Xinyu Yang",
-            "Peng Zhao"
+            "Christian Leibig",
+            "Vaneeda Allken",
+            "Murat Seçkin Ayhan",
+            "Philipp Berens",
+            "Siegfried Wahl"
           ],
-          "publication_date": "2022-06-02",
-          "citationKey": "yangImprovingRobustnessGeneralization2022",
-          "abstract": "Deep neural networks are easily attacked by imperceptible perturbation. Presently, adversarial training (AT) is the most effective method to enhance the robustness of the model against adversarial examples. However, because adversarial training solved a min-max value problem, in comparison with natural training, the robustness and generalization are contradictory, i.e., the robustness improvement of the model will decrease the generalization of the model. To address this issue, in this paper, a new concept, namely confidence threshold (CT), is introduced and the reducing of the confidence threshold, known as confidence threshold reduction (CTR), is proven to improve both the generalization and robustness of the model. Specifically, to reduce the CT for natural training (i.e., for natural training with CTR), we propose a mask-guided divergence loss function (MDL) consisting of a cross-entropy loss term and an orthogonal term. The empirical and theoretical analysis demonstrates that the MDL loss improves the robustness and generalization of the model simultaneously for natural training. However, the model robustness improvement of natural training with CTR is not comparable to that of adversarial training. Therefore, for adversarial training, we propose a standard deviation loss function (STD), which minimizes the difference in the probabilities of the wrong categories, to reduce the CT by being integrated into the loss function of adversarial training. The empirical and theoretical analysis demonstrates that the STD based loss function can further improve the robustness of the adversarially trained model on basis of guaranteeing the changeless or slight improvement of the natural accuracy."
+          "publication_date": "2017-12-19",
+          "citationKey": "leibigLeveragingUncertaintyInformation2017",
+          "abstract": "Deep learning (DL) has revolutionized the field of computer vision and image processing. In medical imaging, algorithmic solutions based on DL have been shown to achieve high performance on tasks that previously required medical experts. However, DL-based solutions for disease detection have been proposed without methods to quantify and control their uncertainty in a decision. In contrast, a physician knows whether she is uncertain about a case and will consult more experienced colleagues if needed. Here we evaluate drop-out based Bayesian uncertainty measures for DL in diagnosing diabetic retinopathy (DR) from fundus images and show that it captures uncertainty better than straightforward alternatives. Furthermore, we show that uncertainty informed decision referral can improve diagnostic performance. Experiments across different networks, tasks and datasets show robust generalization. Depending on network capacity and task/dataset difficulty, we surpass 85% sensitivity and 80% specificity as recommended by the NHS when referring 0−20% of the most uncertain decisions for further inspection. We analyse causes of uncertainty by relating intuitions from 2D visualizations to the high-dimensional image space. While uncertainty is sensitive to clinically relevant cases, sensitivity to unfamiliar data samples is task dependent, but can be rendered more robust."
         }
       ],
       "complexity_rating": 2,
       "computational_cost_rating": 1,
       "related_techniques": [
         "human-in-the-loop-safeguards",
-        "empirical-calibration",
+        "platt-scaling",
         "out-of-domain-detection",
         "runtime-monitoring-and-circuit-breakers"
       ],
@@ -1479,7 +1781,7 @@
     {
       "slug": "runtime-monitoring-and-circuit-breakers",
       "name": "Runtime Monitoring and Circuit Breakers",
-      "description": "Runtime monitoring and circuit breakers establish continuous surveillance of AI/ML systems in production, tracking critical metrics such as prediction accuracy, response times, input characteristics, output distributions, and system resource usage. When monitored parameters exceed predefined safety thresholds or exhibit anomalous patterns, automated circuit breakers immediately trigger protective actions including request throttling, service degradation, system shutdown, or failover to backup mechanisms. This approach provides real-time defensive capabilities that prevent cascading failures, ensure consistent service reliability, and maintain transparent operation status for stakeholders monitoring system health.",
+      "description": "Runtime monitoring and circuit breakers watch a deployed AI system's operational and model-level signals and automatically stop, limit or reroute calls to the model when those signals cross preset limits. The circuit breaker, a software resilience pattern, wraps calls to the model: while closed it passes requests through and counts failures in a rolling time window; when failures pass a threshold it opens, so further requests fail at once or receive a fallback such as a cached answer, a simpler model, a rule-based default or referral to a person; after a cooldown it half-opens and lets a few trial requests through, closing again only if they succeed. For a machine learning model, what counts as a failure is widened from errors and timeouts to model-level signals available at the moment of prediction, such as input drift scores, low prediction confidence, out-of-range outputs or limits on the actions the system may take, because true accuracy usually cannot be measured until outcomes arrive later. The output is a log of breaker state changes, the metrics that triggered them and the alerts raised, which shows when and why the system was restricted; the protection is only as good as the chosen thresholds and the fallback behind the breaker.",
       "assurance_goals": [
         "General",
         "Reliability",
@@ -1540,32 +1842,88 @@
       ],
       "resources": [
         {
-          "title": "aiobreaker",
-          "url": "https://github.com/arlyon/aiobreaker",
+          "title": "Circuit Breaker pattern — Azure Architecture Center",
+          "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker",
+          "source_type": "documentation",
+          "authors": [
+            "claytonsiemens77"
+          ],
+          "citationKey": "claytonsiemens77CircuitBreakerPattern",
+          "abstract": "Learn how to handle faults that might take varying amounts of time to fix when applications connect to a remote service or resource."
+        },
+        {
+          "title": "pybreaker: Python implementation of the Circuit Breaker pattern",
+          "url": "https://github.com/danielfm/pybreaker",
           "source_type": "software_package",
-          "publication_date": "2018-07-27",
-          "citationKey": "arlyonAiobreaker2018",
+          "publication_date": "2026-10-06T18:45:18Z",
+          "citationKey": "martinsPybreakerPythonImplementation2026",
           "abstract": "Python implementation of the Circuit Breaker pattern."
         },
         {
-          "title": "Improving Alignment and Robustness with Circuit Breakers",
-          "url": "https://arxiv.org/abs/2406.04313",
+          "title": "Evidently: open-source ML and LLM observability framework",
+          "url": "https://github.com/evidentlyai/evidently",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T04:16:51Z",
+          "citationKey": "EvidentlyOpensourceML2026",
+          "abstract": "Evidently is ​​an open-source ML and LLM observability framework. Evaluate, test, and monitor any AI-powered system or data pipeline. From tabular data to Gen AI. 100+ metrics."
+        },
+        {
+          "title": "Release It! Design and Deploy Production-Ready Software",
+          "url": "https://pragprog.com/titles/mnee2/release-it-second-edition/",
           "source_type": "technical_paper",
           "authors": [
-            "Andy Zou",
-            "Long Phan",
-            "Justin Wang",
-            "Derek Duenas",
-            "Maxwell Lin",
-            "Maksym Andriushchenko",
-            "Rowan Wang",
-            "Zico Kolter",
-            "Matt Fredrikson",
-            "Dan Hendrycks"
+            "Michael Nygard"
           ],
-          "publication_date": "2024",
-          "citationKey": "zouImprovingAlignmentRobustness2024",
-          "abstract": "AI systems can take harmful actions and are highly vulnerable to adversarial attacks. We present an approach, inspired by recent advances in representation engineering, that interrupts the models as they respond with harmful outputs with “circuit breakers.” Existing techniques aimed at improving alignment, such as refusal training, are often bypassed. Techniques such as adversarial training try to plug these holes by countering specific attacks. As an alternative to refusal training and adversarial training, circuit-breaking directly controls the representations that are responsible for harmful outputs in the first place. Our technique can be applied to both text-only and multimodal language models to prevent the generation of harmful outputs without sacrificing utility—even in the presence of powerful unseen attacks. Notably, while adversarial robustness in standalone image recognition remains an open challenge, circuit breakers allow the larger multimodal system to reliably withstand image “hijacks” that aim to produce harmful content. Finally, we extend our approach to AI agents, demonstrating considerable reductions in the rate of harmful actions when they are under attack. Our approach represents a significant step forward in the development of reliable safeguards to harmful behavior and adversarial attacks. Code is available at github.com/GraySwanAI/circuit-breakers."
+          "publication_date": "2018-01",
+          "citationKey": "ReleaseItDesign",
+          "abstract": "Design your application for maximum uptime, performance, and return on investment in the face of the harsh realities of the real world."
+        },
+        {
+          "title": "Hidden Technical Debt in Machine Learning Systems",
+          "url": "https://proceedings.neurips.cc/paper/2015/hash/86df7dcfd896fcaf2674f757a2463eba-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "D. Sculley",
+            "Gary Holt",
+            "Daniel Golovin",
+            "Eugene Davydov",
+            "Todd Phillips",
+            "Dietmar Ebner",
+            "Vinay Chaudhary",
+            "Michael Young",
+            "Jean-François Crespo",
+            "Dan Dennison"
+          ],
+          "publication_date": "2015",
+          "citationKey": "sculleyHiddenTechnicalDebt2015",
+          "abstract": "Machine learning offers a fantastically powerful toolkit for building useful complexprediction systems quickly. This paper argues it is dangerous to think ofthese quick wins as coming for free. Using the software engineering frameworkof technical debt, we find it is common to incur massive ongoing maintenancecosts in real-world ML systems. We explore several ML-specific risk factors toaccount for in system design. These include boundary erosion, entanglement,hidden feedback loops, undeclared consumers, data dependencies, configurationissues, changes in the external world, and a variety of system-level anti-patterns."
+        },
+        {
+          "title": "CircuitBreaker — Martin Fowler",
+          "url": "https://martinfowler.com/bliki/CircuitBreaker.html",
+          "source_type": "tutorial",
+          "authors": [
+            "Martin Fowler"
+          ],
+          "citationKey": "fowlerCircuitBreakerMartinFowler",
+          "abstract": "You use software circuit breakers on connections to remote services. These breakers trip when the supplier becomes unresponsive, once tripped the breaker no longer calls the supplier until reset."
+        },
+        {
+          "title": "Amazon SageMaker Model Monitor: A System for Real-Time Insights into Deployed Machine Learning Models",
+          "url": "https://doi.org/10.1145/3534678.3539145",
+          "source_type": "application_paper",
+          "authors": [
+            "David Nigenda",
+            "Zohar Karnin",
+            "Muhammad Bilal Zafar",
+            "Raghu Ramesha",
+            "Alan Tan",
+            "Michele Donini",
+            "Krishnaram Kenthapadi"
+          ],
+          "publication_date": "2022-8-14",
+          "citationKey": "nigendaAmazonSageMakerModel2022",
+          "abstract": "With the increasing adoption of machine learning (ML) models and systems in high-stakes settings across different industries, guaranteeing a model's performance after deployment has become crucial. Monitoring models in production is a critical aspect of ensuring their continued performance and reliability. We present Amazon SageMaker Model Monitor, a fully managed service that continuously monitors the quality of machine learning models hosted on Amazon SageMaker. Our system automatically detects data, concept, bias, and feature attribution drift in models in real-time and provides alerts so that model owners can take corrective actions and thereby maintain high quality models. We describe the key requirements obtained from customers, system design and architecture, and methodology for detecting different types of drift. Further, we provide quantitative evaluations followed by use cases, insights, and lessons learned from more than two years of production deployment."
         }
       ],
       "complexity_rating": 3,
@@ -1670,8 +2028,33 @@
       ],
       "resources": [
         {
+          "title": "scikit-learn model cards documentation",
+          "url": "https://skops.readthedocs.io/en/stable/model_card.html",
+          "source_type": "documentation",
+          "authors": [
+            "Skops Developers"
+          ],
+          "publication_date": "2023",
+          "citationKey": "skopsdevelopersScikitlearnModelCards2023"
+        },
+        {
+          "title": "Model Cards — Hugging Face Hub documentation",
+          "url": "https://huggingface.co/docs/hub/model-cards",
+          "source_type": "documentation",
+          "citationKey": "ModelCardsHugging",
+          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
+        },
+        {
+          "title": "huggingface_hub",
+          "url": "https://github.com/huggingface/huggingface_hub",
+          "source_type": "software_package",
+          "publication_date": "2026-10-08T16:58:35Z",
+          "citationKey": "Huggingface_hub2026",
+          "abstract": "The official CLI and Python client for the Hugging Face Hub."
+        },
+        {
           "title": "Model Cards for Model Reporting",
-          "url": "http://arxiv.org/abs/1810.03993v2",
+          "url": "https://doi.org/10.1145/3287560.3287596",
           "source_type": "technical_paper",
           "authors": [
             "Margaret Mitchell",
@@ -1684,7 +2067,7 @@
             "Inioluwa Deborah Raji",
             "Timnit Gebru"
           ],
-          "publication_date": "2018-10-05",
+          "publication_date": "2019",
           "citationKey": "mitchellModelCardsModel2018",
           "abstract": "Trained machine learning models are increasingly used to perform high-impact tasks in areas such as law enforcement, medicine, education, and employment. In order to clarify the intended use cases of machine learning models and minimize their usage in contexts for which they are not well suited, we recommend that released models be accompanied by documentation detailing their performance characteristics. In this paper, we propose a framework that we call model cards, to encourage such transparent model reporting. Model cards are short documents accompanying trained machine learning models that provide benchmarked evaluation in a variety of conditions, such as across different cultural, demographic, or phenotypic groups (e.g., race, geographic location, sex, Fitzpatrick skin type) and intersectional groups (e.g., age and race, or sex and Fitzpatrick skin type) that are relevant to the intended application domains. Model cards also disclose the context in which models are intended to be used, details of the performance evaluation procedures, and other relevant information. While we focus primarily on human-centered machine learning models in the application fields of computer vision and natural language processing, this framework can be used to document any trained machine learning model. To solidify the concept, we provide cards for two supervised models: One trained to detect smiling faces in images, and one trained to detect toxic comments in text. We propose model cards as a step towards the responsible democratization of machine learning and related AI technology, increasing transparency into how well AI technology works. We hope this work encourages those releasing trained machine learning models to accompany model releases with similar detailed evaluation numbers and other relevant documentation."
         },
@@ -1696,22 +2079,51 @@
           "citationKey": "ModelCardGuidebook2022"
         },
         {
-          "title": "scikit-learn model cards documentation",
-          "url": "https://skops.readthedocs.io/en/stable/model_card.html",
-          "source_type": "documentation",
+          "title": "Create and share Model Cards — huggingface_hub guide",
+          "url": "https://huggingface.co/docs/huggingface_hub/guides/model-cards",
+          "source_type": "tutorial",
+          "citationKey": "CreateShareModel",
+          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
+        },
+        {
+          "title": "Systematic analysis of 32,111 AI model cards characterizes documentation practice in AI",
+          "url": "https://doi.org/10.1038/s42256-024-00857-z",
+          "source_type": "application_paper",
           "authors": [
-            "Skops Developers"
+            "Weixin Liang",
+            "Nazneen Rajani",
+            "Xinyu Yang",
+            "Ezinwanne Ozoani",
+            "Eric Wu",
+            "Yiqun Chen",
+            "Daniel Scott Smith",
+            "James Zou"
           ],
-          "publication_date": "2023",
-          "citationKey": "skopsdevelopersScikitlearnModelCards2023"
+          "publication_date": "2024-6-21",
+          "citationKey": "liangSystematicAnalysis321112024"
+        },
+        {
+          "title": "Interactive Model Cards: A Human-Centered Approach to Model Documentation",
+          "url": "https://doi.org/10.1145/3531146.3533108",
+          "source_type": "application_paper",
+          "authors": [
+            "Anamaria Crisan",
+            "Margaret Drouhard",
+            "Jesse Vig",
+            "Nazneen Rajani"
+          ],
+          "publication_date": "2022-6-20",
+          "citationKey": "crisanInteractiveModelCards2022",
+          "abstract": "Deep learning models for natural language processing (NLP) are increasingly adopted and deployed by analysts without formal training in NLP or machine learning (ML). However, the documentation intended to convey the model’s details and appropriate use is tailored primarily to individuals with ML or NLP expertise. To address this gap, we conduct a design inquiry into interactive model cards, which augment traditionally static model cards with affordances for exploring model documentation and interacting with the models themselves. Our investigation consists of an initial conceptual study with experts in ML, NLP, and AI Ethics, followed by a separate evaluative study with non-expert analysts who use ML models in their work. Using a semi-structured interview format coupled with a think-aloud protocol, we collected feedback from a total of 30 participants who engaged with different versions of standard and interactive model cards. Through a thematic analysis of the collected data, we identified several conceptual dimensions that summarize the strengths and limitations of standard and interactive model cards, including: stakeholders; design; guidance; understandability & interpretability; sensemaking & skepticism; and trust & safety. Our findings demonstrate the importance of carefully considered design and interactivity for orienting and supporting non-expert analysts using deep learning models, along with a need for consideration of broader sociotechnical contexts and organizational dynamics. We have also identified design elements, such as language, visual cues, and warnings, among others, that support interactivity and make non-interactive content accessible. We summarize our findings as design guidelines and discuss their implications for a human-centered approach towards AI/ML documentation."
         }
       ],
       "complexity_rating": 2,
       "computational_cost_rating": 1,
       "related_techniques": [
         "datasheets-for-datasets",
-        "model-development-audit-trails",
-        "internal-review-boards"
+        "mlflow-experiment-tracking",
+        "data-version-control",
+        "algorithm-review-boards"
       ],
       "sample_claims": [
         {
@@ -1814,8 +2226,15 @@
       ],
       "resources": [
         {
+          "title": "Dataset Cards — Hugging Face Hub documentation",
+          "url": "https://huggingface.co/docs/hub/datasets-cards",
+          "source_type": "documentation",
+          "citationKey": "DatasetCardsHugging",
+          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
+        },
+        {
           "title": "Datasheets for Datasets",
-          "url": "https://arxiv.org/abs/1803.09010",
+          "url": "https://doi.org/10.1145/3458723",
           "source_type": "technical_paper",
           "authors": [
             "Timnit Gebru",
@@ -1826,45 +2245,14 @@
             "Hal Daumé",
             "Kate Crawford"
           ],
-          "publication_date": "2018-03-23",
+          "publication_date": "2021",
           "citationKey": "gebruDatasheetsDatasets2018",
           "abstract": "The machine learning community currently has no standardized process for documenting datasets, which can lead to severe consequences in high-stakes domains. To address this gap, we propose datasheets for datasets. In the electronics industry, every component, no matter how simple or complex, is accompanied with a datasheet that describes its operating characteristics, test results, recommended uses, and other information. By analogy, we propose that every dataset be accompanied with a datasheet that documents its motivation, composition, collection process, recommended uses, and so on. Datasheets for datasets will facilitate better communication between dataset creators and dataset consumers, and encourage the machine learning community to prioritize transparency and accountability."
         },
         {
-          "title": "Datasheets for AI and medical datasets (DAIMS): a data validation and documentation framework before machine learning analysis in medical research",
-          "url": "http://arxiv.org/abs/2501.14094v1",
-          "source_type": "technical_paper",
-          "authors": [
-            "Ramtin Zargari Marandi",
-            "Anne Svane Frahm",
-            "Maja Milojevic"
-          ],
-          "publication_date": "2025-01-23",
-          "citationKey": "zargarimarandiDatasheetsAIMedical2025",
-          "abstract": "Despite progresses in data engineering, there are areas with limited consistencies across data validation and documentation procedures causing confusions and technical problems in research involving machine learning. There have been progresses by introducing frameworks like \"Datasheets for Datasets\", however there are areas for improvements to prepare datasets, ready for ML pipelines. Here, we extend the framework to \"Datasheets for AI and medical datasets - DAIMS.\" Our publicly available solution, DAIMS, provides a checklist including data standardization requirements, a software tool to assist the process of the data preparation, an extended form for data documentation and pose research questions, a table as data dictionary, and a flowchart to suggest ML analyses to address the research questions. The checklist consists of 24 common data standardization requirements, where the tool checks and validate a subset of them. In addition, we provided a flowchart mapping research questions to suggested ML methods. DAIMS can serve as a reference for standardizing datasets and a roadmap for researchers aiming to apply effective ML techniques in their medical research endeavors. DAIMS is available on GitHub and as an online app to automate key aspects of dataset evaluation, facilitating efficient preparation of datasets for ML studies."
-        },
-        {
-          "title": "MT-Adapted Datasheets for Datasets: Template and Repository",
-          "url": "http://arxiv.org/abs/2005.13156v1",
-          "source_type": "technical_paper",
-          "authors": [
-            "Marta R. Costa-jussà",
-            "Roger Creus",
-            "Oriol Domingo",
-            "Albert Domínguez",
-            "Miquel Escobar",
-            "Cayetana López",
-            "Marina Garcia",
-            "Margarita Geleta"
-          ],
-          "publication_date": "2020-05-27",
-          "citationKey": "r.costa-jussaMTAdaptedDatasheetsDatasets2020",
-          "abstract": "In this report we are taking the standardized model proposed by Gebru et al. (2018) for documenting the popular machine translation datasets of the EuroParl (Koehn, 2005) and News-Commentary (Barrault et al., 2019). Within this documentation process, we have adapted the original datasheet to the particular case of data consumers within the Machine Translation area. We are also proposing a repository for collecting the adapted datasheets in this research area"
-        },
-        {
           "title": "Understanding Machine Learning Practitioners' Data Documentation Perceptions, Needs, Challenges, and Desiderata",
-          "url": "http://arxiv.org/abs/2206.02923v2",
-          "source_type": "technical_paper",
+          "url": "https://doi.org/10.1145/3555760",
+          "source_type": "application_paper",
           "authors": [
             "Amy K. Heger",
             "Liz B. Marquis",
@@ -1875,6 +2263,24 @@
           "publication_date": "2022-06-06",
           "citationKey": "k.hegerUnderstandingMachineLearning2022",
           "abstract": "Data is central to the development and evaluation of machine learning (ML) models. However, the use of problematic or inappropriate datasets can result in harms when the resulting models are deployed. To encourage responsible AI practice through more deliberate reflection on datasets and transparency around the processes by which they are created, researchers and practitioners have begun to advocate for increased data documentation and have proposed several data documentation frameworks. However, there is little research on whether these data documentation frameworks meet the needs of ML practitioners, who both create and consume datasets. To address this gap, we set out to understand ML practitioners' data documentation perceptions, needs, challenges, and desiderata, with the goal of deriving design requirements that can inform future data documentation frameworks. We conducted a series of semi-structured interviews with 14 ML practitioners at a single large, international technology company. We had them answer a list of questions taken from datasheets for datasets (Gebru, 2021). Our findings show that current approaches to data documentation are largely ad hoc and myopic in nature. Participants expressed needs for data documentation frameworks to be adaptable to their contexts, integrated into their existing tools and workflows, and automated wherever possible. Despite the fact that data documentation frameworks are often motivated from the perspective of responsible AI, participants did not make the connection between the questions that they were asked to answer and their responsible AI implications. In addition, participants often had difficulties prioritizing the needs of dataset consumers and providing information that someone unfamiliar with their datasets might need to know. Based on these findings, we derive seven design requirements for future data documentation frameworks."
+        },
+        {
+          "title": "Create a dataset card — Hugging Face Datasets documentation",
+          "url": "https://huggingface.co/docs/datasets/dataset_card",
+          "source_type": "tutorial",
+          "citationKey": "CreateDatasetCard",
+          "abstract": "We’re on a journey to advance and democratize artificial intelligence through open source and open science."
+        },
+        {
+          "title": "Datasheets for Datasets help ML Engineers Notice and Understand Ethical Issues in Training Data",
+          "url": "https://doi.org/10.1145/3479582",
+          "source_type": "application_paper",
+          "authors": [
+            "Karen L. Boyd"
+          ],
+          "publication_date": "2021-10-13",
+          "citationKey": "boydDatasheetsDatasetsHelp2021",
+          "abstract": "The social computing community has demonstrated interest in the ethical issues sometimes produced by machine learning (ML) models, like violations of privacy, fairness, and accountability. This paper discovers what kinds of ethical considerations machine learning engineers recognize, how they build understanding, and what decisions they make when working with a real-world dataset. In particular, it illustrates ways in which Datasheets for Datasets, an accountability intervention designed to help engineers explore unfamiliar training data, scaffolds the process of issue discovery, understanding, and ethical decision-making. Participants were asked to review an intentionally ethically problematic dataset and asked to think aloud as they used it to solve a given ML problem. Out of 23 participants, 11 were given a Datasheet they could use while completing the task. Participants were ethically sensitive enough to identify concerns in the dataset; participants who had a Datasheet did open and refer to it; and those with Datasheets mentioned ethical issues during the think-aloud earlier and more often than than those without. The think-aloud protocol offered a grounded description of how participants recognized, understood, and made a decision about ethical problems in an unfamiliar dataset. The method used in this study can test other interventions that claim to encourage recognition, promote understanding, and support decision-making among technologists."
         }
       ],
       "complexity_rating": 2,
@@ -1882,7 +2288,7 @@
       "related_techniques": [
         "model-cards",
         "data-version-control",
-        "model-development-audit-trails"
+        "mlflow-experiment-tracking"
       ],
       "sample_claims": [
         {
@@ -1973,7 +2379,7 @@
       "resources": [
         {
           "title": "MLflow Documentation",
-          "url": "https://mlflow.org/docs/latest/index.html",
+          "url": "https://mlflow.org/docs/latest/ml/tracking",
           "source_type": "documentation",
           "authors": [
             "MLflow Developers"
@@ -1990,9 +2396,41 @@
           "abstract": "The open source developer platform to build AI agents and models with confidence. Enhance your AI applications with end-to-end tracking, observability, and evaluations, all in one integrated platform."
         },
         {
-          "title": "An MLOps Framework for Explainable Network Intrusion Detection with MLflow",
-          "url": "https://ieeexplore.ieee.org/abstract/document/10733700",
+          "title": "Accelerating the Machine Learning Lifecycle with MLflow",
+          "url": "http://sites.computer.org/debull/A18dec/p39.pdf",
           "source_type": "technical_paper",
+          "authors": [
+            "Matei Zaharia",
+            "Andrew Chen",
+            "Aaron Davidson",
+            "Ali Ghodsi",
+            "Sue Ann Hong",
+            "Andy Konwinski",
+            "Siddharth Murching",
+            "Tomas Nykodym",
+            "Paul Ogilvie",
+            "Mani Parkhe",
+            "Fen Xie",
+            "Corey Zumar"
+          ],
+          "publication_date": "2018-12",
+          "citationKey": "AcceleratingMachineLearning",
+          "abstract": "Machine learning development creates multiple new challenges that are not present in a traditional software development lifecycle. These include keeping track of the myriad inputs to an ML application (e.g., data versions, code and tuning parameters), reproducing results, and production deployment. In this paper, we summarize these challenges from our experience with Databricks customers, and describe MLflow, an open source platform we recently launched to streamline the machine learning lifecycle. MLflow covers three key challenges: experimentation, reproducibility, and model deployment, using generic APIs that work with any ML library, algorithm and programming language. The project has a rapidly growing open source community, with over 50 contributors since its launch in June 2018."
+        },
+        {
+          "title": "MLflow Tracking Quickstart",
+          "url": "https://mlflow.org/docs/latest/ml/tracking/quickstart",
+          "source_type": "tutorial",
+          "authors": [
+            "MLflow Developers"
+          ],
+          "publication_date": "2018",
+          "citationKey": "mlflowdevelopersMLflowToolManaging2018"
+        },
+        {
+          "title": "An MLOps Framework for Explainable Network Intrusion Detection with MLflow",
+          "url": "https://doi.org/10.1109/ISCC61673.2024.10733700",
+          "source_type": "application_paper",
           "authors": [
             "Vincenzo Spadari",
             "Francesco Cerasuolo",
@@ -2000,23 +2438,27 @@
             "Antonio Pescapè"
           ],
           "publication_date": "2024-06-26",
-          "citationKey": "spadariMLOpsFrameworkExplainable2024"
+          "citationKey": "spadariMLOpsFrameworkExplainable2024",
+          "abstract": "The surge in network traffic has required advanced techniques to ensure network security. Network Intrusion Detection Systems (NIDSs), which increasingly employ Machine Learning (ML) and Deep Learning (DL) methodologies, play a pivotal role in this task by continuously monitoring network traffic patterns and identifying suspicious activities. To address the complexities of developing ML- and DL-based NIDS, MLOps tools have been designed to optimize model deployment, monitoring, and management in production environments, streamlining model development. These tools enable efficient experimentation, version management, and logging of artifacts for network administrators and data scientists. In this work, we design a framework powered by MLflow to manage the ML pipeline from data handling to results visualization. To show the effectiveness of our framework, we conducted an experimental campaign on 4 broadly used security datasets (viz. NSL-KDD, IoT-23, Kitsune, and TON_IoT) performing crucial tasks for intrusion detection, namely anomaly detection, binary misuse detection, and multiclass misuse detection."
         },
         {
-          "title": "MLflow - A Tool for Managing the Machine Learning Lifecycle",
-          "url": "https://www.mlflow.org/docs/latest/ml",
-          "source_type": "tutorial",
+          "title": "Enhancing Quantum Software Development Process with Experiment Tracking",
+          "url": "https://doi.org/10.1109/qce65121.2025.10361",
+          "source_type": "application_paper",
           "authors": [
-            "MLflow Developers"
+            "Mahee Gamage",
+            "Otso Kinanen",
+            "Jake Muff",
+            "Vlad Stirbu"
           ],
-          "publication_date": "2018",
-          "citationKey": "mlflowdevelopersMLflowToolManaging2018"
+          "publication_date": "2025-8-30",
+          "citationKey": "gamageEnhancingQuantumSoftware2025",
+          "abstract": "As quantum computing advances from theoretical promise to experimental reality, the need for rigorous experiment tracking becomes critical. Drawing inspiration from best practices in machine learning (ML) and artificial intelligence (AI), we argue that reproducibility, scalability, and collaboration in quantum research can benefit significantly from structured tracking workflows. This paper explores the application of MLflow in quantum research, illustrating how it enables better development practices, experiment reproducibility, decision making, and cross-domain integration in an increasingly hybrid classical-quantum landscape."
         }
       ],
       "complexity_rating": 2,
       "computational_cost_rating": 2,
       "related_techniques": [
-        "model-development-audit-trails",
         "data-version-control",
         "datasheets-for-datasets",
         "model-cards"
@@ -2110,25 +2552,57 @@
       "resources": [
         {
           "title": "DVC Documentation",
-          "url": "https://dvc.org/doc",
+          "url": "https://doc.dvc.org/",
           "source_type": "documentation",
           "publication_date": "2017",
           "citationKey": "DVCDocumentation2017"
         },
         {
           "title": "dvc",
-          "url": "https://github.com/iterative/dvc",
+          "url": "https://github.com/treeverse/dvc",
           "source_type": "software_package",
           "publication_date": "2017-03-04",
           "citationKey": "iterativeDvc2017",
           "abstract": "🦉 Data Versioning and ML Experiments"
         },
         {
-          "title": "DVC Tutorial - Data Version Control for Machine Learning",
-          "url": "https://dvc.org/doc/start",
+          "title": "Get Started with DVC",
+          "url": "https://doc.dvc.org/start",
           "source_type": "tutorial",
           "publication_date": "2017",
           "citationKey": "DVCTutorialData2017"
+        },
+        {
+          "title": "On the Co-evolution of ML Pipelines and Source Code - Empirical Study of DVC Projects",
+          "url": "https://doi.org/10.1109/saner50967.2021.00046",
+          "source_type": "application_paper",
+          "authors": [
+            "Amine Barrak",
+            "Ellis E. Eghan",
+            "Bram Adams"
+          ],
+          "publication_date": "2021-3",
+          "citationKey": "barrakCoevolutionMLPipelines2021",
+          "abstract": "The growing popularity of machine learning (ML) applications has led to the introduction of software engineering tools such as Data Versioning Control (DVC), MLFlow and Pachyderm that enable versioning ML data, models, pipelines and model evaluation metrics. Since these versioned ML artifacts need to be synchronized not only with each other, but also with the source and test code of the software applications into which the models are integrated, prior findings on co-evolution and coupling between software artifacts might need to be revisited. Hence, in order to understand the degree of coupling between ML-related and other software artifacts, as well as the adoption of ML versioning features, this paper empirically studies the usage of DVC in 391 Github projects, 25 of which in detail. Our results show that more than half of the DVC files in a project are changed at least once every one-tenth of the project's lifetime. Furthermore, we observe a tight coupling between DVC files and other artifacts, with 1/4 pull requests changing source code and 1/2 pull requests changing tests requiring a change to DVC files. As additional evidence of the observed complexity associated with adopting ML-related software engineering tools like DVC, an average of 78% of the studied projects showed a non-constant trend in pipeline complexity."
+        },
+        {
+          "title": "DVC in Open Source ML-development: The Action and the Reaction",
+          "url": "https://doi.org/10.1145/3644815.3644965",
+          "source_type": "application_paper",
+          "authors": [
+            "Lorena Barreto Simedo Pacheco",
+            "Musfiqur Rahman",
+            "Fazle Rabbi",
+            "Pouya Fathollahzadeh",
+            "Ahmad Abdellatif",
+            "Emad Shihab",
+            "Tse-Hsun (Peter) Chen",
+            "Jinqiu Yang",
+            "Ying Zou"
+          ],
+          "publication_date": "2024-4-14",
+          "citationKey": "barretosimedopachecoDVCOpenSource2024",
+          "abstract": "Machine Learning (ML) systems are gaining popularity, reshaping various domains ranging from customer services to software engineering. The effectiveness of ML systems is dependent on the quality of their training data. Therefore, practitioners invest substantial time experimenting with different data, parameters, and models to guarantee the quality of the end system. Prior work highlighted unique challenges of developing ML systems, particularly concerning versioning data and models. Recently, various tools such as DVC and MLFlow have emerged to aid developers in the storage and tracking of data. Despite their growing popularity, very little is known about their usage patterns and impact on open-source software (OSS) systems. To address this gap, we conducted an empirical study on 56 GitHub OSS projects that use DVC to understand the DVC usage pattern and the impact of using DVC on the software development process. We found that Versioning and tracking is the most adopted DVC feature, being utilized by all 56 projects and being the only adopted feature in 85.7% of them. Furthermore, we found that DVC has a significant impact on the software development process indicators such as the number of created pull requests (PRs), and the number of bug-fix commits. For instance, our findings showed that DVC causes a peak in the number of commits and PRs at the moment of the adoption, followed by a long-term decrease. We believe that our findings can assist practitioners in tailoring tools to better meet user requirements and help organizations realize potential outcomes of adopting such tools."
         }
       ],
       "complexity_rating": 3,
@@ -2136,7 +2610,6 @@
       "acronym": "DVC",
       "related_techniques": [
         "mlflow-experiment-tracking",
-        "model-development-audit-trails",
         "datasheets-for-datasets"
       ],
       "sample_claims": [
@@ -2168,295 +2641,337 @@
       ]
     },
     {
-      "slug": "feature-attribution-with-integrated-gradients-in-nlp",
-      "name": "Feature Attribution with Integrated Gradients in NLP",
-      "description": "Applies Integrated Gradients to natural language processing models to attribute prediction importance to individual input tokens, words, or subword units. This technique computes gradients along a straight-line path from a baseline input (typically all-zeros, padding tokens, or neutral text) to the actual input, integrating these gradients to obtain attribution scores. Unlike vanilla gradient methods, Integrated Gradients satisfies axioms of sensitivity and implementation invariance, making it particularly valuable for understanding transformer-based language models where token interactions are complex.",
+      "slug": "huderia",
+      "name": "Human Rights, Democracy and the Rule of Law Risk and Impact Assessment",
+      "description": "HUDERIA is the Council of Europe's methodology for identifying and assessing the risks an AI system poses to human rights, democracy and the rule of law, and for planning how to prevent or reduce them, from design through deployment to retirement. It is non-binding guidance that public and private organisations may use or adapt in whole or in part; it was drawn up to support risk assessment in line with the Council of Europe's Framework Convention on Artificial Intelligence, and the human rights treaties its resources cite are illustrative, binding only the states that are parties to them. A multidisciplinary team first runs a context-based risk analysis (COBRA): it scopes the system's purpose, data and affected groups, works through risk factors in the system's application, design and deployment contexts, maps potential impacts on specific rights and on democratic and legal processes, gives each impact an initial rating, and triages the system, deciding whether further assessment is needed and whether the system should be built or deployed at all. Impacts are rated for severity, judged by scale (how serious the harm is), scope (how many people, which groups and for how long) and reversibility (whether those affected can be restored to their earlier position), and for probability; for systems that may pose significant risks, the team may engage affected stakeholders and then re-examines and re-rates each impact in a fuller risk and impact assessment. The output is a mitigation plan that prefers avoiding a harm to reducing, repairing or compensating for it, names who is responsible for each measure, outlines where appropriate the remedies open to affected people, and schedules repeat reviews as the system and its context change.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness",
-        "Safety"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks/transformer",
-        "applicable-models/architecture/neural-networks/transformer/llm",
-        "applicable-models/paradigm/discriminative",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/gradient-access",
-        "applicable-models/requirements/white-box",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/attribution-methods/gradient-based",
-        "assurance-goal-category/explainability/explains/feature-importance",
-        "assurance-goal-category/explainability/property/completeness",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-analysis",
-        "data-requirements/reference-dataset",
-        "data-type/text",
-        "evidence-type/quantitative-metric",
-        "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
-        "explanatory-scope/local",
-        "technique-type/algorithmic",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
-      ],
-      "example_use_cases": [
-        {
-          "description": "In a clinical decision support system processing doctor's notes to predict patient risk, Integrated Gradients identifies which medical terms, symptoms, or phrases most strongly influence risk predictions, enabling clinicians to verify that the model focuses on clinically relevant information rather than spurious correlations and supporting regulatory compliance in healthcare AI.",
-          "goal": "Safety"
-        },
-        {
-          "description": "For automated loan approval systems processing free-text application descriptions, Integrated Gradients reveals which words or phrases drive acceptance decisions, supporting fairness audits by highlighting whether protected characteristics inadvertently influence decisions and enabling transparent explanations to customers about application outcomes.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "In content moderation systems flagging potentially harmful posts, Integrated Gradients identifies which specific words or linguistic patterns trigger safety classifications, enabling platform teams to debug false positives and validate that models focus on genuinely problematic language rather than demographic markers.",
-          "goal": "Explainability"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Computational overhead scales significantly with document length as processing requires computing gradients across many integration steps (typically 20-300), making real-time applications or large-scale document processing challenging."
-        },
-        {
-          "description": "Choice of baseline input (zero embeddings, padding tokens, neutral text, or average embeddings) substantially affects attribution results, but optimal baseline selection remains domain-specific and often requires extensive experimentation."
-        },
-        {
-          "description": "In transformer models with attention mechanisms, importance often spreads across many tokens, making it difficult to identify clear, actionable insights, especially for complex reasoning tasks where multiple tokens contribute collectively."
-        },
-        {
-          "description": "Modern NLP models use subword tokenisation (BPE, WordPiece), making attribution results difficult to interpret at the word level, as single words may split across multiple tokens with varying attribution scores."
-        },
-        {
-          "description": "While Integrated Gradients identifies correlative relationships between tokens and predictions, it cannot establish causal relationships or distinguish between spurious correlations and meaningful semantic dependencies in the input text."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Captum: Model Interpretability for PyTorch",
-          "url": "https://captum.ai",
-          "source_type": "software_package",
-          "publication_date": "2019",
-          "citationKey": "CaptumModelInterpretability2019"
-        },
-        {
-          "title": "Axiomatic Attribution for Deep Networks",
-          "url": "https://arxiv.org/abs/1703.01365",
-          "source_type": "technical_paper",
-          "authors": [
-            "Mukund Sundararajan",
-            "Ankur Taly",
-            "Qiqi Yan"
-          ],
-          "publication_date": "2017-03-04",
-          "citationKey": "sundararajanAxiomaticAttributionDeep2017",
-          "abstract": "We study the problem of attributing the prediction of a deep network to its input features, a problem previously studied by several other works. We identify two fundamental axioms---Sensitivity and Implementation Invariance that attribution methods ought to satisfy. We show that they are not satisfied by most known attribution methods, which we consider to be a fundamental weakness of those methods. We use the axioms to guide the design of a new attribution method called Integrated Gradients. Our method requires no modification to the original network and is extremely simple to implement; it just needs a few calls to the standard gradient operator. We apply this method to a couple of image models, a couple of text models and a chemistry model, demonstrating its ability to debug networks, to extract rules from a network, and to enable users to engage with models better."
-        },
-        {
-          "title": "Visualizing the Impact of Feature Attribution Baselines",
-          "url": "https://distill.pub/2020/attribution-baselines",
-          "source_type": "tutorial",
-          "authors": [
-            "Pascal Sturmfels",
-            "Scott Lundberg",
-            "Su-In Lee",
-            "Pascal Sturmfels",
-            "Scott Lundberg",
-            "Su-In Lee"
-          ],
-          "publication_date": "2020",
-          "citationKey": "sturmfelsVisualizingImpactFeature2020"
-        },
-        {
-          "title": "transformers-interpret",
-          "url": "https://github.com/cdpierse/transformers-interpret",
-          "source_type": "software_package",
-          "publication_date": "2020-05-27",
-          "citationKey": "cdpierseTransformersinterpret2020",
-          "abstract": "Model explainability that works seamlessly with 🤗 transformers. Explain your transformers model in just 2 lines of code."
-        }
-      ],
-      "complexity_rating": 4,
-      "computational_cost_rating": 3,
-      "related_techniques": [
-        "causal-mediation-analysis-in-language-models",
-        "attention-visualisation-in-transformers",
-        "shapley-additive-explanations"
-      ],
-      "sample_claims": [
-        {
-          "text": "The clinical decision support system's risk predictions are attributable to specific medical terms and symptom descriptions rather than demographic identifiers in patient notes",
-          "domain": "healthcare",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The content moderation model's classification decisions can be traced to individual words and phrases that capture genuinely problematic language patterns",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The loan approval system's decisions are not influenced by protected characteristics appearing in free-text application descriptions",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The sentiment analysis model's outputs can be decomposed into quantified contributions from each input token to support transparent review of prediction drivers",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The hiring recommendation system identifies which specific phrases in candidate descriptions drive screening decisions to enable bias detection",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        }
-      ]
-    },
-    {
-      "slug": "model-development-audit-trails",
-      "name": "Model Development Audit Trails",
-      "description": "Model development audit trails create comprehensive, immutable records of all decisions, experiments, and changes throughout the ML lifecycle. This technique captures dataset versions, training configurations, hyperparameter searches, model architecture changes, evaluation results, and deployment decisions in tamper-evident logs. Audit trails enable reproducibility, accountability, and regulatory compliance by documenting who made what changes when and why, supporting post-hoc investigation of model failures or unexpected behaviours.",
-      "assurance_goals": [
-        "General",
-        "Transparency"
+        "General"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
         "applicable-models/requirements/black-box",
-        "data-type/any",
-        "technique-type/process",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/regulatory-compliance",
-        "expertise-needed/software-engineering",
-        "expertise-needed/governance-and-audit",
-        "expertise-needed/data-engineering",
-        "data-requirements/no-special-requirements",
         "assurance-goal-category/general",
-        "assurance-goal-category/general/documentation-and-records",
-        "lifecycle-stage/other/cross-cutting",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-documentation",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
-        "evidence-type/documentation",
-        "evidence-type/audit-record"
+        "assurance-goal-category/general/governance-and-review",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/qualitative-report",
+        "evidence-type/decision-record",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/regulatory-compliance",
+        "expertise-needed/stakeholder-engagement",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/project-design",
+        "lifecycle-stage/project-design/project-planning",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "lifecycle-stage/other/cross-cutting"
       ],
       "example_use_cases": [
         {
-          "description": "Maintaining detailed audit trails for medical AI development enabling investigators to trace how training data, model architecture, and evaluation decisions led to specific diagnostic behaviors during regulatory review.",
-          "goal": "Transparency"
+          "description": "A city council's children's services department is offered a model that ranks safeguarding referrals for follow-up. A team of caseworkers, a data scientist and a human rights lawyer runs the context-based risk analysis, maps impacts on family life, non-discrimination and fair procedure, and at triage asks whether existing caseworker screening would serve the problem better and whether the referral data represent the families concerned, before deciding whether to procure the model at all.",
+          "goal": "General"
         },
         {
-          "description": "Recording all model updates and performance changes over time to support root cause analysis when deployed systems exhibit unexpected behavior or reliability degradation.",
-          "goal": "Reliability"
+          "description": "A recruitment software company assessing a CV-screening model engages disabled and older job seekers, the groups its analysis found most exposed, then rates each mapped impact for scale, scope, reversibility and probability under a scoring rule it writes down. Its mitigation plan drops a feature that scored video interviews, an 'avoid' measure, rather than relying on correcting decisions afterwards, and names the owner of each remaining measure.",
+          "goal": "General"
         },
         {
-          "description": "Documenting safety-critical decisions like dataset filtering, bias testing, and red teaming results to demonstrate due diligence in preventing harmful deployments.",
-          "goal": "Safety"
+          "description": "A national tax authority that assessed its fraud-risk model before launch repeats the risk and impact assessment when it adds bank-transaction data, and again when a change in benefit rules alters who is flagged. Each review updates the mitigation plan and the information and appeal routes offered to people wrongly flagged, so the assessment on file describes the system as it now runs.",
+          "goal": "General"
         },
         {
-          "description": "Documenting credit scoring model development for regulatory compliance, maintaining detailed records of data sources, feature engineering decisions, fairness testing, and validation results to demonstrate adherence to fair lending requirements during audits.",
-          "goal": "Transparency"
-        },
-        {
-          "description": "Creating comprehensive audit trails for criminal justice risk assessment tools to enable external review of training data selection, bias mitigation techniques, and validation methodologies when legal challenges question algorithmic fairness.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Maintaining development logs for autonomous vehicle perception systems to support accident investigations, enabling forensic analysis of which model version was deployed, what training data informed its behavior, and what testing validated its safety.",
-          "goal": "Safety"
+          "description": "A health ministry outside Europe adapts HUDERIA for a symptom-checker chatbot, keeping the treaty references in the risk-factor and impact lists only for the instruments its state is party to and adding its own constitution, health law and data protection law, while keeping the four elements and the severity variables so that its assessments follow a published structure others can recognise and check.",
+          "goal": "General"
         }
       ],
       "limitations": [
         {
-          "description": "Comprehensive logging generates large volumes of data requiring significant storage infrastructure and data management."
+          "description": "HUDERIA leaves the rule for combining scale, scope, reversibility and probability into a risk level, and the thresholds used at triage, to the authorities or project teams applying it. Two teams can rate the same system differently and both be following the methodology, so an assessment can be compared or checked only if the team records the scoring rule it chose and why."
         },
         {
-          "description": "Audit trails may contain sensitive information about proprietary techniques, requiring careful access control and redaction procedures."
+          "description": "Stakeholder engagement and the detailed risk and impact assessment are optional, and are expected mainly for systems that the team's own triage finds may pose significant risks. A team that under-rates a system at triage can skip the stages most likely to expose the problem, so the evidence is stronger when someone outside the team has reviewed the triage reasoning."
         },
         {
-          "description": "Creating meaningful audit trails requires discipline and tooling integration that may slow development velocity."
+          "description": "The assessment rests on documents, expert judgement and what stakeholders report; it does not test the system. Probability ratings made before a system is built can be little more than informed estimates, so claims about how the system actually behaves, for example whether it treats groups differently, need test results from other techniques alongside the assessment."
         },
         {
-          "description": "Retrospective analysis of audit trails can be time-consuming and requires expertise to extract actionable insights from complex logs."
+          "description": "HUDERIA assesses one system at a time. It asks teams to consider cumulative effects when a system runs alongside others serving similar purposes, which is where many harms to democratic and legal processes arise, but gives no method for estimating them. An assessment can therefore find each system acceptable while their combined contribution to a wider harm goes unmeasured, so claims about societal impact need evidence beyond a single assessment."
         },
         {
-          "description": "Implementing comprehensive audit trail systems requires integrating with diverse development tools (version control, experiment tracking, data pipelines), which can be complex and may require custom development for organisation-specific workflows."
-        },
-        {
-          "description": "Storage costs can be substantial, with comprehensive model development projects generating terabytes of logs, experimental artifacts, and dataset versions requiring long-term retention for compliance purposes."
+          "description": "A full assessment needs people who can judge impacts on rights in law as well as people who understand the system's data and design, and it is meant to be repeated over the system's life. Organisations without access to human rights legal expertise may be unable to carry out the impact mapping and mitigation planning to the depth the methodology intends."
         }
       ],
       "resources": [
         {
-          "title": "mlflow",
-          "url": "https://github.com/mlflow/mlflow",
-          "source_type": "software_package",
-          "publication_date": "2018-06-05",
-          "citationKey": "mlflowMlflow2018",
-          "abstract": "The open source developer platform to build AI agents and models with confidence. Enhance your AI applications with end-to-end tracking, observability, and evaluations, all in one integrated platform."
+          "title": "HUDERIA Methodology and Model: Methodology for assessing the risks and impacts of artificial intelligence systems from the perspective of human rights, democracy and the rule of law",
+          "url": "https://rm.coe.int/prems-002726-gbr-2006-huderia-texte-web-a4/48802ba7b1",
+          "source_type": "documentation",
+          "authors": [
+            "Council of Europe"
+          ],
+          "publication_date": "2026-04",
+          "citationKey": "HuderiaMethodologyModel2026"
         },
         {
-          "title": "dvc",
-          "url": "https://github.com/iterative/dvc",
-          "source_type": "software_package",
-          "publication_date": "2017-03-04",
-          "citationKey": "iterativeDvc2017",
-          "abstract": "🦉 Data Versioning and ML Experiments"
-        },
-        {
-          "title": "Logging requirement for continuous auditing of responsible machine learning-based applications",
-          "url": "https://link.springer.com/article/10.1007/s10664-025-10656-8",
+          "title": "Human rights, democracy, and the rule of law assurance framework for AI systems: A proposal",
+          "url": "https://zenodo.org/records/5981676",
           "source_type": "technical_paper",
           "authors": [
-            "Patrick Loic Foalem",
-            "Leuson Da Silva",
-            "Foutse Khomh",
-            "Heng Li",
-            "Ettore Merlo",
-            "Patrick Loic Foalem",
-            "Leuson Da Silva",
-            "Foutse Khomh",
-            "Heng Li",
-            "Ettore Merlo"
+            "David Leslie",
+            "Christopher Burr",
+            "Mhairi Aitken",
+            "Michael Katell",
+            "Morgan Briggs",
+            "Cami Rincon"
           ],
-          "publication_date": "2025-04-14",
-          "citationKey": "foalemLoggingRequirementContinuous2025"
+          "publication_date": "2022",
+          "citationKey": "HumanRightsDemocracy"
         }
       ],
-      "related_techniques": [
-        "mlflow-experiment-tracking",
-        "data-version-control",
-        "model-cards"
-      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 1,
+      "acronym": "HUDERIA",
+      "related_techniques": [],
       "sample_claims": [
         {
-          "text": "All model development decisions are traceable to documented rationale and identified decision-makers",
-          "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "Before procurement, the safeguarding referral model went through a documented HUDERIA context-based risk analysis, and the triage decision, including whether to adopt the system at all, is recorded with its reasons.",
+          "assuranceGoal": "general",
+          "domain": "public sector"
         },
         {
-          "text": "The diagnostic system's training data lineage, architecture changes, and validation results are preserved in tamper-evident logs enabling regulatory review",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
+          "text": "Every impact identified for the CV-screening model was rated for scale, scope, reversibility and probability under a written scoring rule, and each impact rated high has a mitigation measure with a named owner.",
+          "assuranceGoal": "general",
+          "domain": "general"
         },
         {
-          "text": "The model's unexpected behaviour can be investigated by tracing dataset versions, hyperparameter configurations, and evaluation metrics back to specific development phases",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "Groups identified as most exposed to the system's potential harms were consulted before the risk and impact assessment, and the assessment records which impacts their input added or changed.",
+          "assuranceGoal": "general",
+          "domain": "employment"
         },
         {
-          "text": "All safety-critical decisions during autonomous system development are recorded with timestamps, responsible parties, and justifications",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
+          "text": "The risk and impact assessment of the fraud-risk model has been repeated after each change to its data sources or to the rules it applies, and the mitigation plan and the remedies for people wrongly flagged were updated each time.",
+          "assuranceGoal": "general",
+          "domain": "public sector"
+        }
+      ]
+    },
+    {
+      "slug": "oecd-ai-incident-reporting",
+      "name": "AI Incident Reporting with the OECD Common Reporting Framework",
+      "description": "AI incident reporting with the OECD common reporting framework records each event in which an AI system caused harm, or could plausibly have caused it, in the common set of 29 fields the OECD published in February 2025, so that reports from different organisations, sectors and countries can be compared and pooled. The framework is meant for both mandatory and voluntary reporting and defines what a report contains, not the reporting interface or what should happen afterwards. The reporter first classifies the event using the OECD's definitions: an AI incident is an event in which the development, use or malfunction of an AI system directly or indirectly leads to harm to people's health, disruption of critical infrastructure, a violation of human rights or of laws protecting fundamental, labour or intellectual property rights, or harm to property, communities or the environment, and an AI hazard is one that could plausibly lead to such harm. Seven fields are mandatory: a title, a description, how the AI system was involved (as a direct cause, a contributing factor, a failure to act, through over-reliance or misuse, through human error, or through a failure to comply with the law), who is reporting, supporting material, the severity (hazard, serious hazard, incident, serious incident or disaster) and the type of harm. The other 22 record, where known and among other things, when and where it happened, the system and the organisations behind it, the people affected, the sector, how widely the system was deployed, whether training data, the model or several interacting systems were involved, the system's task and level of autonomy, and any action taken, giving an inspectable register of what went wrong in operation.",
+      "assurance_goals": [
+        "General"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/general",
+        "assurance-goal-category/general/documentation-and-records",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/documentation",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/regulatory-compliance",
+        "technique-type/documentation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A retail bank's model risk team logs every complaint from customers or staff about its credit, fraud and customer-chatbot models that meets the OECD definition of an AI incident or hazard. A wrongly refused loan, an account frozen by a fraud alert and a chatbot quoting the wrong fees are recorded on the same severity scale and harm types, with the model and version and how the model was involved, so the quarterly risk committee can see which systems recur and which harms dominate.",
+          "goal": "General"
         },
         {
-          "text": "The environmental forecasting model's experimental results and deployment decisions are reproducible from archived configurations and versioned datasets",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "description": "A hospital records near misses as well as harms. When a radiologist notices that the imaging triage model has put an urgent scan at the back of the queue, the event is logged as an AI hazard, with the model's erroneous ranking as a direct cause, its autonomy recorded as human-in-the-loop, and the action taken, so that patterns of near misses are visible before one becomes an incident.",
+          "goal": "General"
+        },
+        {
+          "description": "A national regulator that receives AI incident reports from deployers in several sectors asks for them in the OECD format, with a published note on how it judges seriousness, so that it can count serious incidents by sector and harm type and compare its figures with those of other authorities using the same fields.",
+          "goal": "General"
+        },
+        {
+          "description": "A city transport authority running an AI traffic-signal optimiser records a period of emergency-vehicle delays as an incident affecting critical infrastructure, with the system as a contributing factor and an operator's configuration change as human error, so the record shows both causes and the follow-up actions assigned to the supplier and to its own staff.",
+          "goal": "General"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "A register is only as complete as the reports that reach it. Harms nobody notices, such as people quietly refused a service, and events staff have reasons not to report go unrecorded, so a short register is weak evidence that a system has caused little harm unless the organisation can also show how incidents are detected and how reporting is encouraged."
+        },
+        {
+          "description": "The OECD's own definitions say that seriousness is highly context-dependent, that each jurisdiction may define it differently, and that several small incidents can add up to a serious one. Two reporters can classify the same event differently, so counts of serious incidents can be compared only between reporters that share a written severity rule."
+        },
+        {
+          "description": "The framework standardises what is recorded, not how an incident is investigated or fixed, and the OECD paper explicitly gives no guidance on corrective or preventive action. Its field for how the AI system was involved is a short category list, and the fields on training data and the model are optional free text, so an organisation needs its own root-cause and follow-up process if records are to lead to changes."
+        },
+        {
+          "description": "None of the seven mandatory fields identifies the system or its version, the organisation that deployed it or the date of the event. Records kept to the mandatory minimum cannot trace incidents to a model release or show repeated failures of one system; the framework lets a reporting scheme make more fields mandatory, and an organisation that needs this traceability has to do so."
+        },
+        {
+          "description": "The framework is a recent proposal that the OECD planned to test through open submissions to its AI Incidents Monitor. Regulators that impose a legal duty to report incidents set their own format, categories and deadlines, so an organisation under such a duty reports in the regulator's format, may need to keep the OECD fields alongside, and cannot assume that an event serious on the OECD scale meets the legal definition of a serious incident, or the reverse."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Towards a common reporting framework for AI incidents",
+          "url": "https://doi.org/10.1787/f326d4ac-en",
+          "source_type": "technical_paper",
+          "authors": [
+            "OECD"
+          ],
+          "publication_date": "2025-2-28",
+          "citationKey": "CommonReportingFramework2025"
+        },
+        {
+          "title": "Defining AI incidents and related terms",
+          "url": "https://doi.org/10.1787/d1a8d965-en",
+          "source_type": "documentation",
+          "authors": [
+            "OECD"
+          ],
+          "publication_date": "2024-5-6",
+          "citationKey": "DefiningAIIncidents2024"
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "Every incident and near miss reported for the imaging triage model since deployment is recorded with all seven mandatory OECD fields completed and its severity assigned under the hospital's written severity rule.",
+          "assuranceGoal": "general",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Each incident recorded for the bank's credit and fraud models identifies the model and version involved and how the AI system contributed, so repeated failures of one release can be traced.",
+          "assuranceGoal": "general",
+          "domain": "finance"
+        },
+        {
+          "text": "Every incident recorded as serious in the register has at least one action taken recorded against it (prevention, mitigation, ceasing or remediation), with a description of what was done.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        },
+        {
+          "text": "Each incident recorded for the traffic-signal optimiser lists every way the system was involved, including human error where an operator's action contributed, so that the causes attributable to the supplier and to the operator can be traced.",
+          "assuranceGoal": "general",
+          "domain": "transport"
+        }
+      ]
+    },
+    {
+      "slug": "smactr-internal-algorithmic-audit",
+      "name": "SMACTR Internal Algorithmic Audit",
+      "description": "SMACTR is an internal audit procedure for AI systems, proposed by Raji and colleagues in 2020, in which an audit team inside the developing organisation but separate from the product team examines a system during development and before launch against the ethical objectives and requirements the organisation has declared for it. The audit runs in five stages, each producing set documents. In Scoping, auditors review the product requirements and the declared objectives and write an ethical review of the use case, drawing in independent domain experts and marginalised groups, and a social impact assessment; in Mapping, they map the people involved, review existing design records, interview the engineers and begin a failure modes and effects analysis (FMEA), a systematic review of the foreseeable ways the system could fail and their effects, used to rank risks for testing. In Artefact Collection, a checklist confirms that the expected development documents, such as model cards and datasheets, exist; in Testing, auditors run tests chosen from the FMEA's priorities, such as adversarial probing with tailored inputs, and rate each risk high, mid or low from its likelihood and severity in an ethical risk analysis chart; in Reflection, they set the results against the declared objectives, finalise the risk analysis and agree a remediation plan with the engineering team. The documents are kept in an algorithmic design history file, from which the auditors write a summary report that leadership can use to decide whether the system launches, changes or is abandoned.",
+      "assurance_goals": [
+        "General"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/general",
+        "assurance-goal-category/general/governance-and-review",
+        "data-requirements/access-to-training-data",
+        "data-type/any",
+        "evidence-type/qualitative-report",
+        "evidence-type/audit-record",
+        "expertise-needed/governance-and-audit",
+        "expertise-needed/evaluation-design",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/ethics",
+        "expertise-needed/domain-expertise",
+        "technique-type/process",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/model-development/model-documentation",
+        "lifecycle-stage/other/cross-cutting"
+      ],
+      "example_use_cases": [
+        {
+          "description": "An insurer's internal audit team audits a claims-triage model before launch. Interviews in Mapping reveal that a field used as a proxy for chronic illness was dropped late without the requirements being updated; the FMEA ranks under-prioritising complex claims as the top risk, so Testing concentrates on claims from people with several conditions, and the summary report goes to the risk committee with a remediation plan and a recommendation to delay launch.",
+          "goal": "General"
+        },
+        {
+          "description": "A software company's responsible-AI audit team audits a customer-support chatbot. Artefact Collection finds no datasheet for the fine-tuning conversations, so the auditors require the product team to write one before testing; prompts drawn from the FMEA then test whether the bot discloses other customers' account details or gives poorer answers to customers writing in non-standard English, and the ethical risk chart and remediation plan record what must change before release.",
+          "goal": "General"
+        },
+        {
+          "description": "A government digital service's audit team, which reports to the agency's chief risk officer rather than to the delivery programme, audits an in-house model that prioritises housing repair requests before it replaces manual triage. The chief risk officer uses the summary report to decide whether the model goes live, and the design history file and report are filed where the agency's external auditors and ombudsman can later inspect them.",
+          "goal": "General"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The auditors are employees of the organisation they audit and share its interests; the authors acknowledge that independence is hard to keep and that audits risk becoming reputation management. Findings carry more weight when the audit team reports outside the product's management line and the design history file can be examined by an outside party."
+        },
+        {
+          "description": "The system is judged against the ethical objectives the organisation declares for it, which the authors note have been criticised as vague, and the paper leaves open what level of performance, for example how close to parity across groups, counts as acceptable. A clean audit shows consistency with the standards and thresholds the organisation chose to declare, and says nothing about any external standard it did not adopt."
+        },
+        {
+          "description": "The Testing stage prescribes no particular tests; the authors expect tests to vary widely by system and to follow the FMEA's priorities. What the audit can show about the system's behaviour therefore depends on the tests the team chooses, and a failure mode the FMEA did not foresee is likely to go untested."
+        },
+        {
+          "description": "The audit is deliberately slow and document-heavy, and the authors note that fast, iterative development is hard to audit. Its results describe the system at the time of the audit, so a model retrained or reconfigured afterwards is not covered unless the relevant stages are repeated."
+        },
+        {
+          "description": "The paper does not say which systems should be audited or in how much depth, leaving that to the organisation, and it illustrates the procedure only on two hypothetical client projects. Published evidence of how well it finds problems in real systems is limited."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Closing the AI accountability gap",
+          "url": "https://doi.org/10.1145/3351095.3372873",
+          "source_type": "technical_paper",
+          "authors": [
+            "Inioluwa Deborah Raji",
+            "Andrew Smart",
+            "Rebecca N. White",
+            "Margaret Mitchell",
+            "Timnit Gebru",
+            "Ben Hutchinson",
+            "Jamila Smith-Loud",
+            "Daniel Theron",
+            "Parker Barnes"
+          ],
+          "publication_date": "2020-1-27",
+          "citationKey": "rajiClosingAIAccountability2020"
+        },
+        {
+          "title": "FAT* Worked Examples: SMACTR internal audit templates (Smile Detection)",
+          "url": "https://drive.google.com/drive/folders/1NUSTvWObrDSkjmWTrDCxKoPkXmypguiv",
+          "source_type": "tutorial",
+          "citationKey": "FATWorkedExamples"
+        }
+      ],
+      "complexity_rating": 4,
+      "computational_cost_rating": 2,
+      "acronym": "SMACTR",
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The claims-triage model was audited before launch by a team outside its product line, through all five SMACTR stages, and the audit report and design history file are held where the risk committee can inspect them.",
+          "assuranceGoal": "general",
+          "domain": "finance"
+        },
+        {
+          "text": "Every risk rated high in the audit's ethical risk analysis chart has a remediation action agreed with the engineering team and recorded as completed, or formally accepted, before release.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        },
+        {
+          "text": "The tests run in the audit's Testing stage were selected from the failure modes ranked highest in the FMEA, and each result is traced to the failure mode it tests.",
+          "assuranceGoal": "general",
+          "domain": "general"
+        },
+        {
+          "text": "The documentation the audit required, including a datasheet for the chatbot's fine-tuning data and a model card, was complete before testing began, as recorded in the audit checklist.",
+          "assuranceGoal": "general",
+          "domain": "general"
         }
       ]
     }
   ],
-  "count": 17
+  "count": 18
 }

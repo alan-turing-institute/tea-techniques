@@ -2,14 +2,14 @@
   "tag": {
     "name": "data-requirements/calibration-set",
     "slug": "data-requirements-calibration-set",
-    "count": 4,
+    "count": 6,
     "category": "data-requirements"
   },
   "techniques": [
     {
       "slug": "conformal-prediction",
       "name": "Conformal Prediction",
-      "description": "Conformal prediction provides mathematically guaranteed uncertainty quantification by creating prediction sets that contain the true outcome with a specified probability (e.g., exactly 95% coverage). The technique works by measuring how 'strange' or 'nonconforming' new predictions are compared to calibration data - if a prediction seems unusual, it gets wider intervals. For example, in medical diagnosis, instead of saying 'likely cancer', it might say 'possible diagnoses: {cancer, benign tumour} with 95% confidence'. This distribution-free method works with any underlying model (neural networks, random forests, etc.) and requires no assumptions about data distribution, making it a robust framework for reliable uncertainty estimates in high-stakes applications.",
+      "description": "Conformal prediction wraps any trained model so that, instead of a single answer, it returns a set of plausible answers (an interval, for a numeric prediction) that contains the true outcome at a chosen rate, such as at least 95% of the time. It first scores, on a calibration set of labelled data kept apart from training, how unusual each known outcome looks given the model's prediction, using a nonconformity score, and for a new case it keeps every candidate answer whose score falls below a threshold taken from those calibration scores. A diagnostic model might then return 'cancer or benign tumour' rather than 'likely cancer', and with a suitable score the sets grow larger where the model is less certain. The guarantee is distribution-free, meaning it assumes nothing about the shape of the data, but it does assume the calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. It holds on average over all cases, not within each subgroup, unless the calibration is done separately within each predefined group (Mondrian conformal prediction), which needs enough calibration cases in every group.",
       "assurance_goals": [
         "Reliability",
         "Transparency",
@@ -36,36 +36,54 @@
       ],
       "example_use_cases": [
         {
-          "description": "Creating prediction sets for drug discovery that guarantee 95% coverage, such as 'this compound will likely have activity against {target A, target B, target C}', ensuring reliable decision-making in costly experimental validation.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A medicinal chemistry team screening compounds in silico builds prediction sets of the protein targets each compound may be active against, at 95% coverage. Compounds with a single-target set go to lab testing for that target, and those with several targets go to a wider panel, so costly experiments follow how uncertain the model is."
         },
         {
-          "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories with guaranteed coverage, enabling judges to see the full range of possibilities rather than just a single point estimate.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "Providing transparent multi-class predictions in judicial risk assessment by showing all plausible risk categories at the stated coverage level, enabling judges to see the full range of possibilities rather than just a single point estimate."
         },
         {
-          "description": "Ensuring fair uncertainty quantification across demographic groups in college admissions by verifying that prediction set sizes (number of possible outcomes) are consistent across protected groups, preventing discriminatory overconfidence for certain populations.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A university predicts whether first-year students will complete their degree and offers early support when the 90% prediction set includes 'withdraws'. To keep that 90% true for every group, not only on average, the data team calibrates the sets separately within each demographic group, then checks coverage and average set size per group on held-out students. A group with too few calibration cases is reported as not covered by the guarantee."
         }
       ],
       "limitations": [
         {
-          "description": "Prediction sets can be unnecessarily wide when nonconformity scores vary greatly across the feature space, leading to conservative intervals that reduce practical utility."
+          "description": "Sets can be wide enough to be useless. A multi-class set holding most classes, or an interval spanning the plausible range, meets the coverage target but tells the decision-maker little, and sets containing opposing outcomes make decisions hard. Width depends on the model's quality and the scoring rule chosen, and the guarantee says nothing about it."
         },
         {
-          "description": "Requires a held-out calibration set separate from training data, reducing the amount of data available for model training, which can impact performance on small datasets."
+          "description": "Needs labelled calibration data kept apart from training. On small datasets that means less data to train on, or a coarse and unstable coverage level, and variants that avoid a separate calibration set need several model fits."
         },
         {
-          "description": "Guarantees only hold under the exchangeability assumption - if test data distribution differs significantly from calibration data, coverage guarantees may be violated."
+          "description": "The guarantee assumes calibration data and new cases are exchangeable, roughly that they come from the same source in no particular order. Drift, a changed population or strongly time-ordered data break it, and coverage then falls below target with no warning. In Shafer and Vovk's example, a nominal 5% error rate rose to 8% on a systematically different test set."
         },
         {
-          "description": "For multi-class problems, prediction sets may include many classes when the model is uncertain, making decisions difficult when sets contain opposing outcomes."
+          "description": "Coverage is guaranteed on average over all cases, not for each individual or subgroup, so a model can reach 95% overall while covering a minority group far less often. Mondrian calibration fixes this only for predefined, non-overlapping groups. It needs each new case's group at prediction time and is unstable when a group has few calibration cases (MAPIE's tutorial gives under 200 as an example)."
         },
         {
-          "description": "Computational cost increases with the number of calibration samples, and efficient implementation requires careful design for large-scale or real-time applications."
+          "description": "Cost depends on the variant. Split conformal prediction adds little beyond scoring a held-out set, but full conformal prediction re-evaluates every candidate outcome and cross-conformal variants refit the model several times, which can be prohibitive for large models or real-time use."
         }
       ],
       "resources": [
+        {
+          "title": "MAPIE - Model Agnostic Prediction Interval Estimator",
+          "url": "https://mapie.readthedocs.io",
+          "source_type": "documentation",
+          "authors": [
+            "Mapie Developers"
+          ],
+          "publication_date": "2021",
+          "citationKey": "mapiedevelopersMAPIEModelAgnostic2021"
+        },
+        {
+          "title": "MAPIE",
+          "url": "https://github.com/scikit-learn-contrib/MAPIE",
+          "source_type": "software_package",
+          "publication_date": "2021-03-30",
+          "citationKey": "scikit-learn-contribMAPIE2021",
+          "abstract": "A scikit-learn-compatible library for estimating prediction intervals and controlling risks, based on conformal predictions."
+        },
         {
           "title": "A tutorial on conformal prediction",
           "url": "http://arxiv.org/abs/0706.3188v1",
@@ -79,43 +97,34 @@
           "abstract": "Conformal prediction uses past experience to determine precise levels of confidence in new predictions. Given an error probability $ε$, together with a method that makes a prediction $\\hat{y}$ of a label $y$, it produces a set of labels, typically containing $\\hat{y}$, that also contains $y$ with probability $1-ε$. Conformal prediction can be applied to any method for producing $\\hat{y}$: a nearest-neighbor method, a support-vector machine, ridge regression, etc.   Conformal prediction is designed for an on-line setting in which labels are predicted successively, each one being revealed before the next is predicted. The most novel and valuable feature of conformal prediction is that if the successive examples are sampled independently from the same distribution, then the successive predictions will be right $1-ε$ of the time, even though they are based on an accumulating dataset rather than on independent datasets.   In addition to the model under which successive examples are sampled independently, other on-line compression models can also use conformal prediction. The widely used Gaussian linear model is one of these.   This tutorial presents a self-contained account of the theory of conformal prediction and works through several numerical examples. A more comprehensive treatment of the topic is provided in \"Algorithmic Learning in a Random World\", by Vladimir Vovk, Alex Gammerman, and Glenn Shafer (Springer, 2005)."
         },
         {
-          "title": "awesome-conformal-prediction",
-          "url": "https://github.com/valeman/awesome-conformal-prediction",
-          "source_type": "software_package",
-          "publication_date": "2021-12-10",
-          "citationKey": "valemanAwesomeconformalprediction2021",
-          "abstract": "A professionally curated list of awesome Conformal Prediction videos, tutorials, books, papers, PhD and MSc theses, articles and open-source libraries."
+          "title": "Plot prediction sets - MAPIE",
+          "url": "https://mapie.readthedocs.io/en/stable/generated/classification/1-quickstart/plot_quickstart_classification/",
+          "source_type": "tutorial",
+          "citationKey": "PlotPredictionSets",
+          "abstract": "Model Agnostic Prediction Interval Estimator — Conformal Prediction for Python"
         },
         {
-          "title": "MAPIE",
-          "url": "https://github.com/scikit-learn-contrib/MAPIE",
-          "source_type": "software_package",
-          "publication_date": "2021-03-30",
-          "citationKey": "scikit-learn-contribMAPIE2021",
-          "abstract": "A scikit-learn-compatible library for estimating prediction intervals and controlling risks, based on conformal predictions."
-        },
-        {
-          "title": "Tutorial for classification — MAPIE 0.8.6 documentation",
-          "url": "https://mapie.readthedocs.io/en/v0.8.6/examples_classification/4-tutorials/plot_main-tutorial-classification.html",
-          "source_type": "documentation",
+          "title": "Estimating diagnostic uncertainty in artificial intelligence assisted pathology using conformal prediction",
+          "url": "https://doi.org/10.1038/s41467-022-34945-8",
+          "source_type": "application_paper",
           "authors": [
-            "Mapie Developers"
+            "Henrik Olsson",
+            "Kimmo Kartasalo",
+            "Nita Mulliqi",
+            "Marco Capuccini",
+            "Pekka Ruusuvuori",
+            "Hemamali Samaratunga",
+            "Brett Delahunt",
+            "Cecilia Lindskog",
+            "Emiel A. M. Janssen",
+            "Anders Blilie",
+            "Lars Egevad",
+            "Ola Spjuth",
+            "Martin Eklund"
           ],
-          "publication_date": "2021",
-          "citationKey": "mapiedevelopersTutorialClassificationMAPIE2021"
-        },
-        {
-          "title": "Conformal Prediction: a Unified Review of Theory and New Challenges",
-          "url": "http://arxiv.org/abs/2005.07972v2",
-          "source_type": "technical_paper",
-          "authors": [
-            "Matteo Fontana",
-            "Gianluca Zeni",
-            "Simone Vantini"
-          ],
-          "publication_date": "2020-05-16",
-          "citationKey": "fontanaConformalPredictionUnified2020",
-          "abstract": "In this work we provide a review of basic ideas and novel developments about Conformal Prediction -- an innovative distribution-free, non-parametric forecasting method, based on minimal assumptions -- that is able to yield in a very straightforward way predictions sets that are valid in a statistical sense also in in the finite sample case. The in-depth discussion provided in the paper covers the theoretical underpinnings of Conformal Prediction, and then proceeds to list the more advanced developments and adaptations of the original idea."
+          "publication_date": "2022-12-15",
+          "citationKey": "olssonEstimatingDiagnosticUncertainty2022",
+          "abstract": "Unreliable predictions can occur when an artificial intelligence (AI) system is presented with data it has not been exposed to during training. We demonstrate the use of conformal prediction to detect unreliable predictions, using histopathological diagnosis and grading of prostate biopsies as example. We digitized 7788 prostate biopsies from 1192 men in the STHLM3 diagnostic study, used for training, and 3059 biopsies from 676 men used for testing. With conformal prediction, 1 in 794 (0.1%) predictions is incorrect for cancer diagnosis (compared to 14 errors [2%] without conformal prediction) while 175 (22%) of the predictions are flagged as unreliable when the AI-system is presented with new data from the same lab and scanner that it was trained on. Conformal prediction could with small samples ( N = 49 for external scanner, N = 10 for external lab and scanner, and N = 12 for external lab, scanner and pathology assessment) detect systematic differences in external data leading to worse predictive performance. The AI-system with conformal prediction commits 3 (2%) errors for cancer detection in cases of atypical prostate tissue compared to 44 (25%) without conformal prediction, while the system flags 143 (80%) unreliable predictions. We conclude that conformal prediction can increase patient safety of AI-systems."
         }
       ],
       "complexity_rating": 4,
@@ -127,168 +136,168 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic system's prediction sets contain the correct outcome with a guaranteed minimum coverage rate across all patient presentations",
+          "assuranceGoal": "reliability",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "On a held-out test set from the same patient population as the calibration data, the 95% prediction sets contained the true diagnosis in at least 95% of cases, within sampling error."
         },
         {
-          "text": "The system's uncertainty estimates maintain their specified validity guarantees regardless of the underlying data distribution",
+          "assuranceGoal": "reliability",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "text": "Prediction-set coverage on the latest quarter of live data stays within the agreed margin of its nominal level, so there is no sign that the exchangeability assumption has broken down in deployment."
         },
         {
-          "text": "The model communicates uncertainty by providing a set of plausible outcomes rather than a single point prediction",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The prediction sets achieve equivalent coverage rates across demographic groups without requiring distributional assumptions",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The autonomous system's safety-critical predictions are accompanied by statistically guaranteed confidence bounds",
+          "assuranceGoal": "reliability",
           "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
+          "text": "For the perception model, the 95% prediction sets contained the true object class in at least 95% of held-out frames, and frames whose set holds more than one class trigger the cautious fallback behaviour."
+        },
+        {
+          "assuranceGoal": "transparency",
+          "domain": "finance",
+          "text": "Every credit-limit recommendation is shown with a set of plausible limit bands at 90% coverage, and any case whose set holds more than one band is routed to a human underwriter."
+        },
+        {
+          "assuranceGoal": "fairness",
+          "domain": "public sector",
+          "text": "The 90% prediction sets are calibrated separately within each demographic group, and on held-out cases their coverage is within three percentage points of 90% in every group, with each group's number of calibration and test cases reported."
         }
       ]
     },
     {
-      "slug": "empirical-calibration",
-      "name": "Empirical Calibration",
-      "description": "Empirical calibration adjusts a model's predicted probabilities to match observed frequencies. For example, if events predicted with 80% confidence only occur 60% of the time, calibration would correct this overconfidence. Common techniques include Platt scaling and isotonic regression, which learn transformations that map the model's raw scores to well-calibrated probabilities, improving the reliability of confidence measures for downstream decisions.",
+      "slug": "platt-scaling",
+      "name": "Platt Scaling",
+      "description": "Platt scaling turns a classifier's raw scores into calibrated probabilities, meaning that among the cases given a probability of 0.3, about 30 per cent turn out to be positive. It was introduced for support vector machines, whose outputs are distances from a decision boundary rather than probabilities, and applies to any binary classifier that produces a real-valued score. After the classifier is trained, a two-parameter logistic (sigmoid) curve, P(y = 1 | f) = 1 / (1 + exp(A·f + B)), is fitted by maximum likelihood to map each score f to a probability, using labelled cases the classifier was not trained on, taken from a held-out set or from cross-validation folds. The fitted curve is strictly monotonic, so the order of cases and ranking measures such as the area under the ROC curve (how well the scores separate the two classes) are unchanged; only the probability attached to each case moves. The output is a recalibrated model, assessed before and after with a reliability diagram (predicted probability plotted against observed frequency) and with the Brier score or log loss (two measures of how far predicted probabilities fall from what happened).",
       "assurance_goals": [
         "Reliability",
-        "Transparency",
-        "Fairness"
+        "Transparency"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/black-box",
-        "applicable-models/requirements/probabilistic-output",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/calibration",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/confidence-and-limits",
         "data-requirements/calibration-set",
         "data-type/any",
-        "evidence-type/quantitative-metric",
         "evidence-type/model-artefact",
+        "evidence-type/quantitative-metric",
         "expertise-needed/statistics",
-        "explanatory-scope/global",
         "technique-type/algorithmic",
         "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
       ],
       "example_use_cases": [
         {
-          "description": "Adjusting a credit default prediction model's probabilities to ensure that loan applicants with a predicted 30% default risk actually default 30% of the time, improving decision-making.",
+          "description": "A retail bank's credit-risk team finds that its gradient-boosted default model ranks applicants well but squeezes predicted default probabilities towards the middle of the range. Before the probabilities feed expected-loss provisioning, the team fits Platt scaling on a held-out year of loan outcomes and checks on a reliability diagram that predicted and observed default rates agree in every score decile.",
           "goal": "Reliability"
         },
         {
-          "description": "Calibrating a medical diagnosis model's confidence scores so that stakeholders can meaningfully interpret probability outputs, enabling doctors to make informed decisions about treatment urgency based on reliable confidence estimates.",
+          "description": "A benefits agency uses a linear support vector machine to flag claims for manual review, but its margin scores mean nothing to caseworkers. The team applies Platt scaling so the review screen can show the probability that a claim needs correcting, publishes the calibration curve in the caseworker guidance, and explains that the figure is a rate across similar claims rather than a verdict on the individual.",
           "goal": "Transparency"
-        },
-        {
-          "description": "Ensuring that a hiring algorithm's confidence scores are equally well-calibrated across different demographic groups, preventing systematically overconfident predictions for certain populations that could lead to biased decision-making.",
-          "goal": "Fairness"
         }
       ],
       "limitations": [
         {
-          "description": "Requires a separate held-out calibration dataset, which reduces the amount of data available for model training."
+          "description": "The sigmoid shape is an assumption. It corrects the S-shaped distortion typical of support vector machines and boosted trees, whose probabilities bunch towards the middle, but not the reverse distortion of overconfident models such as naive Bayes, whose probabilities pile up near 0 and 1. Where the reliability diagram shows that pattern, a flexible method such as isotonic regression is needed."
         },
         {
-          "description": "Calibration performance can degrade over time if the underlying data distribution shifts, requiring periodic recalibration."
+          "description": "It works best when the classifier's scores for the two classes are spread in a similar way (roughly normal with equal variance). In highly imbalanced problems the scores of the two classes do not have equal spread, so the sigmoid can be a poor match for the data."
         },
         {
-          "description": "May sacrifice some discriminative power in favour of calibration, potentially reducing the model's ability to distinguish between classes."
+          "description": "The curve should be fitted on labelled cases that played no part in training. The classifier separates its own training data better than new data, so a curve fitted to training scores overstates confidence in use; the cost is a held-out calibration set taken from scarce labelled data, or cross-validation with several model fits."
         },
         {
-          "description": "Calibration methods assume that the calibration set is representative of future data, which may not hold in dynamic environments."
+          "description": "A single curve fitted across the whole population does not make the model calibrated within each subgroup. In a deployed malnutrition-risk model, recalibration improved calibration within each race and sex group, yet intercepts and slopes still differed significantly between Black and White patients. Fitting a curve per group needs group membership at prediction time, which may be unavailable or unlawful to use, and enough labelled cases in every group."
+        },
+        {
+          "description": "Recalibration changes every probability, so a decision threshold chosen on the raw scores no longer flags the same cases. After logistic recalibration of a deployed malnutrition-risk model, specificity rose from 0.74 to 0.93 and sensitivity fell from 0.75 to 0.35, so the cut-off has to be reset against the cost of each kind of error and the downstream process checked again."
         }
       ],
       "resources": [
         {
-          "title": "empirical_calibration",
-          "url": "https://github.com/google/empirical_calibration",
+          "title": "1.16. Probability calibration — scikit-learn user guide",
+          "url": "https://scikit-learn.org/stable/modules/calibration.html",
+          "source_type": "documentation",
+          "citationKey": "116ProbabilityCalibration",
+          "abstract": "When performing classification you often want not only to predict the class label, but also obtain a probability of the respective label. This probability gives you some kind of confidence on the p..."
+        },
+        {
+          "title": "scikit-learn",
+          "url": "https://github.com/scikit-learn/scikit-learn",
           "source_type": "software_package",
-          "publication_date": "2019-02-01",
-          "citationKey": "googleEmpirical_calibration2019"
+          "citationKey": "Scikitlearn",
+          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
         },
         {
-          "title": "A Python Library For Empirical Calibration",
-          "url": "http://arxiv.org/abs/1906.11920v2",
+          "title": "Probabilities for SV Machines",
+          "url": "https://doi.org/10.7551/mitpress/1113.003.0008",
           "source_type": "technical_paper",
           "authors": [
-            "Xiaojing Wang",
-            "Jingang Miao",
-            "Yunting Sun"
+            "John C. Platt"
           ],
-          "publication_date": "2019-06-27",
-          "citationKey": "wangPythonLibraryEmpirical2019",
-          "abstract": "Dealing with biased data samples is a common task across many statistical fields. In survey sampling, bias often occurs due to unrepresentative samples. In causal studies with observational data, the treated versus untreated group assignment is often correlated with covariates, i.e., not random. Empirical calibration is a generic weighting method that presents a unified view on correcting or reducing the data biases for the tasks mentioned above. We provide a Python library EC to compute the empirical calibration weights. The problem is formulated as convex optimization and solved efficiently in the dual form. Compared to existing software, EC is both more efficient and robust. EC also accommodates different optimization objectives, supports weight clipping, and allows inexact calibration, which improves usability. We demonstrate its usage across various experiments with both simulated and real-world data."
+          "publication_date": "2000-9-29",
+          "citationKey": "plattProbabilitiesSVMachines2000"
         },
         {
-          "title": "Assessing the effectiveness of empirical calibration under different bias scenarios",
-          "url": "http://arxiv.org/abs/2111.04233v2",
-          "source_type": "technical_paper",
+          "title": "Probability Calibration curves — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
+          "source_type": "tutorial",
+          "citationKey": "ProbabilityCalibrationCurves",
+          "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
+        },
+        {
+          "title": "Assessing calibration and bias of a deployed machine learning malnutrition prediction model within a large healthcare system",
+          "url": "https://doi.org/10.1038/s41746-024-01141-5",
+          "source_type": "application_paper",
           "authors": [
-            "Hon Hwang",
-            "Juan C Quiroz",
-            "Blanca Gallego"
+            "Lathan Liou",
+            "Erick Scott",
+            "Prathamesh Parchure",
+            "Yuxia Ouyang",
+            "Natalia Egorova",
+            "Robert Freeman",
+            "Ira S. Hofer",
+            "Girish N. Nadkarni",
+            "Prem Timsina",
+            "Arash Kia",
+            "Matthew A. Levin"
           ],
-          "publication_date": "2021-11-08",
-          "citationKey": "hwangAssessingEffectivenessEmpirical2021",
-          "abstract": "Background: Estimations of causal effects from observational data are subject to various sources of bias. One method of adjusting for the residual biases in the estimation of a treatment effect is through negative control outcomes, where the treatment does not affect the outcome. The empirical calibration procedure is a technique that uses negative controls to calibrate p-values. An extension of empirical calibration calibrates the coverage of the 95% confidence interval of a treatment effect estimate by using negative control outcomes as well as positive control outcomes (where treatment affects the outcome).   Methods: The effect of empirical calibration of confidence intervals was analyzed using simulated datasets with known treatment effects. The simulations consisted of binary treatment and binary outcome, with biases resulting from unmeasured confounder, model misspecification, measurement error, and lack of positivity. The performance of the empirical calibration was evaluated by determining the change in the coverage of the confidence interval and the bias in the treatment effect estimate.   Results: Empirical calibration increased coverage of the 95% confidence interval of the treatment effect estimate under most bias scenarios but was inconsistent in adjusting the bias in the treatment effect estimate. Empirical calibration of confidence intervals was most effective when adjusting for the unmeasured confounding bias. Suitable negative controls had a large impact on the adjustment made by empirical calibration, but small improvements in the coverage of the outcome of interest were also observable when using unsuitable negative controls."
+          "publication_date": "2024-6-6",
+          "citationKey": "liouAssessingCalibrationBias2024",
+          "abstract": "Malnutrition is a frequently underdiagnosed condition leading to increased morbidity, mortality, and healthcare costs. The Mount Sinai Health System (MSHS) deployed a machine learning model (MUST-Plus) to detect malnutrition upon hospital admission. However, in diverse patient groups, a poorly calibrated model may lead to misdiagnosis, exacerbating health care disparities. We explored the model’s calibration across different variables and methods to improve calibration. Data from adult patients admitted to five MSHS hospitals from January 1, 2021 - December 31, 2022, were analyzed. We compared MUST-Plus prediction to the registered dietitian’s formal assessment. Hierarchical calibration was assessed and compared between the recalibration sample (N = 49,562) of patients admitted between January 1, 2021 - December 31, 2022, and the hold-out sample (N = 17,278) of patients admitted between January 1, 2023 - September 30, 2023. Statistical differences in calibration metrics were tested using bootstrapping with replacement. Before recalibration, the overall model calibration intercept was −1.17 (95% CI: −1.20, −1.14), slope was 1.37 (95% CI: 1.34, 1.40), and Brier score was 0.26 (95% CI: 0.25, 0.26). Both weak and moderate measures of calibration were significantly different between White and Black patients and between male and female patients. Logistic recalibration significantly improved calibration of the model across race and gender in the hold-out sample. The original MUST-Plus model showed significant differences in calibration between White vs. Black patients. It also overestimated malnutrition in females compared to males. Logistic recalibration effectively reduced miscalibration across all patient subgroups. Continual monitoring and timely recalibration can improve model accuracy."
         }
       ],
-      "complexity_rating": 2,
-      "computational_cost_rating": 2,
-      "related_techniques": [
-        "temperature-scaling",
-        "conformal-prediction",
-        "confidence-thresholding"
-      ],
+      "complexity_rating": 1,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
       "sample_claims": [
         {
-          "text": "The model's predicted probabilities align with observed outcome frequencies across the decision space",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "After Platt scaling on a held-out year of loan outcomes, the default model's predicted probabilities agree with observed default rates in every score decile, within the tolerance set in the model risk policy.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
         },
         {
-          "text": "The system's confidence scores are interpretable as genuine probability estimates for critical decisions",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
+          "text": "After Platt scaling, the defect classifier's log loss on the held-out test set is lower than before, and its reliability diagram shows predicted defect rates within the tolerance set in the quality plan.",
+          "assuranceGoal": "reliability",
+          "domain": "manufacturing"
         },
         {
-          "text": "The model's probability estimates maintain consistent calibration quality across protected demographic groups",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The autonomous system's predicted risk levels correspond to actual failure rates in operational conditions",
-          "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The forecasting model's stated confidence intervals reflect empirically measured prediction accuracy",
-          "domain": "environmental",
-          "assuranceGoal": "transparency"
+          "text": "Each flagged claim is shown to caseworkers with a probability calibrated against held-out review outcomes, and the calibration curve and its meaning are published in the caseworker guidance, so a displayed 30 per cent corresponds to roughly 30 in 100 similar claims needing correction.",
+          "assuranceGoal": "transparency",
+          "domain": "public sector"
         }
       ]
     },
     {
       "slug": "temperature-scaling",
       "name": "Temperature Scaling",
-      "description": "Temperature scaling adjusts a model's confidence by applying a single parameter (temperature) to its predictions. When a model is too confident in its wrong answers, temperature scaling can fix this by making the predictions more realistic. It works by dividing the model's outputs by the temperature value before converting them to probabilities. Higher temperatures make the model less confident, whilst lower temperatures increase confidence. The technique maintains the model's accuracy whilst ensuring that when it says it's 90% confident, it's actually right about 90% of the time.",
+      "description": "Temperature scaling is a correction applied after training to a classifier that is more confident than it is accurate, a common problem in modern neural networks. It divides the model's raw scores (logits) by a single number, the temperature, before they are turned into probabilities, so a temperature above one lowers confidence and one below one raises it. The temperature is fitted on a labelled validation set kept apart from training by minimising negative log-likelihood, a measure that penalises confident wrong answers, and the model's own weights are not changed. Because dividing by one positive number never changes which class scores highest, predictions and accuracy stay the same. Stated confidence usually moves much closer to observed accuracy on data like the validation set, which a reliability diagram (a chart of stated confidence against how often the model was right) can show, but some miscalibration remains.",
       "assurance_goals": [
         "Reliability",
-        "Transparency",
-        "Fairness"
+        "Transparency"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -296,8 +305,6 @@
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/probabilistic-output",
         "applicable-models/requirements/white-box",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/calibration",
         "assurance-goal-category/transparency",
@@ -315,33 +322,42 @@
       ],
       "example_use_cases": [
         {
-          "description": "Adjusting a deep learning image classifier's confidence scores to be realistic, ensuring that when it's 90% confident, it's right 90% of the time.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A trust-and-safety team auto-removes posts only when its neural text classifier reports at least 95% confidence. The team fits a temperature on one labelled validation set, then checks on a second, unseen labelled set that posts scored near 95% really are abusive about 95% of the time, and adjusts the removal threshold if they are not."
         },
         {
-          "description": "Making medical diagnosis model predictions more trustworthy by providing realistic confidence scores that doctors can interpret and use to make informed decisions about patient care.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "An environmental agency's land-cover classifier was trained on summer satellite images and is now used on winter scenes, where it is overconfident. The team fits a fresh temperature on a small labelled winter sample and compares calibration error before and after on separate winter test scenes, rather than reusing the summer temperature."
         },
         {
-          "description": "Ensuring fair treatment across patient demographics by calibrating confidence scores equally across different groups, preventing systematic over-confidence in predictions for certain populations.",
-          "goal": "Fairness"
+          "goal": "Transparency",
+          "description": "A hospital radiology department displays the model's confidence beside each chest X-ray finding. Before display, the team fits a temperature on held-out scans from its own hospital and reports expected calibration error on a test set, so that clinicians can read a displayed 70% as roughly 70 correct findings in 100 similar cases."
         }
       ],
       "limitations": [
         {
-          "description": "Only addresses calibration at the overall dataset level, not subgroup-specific miscalibration issues."
+          "description": "A single temperature is fitted for the whole dataset, so it corrects average overconfidence but not differences between groups or regions of the input space. A minority group can stay overconfident while overall calibration looks good, and only a per-group calibration check shows it."
         },
         {
-          "description": "Does not improve the rank ordering or accuracy of predictions, only adjusts confidence levels."
+          "description": "It leaves predicted classes unchanged, so accuracy and the model's mistakes stay as they were. A weak model remains weak and only becomes more honest about it, so calibration cannot substitute for improving the model."
         },
         {
-          "description": "Assumes that calibration errors are consistent across different types of inputs and feature values."
+          "description": "The temperature is fitted on data resembling the training distribution, and calibration can degrade when deployment data shifts. In one large benchmark, error in stated confidence rose significantly as shift increased, even though it was low on unshifted data."
         },
         {
-          "description": "Requires a separate validation set for temperature parameter optimisation, which may not be available in small datasets."
+          "description": "It needs labelled held-out data that resembles deployment, separate from the training data, and a further separate set to measure the result, because scoring calibration on the data used to fit the temperature flatters it. Small datasets may not leave enough for both."
+        },
+        {
+          "description": "Calibration is judged on the confidence of the predicted class only. The probabilities given to the other classes are not checked by that measure, so uses that read the whole probability list, such as ranking several likely diagnoses, need separate testing."
         }
       ],
       "resources": [
+        {
+          "title": "TemperatureScaler - TorchUncertainty Docs",
+          "url": "https://torch-uncertainty.github.io/generated/torch_uncertainty.post_processing.TemperatureScaler.html",
+          "source_type": "documentation",
+          "citationKey": "TemperatureScalerTorchUncertaintyDocs"
+        },
         {
           "title": "temperature_scaling",
           "url": "https://github.com/gpleiss/temperature_scaling",
@@ -349,32 +365,6 @@
           "publication_date": "2017-08-03",
           "citationKey": "gpleissTemperature_scaling2017",
           "abstract": "A simple way to calibrate your neural network."
-        },
-        {
-          "title": "Exploring the Impact of Temperature Scaling in Softmax for Classification and Adversarial Robustness",
-          "url": "http://arxiv.org/abs/2502.20604v1",
-          "source_type": "technical_paper",
-          "authors": [
-            "Hao Xuan",
-            "Bokai Yang",
-            "Xingyu Li"
-          ],
-          "publication_date": "2025-02-28",
-          "citationKey": "xuanExploringImpactTemperature2025",
-          "abstract": "The softmax function is a fundamental component in deep learning. This study delves into the often-overlooked parameter within the softmax function, known as \"temperature,\" providing novel insights into the practical and theoretical aspects of temperature scaling for image classification. Our empirical studies, adopting convolutional neural networks and transformers on multiple benchmark datasets, reveal that moderate temperatures generally introduce better overall performance. Through extensive experiments and rigorous theoretical analysis, we explore the role of temperature scaling in model training and unveil that temperature not only influences learning step size but also shapes the model's optimization direction. Moreover, for the first time, we discover a surprising benefit of elevated temperatures: enhanced model robustness against common corruption, natural perturbation, and non-targeted adversarial attacks like Projected Gradient Descent. We extend our discoveries to adversarial training, demonstrating that, compared to the standard softmax function with the default temperature value, higher temperatures have the potential to enhance adversarial training. The insights of this work open new avenues for improving model performance and security in deep learning applications."
-        },
-        {
-          "title": "Neural Clamping: Joint Input Perturbation and Temperature Scaling for Neural Network Calibration",
-          "url": "http://arxiv.org/abs/2209.11604v2",
-          "source_type": "technical_paper",
-          "authors": [
-            "Yung-Chen Tang",
-            "Pin-Yu Chen",
-            "Tsung-Yi Ho"
-          ],
-          "publication_date": "2022-09-23",
-          "citationKey": "tangNeuralClampingJoint2022",
-          "abstract": "Neural network calibration is an essential task in deep learning to ensure consistency between the confidence of model prediction and the true correctness likelihood. In this paper, we propose a new post-processing calibration method called Neural Clamping, which employs a simple joint input-output transformation on a pre-trained classifier via a learnable universal input perturbation and an output temperature scaling parameter. Moreover, we provide theoretical explanations on why Neural Clamping is provably better than temperature scaling. Evaluated on BloodMNIST, CIFAR-100, and ImageNet image recognition datasets and a variety of deep neural network models, our empirical results show that Neural Clamping significantly outperforms state-of-the-art post-processing calibration methods. The code is available at github.com/yungchentang/NCToolkit, and the demo is available at huggingface.co/spaces/TrustSafeAI/NCTV."
         },
         {
           "title": "On Calibration of Modern Neural Networks",
@@ -391,50 +381,208 @@
           "abstract": "Confidence calibration -- the problem of predicting probability estimates representative of the true correctness likelihood -- is important for classification models in many applications. We discover that modern neural networks, unlike those from a decade ago, are poorly calibrated. Through extensive experiments, we observe that depth, width, weight decay, and Batch Normalization are important factors influencing calibration. We evaluate the performance of various post-processing calibration methods on state-of-the-art architectures with image and document classification datasets. Our analysis and experiments not only offer insights into neural network learning, but also provide a simple and straightforward recipe for practical settings: on most datasets, temperature scaling -- a single-parameter variant of Platt Scaling -- is surprisingly effective at calibrating predictions."
         },
         {
-          "title": "On the Limitations of Temperature Scaling for Distributions with Overlaps",
-          "url": "http://arxiv.org/abs/2306.00740v3",
-          "source_type": "technical_paper",
-          "authors": [
-            "Muthu Chidambaram",
-            "Rong Ge"
-          ],
-          "publication_date": "2023-06-01",
-          "citationKey": "chidambaramLimitationsTemperatureScaling2023",
-          "abstract": "Despite the impressive generalization capabilities of deep neural networks, they have been repeatedly shown to be overconfident when they are wrong. Fixing this issue is known as model calibration, and has consequently received much attention in the form of modified training schemes and post-training calibration procedures such as temperature scaling. While temperature scaling is frequently used because of its simplicity, it is often outperformed by modified training schemes. In this work, we identify a specific bottleneck for the performance of temperature scaling. We show that for empirical risk minimizers for a general set of distributions in which the supports of classes have overlaps, the performance of temperature scaling degrades with the amount of overlap between classes, and asymptotically becomes no better than random when there are a large number of classes. On the other hand, we prove that optimizing a modified form of the empirical risk induced by the Mixup data augmentation technique can in fact lead to reasonably good calibration performance, showing that training-time calibration may be necessary in some situations. We also verify that our theoretical results reflect practice by showing that Mixup significantly outperforms empirical risk minimization (with respect to multiple calibration metrics) on image classification benchmarks with class overlaps introduced in the form of label noise."
+          "title": "Improve top-label calibration with temperature scaling - TorchUncertainty Docs",
+          "url": "https://torch-uncertainty.github.io/auto_tutorials/Post_Hoc_Methods/tutorial_temperature.html",
+          "source_type": "tutorial",
+          "citationKey": "ImproveToplabelCalibration"
         }
       ],
       "complexity_rating": 1,
       "computational_cost_rating": 1,
       "related_techniques": [
-        "empirical-calibration",
+        "platt-scaling",
         "deep-ensembles",
         "conformal-prediction"
       ],
       "sample_claims": [
         {
-          "text": "The medical diagnosis system's confidence scores align with observed clinical outcome frequencies across all prediction confidence levels",
+          "assuranceGoal": "reliability",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "On a test set not used to fit the temperature, the diagnostic model's expected calibration error is below the agreed threshold, and observed accuracy in each confidence band is within tolerance of its stated confidence."
         },
         {
-          "text": "The credit risk model's probability estimates reflect true default rates without sacrificing discriminative accuracy",
+          "assuranceGoal": "reliability",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "Calibrating the credit risk model with a single temperature left its predicted classes, and therefore its accuracy, unchanged, while its default probabilities now track the observed default rates on held-out data."
         },
         {
-          "text": "The image classifier communicates prediction confidence through calibrated probabilities that match empirical correctness rates",
+          "assuranceGoal": "transparency",
           "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "A displayed confidence of 80% corresponds to about 80 correct predictions in 100, as shown by a reliability diagram on data not used to fit the temperature."
         },
         {
-          "text": "The fraud detection system's confidence estimates are equally well-calibrated across customer demographic groups",
+          "assuranceGoal": "reliability",
+          "domain": "environmental",
+          "text": "After refitting the temperature on a labelled sample from the new region, the land-cover classifier's calibration error on that region's test data is no worse than on the original region."
+        }
+      ]
+    },
+    {
+      "slug": "threshold-optimiser",
+      "name": "Threshold Optimiser",
+      "description": "Threshold Optimiser is a post-processing method, introduced by Hardt, Price and Srebro (2016), that makes an already-trained classifier's decisions meet a group fairness criterion without retraining it, most often equalised odds (equal true positive and false positive rates across groups) or equal opportunity (equal true positive rates only). Using a labelled validation set that records each person's group, it traces each group's ROC curve (the true and false positive rates obtained at every possible cut-off on the model's score) and chooses a separate cut-off for each group that maximises accuracy, or another chosen objective, subject to the criterion. When no single cut-off per group meets the criterion exactly, as is usual for equalised odds, each group's decision is randomised between two cut-offs with fixed probabilities. If the model returns only yes/no predictions rather than scores, the same method reduces to a small linear optimisation that sets, for each group and predicted label, the probability of flipping the prediction. The output is a group-aware decision rule that needs each person's group at prediction time; Fairlearn's ThresholdOptimizer implements the score-based form (and can also equalise selection rates), and AIF360's EqOddsPostprocessing implements the label-flipping form.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/discriminative",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/post-processing",
+        "data-requirements/calibration-set",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "evidence-type/model-artefact",
+        "expertise-needed/regulatory-compliance",
+        "expertise-needed/statistics",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-implementation",
+        "technique-type/algorithmic"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A lender's model validation team applies the method to an existing credit-scoring model, choosing a separate approval cut-off for each racial group so that applicants who go on to repay are approved at the same rate in every group (equal opportunity). It compares the expected profit of that rule with a single cut-off and with an equalised-odds rule before recommending which one the credit committee should adopt.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A hospital system's data science team adjusts the alert threshold of an unplanned-readmission model separately for each race and ethnicity group, so that patients who are later readmitted are flagged at similar rates across groups. The change is accepted only because overall accuracy and daily alert volume stay within limits agreed with clinicians before the adjustment was made.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "A public agency licenses a pre-trial risk tool that returns only high or low labels, with no access to scores or retraining. Using a held-out set of past cases with known outcomes, it derives the label-flipping rule that gives equal true and false positive rates across racial groups, and reports to its oversight board how many decisions the rule would change and how much accuracy it costs.",
+          "goal": "Fairness"
+        },
+        {
+          "description": "An HR analytics team piloting a CV-scoring model runs the method under equal opportunity and under equalised odds on its validation data, to show the selection panel what each criterion costs in accuracy and how many shortlisting decisions it would change. The comparison is the evidence for which fairness criterion the panel signs off before deployment.",
+          "goal": "Fairness"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The cut-off depends on the person's group, so the protected attribute must be available at the moment of decision (Fairlearn's predict requires it). Where the attribute is not collected, or where applying different cut-offs by group could count as direct discrimination or disparate treatment, which Fairlearn's own guide flags for EU and US law, the rule may be unusable in deployment even though it works in validation."
+        },
+        {
+          "description": "Meeting equalised odds exactly usually requires randomisation, so two people with the same score and group can receive different decisions, and Fairlearn notes that some solutions give a non-zero chance of a positive decision whatever the score. Where decisions must be reproducible or explained to the individual, such as credit refusals, this can rule the method out or force a relaxed constraint."
+        },
+        {
+          "description": "Under equalised odds every group's error rates are held to what the hardest-to-predict group's ROC curve allows; Hardt et al. note such a classifier must classify everyone as poorly as the hardest group. In their credit case study it kept about 80% of maximum profit against about 93% for equal opportunity, and Fairlearn warns of levelling down: worse performance for the better-served group with no gain for the worse-served one."
+        },
+        {
+          "description": "Cut-offs are estimated from a finite labelled sample in which group membership is known, and the original analysis sets sampling error aside. Small groups give unstable cut-offs, and rates equalised on the validation set drift when the population or the model's score distribution changes, so the cut-offs must be re-estimated and the equalised rates monitored after deployment."
+        },
+        {
+          "description": "Equalised odds generally conflicts with calibration within groups: Pleiss et al. (2017) show calibration is compatible with at most one equal-error-rate constraint, and Hardt et al. note that equalised odds may compromise other desirable properties of a score. A team that must show both equal error rates and calibrated risk for each group cannot obtain both from this method and may have to settle for equal opportunity alone."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Fairlearn: ThresholdOptimizer",
+          "url": "https://fairlearn.org/main/api_reference/generated/fairlearn.postprocessing.ThresholdOptimizer.html",
+          "source_type": "documentation",
+          "authors": [
+            "Fairlearn Developers"
+          ],
+          "publication_date": "2018",
+          "citationKey": "fairlearndevelopersFairlearnThresholdOptimizer2018"
+        },
+        {
+          "title": "fairlearn",
+          "url": "https://github.com/fairlearn/fairlearn",
+          "source_type": "software_package",
+          "publication_date": "2018-05-15",
+          "citationKey": "fairlearnFairlearn2018",
+          "abstract": "A Python package to assess and improve fairness of machine learning models."
+        },
+        {
+          "title": "Equality of Opportunity in Supervised Learning",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2016/hash/6a9659feb1216f14f7384ba499518b38-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Moritz Hardt",
+            "Eric Price",
+            "Nathan Srebro"
+          ],
+          "publication_date": "2016-10-07",
+          "citationKey": "hardtEqualityOpportunitySupervised2016",
+          "abstract": "We propose a criterion for discrimination against a specified sensitive attribute in supervised learning, where the goal is to predict some target based on available features. Assuming data about the predictor, target, and membership in the protected group are available, we show how to optimally adjust any learned predictor so as to remove discrimination according to our definition. Our framework also improves incentives by shifting the cost of poor classification from disadvantaged groups to the decision maker, who can respond by improving the classification accuracy.   In line with other studies, our notion is oblivious: it depends only on the joint statistics of the predictor, the target and the protected attribute, but not on interpretation of individualfeatures. We study the inherent limits of defining and identifying biases based on such oblivious measures, outlining what can and cannot be inferred from different oblivious tests.   We illustrate our notion using a case study of FICO credit scores."
+        },
+        {
+          "title": "Group-Aware Threshold Adaptation for Fair Classification",
+          "url": "https://doi.org/10.1609/aaai.v36i6.20657",
+          "source_type": "technical_paper",
+          "authors": [
+            "Taeuk Jang",
+            "Pengyi Shi",
+            "Xiaoqian Wang"
+          ],
+          "publication_date": "2021-11-08",
+          "citationKey": "jangGroupAwareThresholdAdaptation2021",
+          "abstract": "The fairness in machine learning is getting increasing attention, as its applications in different fields continue to expand and diversify. To mitigate the discriminated model behaviors between different demographic groups, we introduce a novel post-processing method to optimize over multiple fairness constraints through group-aware threshold adaptation. We propose to learn adaptive classification thresholds for each demographic group by optimizing the confusion matrix estimated from the probability distribution of a classification model output. As we only need an estimated probability distribution of model output instead of the classification model structure, our post-processing model can be applied to a wide range of classification models and improve fairness in a model-agnostic manner and ensure privacy. This even allows us to post-process existing fairness methods to further improve the trade-off between accuracy and fairness. Moreover, our model has low computational cost. We provide rigorous theoretical analysis on the convergence of our optimization algorithm and the trade-off between accuracy and fairness of our method. Our method theoretically enables a better upper bound in near optimality than existing method under same condition. Experimental results demonstrate that our method outperforms state-of-the-art methods and obtains the result that is closest to the theoretical accuracy-fairness trade-off boundary."
+        },
+        {
+          "title": "Fairlearn: Postprocessing Methods",
+          "url": "https://fairlearn.org/main/user_guide/mitigation/postprocessing.html",
+          "source_type": "tutorial",
+          "authors": [
+            "Fairlearn Developers"
+          ],
+          "publication_date": "2018",
+          "citationKey": "fairlearndevelopersFairlearnPostprocessingMethods2018"
+        },
+        {
+          "title": "Identifying and mitigating algorithmic bias in the safety net",
+          "url": "https://doi.org/10.1038/s41746-025-01732-w",
+          "source_type": "application_paper",
+          "authors": [
+            "Shaina Mackin",
+            "Vincent J. Major",
+            "Rumi Chunara",
+            "Remle Newton-Dame"
+          ],
+          "publication_date": "2025-6-5",
+          "citationKey": "mackinIdentifyingMitigatingAlgorithmic2025",
+          "abstract": "Algorithmic bias occurs when predictive model performance varies meaningfully across sociodemographic classes, exacerbating systemic healthcare disparities. NYC Health + Hospitals, an urban safety net system, assessed bias in two binary classification models in our electronic medical record: one predicting acute visits for asthma and one predicting unplanned readmissions. We evaluated differences in subgroup performance across race/ethnicity, sex, language, and insurance using equal opportunity difference (EOD), a metric comparing false negative rates. The most biased classes (race/ethnicity for asthma, insurance for readmission) were targeted for mitigation using threshold adjustment, which adjusts subgroup thresholds to minimize EOD, and reject option classification, which re-classifies scores near the threshold by subgroup. Successful mitigation was defined as 1) absolute subgroup EODs <5 percentage points, 2) accuracy reduction <10%, and 3) alert rate change <20%. Threshold adjustment met these criteria; reject option classification did not. We introduce a Supplementary Playbook outlining our approach for low-resource bias mitigation."
+        },
+        {
+          "title": "AIF360",
+          "url": "https://github.com/Trusted-AI/AIF360",
+          "source_type": "software_package",
+          "publication_date": "2018-08-22",
+          "citationKey": "trusted-aiAIF3602018",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [
+        "calibration-with-equality-of-opportunity",
+        "reject-option-classification"
+      ],
+      "sample_claims": [
+        {
+          "text": "The credit approval model, with per-group cut-offs set on held-out data, approves applicants who go on to repay at the same rate across racial groups, within a stated tolerance.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The environmental forecasting model's stated uncertainty levels correspond to actual prediction accuracy across diverse weather conditions",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "After group-specific threshold adjustment, the readmission alert model flags patients who are later readmitted at similar rates across race and ethnicity groups, with overall accuracy and alert volume inside the limits agreed with clinicians.",
+          "domain": "healthcare",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The pre-trial risk tool's post-processed decisions have equal true positive and false positive rates across racial groups on a held-out sample of past cases.",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The fairness adjustment to the CV-scoring model was applied after training, leaving the trained model unchanged, and its cost in accuracy was measured and reported to the selection panel.",
+          "domain": "general",
+          "assuranceGoal": "fairness"
         }
       ]
     },
@@ -444,7 +592,6 @@
       "description": "A post-processing fairness technique that adjusts model predictions to achieve equal true positive rates across protected groups whilst maintaining calibration within each group. The method addresses fairness by ensuring that qualified individuals from different demographic groups have equal chances of receiving positive predictions, whilst preserving the meaning of probability scores within each group. This technique attempts to balance the competing objectives of group fairness and accurate probability estimation.",
       "assurance_goals": [
         "Fairness",
-        "Transparency",
         "Reliability"
       ],
       "tags": [
@@ -456,8 +603,6 @@
         "assurance-goal-category/fairness/post-processing",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/calibration",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/confidence-and-limits",
         "data-requirements/calibration-set",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
@@ -473,10 +618,6 @@
         {
           "description": "Adjusting a loan approval model to ensure that qualified applicants from different ethnic backgrounds have equal approval rates, whilst maintaining that a 70% predicted repayment probability means the same thing for each ethnic group in practice.",
           "goal": "Fairness"
-        },
-        {
-          "description": "Post-processing a university admissions algorithm to equalise acceptance rates for qualified students across gender groups, whilst ensuring the predicted success scores remain well-calibrated within each gender to support transparent decision-making.",
-          "goal": "Transparency"
         },
         {
           "description": "Calibrating a medical diagnosis model to maintain equal detection rates for a disease across different age groups whilst preserving the reliability of risk scores, ensuring that a 30% risk prediction accurately reflects actual disease occurrence within each age group.",
@@ -502,6 +643,28 @@
       ],
       "resources": [
         {
+          "title": "aif360.algorithms.postprocessing.CalibratedEqOddsPostprocessing — aif360 documentation",
+          "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.algorithms.postprocessing.CalibratedEqOddsPostprocessing.html",
+          "source_type": "documentation",
+          "citationKey": "Aif360algorithmspostprocessingCalibratedEqOddsPostprocessingAif360Documentation"
+        },
+        {
+          "title": "equalized_odds_and_calibration",
+          "url": "https://github.com/gpleiss/equalized_odds_and_calibration",
+          "source_type": "software_package",
+          "publication_date": "2017-11-03",
+          "citationKey": "gpleissEqualized_odds_and_calibration2017",
+          "abstract": "Code and data for the experiments in \"On Fairness and Calibration\""
+        },
+        {
+          "title": "AIF360",
+          "url": "https://github.com/Trusted-AI/AIF360",
+          "source_type": "software_package",
+          "publication_date": "2018-08-22",
+          "citationKey": "trusted-aiAIF3602018",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
+        },
+        {
           "title": "On Fairness and Calibration",
           "url": "https://arxiv.org/abs/1709.02012",
           "source_type": "technical_paper",
@@ -517,16 +680,8 @@
           "abstract": "The machine learning community has become increasingly concerned with the potential for bias and discrimination in predictive models. This has motivated a growing line of work on what it means for a classification procedure to be \"fair.\" In this paper, we investigate the tension between minimizing error disparity across different population groups while maintaining calibrated probability estimates. We show that calibration is compatible only with a single error constraint (i.e. equal false-negatives rates across groups), and show that any algorithm that satisfies this relaxation is no better than randomizing a percentage of predictions for an existing classifier. These unsettling findings, which extend and generalize existing results, are empirically confirmed on several datasets."
         },
         {
-          "title": "equalized_odds_and_calibration",
-          "url": "https://github.com/gpleiss/equalized_odds_and_calibration",
-          "source_type": "software_package",
-          "publication_date": "2017-11-03",
-          "citationKey": "gpleissEqualized_odds_and_calibration2017",
-          "abstract": "Code and data for the experiments in \"On Fairness and Calibration\""
-        },
-        {
           "title": "Equality of Opportunity in Supervised Learning",
-          "url": "https://arxiv.org/abs/1610.02413",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2016/hash/6a9659feb1216f14f7384ba499518b38-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
             "Moritz Hardt",
@@ -538,22 +693,30 @@
           "abstract": "We propose a criterion for discrimination against a specified sensitive attribute in supervised learning, where the goal is to predict some target based on available features. Assuming data about the predictor, target, and membership in the protected group are available, we show how to optimally adjust any learned predictor so as to remove discrimination according to our definition. Our framework also improves incentives by shifting the cost of poor classification from disadvantaged groups to the decision maker, who can respond by improving the classification accuracy.   In line with other studies, our notion is oblivious: it depends only on the joint statistics of the predictor, the target and the protected attribute, but not on interpretation of individualfeatures. We study the inherent limits of defining and identifying biases based on such oblivious measures, outlining what can and cannot be inferred from different oblivious tests.   We illustrate our notion using a case study of FICO credit scores."
         },
         {
-          "title": "Fairlearn: Postprocessing Methods",
-          "url": "https://fairlearn.org/v0.10/user_guide/mitigation/postprocessing.html",
-          "source_type": "documentation",
+          "title": "AIF360 demo: Calibrated Equalized Odds Postprocessing (notebook)",
+          "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/demo_calibrated_eqodds_postprocessing.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AIF360DemoCalibrated"
+        },
+        {
+          "title": "Evaluating Fairness Strategies in Educational Data Mining: A Comparative Study of Bias Mitigation Techniques",
+          "url": "https://doi.org/10.3390/electronics14091856",
+          "source_type": "application_paper",
           "authors": [
-            "Fairlearn Developers"
+            "George Raftopoulos",
+            "Gregory Davrazos",
+            "Sotiris Kotsiantis"
           ],
-          "publication_date": "2018",
-          "citationKey": "fairlearndevelopersFairlearnPostprocessingMethods2018"
+          "publication_date": "2025-5-1",
+          "citationKey": "raftopoulosEvaluatingFairnessStrategies2025",
+          "abstract": "Ensuring fairness in machine learning models applied to educational data is crucial for mitigating biases that can reinforce systemic inequities. This paper compares various fairness-enhancing algorithms across preprocessing, in-processing, and post-processing stages. Preprocessing methods such as Reweighting, Learning Fair Representations, and Disparate Impact Remover aim to adjust training data to reduce bias before model learning. In-processing techniques, including Adversarial Debiasing and Prejudice Remover, intervene during model training to directly minimize discrimination. Post-processing approaches, such as Equalized Odds Post-Processing, Calibrated Equalized Odds Post-Processing, and Reject Option Classification, adjust model predictions to improve fairness without altering the underlying model. We evaluate these methods on educational datasets, examining their effectiveness in reducing disparate impact while maintaining predictive performance. Our findings highlight tradeoffs between fairness and accuracy, as well as the suitability of different techniques for various educational applications."
         }
       ],
       "complexity_rating": 4,
       "computational_cost_rating": 2,
       "related_techniques": [
-        "equalised-odds-post-processing",
-        "reject-option-classification",
-        "threshold-optimiser"
+        "threshold-optimiser",
+        "reject-option-classification"
       ],
       "sample_claims": [
         {
@@ -567,11 +730,6 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The system's probability estimates remain interpretable and well-calibrated within each demographic group after adjusting for equal opportunity",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
           "text": "The model's confidence scores accurately reflect true outcome rates within each demographic segment despite equalising true positive rates across segments",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
@@ -582,7 +740,131 @@
           "assuranceGoal": "fairness"
         }
       ]
+    },
+    {
+      "slug": "isotonic-regression-calibration",
+      "name": "Isotonic Regression Calibration",
+      "description": "Isotonic regression calibration turns a classifier's scores into calibrated probabilities by fitting a step-shaped function that never decreases as the score rises. Unlike a fixed curve, it assumes nothing about the shape of the miscalibration except that a higher score should never mean a lower chance of the positive outcome, so it can correct any distortion that leaves the cases in the right order. It is fitted on labelled cases the classifier was not trained on: the cases are sorted by score, and the pool-adjacent-violators algorithm repeatedly merges neighbouring groups whose observed positive rates are out of order, until the rates rise steadily with the score. Each merged group's observed rate becomes the calibrated probability for scores in its range, and the result is assessed with a reliability diagram (predicted probability plotted against observed frequency) and the Brier score (a measure of how far predicted probabilities fall from what happened) before and after.",
+      "assurance_goals": [
+        "Reliability",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/calibration",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/confidence-and-limits",
+        "data-requirements/calibration-set",
+        "data-type/any",
+        "evidence-type/model-artefact",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/statistics",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
+      ],
+      "example_use_cases": [
+        {
+          "description": "A clinical research team builds a random forest on electronic health records to predict which adolescents will attempt suicide. The forest ranks patients well, but its vote shares are not probabilities, so the team fits isotonic regression on held-out records and reports calibration slope, intercept and Brier score before the risk estimates are used to prioritise clinical follow-up.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "An insurer's pricing team applies isotonic recalibration to the output of its claim-probability model, fitted on a large portfolio and checked on a later year of policies, so that within each band of predicted risk the average prediction matches the observed claim rate and no price band systematically subsidises another.",
+          "goal": "Reliability"
+        },
+        {
+          "description": "An online marketplace scores listings for fraud with a naive Bayes text classifier whose probabilities cluster near 0 and 1, and analysts had been treating them as near-certainties. With tens of thousands of labelled past cases available, the team fits isotonic calibration so the review queue shows probabilities that match observed fraud rates, and shares the reliability diagram with the analysts.",
+          "goal": "Transparency"
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It needs plenty of calibration data. With fewer than about a thousand labelled cases the step function follows noise in the calibration set. Because each step matches the observed rate exactly on the cases it was fitted to, calibration checked on those same cases looks perfect whatever its true quality, so it must be checked on separate cases. The two-parameter curve of Platt scaling usually does as well or better on small sets; isotonic regression pays off when calibration data are plentiful."
+        },
+        {
+          "description": "The output is a step function, so many different scores receive exactly the same probability. These ties discard distinctions the model made within a step, can change ranking measures such as the area under the ROC curve after calibration, and matter when a decision threshold falls inside a wide step."
+        },
+        {
+          "description": "It relies on the classifier's ordering being right: a higher score must never mean a lower chance of the outcome. Where the model ranks cases wrongly over some range of scores, isotonic regression cannot repair the ranking and instead flattens that range into a single probability."
+        },
+        {
+          "description": "Probabilities at the extremes rest on little data. The outermost steps can be fitted from a handful of cases and may sit at or near 0 or 1, and common implementations clip scores beyond the range seen in calibration to the end values, so the most extreme predictions are the least trustworthy."
+        }
+      ],
+      "resources": [
+        {
+          "title": "1.16. Probability calibration — scikit-learn user guide",
+          "url": "https://scikit-learn.org/stable/modules/calibration.html",
+          "source_type": "documentation",
+          "citationKey": "116ProbabilityCalibration",
+          "abstract": "When performing classification you often want not only to predict the class label, but also obtain a probability of the respective label. This probability gives you some kind of confidence on the p..."
+        },
+        {
+          "title": "scikit-learn",
+          "url": "https://github.com/scikit-learn/scikit-learn",
+          "source_type": "software_package",
+          "citationKey": "Scikitlearn",
+          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
+        },
+        {
+          "title": "Transforming classifier scores into accurate multiclass probability estimates",
+          "url": "https://doi.org/10.1145/775047.775151",
+          "source_type": "technical_paper",
+          "authors": [
+            "Bianca Zadrozny",
+            "Charles Elkan"
+          ],
+          "publication_date": "2002-7-23",
+          "citationKey": "zadroznyTransformingClassifierScores2002",
+          "abstract": "Class membership probability estimates are important for many applications of data mining in which classification outputs are combined with other sources of information for decision-making, such as example-dependent misclassification costs, the outputs of other classifiers, or domain knowledge. Previous calibration methods apply only to two-class problems. Here, we show how to obtain accurate probability estimates for multiclass problems by combining calibrated binary probability estimates. We also propose a new method for obtaining calibrated two-class probability estimates that can be applied to any classifier that produces a ranking of examples. Using naive Bayes and support vector machine classifiers, we give experimental results from a variety of two-class and multiclass domains, including direct marketing, text categorization and digit recognition."
+        },
+        {
+          "title": "Probability Calibration curves — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/calibration/plot_calibration_curve.html",
+          "source_type": "tutorial",
+          "citationKey": "ProbabilityCalibrationCurves",
+          "abstract": "When performing classification one often wants to predict not only the class label, but also the associated probability. This probability gives some kind of confidence on the prediction. This examp..."
+        },
+        {
+          "title": "Predicting suicide attempts in adolescents with longitudinal clinical data and machine learning",
+          "url": "https://doi.org/10.1111/jcpp.12916",
+          "source_type": "application_paper",
+          "authors": [
+            "Colin G. Walsh",
+            "Jessica D. Ribeiro",
+            "Joseph C. Franklin"
+          ],
+          "publication_date": "2018-4-30",
+          "citationKey": "walshPredictingSuicideAttempts2018",
+          "abstract": "Background Adolescents have high rates of nonfatal suicide attempts, but clinically practical risk prediction remains a challenge. Screening can be time consuming to implement at scale, if it is done at all. Computational algorithms may predict suicide risk using only routinely collected clinical data. We used a machine learning approach validated on longitudinal clinical data in adults to address this challenge in adolescents. Methods This is a retrospective, longitudinal cohort study. Data were collected from the Vanderbilt Synthetic Derivative from January 1998 to December 2015 and included 974 adolescents with nonfatal suicide attempts and multiple control comparisons: 496 adolescents with other self‐injury ( OSI ), 7,059 adolescents with depressive symptoms, and 25,081 adolescent general hospital controls. Candidate predictors included diagnostic, demographic, medication, and socioeconomic factors. Outcome was determined by multiexpert review of electronic health records. Random forests were validated with optimism adjustment at multiple time points (from 1 week to 2 years). Recalibration was done via isotonic regression. Evaluation metrics included discrimination ( AUC , sensitivity/specificity, precision/recall) and calibration (calibration plots, slope/intercept, Brier score). Results Computational models performed well and did not require face‐to‐face screening. Performance improved as suicide attempts became more imminent. Discrimination was good in comparison with OSI controls ( AUC = 0.83 [0.82–0.84] at 720 days; AUC = 0.85 [0.84–0.87] at 7 days) and depressed controls ( AUC = 0.87 [95% CI 0.85–0.90] at 720 days; 0.90 [0.85–0.94] at 7 days) and best in comparison with general hospital controls ( AUC 0.94 [0.92–0.96] at 720 days; 0.97 [0.95–0.98] at 7 days). Random forests significantly outperformed logistic regression in every comparison. Recalibration improved performance as much as ninefold – clinical recommendations with poorly calibrated predictions can lead to decision errors. Conclusions Machine learning on longitudinal clinical data may provide a scalable approach to broaden screening for risk of nonfatal suicide attempts in adolescents."
+        }
+      ],
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
+      "related_techniques": [],
+      "sample_claims": [
+        {
+          "text": "The recalibrated suicide-attempt risk model's predicted probabilities match observed attempt rates across risk deciles in held-out records, with calibration slope and intercept within pre-agreed bounds.",
+          "assuranceGoal": "reliability",
+          "domain": "healthcare"
+        },
+        {
+          "text": "Within each band of predicted claim probability, the average prediction on a later, held-out year of policies is within the tolerance in the pricing policy of the observed claim rate, so no band of policyholders systematically subsidises another.",
+          "assuranceGoal": "reliability",
+          "domain": "finance"
+        },
+        {
+          "text": "The fraud probabilities shown to analysts were recalibrated on more than 10,000 labelled past cases and agree with observed fraud rates on held-out cases, and the reliability diagram is published alongside the review tool.",
+          "assuranceGoal": "transparency",
+          "domain": "e-commerce"
+        }
+      ]
     }
   ],
-  "count": 4
+  "count": 6
 }
