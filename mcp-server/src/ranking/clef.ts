@@ -104,6 +104,20 @@ function readProbability(answer: unknown): number {
   return score;
 }
 
+/** A ranker that never ranks: candidates keep their retrieval order and no model is called. */
+export const noopRanker: Ranker = {
+  isAvailable: () => Promise.resolve(false),
+  rank: (_claim, candidates) =>
+    Promise.resolve({
+      rankingAvailable: false,
+      candidates: candidates.map((c) => ({
+        ...c,
+        score: c.retrievalScore,
+        ranked: false,
+      })),
+    }),
+};
+
 export class ClefRanker implements Ranker {
   private lastSucceeded: boolean | undefined;
   private readonly deadlineMs: number | undefined;

@@ -13,6 +13,7 @@ import {
   MODEL_REVISION,
   QUERY_PREFIX,
 } from '../src/embedding/model.js';
+import { PROBE_TEXTS } from '../src/embedding/probes.js';
 import { computeRRFScores } from '../src/embedding/search.js';
 import { KnowledgeGraph } from '../src/graph/index.js';
 import type { JsonLdGraph } from '../src/graph/types.js';
@@ -70,6 +71,25 @@ describe('embedding compatibility and offline loading', () => {
     await withFile({ ...valid, dimensions: 384 }, async (dataDir) =>
       expect(await loadEmbeddings({ local: true, dataDir })).toBeNull()
     );
+  });
+  it('keeps probe sentences with their vectors and refuses a probe of the wrong length', async () => {
+    const probes = [{ text: 'A probe sentence.', vector }];
+    await withFile({ ...valid, probes }, async (dataDir) =>
+      expect((await loadEmbeddings({ local: true, dataDir }))?.probes).toEqual(
+        probes
+      )
+    );
+    await withFile(
+      { ...valid, probes: [{ text: 'Short.', vector: vector.slice(1) }] },
+      async (dataDir) =>
+        expect(await loadEmbeddings({ local: true, dataDir })).toBeNull()
+    );
+  });
+  it('publishes three short claims and one near the 2000-character claim limit as probes', () => {
+    expect(PROBE_TEXTS).toHaveLength(4);
+    expect(PROBE_TEXTS.slice(0, 3).every((t) => t.length < 200)).toBe(true);
+    expect(PROBE_TEXTS[3].length).toBeGreaterThanOrEqual(1900);
+    expect(PROBE_TEXTS[3].length).toBeLessThanOrEqual(2000);
   });
   it('offline mode never attempts remote loading', async () => {
     vi.stubEnv('TEA_OFFLINE', '1');

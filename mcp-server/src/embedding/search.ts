@@ -15,6 +15,78 @@ function dotProduct(a: Float32Array, b: Float32Array): number {
   return sum;
 }
 
+/** Longest query vector the service will look at. */
+export const MAX_QUERY_VECTOR_LENGTH = 4096;
+
+/** A question vector sent by the caller, with the id of the model that made it. */
+export interface QueryEmbeddingInput {
+  model: string;
+  vector: number[];
+}
+
+export type PreparedQueryEmbedding =
+  | { ok: true; vector: Float32Array }
+  | { ok: false; reason: string };
+
+/**
+ * Checks a caller-supplied query vector against the loaded index and returns it
+ * L2-normalised. The model id must equal the index's, the length must equal its
+ * dimensions (and not exceed MAX_QUERY_VECTOR_LENGTH), and every value must be a
+ * finite number as a 32-bit float. A failed check returns a reason that never
+ * contains the vector's values.
+ */
+export function prepareQueryEmbedding(
+  input: QueryEmbeddingInput,
+  index: Pick<EmbeddingsIndex, 'modelId' | 'dimensions'>
+): PreparedQueryEmbedding {
+  if (input.model !== index.modelId) {
+    return { ok: false, reason: 'model id differs from the embeddings file' };
+  }
+  const values: unknown = input.vector;
+  if (!Array.isArray(values)) {
+    return { ok: false, reason: 'vector is not an array' };
+  }
+  if (values.length > MAX_QUERY_VECTOR_LENGTH) {
+    return {
+      ok: false,
+      reason: `vector has ${values.length} values; the limit is ${MAX_QUERY_VECTOR_LENGTH}`,
+    };
+  }
+  if (values.length !== index.dimensions) {
+    return {
+      ok: false,
+      reason: `vector has ${values.length} values; the embeddings file has ${index.dimensions}`,
+    };
+  }
+  const vector = new Float32Array(values.length);
+  let sumOfSquares = 0;
+  for (let i = 0; i < values.length; i++) {
+    const value: unknown = values[i];
+    if (typeof value !== 'number') {
+      return {
+        ok: false,
+        reason: 'vector contains a value that is not a number',
+      };
+    }
+    vector[i] = value;
+    if (!Number.isFinite(vector[i])) {
+      return {
+        ok: false,
+        reason: 'vector contains a value that is not finite',
+      };
+    }
+    sumOfSquares += vector[i] * vector[i];
+  }
+  const norm = Math.sqrt(sumOfSquares);
+  if (!(norm > 0 && Number.isFinite(norm))) {
+    return { ok: false, reason: 'vector has no usable length' };
+  }
+  for (let i = 0; i < vector.length; i++) {
+    vector[i] /= norm;
+  }
+  return { ok: true, vector };
+}
+
 /**
  * Rank techniques by embedding similarity to a query vector.
  * Deduplicates by slug (keeps best score per slug), returns sorted slugs.

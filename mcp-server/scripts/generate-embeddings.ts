@@ -1,4 +1,8 @@
-/** Generate EmbeddingGemma 2 vectors from graph.jsonld, never from an existing embeddings file. */
+/**
+ * Generate catalogue vectors from graph.jsonld, never from an existing embeddings
+ * file. The probe sentences are embedded as queries in the same run, so the
+ * published probe vectors come from the same model, revision and precision.
+ */
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,12 +13,15 @@ import {
   DOCUMENT_FORMAT,
   EMBEDDING_DIMENSIONS,
   EMBEDDING_PRECISION,
+  embedQuery,
   getEmbeddingModel,
   MODEL_ID,
   MODEL_REVISION,
   QUERY_PREFIX,
 } from '../src/embedding/model.js';
+import { PROBE_TEXTS } from '../src/embedding/probes.js';
 import {
+  type EmbeddingProbe,
   type EmbeddingsFile,
   EmbeddingsFileSchema,
 } from '../src/embedding/types.js';
@@ -51,6 +58,15 @@ async function main(): Promise<void> {
     model,
     corpus.map((e) => e.text)
   );
+  const probes: EmbeddingProbe[] = [];
+  for (const text of PROBE_TEXTS) {
+    // biome-ignore lint/nursery/noAwaitInLoop: probes are embedded one at a time, as a client would
+    const vector = await embedQuery(model, text);
+    if (!vector) {
+      throw new Error('Probe sentence could not be embedded');
+    }
+    probes.push({ text, vector: Array.from(vector) });
+  }
   const file: EmbeddingsFile = {
     modelId: MODEL_ID,
     dimensions: EMBEDDING_DIMENSIONS,
@@ -59,6 +75,7 @@ async function main(): Promise<void> {
     documentFormat: DOCUMENT_FORMAT,
     modelRevision: MODEL_REVISION,
     dtype: EMBEDDING_PRECISION,
+    probes,
     entries: corpus.map((entry, i) => ({
       slug: entry.slug,
       vector: Array.from(vectors[i]),

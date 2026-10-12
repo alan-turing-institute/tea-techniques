@@ -56,6 +56,7 @@ function toIndex(file: EmbeddingsFile): EmbeddingsIndex {
     dimensions: file.dimensions,
     slugs,
     vectors,
+    ...(file.probes?.length ? { probes: file.probes } : {}),
   };
 }
 
