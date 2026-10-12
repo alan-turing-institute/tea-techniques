@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loadGraphData } from '../src/data/loader.js';
 import { buildCorpus, corpusHash } from '../src/embedding/corpus.js';
 import { loadEmbeddings } from '../src/embedding/loader.js';
 import {
@@ -232,6 +233,19 @@ describe('committed vectors files', () => {
     );
     expect((await loadEmbeddings({ local: true, dataDir }))?.modelId).toBe(
       MODEL_ID
+    );
+  });
+  it('makes the published vectors from the published graph', async () => {
+    const dataDir = fileURLToPath(
+      new URL('../../public/data', import.meta.url)
+    );
+    const [index, graph] = await Promise.all([
+      loadEmbeddings({ local: true, dataDir }),
+      loadGraphData({ local: true, dataDir }),
+    ]);
+    // Regenerate with `pnpm generate-embeddings --model=minilm` after a data change.
+    expect(index?.corpusSha256).toBe(
+      corpusHash(buildCorpus(new KnowledgeGraph(graph).getAllTechniques()))
     );
   });
 });

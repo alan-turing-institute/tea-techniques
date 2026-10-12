@@ -8,9 +8,44 @@
  * service. The model's exported `sentence_embedding` output is used as is, with an
  * end-of-text token appended to each input if the tokenizer did not add one.
  */
+import { createHash } from 'node:crypto';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const END_OF_TEXT = 151_643;
+
+/**
+ * What the snapshot at `CATALOGUE_MODEL.revision` contains, from the repository's
+ * LFS records: the SHA-256 of `model.onnx` (the graph, which names the offsets it reads
+ * from `model.onnx_data`) and the exact size of `model.onnx_data` (16 GB, too slow to
+ * hash on every run).
+ */
+export const CATALOGUE_SNAPSHOT = {
+  graphSha256:
+    '54f36c53f4b0573eae79d927b9f4ac24de38cb1ce67d90c2a398669b8b0977a0',
+  dataBytes: 16_087_097_600,
+};
+
+/** Refuses a model directory that is not the pinned snapshot, so vectors never come from other weights. */
+export async function assertCatalogueSnapshot(
+  modelDir: string,
+  expected = CATALOGUE_SNAPSHOT
+): Promise<void> {
+  const graph = await fs.readFile(path.join(modelDir, 'model.onnx'));
+  if (
+    createHash('sha256').update(graph).digest('hex') !== expected.graphSha256
+  ) {
+    throw new Error(
+      `${modelDir}/model.onnx is not the pinned snapshot's graph (SHA-256 differs)`
+    );
+  }
+  const { size } = await fs.stat(path.join(modelDir, 'model.onnx_data'));
+  if (size !== expected.dataBytes) {
+    throw new Error(
+      `${modelDir}/model.onnx_data is ${size} bytes; the pinned snapshot's is ${expected.dataBytes}`
+    );
+  }
+}
 
 export type TextEmbedder = (text: string) => Promise<Float32Array>;
 
@@ -18,6 +53,7 @@ export async function loadQwen3(
   modelDir: string,
   threads: number
 ): Promise<TextEmbedder> {
+  await assertCatalogueSnapshot(modelDir);
   const ort = await import('onnxruntime-node');
   const { AutoTokenizer, env } = await import('@huggingface/transformers');
   env.allowLocalModels = true;

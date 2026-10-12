@@ -132,6 +132,37 @@ async function loadFromLocal(dataDir: string): Promise<EmbeddingsFile> {
 }
 
 /**
+ * The cached vectors as an index, or null when there is no usable cache: none,
+ * older than a day, unreadable, or made by another model (such as the metadata-less
+ * file an earlier release cached), in which case the caller fetches a fresh copy.
+ */
+async function loadFromCache(
+  expect: EmbeddingModelSpec
+): Promise<EmbeddingsIndex | null> {
+  if (!(await isCacheValid())) {
+    return null;
+  }
+  const cached = await readCache();
+  if (!cached) {
+    return null;
+  }
+  try {
+    const index = toIndex(cached, expect);
+    // biome-ignore lint/suspicious/noConsole: startup logging to stderr
+    console.error(
+      `Loaded embeddings from cache: ${CACHE_FILE} (${cached.corpusSize} entries)`
+    );
+    return index;
+  } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: startup logging to stderr
+    console.error(
+      `Cached embeddings unusable (${error instanceof Error ? error.message : 'invalid file'}), will re-fetch`
+    );
+    return null;
+  }
+}
+
+/**
  * Load embeddings, returning null on failure (graceful degradation). The file
  * must have been made by `expect`, which defaults to the in-process model.
  */
@@ -160,15 +191,9 @@ export async function loadEmbeddings(options: {
     }
 
     // Remote mode: check cache first
-    if (await isCacheValid()) {
-      const cached = await readCache();
-      if (cached) {
-        // biome-ignore lint/suspicious/noConsole: startup logging to stderr
-        console.error(
-          `Loaded embeddings from cache: ${CACHE_FILE} (${cached.corpusSize} entries)`
-        );
-        return toIndex(cached, expect);
-      }
+    const cachedIndex = await loadFromCache(expect);
+    if (cachedIndex) {
+      return cachedIndex;
     }
 
     // Fetch from remote
