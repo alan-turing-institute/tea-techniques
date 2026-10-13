@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/explainability/explains/data-patterns",
     "slug": "assurance-goal-category-explainability-explains-data-patterns",
-    "count": 10,
+    "count": 11,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -1265,6 +1265,147 @@
         {
           "text": "The perception system's object classification decisions are traceable to specific labeled examples from the training corpus",
           "domain": "autonomous systems",
+          "assuranceGoal": "explainability"
+        }
+      ]
+    },
+    {
+      "slug": "permutation-tests",
+      "name": "Permutation Tests",
+      "description": "A permutation test asks how likely an observed result would be if there were no real relationship in the data. The tester shuffles the data many times in a way that breaks the relationship under test, recalculates the metric each time, and takes the p-value as the share of shuffled results at least as extreme as the real one. Shuffling the outcome labels and retraining tests whether a classifier's accuracy beats chance, which matters most when there are few cases and many features. A restricted variant, Ojala and Garriga's second test, shuffles each feature's values separately within each class, which keeps every feature's own spread but breaks the relationships between features, so a classifier that makes significantly fewer errors on the real data than on the shuffled copies is using those relationships. The test needs no assumption about the shape of the data's distribution, but a small p-value does not show that an effect is large, important or causal.",
+      "assurance_goals": [
+        "Explainability",
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/perturbation-based",
+        "assurance-goal-category/explainability/explains/data-patterns",
+        "assurance-goal-category/explainability/property/consistency",
+        "assurance-goal-category/explainability/property/fidelity",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/performance-assessment",
+        "data-requirements/labelled-data",
+        "data-type/any",
+        "evidence-type/statistical-test",
+        "expertise-needed/statistics",
+        "explanatory-scope/global",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Reliability",
+          "description": "A hospital research group trains a classifier on 80 patients with thousands of gene-expression measurements. With so few cases, a good cross-validated accuracy could be luck, so it repeats the whole training and testing procedure on thousands of label-shuffled copies and reports the result only if it beats nearly all of them."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A council analytics team replacing a case-prioritisation model checks whether the new model's higher accuracy on the same test cases could be chance. It randomly swaps the two models' predictions case by case 10,000 times, recomputes the gap each time, and switches only if the real gap is larger than nearly all of the shuffled ones."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A cardiology team using a gradient-boosted model to flag high blood pressure expects height and weight to matter together, not only alone. It shuffles each feature within each outcome class 1,000 times and tests at the 5% level whether the model errs less on the real data, to decide if a simpler model treating features separately would do. A non-significant result means either the features are unrelated within classes or the model ignores the relationship."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Each permutation needs the metric recalculated, and a model may need retraining every time, so thousands of permutations of a large model can be expensive. Stricter thresholds need more permutations, because the smallest possible p-value is 1 divided by the number of permutations plus one, and repeated runs can disagree near the threshold."
+        },
+        {
+          "description": "Assumes exchangeability of observations under the null hypothesis, which may be violated in time series or hierarchical data structures, where simple shuffling gives p-values that are too small or too large."
+        },
+        {
+          "description": "A significant result shows that the data are unlikely under the stated null, such as 'features and labels are independent'. It does not show that the effect is large, important or causal, and shuffling cannot rule out a confounder or an artefact of how the data were collected."
+        },
+        {
+          "description": "Testing many features or groups at once produces some false positives by chance, so the p-values need correcting, for example with a false discovery rate procedure. Without that, a feature-by-feature test over many features will flag some that are only noise."
+        },
+        {
+          "description": "What is shuffled defines the question answered. Shuffling labels tests whether features and labels are related at all, while shuffling features within classes tests whether a classifier uses dependencies between features. The wrong scheme answers a different question from the one the assurance claim needs."
+        }
+      ],
+      "resources": [
+        {
+          "title": "scipy.stats.permutation_test - SciPy Manual",
+          "url": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html",
+          "source_type": "documentation",
+          "citationKey": "Scipystatspermutation_testSciPyManual"
+        },
+        {
+          "title": "scipy/scipy: SciPy library main repository",
+          "url": "https://github.com/scipy/scipy",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T01:20:17Z",
+          "citationKey": "ScipyScipySciPy2026",
+          "abstract": "SciPy library main repository"
+        },
+        {
+          "title": "Significance Tests Which May be Applied to Samples from Any Populations",
+          "url": "https://doi.org/10.2307/2984124",
+          "source_type": "technical_paper",
+          "authors": [
+            "E. J. G. Pitman"
+          ],
+          "publication_date": "1937-1-1",
+          "citationKey": "pitmanSignificanceTestsWhich1937"
+        },
+        {
+          "title": "Permutation Tests for Studying Classifier Performance",
+          "url": "https://doi.org/10.1109/icdm.2009.108",
+          "source_type": "technical_paper",
+          "authors": [
+            "Markus Ojala",
+            "Gemma C. Garriga"
+          ],
+          "publication_date": "2009-12",
+          "citationKey": "ojalaPermutationTestsStudying2009",
+          "abstract": "We explore the framework of permutation-based p-values for assessing the behavior of the classification error. In this paper we study two simple permutation tests. The first test estimates the null distribution by permuting the labels in the data; this has been used extensively in classification problems in computational biology. The second test produces permutations of the features within classes, inspired by restricted randomization techniques traditionally used in statistics. We study the properties of these tests and present an extensive empirical evaluation on real and synthetic data. Our analysis shows that studying the classification error via permutation tests is effective; in particular, the restricted permutation test clearly reveals whether the classifier exploits the interdependency between the features in the data."
+        },
+        {
+          "title": "Test with permutations the significance of a classification score - scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/model_selection/plot_permutation_tests_for_classification.html",
+          "source_type": "tutorial",
+          "citationKey": "TestPermutationsSignificance",
+          "abstract": "This example demonstrates the use of permutation_test_score to evaluate the significance of a cross-validated score using permutations. Dataset: We will use the Iris plants dataset, which consists ..."
+        },
+        {
+          "title": "Nonparametric permutation tests for functional neuroimaging: A primer with examples",
+          "url": "https://doi.org/10.1002/hbm.1058",
+          "source_type": "application_paper",
+          "authors": [
+            "Thomas E. Nichols",
+            "Andrew P. Holmes"
+          ],
+          "publication_date": "2001-10-15",
+          "citationKey": "nicholsNonparametricPermutationTests2001",
+          "abstract": "Requiring only minimal assumptions for validity, nonparametric permutation testing provides a flexible and intuitive methodology for the statistical analysis of data from functional neuroimaging experiments, at some computational expense. Introduced into the functional neuroimaging literature by Holmes et al. ([ 1996 ]: J Cereb Blood Flow Metab 16:7–22), the permutation approach readily accounts for the multiple comparisons problem implicit in the standard voxel‐by‐voxel hypothesis testing framework. When the appropriate assumptions hold, the nonparametric permutation approach gives results similar to those obtained from a comparable Statistical Parametric Mapping approach using a general linear model with multiple comparisons corrections derived from random field theory. For analyses with low degrees of freedom, such as single subject PET/SPECT experiments or multi‐subject PET/SPECT or f MRI designs assessed for population effects, the nonparametric approach employing a locally pooled (smoothed) variance estimate can outperform the comparable Statistical Parametric Mapping approach. Thus, these nonparametric techniques can be used to verify the validity of less computationally expensive parametric approaches. Although the theory and relative advantages of permutation approaches have been discussed by various authors, there has been no accessible explication of the method, and no freely distributed software implementing it. Consequently, there have been few practical applications of the technique. This article, and the accompanying MATLAB software, attempts to address these issues. The standard nonparametric randomization and permutation testing ideas are developed at an accessible level, using practical examples from functional neuroimaging, and the extensions for multiple comparisons described. Three worked examples from PET and f MRI are presented, with discussion, and comparisons with standard parametric approaches made where appropriate. Practical considerations are given throughout, and relevant statistical concepts are expounded in appendices."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 4,
+      "related_techniques": [
+        "permutation-importance",
+        "cross-validation",
+        "shapley-additive-explanations"
+      ],
+      "sample_claims": [
+        {
+          "text": "The classifier's accuracy on the patient cohort exceeds what label-shuffled copies of the same data produce, at the 1% significance level",
+          "domain": "healthcare",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The new case-prioritisation model's accuracy advantage over the current model is larger than random swapping of their predictions produces, at the 5% significance level",
+          "domain": "public sector",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "On the validation dataset, the blood-pressure model's accuracy depends on the relationship between height and weight, not only on each taken alone, at the 5% significance level",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         }
       ]
@@ -3612,5 +3753,5 @@
       ]
     }
   ],
-  "count": 22
+  "count": 23
 }

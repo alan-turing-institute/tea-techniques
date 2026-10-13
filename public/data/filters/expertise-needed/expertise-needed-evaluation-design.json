@@ -296,18 +296,14 @@
     {
       "slug": "prompt-robustness-testing",
       "name": "Prompt Robustness Testing",
-      "description": "Prompt robustness testing measures how much a language model's answers, or its performance on a task, change when the prompt is varied in ways that should not matter: rewording an instruction, changing formatting, punctuation or capitalisation, reordering elements, or introducing the typos and synonym swaps real users make. The tester starts from a set of task prompts with known correct answers, generates variants of each that keep its meaning, either from templates of plausible formats or with automated perturbation tools such as PromptBench, and runs the model on every variant. The result is reported as the spread of performance across variants, for example the gap between the best and worst format or the drop in accuracy under perturbation, together with the variants that changed the answer. Reporting the spread rather than one score matters because results from a single prompt template are brittle: on one widely used open model, accuracy differed by up to 76 points across formatting changes that kept the meaning.",
+      "description": "Prompt robustness testing measures how much a language model's answers, or its performance on a task, change when the prompt is varied in ways that should not matter, such as rewording, formatting, capitalisation, reordering, or the typos and synonym swaps real users make. The tester starts from task prompts with known correct answers, writes variants that keep the meaning from templates or generates them with perturbation tools such as PromptBench, and runs the model on every variant. Some tools search for the variant that does the most damage, so a drop under that kind of attack is a worst case, not a typical failure rate. The result is reported as the spread of performance across variants, for example the gap between the best and worst format, together with the variants that changed the answer. On one widely used open model, accuracy differed by up to 76 points across formatting changes that kept the meaning, which is why one prompt template is not enough.",
       "assurance_goals": [
-        "Reliability",
-        "Explainability"
+        "Reliability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/transformer/llm",
         "applicable-models/paradigm/generative",
         "applicable-models/requirements/black-box",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/decision-boundaries",
-        "assurance-goal-category/explainability/uncertainty-analysis/sensitivity-testing",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/robustness",
         "data-requirements/no-special-requirements",
@@ -318,27 +314,22 @@
         "expertise-needed/linguistics",
         "expertise-needed/ml-engineering",
         "expertise-needed/statistics",
-        "explanatory-scope/global",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/model-testing-and-validation",
         "technique-type/testing"
       ],
       "example_use_cases": [
         {
-          "description": "A digital health provider testing a symptom-triage chatbot rewrites each benchmark scenario as a brief layperson message, a detailed account, a clinician's summary and an anxious message, and checks that the urgency category stays the same across all four, treating any change as a failure to investigate before release.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A digital health provider testing a symptom-triage chatbot rewrites each benchmark scenario as a brief layperson message, a detailed account, a clinician's summary and an anxious message, and checks that the urgency category stays the same across all four, treating any change as a failure to investigate before release."
         },
         {
-          "description": "A public-sector team choosing between candidate language models for classifying citizen enquiries evaluates each across a set of plausible prompt formats and instruction paraphrases, and compares models on worst-format and average accuracy rather than on a single prompt, because the ranking of models can change with the template.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A public-sector team choosing between candidate language models for classifying citizen enquiries evaluates each across a set of plausible prompt formats and instruction paraphrases, and compares models on worst-format and average accuracy rather than on a single prompt, because the ranking of models can change with the template."
         },
         {
-          "description": "A bank validating a model that summarises suspicious-transaction reports checks that the risk category it extracts does not change when the same activity is described with different terminology, abbreviations or layout, as reports from different branches would be.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "A support team testing a request-routing model varies one element of each request at a time to separate the words that change the routing decision from formatting changes that should not, and uses the result to write guidance on how customers should phrase requests.",
-          "goal": "Explainability"
+          "goal": "Reliability",
+          "description": "A bank validating a model that summarises suspicious-transaction reports checks that the risk category it extracts does not change when the same activity is described with different terminology, abbreviations or layout, as reports from different branches would be."
         }
       ],
       "limitations": [
@@ -346,7 +337,7 @@
           "description": "The space of possible prompt variants is unbounded, so a test samples it. A model can pass on every variant tried and still fail on a phrasing nobody generated, and the conclusion holds only for the kinds of variation the test set covers."
         },
         {
-          "description": "Whether a variant keeps the meaning of the original is a judgement. Automated perturbations such as typos and synonym swaps can change meaning or produce text no user would write, especially in specialised language, so variant sets need checking by someone who knows the domain."
+          "description": "Whether a variant keeps the meaning of the original is a judgement. Automated perturbations can change meaning or produce text no user would write, and attack-based tools search for the most damaging variant, so their drops are worst cases. Variant sets need checking by someone who knows the domain."
         },
         {
           "description": "Results do not transfer between models: which formats work well correlated only weakly across models in a large study, and robustness to one domain's phrasing says little about another's. The test has to be rerun for each model version, each prompt template change and each domain."
@@ -468,18 +459,13 @@
           "text": "The risk category extracted from suspicious-transaction reports does not change when the same activity is described with different terminology or layout",
           "domain": "finance",
           "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The changes that alter the routing model's decisions have been identified and are changes to the content of a request, not to its formatting",
-          "domain": "general",
-          "assuranceGoal": "explainability"
         }
       ]
     },
     {
       "slug": "agent-goal-misalignment-testing",
       "name": "Agent Goal Misalignment Testing",
-      "description": "Agent goal misalignment testing checks whether an AI agent, given a goal that could be advanced by means its operators have not sanctioned, takes those means. The tester builds scenarios around a goal conflict: the agent has a task, tools and access, and the situation offers a harmful or forbidden route to its goal, such as deceiving a user, leaking confidential information, acquiring power or resources beyond its remit, or coercing people to avoid being replaced, while its instructions or ordinary ethics rule that route out. Each scenario is run many times, and every transcript is classified, by a language-model classifier checked against human judgement or by annotators, for whether the agent took a misaligned action. The result is the rate of misaligned actions per scenario and per model, with example transcripts, and how that rate changes with factors the tester varies, such as a threat to the agent's continued operation or an explicit instruction not to cause harm. It needs no access to a reward function or to training: it tests the behaviour of an already-trained agent.",
+      "description": "Agent goal misalignment testing checks whether an AI agent takes unsanctioned means to reach a goal it has been given. The tester builds scenarios in which the agent has a task, tools and access, and a forbidden route to its goal is open, such as deceiving a user, leaking confidential information or coercing people to avoid being replaced. Each scenario is run many times, and each transcript is classified as misaligned or not, either by a language-model classifier checked against human judgement or by human annotators. The result is the rate of misaligned actions per scenario and per model, with example transcripts, and how that rate changes when the tester varies a factor such as a threat to the agent's continued operation or an explicit instruction not to cause harm. The test needs no access to a reward function or to training, because it examines the behaviour of an already-trained agent.",
       "assurance_goals": [
         "Safety",
         "Reliability"
@@ -799,7 +785,7 @@
     {
       "slug": "constitutional-ai-evaluation",
       "name": "Constitutional AI Evaluation",
-      "description": "Constitutional AI evaluation assesses models trained to follow explicit behavioural principles or 'constitutions' that specify desired values and constraints. This technique verifies that models consistently adhere to specified principles across diverse scenarios, measuring both principle compliance and handling of principle conflicts. Evaluation includes testing boundary cases where principles might conflict, measuring robustness to adversarial attempts to violate principles, and assessing whether models can explain their reasoning in terms of constitutional principles.",
+      "description": "Constitutional AI evaluation checks whether a language model follows the written principles, or 'constitution', that it was trained or instructed to follow. The evaluator writes test prompts for each principle, and can add prompts where two principles conflict or where a user tries to talk the model out of a principle. A judge, either human reviewers or a second language model whose accuracy has been checked, assesses each response against one principle at a time, often by comparing it with a baseline model's response. The result is a rate for each principle, such as how often the model's response is preferred to the baseline's, which shows which principles it follows well on the prompts tested and which it does not. A fuller evaluation also checks that following the principles has not made the model over-cautious or less capable.",
       "assurance_goals": [
         "Safety",
         "Reliability"
@@ -826,40 +812,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating a general-purpose AI assistant with the principle 'provide helpful information while refusing requests for illegal activities' to ensure it consistently distinguishes between legitimate chemistry education queries and attempts to obtain instructions for synthesising controlled substances or explosives.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A developer tuning a general-purpose assistant on a constitution that includes 'refuse requests for illegal activity' writes test prompts for each principle, including borderline chemistry-education questions and attempts to extract synthesis instructions. Reviewers compare the tuned model's answers with the base model's, to decide whether the constitution is ready to ship or needs principles rewritten."
         },
         {
-          "description": "Verifying that an AI news aggregator consistently applies stated principles about neutrality versus editorial perspective across diverse political topics and international news sources.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A news publisher using an AI summariser governed by a neutrality principle gives it the same contested story framed from several political positions. Reviewers from differing viewpoints score whether each summary adds editorial language, and the editors use the rate by topic to decide where the summariser can run without a human check."
         },
         {
-          "description": "Evaluating a mental health support chatbot designed with principles like 'be empathetic and supportive while never providing medical diagnoses or replacing professional care' to verify it consistently maintains this boundary across varied emotional crises and user requests.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A digital health provider tests a mental health support chatbot built on the principle 'be supportive, but never diagnose' with scripted crisis conversations in which users ask directly for a diagnosis. Clinicians score each reply, and the share that stays on the right side of the boundary decides whether the chatbot is cleared for a limited pilot."
         },
         {
-          "description": "Testing an AI homework assistant built on principles of 'guide learning without providing direct answers' to ensure it maintains this educational philosophy across different subjects, student ages, and question complexities without reverting to simply solving problems.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "An education company checks a homework assistant built on the principle 'guide learning without giving direct answers' across subjects, age bands and frustrated or urgent requests. It counts replies that simply give the answer, and uses the rate for each subject to decide where the principle needs strengthening before a school rollout."
         }
       ],
       "limitations": [
         {
-          "description": "Constitutional principles may be vague or subject to interpretation, making it difficult to objectively measure compliance."
+          "description": "Principles are written in natural language, so compliance depends on how the judge reads them. Vague principles, or ones that mean different things across cultures and languages, give scores that reviewers would dispute, so the judge's reading needs checking against human reviewers for each principle."
         },
         {
-          "description": "Principles can conflict in complex scenarios, and evaluation must assess whether the model's priority ordering matches intended values."
+          "description": "Principles can conflict in complex scenarios, and the evaluation has to decide which should win. If the intended priority is not written down, a model can look compliant on each principle separately and still resolve conflicts differently from what the developer intended."
         },
         {
-          "description": "Models may learn to superficially cite principles in explanations without genuinely using them in decision-making processes."
+          "description": "Adherence is uneven across kinds of principle. In one study of small fine-tuned models, negatively framed principles such as avoiding harmful content were followed much better than positively framed, abstract ones such as benefiting humanity, so an average score can hide principles the model largely ignores."
         },
         {
-          "description": "Creating comprehensive test sets covering all relevant principle applications and edge cases requires significant domain expertise and resources."
+          "description": "Scores depend on the test prompts and on the judge. Prompts that miss a principle's edge cases give a falsely high rate, and an automated judge can favour one response position or misapply the principle, so it needs checking against human judgement in each new domain."
         },
         {
-          "description": "Constitutional principles that seem clear in one cultural or linguistic context may be interpreted differently across diverse user populations, making it challenging to evaluate whether the model appropriately adapts its principle application or inappropriately varies its values."
-        },
-        {
-          "description": "As organisational values evolve or principles are refined based on deployment experience, re-evaluation becomes necessary, but comparing results across principle versions is challenging without confounding changes in the model itself versus changes in evaluation criteria."
+          "description": "When principles are revised after deployment, results must be re-run, and comparing them across principle versions is hard because a change in score may come from the model, the principles or the test criteria."
         }
       ],
       "resources": [
@@ -1000,22 +983,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The conversational assistant consistently refuses requests for harmful information whilst maintaining helpful responses to legitimate educational queries",
+          "text": "On the evaluation's test prompts, the assistant refuses requests for harmful information while still answering legitimate educational queries",
           "domain": "general",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The healthcare chatbot maintains its boundary between providing supportive information and offering medical advice across diverse emotional contexts",
+          "text": "Across the scripted crisis conversations, the support chatbot keeps to its boundary between supportive information and medical diagnosis",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The content moderation system applies its stated community standards consistently across different cultural contexts and topic sensitivities",
-          "domain": "general",
+          "text": "Across the matched test stories, the news summariser adds editorial language no more often for one political position than for another",
+          "domain": "journalism",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The educational assistant upholds its pedagogical values without reverting to direct answer provision when users express frustration or urgency",
+          "text": "The homework assistant keeps to its principle of guiding learning without giving direct answers when users express frustration or urgency, at the rate set in the release criteria",
           "domain": "general",
           "assuranceGoal": "reliability"
         }
@@ -1921,10 +1904,9 @@
     {
       "slug": "retrieval-augmented-generation-evaluation",
       "name": "Retrieval-Augmented Generation Evaluation",
-      "description": "RAG evaluation assesses systems combining retrieval and generation by measuring retrieval quality, generation faithfulness, and overall performance. This technique evaluates whether retrieved context is relevant, whether responses faithfully represent information without hallucination, and how systems handle insufficient context. Key metrics include retrieval precision/recall, answer relevance, faithfulness scores, and citation accuracy.",
+      "description": "A retrieval-augmented generation (RAG) system answers a question by retrieving passages from a document collection and asking a language model to write an answer from them. RAG evaluation scores retrieval on whether the fetched passages are relevant and focused and, where reference answers exist, whether they contain what the answer needs. Generation is scored on faithfulness, usually by splitting the answer into individual claims and reporting the share that the fetched passages support, and on answer relevance, which asks whether the answer addresses the question. Frameworks such as Ragas automate these checks with a second language model acting as judge, so faithfulness and relevance need no human-written reference answers. Test sets can also include questions the documents cannot answer, to check that the system says so instead of guessing.",
       "assurance_goals": [
-        "Reliability",
-        "Transparency"
+        "Reliability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/transformer/llm",
@@ -1932,8 +1914,6 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/performance-assessment",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/decision-reasons",
         "data-requirements/labelled-data",
         "data-type/text",
         "evidence-type/quantitative-metric",
@@ -1946,40 +1926,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating a technical support knowledge system at a software company to ensure it retrieves relevant troubleshooting documentation and generates accurate solutions without fabricating configuration steps or commands not present in official documentation.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A software company's support team tests its troubleshooting assistant on a set of real customer questions. For each answer it checks that the retrieved pages are the right ones and that every configuration step or command quoted appears in the official documentation, and it holds back changes that introduce invented steps."
         },
         {
-          "description": "Assessing whether a legal research assistant properly cites source documents when generating case summaries, enabling lawyers to verify information and trace conclusions back to authoritative sources.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A law firm's research team tests an assistant that summarises case law from its own database. Each summary is split into claims and each claim is checked against the passages the assistant retrieved, and summaries with unsupported claims are flagged for review before the assistant is rolled out to fee-earners."
         },
         {
-          "description": "Evaluating a clinical decision support system that retrieves relevant medical literature and patient records to ensure generated treatment recommendations accurately reflect evidence-based guidelines without extrapolating beyond available clinical data.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A hospital pharmacy team tests a clinical decision-support tool that retrieves guidelines and patient records. A clinician compares each generated treatment suggestion with the retrieved guideline text, and the team tracks the share of suggestions that go beyond what the sources say before the tool reaches ward staff."
         },
         {
-          "description": "Assessing a government benefits information chatbot to verify it retrieves relevant policy documents and accurately communicates eligibility criteria without hallucinating benefits, amounts, or requirements that could mislead citizens seeking assistance.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A benefits agency tests its eligibility chatbot on questions drawn from real enquiries, including some the policy documents cannot answer. It checks that quoted amounts and rules match the retrieved policy text and that the chatbot says it cannot answer instead of guessing, before the chatbot is opened to citizens."
         }
       ],
       "limitations": [
         {
-          "description": "Evaluation requires high-quality ground truth datasets with known correct retrievals and answers, which may be expensive or impossible to create for specialized domains."
+          "description": "Scores that judge retrieval against known answers, such as context recall, need reference answers or labelled passages, which are slow to write and need experts in specialist domains. Reference-free scores avoid this but only penalise irrelevant passages, so they cannot show that a needed passage was never retrieved."
         },
         {
-          "description": "Faithfulness assessment can be subjective and difficult to automate, often requiring human judgment to determine whether responses accurately represent retrieved context."
+          "description": "Scores usually come from a second language model acting as judge, so they inherit its errors and its sensitivity to wording. In the original Ragas study the judge agreed with human raters in 95% of pairwise comparisons on faithfulness but only 70% on context relevance, and it struggled to pick out the key sentences in long contexts."
         },
         {
-          "description": "Trade-offs between retrieval precision and recall mean optimizing for one metric may degrade the other, requiring domain-specific balancing decisions."
+          "description": "Faithfulness measures whether an answer is supported by the retrieved text, not whether that text is correct, current or complete. A system that retrieves an outdated document and reports it accurately scores well, so the knowledge base needs checking separately."
         },
         {
-          "description": "Metrics may not capture subtle quality issues like incomplete answers, misleading emphasis, or failure to synthesize information from multiple retrieved sources."
+          "description": "Claim-by-claim checking may not catch answers that chain reasoning across several documents. Misleading emphasis, selective quotation and unsupported leaps between sources can pass when each sentence is individually supported, so these cases need targeted test questions and human review."
         },
         {
-          "description": "Evaluating multi-hop reasoning—where answers require synthesising information across multiple retrieved documents—is particularly challenging, as standard metrics may not capture whether the system correctly chains information or makes unsupported logical leaps."
-        },
-        {
-          "description": "Difficult to isolate whether poor performance stems from retrieval failures (finding wrong documents), generation failures (misusing correct documents), or interaction effects, complicating diagnosis and improvement efforts."
+          "description": "When a score is low, the cause can lie in retrieval, in generation or in how the two interact, and the scores alone often cannot say which. Diagnosis usually needs manual inspection of the retrieved passages and answers for a sample of failing questions."
         }
       ],
       "resources": [
@@ -2056,19 +2033,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The legal research system's generated case summaries are traceable to specific retrieved source documents with verifiable citations",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
           "text": "The clinical decision support system generates treatment recommendations that accurately reflect the retrieved evidence-based guidelines without extrapolating beyond available medical literature",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The customer support assistant explicitly indicates when retrieved knowledge base articles do not contain sufficient information to answer user queries",
+          "text": "The share of claims in the legal assistant's case summaries that are not supported by the passages it retrieved stays below a stated threshold on the evaluation queries",
+          "domain": "legal",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "When the retrieved knowledge-base articles do not contain the answer, the customer support assistant says so instead of producing one",
           "domain": "general",
-          "assuranceGoal": "transparency"
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "Eligibility criteria, amounts and requirements in the benefits chatbot's answers match the retrieved policy documents, and none appears that the documents do not contain",
+          "domain": "public sector",
+          "assuranceGoal": "reliability"
         }
       ]
     },

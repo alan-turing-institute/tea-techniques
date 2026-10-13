@@ -3710,11 +3710,10 @@
     {
       "slug": "continual-learning-stability-testing",
       "name": "Continual Learning Stability Testing",
-      "description": "Continual learning stability testing evaluates whether models that learn from streaming data maintain performance on previously learned tasks while acquiring new capabilities. This technique measures catastrophic forgetting (performance degradation on old tasks), forward transfer (whether old knowledge helps new learning), and backward transfer (whether new learning damages old performance). Testing includes challenging scenarios where data distributions shift significantly and evaluates whether stability techniques like experience replay or regularisation effectively preserve knowledge.",
+      "description": "Continual learning stability testing checks whether a model that is updated over time with new data or tasks keeps what it learned earlier, by scoring it after each update on a test set for every task in the sequence. Backward transfer is the average change in accuracy on earlier tasks, and a large fall is called catastrophic forgetting. Forward transfer is accuracy on a task the model has not yet been trained on, compared with an untrained model. Scoring only at the end of each update can hide a sharp but temporary drop, so stricter tests also score the model during training and report its worst result. The scores can also show whether methods meant to protect old knowledge, such as replaying stored examples of earlier data or penalising changes to the weights that matter for earlier tasks, are working.",
       "assurance_goals": [
         "Reliability",
-        "Safety",
-        "Fairness"
+        "Safety"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -3724,8 +3723,6 @@
         "assurance-goal-category/reliability/robustness",
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/verification",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "data-requirements/access-to-training-data",
         "data-requirements/labelled-data",
         "data-type/any",
@@ -3737,41 +3734,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing whether a content moderation model updated with new harmful content patterns maintains reliable detection of previously learned violation types without catastrophic forgetting.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A trust-and-safety team retrains its abuse classifier every month on newly reported content. Before release it scores the new version on a held-out test set for each earlier abuse type and holds the release if detection of any type has fallen by more than the agreed margin."
         },
         {
-          "description": "Ensuring a medical diagnosis AI that continuously learns from new clinical cases doesn't forget how to recognize previously mastered conditions, preventing safety regressions.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A hospital team lets a triage model keep learning from new cases while it is in use. Because users meet any dip as it happens, the team scores the model on its urgent conditions at regular points during each update, not only at the end, and stops the update if the lowest score falls below the agreed floor."
         },
         {
-          "description": "Verifying that fairness improvements from continual learning don't introduce new biases or degrade performance for previously well-served demographic groups.",
-          "goal": "Fairness"
+          "goal": "Reliability",
+          "description": "A bank updates its fraud model weekly on newly confirmed cases. To see whether replaying stored examples of older fraud actually protects detection of old patterns, the team runs the same update with and without replay and compares how well each version still catches each earlier fraud type."
         },
         {
-          "description": "Testing whether a fraud detection system that continuously learns from new fraud patterns maintains its ability to detect previously identified fraud types, preventing financial losses from regression to older attack vectors.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Verifying that a customer service chatbot updated with new product knowledge doesn't degrade in handling established customer issues, maintaining consistent service quality across evolving capabilities.",
-          "goal": "Reliability"
+          "goal": "Safety",
+          "description": "A factory retrains a camera-based hazard detector when a new machine is installed. Before it returns to the line, the safety engineer scores the retrained detector on the stored test images for every previously known hazard and signs off only if none is detected less reliably than before."
         }
       ],
       "limitations": [
         {
-          "description": "Comprehensive testing requires maintaining evaluation datasets for all previously learned tasks, which becomes burdensome as systems learn continuously."
+          "description": "Every update means scoring the model on a test set for each earlier task, so total cost grows with the number of tasks as well as the number of updates. Old test sets also have to be kept, which can conflict with data-retention rules, and scoring only a sample of tasks cannot detect forgetting in the rest."
         },
         {
-          "description": "Trade-offs between plasticity (learning new tasks well) and stability (retaining old knowledge) are fundamental and difficult to optimize simultaneously."
+          "description": "Scores taken only at the end of each update can miss a sharp, temporary drop on earlier tasks while the model is still learning. This matters for a system that stays in service during training, because users meet the dip. Catching it needs repeated scoring during training, which adds to the cost."
         },
         {
-          "description": "Techniques that prevent catastrophic forgetting often require storing samples of old data, raising privacy and storage concerns."
+          "description": "Stability scores measure only one side of the stability-plasticity trade-off. A model can score perfectly on earlier tasks by refusing to learn anything new, so results must be read alongside accuracy on the new tasks."
         },
         {
-          "description": "Defining acceptable forgetting levels is application-dependent and may conflict with the need to adapt to changing environments."
+          "description": "Deciding how much forgetting is acceptable depends on the application, and the test cannot settle it. A threshold set too tight blocks adaptation to changing conditions, and one set too loose lets real losses through."
         },
         {
-          "description": "Comprehensive stability testing requires re-running full evaluation suites after each update, creating computational costs that scale linearly with model lifespan and update frequency."
+          "description": "Results hold for the sequence of tasks tested, and assume tasks with clear boundaries and a labelled test set for each. Real data streams often drift gradually, and how much a model forgets depends on how different consecutive tasks are, so a gentler test sequence understates forgetting."
         }
       ],
       "resources": [
@@ -3851,27 +3844,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic system maintains accurate detection of previously learned conditions when updated with new disease patterns",
+          "text": "At every evaluated checkpoint during the update, the diagnosis model met the stated performance floor on held-out cases of previously learned conditions",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The content moderation model retains effective identification of earlier violation types after learning to detect new forms of harmful content",
-          "domain": "general",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The fraud detection system's performance on established fraud patterns does not degrade when trained on emerging attack vectors",
+          "text": "The moderation model's worst evaluated checkpoint score on earlier violation categories remained above the stated acceptance target",
+          "domain": "general",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The fraud model's old-task scores changed by no more than the stated tolerance at the evaluated checkpoints whilst new fraud patterns were learned",
           "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The recommendation system's fairness properties for existing user demographics remain stable when the model adapts to new user populations",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The industrial safety monitoring system preserves reliable detection of known hazard conditions whilst incorporating recognition of newly identified risk factors",
+          "text": "On the retained hazard evaluation tasks, the industrial monitoring model met the stated detection floor throughout the sampled learning checkpoints",
           "domain": "manufacturing",
           "assuranceGoal": "safety"
         }
@@ -4725,10 +4713,9 @@
     {
       "slug": "synthetic-data-evaluation",
       "name": "Synthetic Data Evaluation",
-      "description": "Synthetic data evaluation assesses whether synthetic datasets protect individual privacy while maintaining statistical utility and fidelity to real data. This technique evaluates three key dimensions: privacy (through disclosure risk metrics and re-identification attack success rates), utility (by comparing statistical properties and model performance), and fidelity (measuring distributional similarity to real data). It produces evaluation reports quantifying the privacy-utility-fidelity trade-offs.",
+      "description": "Synthetic data evaluation checks whether an artificial dataset made to stand in for sensitive real records is safe to share and still useful, and reports the trade-off between the two. Privacy is tested by simulating an attacker who holds the synthetic data and some facts about a person, and measuring how accurately the attacker can use the data to infer that person's sensitive values. Fidelity is tested by comparing the synthetic and real data column by column and in pairs of columns. Another check trains a classifier to tell the two apart, and a classifier that cannot beat chance suggests they are statistically alike. Utility is tested by running the analyses or training the models the data is meant for on the synthetic data and comparing the results with those from the real data.",
       "assurance_goals": [
         "Privacy",
-        "Transparency",
         "Reliability"
       ],
       "tags": [
@@ -4736,8 +4723,6 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/privacy",
         "assurance-goal-category/privacy/leakage-testing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/performance-assessment",
         "data-requirements/access-to-training-data",
@@ -4755,40 +4740,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Validating synthetic patient data generated for medical research to ensure individual patients cannot be re-identified while maintaining statistical relationships needed for valid clinical studies.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A hospital research office wants to share synthetic outpatient records with university partners. Before release it simulates an attacker who knows each patient's age band, sex and postcode district and tries to infer their diagnosis from the synthetic table, and it withholds the data if the attack does better than guessing from overall diagnosis rates."
         },
         {
-          "description": "Validating that machine learning models for predicting student outcomes trained on synthetic educational data maintain reliable performance comparable to models trained on real student records, while enabling researchers to share datasets without FERPA violations.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A national statistics office gives researchers synthetic microdata for exploratory analysis. After the researchers settle on their models, the office runs the same models on the real data inside a secure environment and compares the estimates, to tell the researchers whether their exploratory conclusions can be trusted."
         },
         {
-          "description": "Ensuring fraud detection models trained on synthetic credit card transactions maintain reliable performance comparable to models trained on sensitive real transaction data.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Producing audit-ready evaluation reports for a synthetic financial dataset used to train credit-risk models, demonstrating to regulators (e.g., under EU AI Act or SR 11-7 model risk management guidance) that the training data met documented privacy and quality thresholds, and that all trade-off decisions between privacy protection and model utility were recorded and justified.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A bank's fraud team generates synthetic card transactions to share with an external vendor. It compares how often each fraud type appears and how amount, merchant type and time of day relate in the real and synthetic data, then checks that a model trained on the synthetic data still catches rare fraud in held-out real transactions."
         }
       ],
       "limitations": [
         {
-          "description": "Trade-off between privacy and utility means strong privacy guarantees often significantly degrade data quality and analytical value."
+          "description": "Stronger privacy protection usually costs data quality, so the three scores pull against each other. There is no neutral threshold: where to set the balance depends on how sensitive the data is and what it will be used for, and the evaluation reports the trade-off without settling it."
         },
         {
-          "description": "Difficult to validate that synthetic data protects against all possible privacy attacks, especially sophisticated adversaries with auxiliary information."
+          "description": "Attack-based privacy tests only probe the attacks and attacker knowledge that were tried. A dataset that resists them may still leak to an attacker with more auxiliary information or a better method, so a good result is not proof of safety."
         },
         {
-          "description": "Utility metrics may not capture subtle distributional differences that matter for specific downstream tasks or edge case analyses."
+          "description": "Fidelity and utility scores depend on which metrics, models and analyses are chosen. A synthetic dataset can match the real data on the columns and column pairs checked yet differ in ways that matter for a particular analysis, and general and analysis-specific utility scores can disagree."
         },
         {
-          "description": "Synthetic data may introduce artificial patterns or miss rare but important real-world phenomena, limiting use for certain applications."
+          "description": "Scores summarise the whole table, so rare events and small subgroups can be lost without moving the totals much. A fraud pattern or a minority group that the generator has smoothed away may show up only if the evaluation is designed to look for it."
         },
         {
-          "description": "Requires significant domain expertise to properly validate fidelity and utility for specific use cases, as generic statistical metrics may not capture domain-specific requirements or failure modes."
-        },
-        {
-          "description": "Synthetic data may not preserve fairness properties or bias patterns from original data in predictable ways, requiring careful fairness testing when synthetic data is used to train decision-making models."
+          "description": "The tests need statistical, privacy-engineering and domain expertise to set up and read. A classifier-based fidelity check can be misled by over-fitting or under-fitting the classifier, and weak settings can make poor synthetic data look good."
         }
       ],
       "resources": [
@@ -4881,29 +4859,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The synthetic patient dataset protects individual privacy whilst maintaining sufficient statistical fidelity for valid epidemiological analysis",
+          "text": "In the attack tests run on this release, an attacker who holds the synthetic patient dataset and a person's demographic details infers that person's diagnosis no more accurately, within a stated margin, than from population rates alone",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The fraud detection model trained on synthetic transaction data maintains performance comparable to models trained on real customer data",
+          "text": "Estimates from the researchers' models fitted to the synthetic microdata agree with the same models fitted to the real data within the stated tolerance",
+          "domain": "public sector",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The fraud model trained on synthetic transactions performs within the stated tolerance of the real-data-trained comparison model on the same independent real-data test set",
           "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The privacy-utility trade-offs of the synthetic educational dataset are quantified and documented for regulatory compliance",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The synthetic climate model training data preserves the statistical relationships between environmental variables observed in sensor measurements",
+          "text": "The synthetic dataset meets the stated agreement targets for the selected environmental analyses compared with the real reference data",
           "domain": "environmental",
           "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The synthetic genomics dataset resists re-identification attacks whilst preserving sufficient genetic variant correlations for research validity",
-          "domain": "healthcare",
-          "assuranceGoal": "privacy"
         }
       ]
     },

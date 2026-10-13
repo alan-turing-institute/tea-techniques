@@ -2286,10 +2286,9 @@
     {
       "slug": "permutation-tests",
       "name": "Permutation Tests",
-      "description": "Permutation tests assess the statistical significance of observed results (such as model accuracy, feature importance, or group differences) by comparing them to what would occur purely by chance. The technique randomly shuffles labels or data thousands of times, recalculating the metric of interest each time to build an empirical null distribution. If the actual observed result falls in the extreme tail of this distribution (typically beyond the 95th or 99th percentile), it provides strong evidence that the relationship is genuine rather than due to random chance, without requiring parametric assumptions about data distributions.",
+      "description": "A permutation test asks how likely an observed result would be if there were no real relationship in the data. The tester shuffles the data many times in a way that breaks the relationship under test, recalculates the metric each time, and takes the p-value as the share of shuffled results at least as extreme as the real one. Shuffling the outcome labels and retraining tests whether a classifier's accuracy beats chance, which matters most when there are few cases and many features. A restricted variant, Ojala and Garriga's second test, shuffles each feature's values separately within each class, which keeps every feature's own spread but breaks the relationships between features, so a classifier that makes significantly fewer errors on the real data than on the shuffled copies is using those relationships. The test needs no assumption about the shape of the data's distribution, but a small p-value does not show that an effect is large, important or causal.",
       "assurance_goals": [
         "Explainability",
-        "Fairness",
         "Reliability"
       ],
       "tags": [
@@ -2297,11 +2296,9 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/explainability",
         "assurance-goal-category/explainability/attribution-methods/perturbation-based",
-        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/explains/data-patterns",
         "assurance-goal-category/explainability/property/consistency",
         "assurance-goal-category/explainability/property/fidelity",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-measurement",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/performance-assessment",
         "data-requirements/labelled-data",
@@ -2316,30 +2313,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Validating feature importance in medical diagnosis models by permuting each feature 10,000 times to ensure that identified risk factors (e.g., blood pressure, cholesterol) have statistically significant predictive power beyond random chance.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A hospital research group trains a classifier on 80 patients with thousands of gene-expression measurements. With so few cases, a good cross-validated accuracy could be luck, so it repeats the whole training and testing procedure on thousands of label-shuffled copies and reports the result only if it beats nearly all of them."
         },
         {
-          "description": "Testing whether observed differences in loan approval rates between demographic groups are statistically significant by permuting group labels and calculating the approval rate difference distribution under the null hypothesis of no discrimination.",
-          "goal": "Explainability"
+          "goal": "Reliability",
+          "description": "A council analytics team replacing a case-prioritisation model checks whether the new model's higher accuracy on the same test cases could be chance. It randomly swaps the two models' predictions case by case 10,000 times, recomputes the gap each time, and switches only if the real gap is larger than nearly all of the shuffled ones."
         },
         {
-          "description": "Verifying that a model's claimed 95% accuracy on test data is genuinely better than random guessing by permuting labels 5,000 times and confirming the actual accuracy falls beyond the 99th percentile of the null distribution.",
-          "goal": "Reliability"
+          "goal": "Explainability",
+          "description": "A cardiology team using a gradient-boosted model to flag high blood pressure expects height and weight to matter together, not only alone. It shuffles each feature within each outcome class 1,000 times and tests at the 5% level whether the model errs less on the real data, to decide if a simpler model treating features separately would do. A non-significant result means either the features are unrelated within classes or the model ignores the relationship."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive as it requires thousands of model evaluations or metric calculations, scaling poorly with dataset size and model complexity."
+          "description": "Each permutation needs the metric recalculated, and a model may need retraining every time, so thousands of permutations of a large model can be expensive. Stricter thresholds need more permutations, because the smallest possible p-value is 1 divided by the number of permutations plus one, and repeated runs can disagree near the threshold."
         },
         {
-          "description": "Requires many permutations (typically 5,000-10,000) to achieve reliable p-values for strict significance thresholds like p < 0.01."
+          "description": "Assumes exchangeability of observations under the null hypothesis, which may be violated in time series or hierarchical data structures, where simple shuffling gives p-values that are too small or too large."
         },
         {
-          "description": "Assumes exchangeability of observations under the null hypothesis, which may be violated in time series or hierarchical data structures."
+          "description": "A significant result shows that the data are unlikely under the stated null, such as 'features and labels are independent'. It does not show that the effect is large, important or causal, and shuffling cannot rule out a confounder or an artefact of how the data were collected."
         },
         {
-          "description": "Cannot be easily parallelised for some metrics that require global model retraining, limiting scalability for complex machine learning pipelines."
+          "description": "Testing many features or groups at once produces some false positives by chance, so the p-values need correcting, for example with a false discovery rate procedure. Without that, a feature-by-feature test over many features will flag some that are only noise."
+        },
+        {
+          "description": "What is shuffled defines the question answered. Shuffling labels tests whether features and labels are related at all, while shuffling features within classes tests whether a classifier uses dependencies between features. The wrong scheme answers a different question from the one the assurance claim needs."
         }
       ],
       "resources": [
@@ -2408,23 +2408,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's performance advantage over baseline methods is statistically robust to random data partitioning",
-          "domain": "general",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The observed differences in loan approval rates between demographic groups exceed what would occur by chance alone",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The identified risk factors maintain their predictive strength independent of incidental correlations in the training data",
+          "text": "The classifier's accuracy on the patient cohort exceeds what label-shuffled copies of the same data produce, at the 1% significance level",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system's feature importance rankings reflect genuine signal rather than spurious patterns in the observed sample",
-          "domain": "environmental",
+          "text": "The new case-prioritisation model's accuracy advantage over the current model is larger than random swapping of their predictions produces, at the 5% significance level",
+          "domain": "public sector",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "On the validation dataset, the blood-pressure model's accuracy depends on the relationship between height and weight, not only on each taken alone, at the 5% significance level",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         }
       ]
@@ -4624,18 +4619,15 @@
     {
       "slug": "area-under-precision-recall-curve",
       "name": "Area Under Precision-Recall Curve",
-      "description": "Area Under Precision-Recall Curve (AUPRC) measures model performance by plotting precision (the proportion of positive predictions that are correct) against recall (the proportion of actual positives that are correctly identified) at various classification thresholds, then calculating the area under the resulting curve. Unlike accuracy or AUC-ROC, AUPRC is particularly valuable for imbalanced datasets where the minority class is of primary interest---a perfect score is 1.0, whilst random performance equals the positive class proportion. By focusing on the precision-recall trade-off, it provides a more informative assessment than overall accuracy for scenarios where false positives and false negatives have different costs, especially when positive examples are rare.",
+      "description": "Area Under Precision-Recall Curve (AUPRC) summarises how well a classifier finds the cases that matter when those cases are rare. Precision is the share of positive predictions that are correct, and recall is the share of actual positives that are found. Plotting one against the other at every classification threshold gives a curve, and AUPRC is the area under it, from 0 to 1. Neither precision nor recall uses true negatives, so a large majority class does not flatter the score as it can flatter accuracy and AUC-ROC. A model with no skill scores about the proportion of positives in the data, so the score is only meaningful next to that baseline.",
       "assurance_goals": [
-        "Reliability",
-        "Fairness"
+        "Reliability"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/black-box",
         "applicable-models/requirements/probabilistic-output",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/performance-assessment",
         "data-requirements/labelled-data",
@@ -4648,29 +4640,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating fraud detection models where genuine transactions far outnumber fraudulent ones, using AUPRC to optimise the balance between catching fraud (high recall) and minimising false alarms (high precision) for cost-effective operations.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A payments team compares candidate fraud models on a held-out month of transactions in which about 1 in 500 is fraudulent. It ranks them by AUPRC against the 0.2% no-skill baseline, then reads the best model's curve to choose a threshold that keeps false alarms within what the investigation team can review."
         },
         {
-          "description": "Ensuring fair evaluation of loan default prediction across demographic groups by comparing AUPRC scores, revealing whether models perform equally well at identifying high-risk borrowers regardless of protected characteristics.",
-          "goal": "Fairness"
+          "goal": "Reliability",
+          "description": "A hospital evaluates a model that screens for a rare condition affecting about 1 in 200 patients. ROC AUC can look high even when most flagged patients are healthy, so the team reports AUPRC against the 0.5% baseline and reads the precision at the recall clinicians require, to decide whether the follow-up workload is manageable."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A manufacturer compares two defect-detection models for a production line where about 1 in 1,000 parts is faulty. It uses AUPRC on a labelled validation batch to choose between them, so that a model is not preferred simply for labelling nearly every good part correctly."
         }
       ],
       "limitations": [
         {
-          "description": "More sensitive to class distribution than ROC curves, making it difficult to compare models across datasets with different positive class proportions or to set universal performance thresholds."
+          "description": "AUPRC depends on the share of positives in the data, so scores from datasets or groups with different proportions cannot be compared directly, and no universal pass mark can be set. Each score has to be read against its own no-skill baseline, which is about the positive proportion."
         },
         {
-          "description": "Can be overly optimistic on extremely imbalanced datasets where even random predictions may achieve seemingly high AUPRC scores due to the small positive class size."
+          "description": "It treats one class as the positive class and ignores true negatives, so it says nothing about how reliably the model clears the majority class. That matters where certifying a case as negative or safe is as important as catching positives."
         },
         {
-          "description": "Provides limited insight into performance at specific operating points, requiring additional analysis to determine optimal threshold selection for deployment."
+          "description": "A single area averages over every threshold, including ones no deployment would use, and can hide poor precision at the recall the application needs. Choosing the operating point needs a look at that part of the curve and the cost of each kind of error."
         },
         {
-          "description": "Interpolation methods for calculating the area under the curve can vary between implementations, potentially leading to slightly different scores for the same model."
+          "description": "The area can be computed in different ways. Trapezoidal linear interpolation between points gives an overly optimistic value, whereas step-wise average precision does not, so scores from different libraries or settings may not match."
         },
         {
-          "description": "Less interpretable than simple metrics like precision or recall at a fixed threshold, making it harder to communicate performance to non-technical stakeholders."
+          "description": "Few positive test cases make precision-recall estimates unstable, so a high score from a small sample may not hold on a larger, representative evaluation set."
         }
       ],
       "resources": [
@@ -4733,18 +4729,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The fraud detection model maintains consistent performance at identifying fraudulent transactions across different precision-recall operating points",
+          "text": "On the held-out transactions, the fraud model's AUPRC is above the agreed acceptance value and well above the no-skill baseline set by the fraud rate",
           "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The model's performance at identifying minority class instances is equitable across demographic groups",
-          "domain": "general",
-          "assuranceGoal": "fairness"
+          "text": "At the recall that clinicians require, the screening model's precision on the validation set stays above the level that keeps follow-up workload manageable",
+          "domain": "healthcare",
+          "assuranceGoal": "reliability"
         },
         {
-          "text": "The autonomous system's detection capabilities for safety-critical events are robust across different tolerance thresholds for false alarms",
-          "domain": "autonomous systems",
+          "text": "The updated defect-detection model's AUPRC on the labelled validation batch is higher than the current model's, with the no-skill baseline reported alongside",
+          "domain": "manufacturing",
           "assuranceGoal": "reliability"
         }
       ]
@@ -5425,18 +5421,14 @@
     {
       "slug": "prompt-robustness-testing",
       "name": "Prompt Robustness Testing",
-      "description": "Prompt robustness testing measures how much a language model's answers, or its performance on a task, change when the prompt is varied in ways that should not matter: rewording an instruction, changing formatting, punctuation or capitalisation, reordering elements, or introducing the typos and synonym swaps real users make. The tester starts from a set of task prompts with known correct answers, generates variants of each that keep its meaning, either from templates of plausible formats or with automated perturbation tools such as PromptBench, and runs the model on every variant. The result is reported as the spread of performance across variants, for example the gap between the best and worst format or the drop in accuracy under perturbation, together with the variants that changed the answer. Reporting the spread rather than one score matters because results from a single prompt template are brittle: on one widely used open model, accuracy differed by up to 76 points across formatting changes that kept the meaning.",
+      "description": "Prompt robustness testing measures how much a language model's answers, or its performance on a task, change when the prompt is varied in ways that should not matter, such as rewording, formatting, capitalisation, reordering, or the typos and synonym swaps real users make. The tester starts from task prompts with known correct answers, writes variants that keep the meaning from templates or generates them with perturbation tools such as PromptBench, and runs the model on every variant. Some tools search for the variant that does the most damage, so a drop under that kind of attack is a worst case, not a typical failure rate. The result is reported as the spread of performance across variants, for example the gap between the best and worst format, together with the variants that changed the answer. On one widely used open model, accuracy differed by up to 76 points across formatting changes that kept the meaning, which is why one prompt template is not enough.",
       "assurance_goals": [
-        "Reliability",
-        "Explainability"
+        "Reliability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/transformer/llm",
         "applicable-models/paradigm/generative",
         "applicable-models/requirements/black-box",
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/decision-boundaries",
-        "assurance-goal-category/explainability/uncertainty-analysis/sensitivity-testing",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/robustness",
         "data-requirements/no-special-requirements",
@@ -5447,27 +5439,22 @@
         "expertise-needed/linguistics",
         "expertise-needed/ml-engineering",
         "expertise-needed/statistics",
-        "explanatory-scope/global",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/model-testing-and-validation",
         "technique-type/testing"
       ],
       "example_use_cases": [
         {
-          "description": "A digital health provider testing a symptom-triage chatbot rewrites each benchmark scenario as a brief layperson message, a detailed account, a clinician's summary and an anxious message, and checks that the urgency category stays the same across all four, treating any change as a failure to investigate before release.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A digital health provider testing a symptom-triage chatbot rewrites each benchmark scenario as a brief layperson message, a detailed account, a clinician's summary and an anxious message, and checks that the urgency category stays the same across all four, treating any change as a failure to investigate before release."
         },
         {
-          "description": "A public-sector team choosing between candidate language models for classifying citizen enquiries evaluates each across a set of plausible prompt formats and instruction paraphrases, and compares models on worst-format and average accuracy rather than on a single prompt, because the ranking of models can change with the template.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A public-sector team choosing between candidate language models for classifying citizen enquiries evaluates each across a set of plausible prompt formats and instruction paraphrases, and compares models on worst-format and average accuracy rather than on a single prompt, because the ranking of models can change with the template."
         },
         {
-          "description": "A bank validating a model that summarises suspicious-transaction reports checks that the risk category it extracts does not change when the same activity is described with different terminology, abbreviations or layout, as reports from different branches would be.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "A support team testing a request-routing model varies one element of each request at a time to separate the words that change the routing decision from formatting changes that should not, and uses the result to write guidance on how customers should phrase requests.",
-          "goal": "Explainability"
+          "goal": "Reliability",
+          "description": "A bank validating a model that summarises suspicious-transaction reports checks that the risk category it extracts does not change when the same activity is described with different terminology, abbreviations or layout, as reports from different branches would be."
         }
       ],
       "limitations": [
@@ -5475,7 +5462,7 @@
           "description": "The space of possible prompt variants is unbounded, so a test samples it. A model can pass on every variant tried and still fail on a phrasing nobody generated, and the conclusion holds only for the kinds of variation the test set covers."
         },
         {
-          "description": "Whether a variant keeps the meaning of the original is a judgement. Automated perturbations such as typos and synonym swaps can change meaning or produce text no user would write, especially in specialised language, so variant sets need checking by someone who knows the domain."
+          "description": "Whether a variant keeps the meaning of the original is a judgement. Automated perturbations can change meaning or produce text no user would write, and attack-based tools search for the most damaging variant, so their drops are worst cases. Variant sets need checking by someone who knows the domain."
         },
         {
           "description": "Results do not transfer between models: which formats work well correlated only weakly across models in a large study, and robustness to one domain's phrasing says little about another's. The test has to be rerun for each model version, each prompt template change and each domain."
@@ -5597,11 +5584,6 @@
           "text": "The risk category extracted from suspicious-transaction reports does not change when the same activity is described with different terminology or layout",
           "domain": "finance",
           "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The changes that alter the routing model's decisions have been identified and are changes to the content of a request, not to its formatting",
-          "domain": "general",
-          "assuranceGoal": "explainability"
         }
       ]
     },
@@ -7308,7 +7290,7 @@
     {
       "slug": "calibration-with-equality-of-opportunity",
       "name": "Calibration with Equality of Opportunity",
-      "description": "A post-processing fairness technique that adjusts model predictions to achieve equal true positive rates across protected groups whilst maintaining calibration within each group. The method addresses fairness by ensuring that qualified individuals from different demographic groups have equal chances of receiving positive predictions, whilst preserving the meaning of probability scores within each group. This technique attempts to balance the competing objectives of group fairness and accurate probability estimation.",
+      "description": "Calibration with equality of opportunity is a post-processing step that adjusts a classifier's scores so that two groups face the same error rate, in a score-based form of the equal opportunity criterion, while the scores stay calibrated. Calibrated means that, within each group, about 70% of the people given a score of 0.7 really have the outcome. The error rate is computed from the scores rather than from yes-or-no decisions, and for equality of opportunity it is how far, on average, the scores of people who truly have the outcome fall short of 1. Starting from scores already calibrated within each group, the step replaces a randomly chosen share of the scores in the group with the lower error rate by that group's overall rate of the outcome, which makes those predictions less informative until the two error rates match. Calibration is kept at a cost in accuracy for that group, and matching this score-based rate does not guarantee equal true positive rates once a decision threshold is applied.",
       "assurance_goals": [
         "Fairness",
         "Reliability"
@@ -7335,29 +7317,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Adjusting a loan approval model to ensure that qualified applicants from different ethnic backgrounds have equal approval rates, whilst maintaining that a 70% predicted repayment probability means the same thing for each ethnic group in practice.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A hospital team finds that its follow-up screening model gives lower risk scores to women who go on to develop the condition than to men who do. Using a held-out validation set with recorded sex, it adjusts the scores so that this error is equal across the two groups, then measures the accuracy lost by the group whose scores were replaced, to decide whether the model can be released."
         },
         {
-          "description": "Calibrating a medical diagnosis model to maintain equal detection rates for a disease across different age groups whilst preserving the reliability of risk scores, ensuring that a 30% risk prediction accurately reflects actual disease occurrence within each age group.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A university uses a model to offer extra support to students at risk of dropping out, and wants a score of 0.3 to mean about a 30% dropout rate in every fee-status group. After equalising the error rate across groups, planners plot calibration by group on held-out data to confirm the scores still mean what they say before using them to allocate support places."
         }
       ],
       "limitations": [
         {
-          "description": "Fundamental mathematical incompatibility exists between perfect calibration and exact equality of opportunity, except in highly constrained special cases."
+          "description": "The target can be infeasible. If even replacing every score in the lower-error group with that group's base rate leaves its error below the other group's, the two rates cannot be matched while staying calibrated. This happens when the other group's classifier is close to uninformative."
         },
         {
-          "description": "May reduce overall model accuracy or calibration when forcing equal true positive rates across groups with genuinely different base rates."
+          "description": "Equality is reached by making predictions worse for the group with the lower error rate, not by improving them for the other group. A random share of that group's scores is replaced by its base rate, and the loss grows with the gap between the groups' base rates."
         },
         {
-          "description": "Requires access to sensitive attributes during post-processing, which may not be available or legally permissible in all contexts."
+          "description": "Calibration can coexist with only one error constraint. Matching the score-based false negative rate leaves false positive rates free to diverge, so one group can face more false alarms, and equalising both while staying calibrated is impossible except in trivial cases."
         },
         {
-          "description": "The technique only addresses one aspect of fairness (true positive rates) and may allow disparities in false positive rates between groups."
+          "description": "Because the replaced predictions are chosen at random, two similar people in the same group can receive different outcomes. Those affected may reasonably object that a consequential decision was made by withholding information, which makes the method hard to justify in high-stakes settings."
         },
         {
-          "description": "Post-processing approaches cannot address biases inherent in the training data or model architecture, only adjust final predictions."
+          "description": "It needs each person's group attribute when scores are adjusted, labelled held-out data to estimate how many scores to replace, and starting scores already calibrated within each group, which it preserves but cannot create. Where the attribute cannot lawfully be used, or the base model is miscalibrated, the method does not apply."
         }
       ],
       "resources": [
@@ -7439,24 +7421,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The lending system ensures qualified applicants from different demographic groups receive positive outcomes at equal rates whilst probability scores retain consistent meaning within each group",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The diagnostic model achieves equal detection rates for the condition across patient populations whilst maintaining that a given risk score reflects the same actual disease probability within each population",
+          "text": "The screening model's score-based false negative rate differs between women and men by less than the tolerance in the fairness requirement, measured on held-out validation data",
           "domain": "healthcare",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The model's confidence scores accurately reflect true outcome rates within each demographic segment despite equalising true positive rates across segments",
-          "domain": "healthcare",
+          "text": "Within each student fee-status group, the dropout-risk scores remain calibrated after adjustment, so a score of 0.3 corresponds to roughly 30% of students in that group leaving",
+          "domain": "education",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system provides equally qualified individuals from all protected groups with equivalent likelihood of favourable classification",
-          "domain": "general",
+          "text": "The score-based error for students who go on to drop out is matched across fee-status groups within the stated tolerance, and each group's false positive rate is reported alongside",
+          "domain": "education",
           "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The accuracy lost by the group whose predictions were randomised is documented, and the model still meets the clinical acceptance threshold for both groups",
+          "domain": "healthcare",
+          "assuranceGoal": "reliability"
         }
       ]
     },
@@ -9352,10 +9334,9 @@
     {
       "slug": "synthetic-data-evaluation",
       "name": "Synthetic Data Evaluation",
-      "description": "Synthetic data evaluation assesses whether synthetic datasets protect individual privacy while maintaining statistical utility and fidelity to real data. This technique evaluates three key dimensions: privacy (through disclosure risk metrics and re-identification attack success rates), utility (by comparing statistical properties and model performance), and fidelity (measuring distributional similarity to real data). It produces evaluation reports quantifying the privacy-utility-fidelity trade-offs.",
+      "description": "Synthetic data evaluation checks whether an artificial dataset made to stand in for sensitive real records is safe to share and still useful, and reports the trade-off between the two. Privacy is tested by simulating an attacker who holds the synthetic data and some facts about a person, and measuring how accurately the attacker can use the data to infer that person's sensitive values. Fidelity is tested by comparing the synthetic and real data column by column and in pairs of columns. Another check trains a classifier to tell the two apart, and a classifier that cannot beat chance suggests they are statistically alike. Utility is tested by running the analyses or training the models the data is meant for on the synthetic data and comparing the results with those from the real data.",
       "assurance_goals": [
         "Privacy",
-        "Transparency",
         "Reliability"
       ],
       "tags": [
@@ -9363,8 +9344,6 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/privacy",
         "assurance-goal-category/privacy/leakage-testing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/performance-assessment",
         "data-requirements/access-to-training-data",
@@ -9382,40 +9361,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Validating synthetic patient data generated for medical research to ensure individual patients cannot be re-identified while maintaining statistical relationships needed for valid clinical studies.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A hospital research office wants to share synthetic outpatient records with university partners. Before release it simulates an attacker who knows each patient's age band, sex and postcode district and tries to infer their diagnosis from the synthetic table, and it withholds the data if the attack does better than guessing from overall diagnosis rates."
         },
         {
-          "description": "Validating that machine learning models for predicting student outcomes trained on synthetic educational data maintain reliable performance comparable to models trained on real student records, while enabling researchers to share datasets without FERPA violations.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A national statistics office gives researchers synthetic microdata for exploratory analysis. After the researchers settle on their models, the office runs the same models on the real data inside a secure environment and compares the estimates, to tell the researchers whether their exploratory conclusions can be trusted."
         },
         {
-          "description": "Ensuring fraud detection models trained on synthetic credit card transactions maintain reliable performance comparable to models trained on sensitive real transaction data.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Producing audit-ready evaluation reports for a synthetic financial dataset used to train credit-risk models, demonstrating to regulators (e.g., under EU AI Act or SR 11-7 model risk management guidance) that the training data met documented privacy and quality thresholds, and that all trade-off decisions between privacy protection and model utility were recorded and justified.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A bank's fraud team generates synthetic card transactions to share with an external vendor. It compares how often each fraud type appears and how amount, merchant type and time of day relate in the real and synthetic data, then checks that a model trained on the synthetic data still catches rare fraud in held-out real transactions."
         }
       ],
       "limitations": [
         {
-          "description": "Trade-off between privacy and utility means strong privacy guarantees often significantly degrade data quality and analytical value."
+          "description": "Stronger privacy protection usually costs data quality, so the three scores pull against each other. There is no neutral threshold: where to set the balance depends on how sensitive the data is and what it will be used for, and the evaluation reports the trade-off without settling it."
         },
         {
-          "description": "Difficult to validate that synthetic data protects against all possible privacy attacks, especially sophisticated adversaries with auxiliary information."
+          "description": "Attack-based privacy tests only probe the attacks and attacker knowledge that were tried. A dataset that resists them may still leak to an attacker with more auxiliary information or a better method, so a good result is not proof of safety."
         },
         {
-          "description": "Utility metrics may not capture subtle distributional differences that matter for specific downstream tasks or edge case analyses."
+          "description": "Fidelity and utility scores depend on which metrics, models and analyses are chosen. A synthetic dataset can match the real data on the columns and column pairs checked yet differ in ways that matter for a particular analysis, and general and analysis-specific utility scores can disagree."
         },
         {
-          "description": "Synthetic data may introduce artificial patterns or miss rare but important real-world phenomena, limiting use for certain applications."
+          "description": "Scores summarise the whole table, so rare events and small subgroups can be lost without moving the totals much. A fraud pattern or a minority group that the generator has smoothed away may show up only if the evaluation is designed to look for it."
         },
         {
-          "description": "Requires significant domain expertise to properly validate fidelity and utility for specific use cases, as generic statistical metrics may not capture domain-specific requirements or failure modes."
-        },
-        {
-          "description": "Synthetic data may not preserve fairness properties or bias patterns from original data in predictable ways, requiring careful fairness testing when synthetic data is used to train decision-making models."
+          "description": "The tests need statistical, privacy-engineering and domain expertise to set up and read. A classifier-based fidelity check can be misled by over-fitting or under-fitting the classifier, and weak settings can make poor synthetic data look good."
         }
       ],
       "resources": [
@@ -9508,29 +9480,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The synthetic patient dataset protects individual privacy whilst maintaining sufficient statistical fidelity for valid epidemiological analysis",
+          "text": "In the attack tests run on this release, an attacker who holds the synthetic patient dataset and a person's demographic details infers that person's diagnosis no more accurately, within a stated margin, than from population rates alone",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The fraud detection model trained on synthetic transaction data maintains performance comparable to models trained on real customer data",
+          "text": "Estimates from the researchers' models fitted to the synthetic microdata agree with the same models fitted to the real data within the stated tolerance",
+          "domain": "public sector",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The fraud model trained on synthetic transactions performs within the stated tolerance of the real-data-trained comparison model on the same independent real-data test set",
           "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The privacy-utility trade-offs of the synthetic educational dataset are quantified and documented for regulatory compliance",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The synthetic climate model training data preserves the statistical relationships between environmental variables observed in sensor measurements",
+          "text": "The synthetic dataset meets the stated agreement targets for the selected environmental analyses compared with the real reference data",
           "domain": "environmental",
           "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The synthetic genomics dataset resists re-identification attacks whilst preserving sufficient genetic variant correlations for research validity",
-          "domain": "healthcare",
-          "assuranceGoal": "privacy"
         }
       ]
     },

@@ -1,10 +1,9 @@
 {
   "slug": "retrieval-augmented-generation-evaluation",
   "name": "Retrieval-Augmented Generation Evaluation",
-  "description": "RAG evaluation assesses systems combining retrieval and generation by measuring retrieval quality, generation faithfulness, and overall performance. This technique evaluates whether retrieved context is relevant, whether responses faithfully represent information without hallucination, and how systems handle insufficient context. Key metrics include retrieval precision/recall, answer relevance, faithfulness scores, and citation accuracy.",
+  "description": "A retrieval-augmented generation (RAG) system answers a question by retrieving passages from a document collection and asking a language model to write an answer from them. RAG evaluation scores retrieval on whether the fetched passages are relevant and focused and, where reference answers exist, whether they contain what the answer needs. Generation is scored on faithfulness, usually by splitting the answer into individual claims and reporting the share that the fetched passages support, and on answer relevance, which asks whether the answer addresses the question. Frameworks such as Ragas automate these checks with a second language model acting as judge, so faithfulness and relevance need no human-written reference answers. Test sets can also include questions the documents cannot answer, to check that the system says so instead of guessing.",
   "assurance_goals": [
-    "Reliability",
-    "Transparency"
+    "Reliability"
   ],
   "tags": [
     "applicable-models/architecture/neural-networks/transformer/llm",
@@ -12,8 +11,6 @@
     "applicable-models/requirements/black-box",
     "assurance-goal-category/reliability",
     "assurance-goal-category/reliability/performance-assessment",
-    "assurance-goal-category/transparency",
-    "assurance-goal-category/transparency/decision-reasons",
     "data-requirements/labelled-data",
     "data-type/text",
     "evidence-type/quantitative-metric",
@@ -26,40 +23,37 @@
   ],
   "example_use_cases": [
     {
-      "description": "Evaluating a technical support knowledge system at a software company to ensure it retrieves relevant troubleshooting documentation and generates accurate solutions without fabricating configuration steps or commands not present in official documentation.",
-      "goal": "Reliability"
+      "goal": "Reliability",
+      "description": "A software company's support team tests its troubleshooting assistant on a set of real customer questions. For each answer it checks that the retrieved pages are the right ones and that every configuration step or command quoted appears in the official documentation, and it holds back changes that introduce invented steps."
     },
     {
-      "description": "Assessing whether a legal research assistant properly cites source documents when generating case summaries, enabling lawyers to verify information and trace conclusions back to authoritative sources.",
-      "goal": "Transparency"
+      "goal": "Reliability",
+      "description": "A law firm's research team tests an assistant that summarises case law from its own database. Each summary is split into claims and each claim is checked against the passages the assistant retrieved, and summaries with unsupported claims are flagged for review before the assistant is rolled out to fee-earners."
     },
     {
-      "description": "Evaluating a clinical decision support system that retrieves relevant medical literature and patient records to ensure generated treatment recommendations accurately reflect evidence-based guidelines without extrapolating beyond available clinical data.",
-      "goal": "Reliability"
+      "goal": "Reliability",
+      "description": "A hospital pharmacy team tests a clinical decision-support tool that retrieves guidelines and patient records. A clinician compares each generated treatment suggestion with the retrieved guideline text, and the team tracks the share of suggestions that go beyond what the sources say before the tool reaches ward staff."
     },
     {
-      "description": "Assessing a government benefits information chatbot to verify it retrieves relevant policy documents and accurately communicates eligibility criteria without hallucinating benefits, amounts, or requirements that could mislead citizens seeking assistance.",
-      "goal": "Transparency"
+      "goal": "Reliability",
+      "description": "A benefits agency tests its eligibility chatbot on questions drawn from real enquiries, including some the policy documents cannot answer. It checks that quoted amounts and rules match the retrieved policy text and that the chatbot says it cannot answer instead of guessing, before the chatbot is opened to citizens."
     }
   ],
   "limitations": [
     {
-      "description": "Evaluation requires high-quality ground truth datasets with known correct retrievals and answers, which may be expensive or impossible to create for specialized domains."
+      "description": "Scores that judge retrieval against known answers, such as context recall, need reference answers or labelled passages, which are slow to write and need experts in specialist domains. Reference-free scores avoid this but only penalise irrelevant passages, so they cannot show that a needed passage was never retrieved."
     },
     {
-      "description": "Faithfulness assessment can be subjective and difficult to automate, often requiring human judgment to determine whether responses accurately represent retrieved context."
+      "description": "Scores usually come from a second language model acting as judge, so they inherit its errors and its sensitivity to wording. In the original Ragas study the judge agreed with human raters in 95% of pairwise comparisons on faithfulness but only 70% on context relevance, and it struggled to pick out the key sentences in long contexts."
     },
     {
-      "description": "Trade-offs between retrieval precision and recall mean optimizing for one metric may degrade the other, requiring domain-specific balancing decisions."
+      "description": "Faithfulness measures whether an answer is supported by the retrieved text, not whether that text is correct, current or complete. A system that retrieves an outdated document and reports it accurately scores well, so the knowledge base needs checking separately."
     },
     {
-      "description": "Metrics may not capture subtle quality issues like incomplete answers, misleading emphasis, or failure to synthesize information from multiple retrieved sources."
+      "description": "Claim-by-claim checking may not catch answers that chain reasoning across several documents. Misleading emphasis, selective quotation and unsupported leaps between sources can pass when each sentence is individually supported, so these cases need targeted test questions and human review."
     },
     {
-      "description": "Evaluating multi-hop reasoning—where answers require synthesising information across multiple retrieved documents—is particularly challenging, as standard metrics may not capture whether the system correctly chains information or makes unsupported logical leaps."
-    },
-    {
-      "description": "Difficult to isolate whether poor performance stems from retrieval failures (finding wrong documents), generation failures (misusing correct documents), or interaction effects, complicating diagnosis and improvement efforts."
+      "description": "When a score is low, the cause can lie in retrieval, in generation or in how the two interact, and the scores alone often cannot say which. Diagnosis usually needs manual inspection of the retrieved passages and answers for a sample of failing questions."
     }
   ],
   "resources": [
@@ -136,19 +130,24 @@
   ],
   "sample_claims": [
     {
-      "text": "The legal research system's generated case summaries are traceable to specific retrieved source documents with verifiable citations",
-      "domain": "public sector",
-      "assuranceGoal": "transparency"
-    },
-    {
       "text": "The clinical decision support system generates treatment recommendations that accurately reflect the retrieved evidence-based guidelines without extrapolating beyond available medical literature",
       "domain": "healthcare",
       "assuranceGoal": "reliability"
     },
     {
-      "text": "The customer support assistant explicitly indicates when retrieved knowledge base articles do not contain sufficient information to answer user queries",
+      "text": "The share of claims in the legal assistant's case summaries that are not supported by the passages it retrieved stays below a stated threshold on the evaluation queries",
+      "domain": "legal",
+      "assuranceGoal": "reliability"
+    },
+    {
+      "text": "When the retrieved knowledge-base articles do not contain the answer, the customer support assistant says so instead of producing one",
       "domain": "general",
-      "assuranceGoal": "transparency"
+      "assuranceGoal": "reliability"
+    },
+    {
+      "text": "Eligibility criteria, amounts and requirements in the benefits chatbot's answers match the retrieved policy documents, and none appears that the documents do not contain",
+      "domain": "public sector",
+      "assuranceGoal": "reliability"
     }
   ]
 }

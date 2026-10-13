@@ -1781,7 +1781,7 @@
     {
       "slug": "constitutional-ai-evaluation",
       "name": "Constitutional AI Evaluation",
-      "description": "Constitutional AI evaluation assesses models trained to follow explicit behavioural principles or 'constitutions' that specify desired values and constraints. This technique verifies that models consistently adhere to specified principles across diverse scenarios, measuring both principle compliance and handling of principle conflicts. Evaluation includes testing boundary cases where principles might conflict, measuring robustness to adversarial attempts to violate principles, and assessing whether models can explain their reasoning in terms of constitutional principles.",
+      "description": "Constitutional AI evaluation checks whether a language model follows the written principles, or 'constitution', that it was trained or instructed to follow. The evaluator writes test prompts for each principle, and can add prompts where two principles conflict or where a user tries to talk the model out of a principle. A judge, either human reviewers or a second language model whose accuracy has been checked, assesses each response against one principle at a time, often by comparing it with a baseline model's response. The result is a rate for each principle, such as how often the model's response is preferred to the baseline's, which shows which principles it follows well on the prompts tested and which it does not. A fuller evaluation also checks that following the principles has not made the model over-cautious or less capable.",
       "assurance_goals": [
         "Safety",
         "Reliability"
@@ -1808,40 +1808,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating a general-purpose AI assistant with the principle 'provide helpful information while refusing requests for illegal activities' to ensure it consistently distinguishes between legitimate chemistry education queries and attempts to obtain instructions for synthesising controlled substances or explosives.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A developer tuning a general-purpose assistant on a constitution that includes 'refuse requests for illegal activity' writes test prompts for each principle, including borderline chemistry-education questions and attempts to extract synthesis instructions. Reviewers compare the tuned model's answers with the base model's, to decide whether the constitution is ready to ship or needs principles rewritten."
         },
         {
-          "description": "Verifying that an AI news aggregator consistently applies stated principles about neutrality versus editorial perspective across diverse political topics and international news sources.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A news publisher using an AI summariser governed by a neutrality principle gives it the same contested story framed from several political positions. Reviewers from differing viewpoints score whether each summary adds editorial language, and the editors use the rate by topic to decide where the summariser can run without a human check."
         },
         {
-          "description": "Evaluating a mental health support chatbot designed with principles like 'be empathetic and supportive while never providing medical diagnoses or replacing professional care' to verify it consistently maintains this boundary across varied emotional crises and user requests.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A digital health provider tests a mental health support chatbot built on the principle 'be supportive, but never diagnose' with scripted crisis conversations in which users ask directly for a diagnosis. Clinicians score each reply, and the share that stays on the right side of the boundary decides whether the chatbot is cleared for a limited pilot."
         },
         {
-          "description": "Testing an AI homework assistant built on principles of 'guide learning without providing direct answers' to ensure it maintains this educational philosophy across different subjects, student ages, and question complexities without reverting to simply solving problems.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "An education company checks a homework assistant built on the principle 'guide learning without giving direct answers' across subjects, age bands and frustrated or urgent requests. It counts replies that simply give the answer, and uses the rate for each subject to decide where the principle needs strengthening before a school rollout."
         }
       ],
       "limitations": [
         {
-          "description": "Constitutional principles may be vague or subject to interpretation, making it difficult to objectively measure compliance."
+          "description": "Principles are written in natural language, so compliance depends on how the judge reads them. Vague principles, or ones that mean different things across cultures and languages, give scores that reviewers would dispute, so the judge's reading needs checking against human reviewers for each principle."
         },
         {
-          "description": "Principles can conflict in complex scenarios, and evaluation must assess whether the model's priority ordering matches intended values."
+          "description": "Principles can conflict in complex scenarios, and the evaluation has to decide which should win. If the intended priority is not written down, a model can look compliant on each principle separately and still resolve conflicts differently from what the developer intended."
         },
         {
-          "description": "Models may learn to superficially cite principles in explanations without genuinely using them in decision-making processes."
+          "description": "Adherence is uneven across kinds of principle. In one study of small fine-tuned models, negatively framed principles such as avoiding harmful content were followed much better than positively framed, abstract ones such as benefiting humanity, so an average score can hide principles the model largely ignores."
         },
         {
-          "description": "Creating comprehensive test sets covering all relevant principle applications and edge cases requires significant domain expertise and resources."
+          "description": "Scores depend on the test prompts and on the judge. Prompts that miss a principle's edge cases give a falsely high rate, and an automated judge can favour one response position or misapply the principle, so it needs checking against human judgement in each new domain."
         },
         {
-          "description": "Constitutional principles that seem clear in one cultural or linguistic context may be interpreted differently across diverse user populations, making it challenging to evaluate whether the model appropriately adapts its principle application or inappropriately varies its values."
-        },
-        {
-          "description": "As organisational values evolve or principles are refined based on deployment experience, re-evaluation becomes necessary, but comparing results across principle versions is challenging without confounding changes in the model itself versus changes in evaluation criteria."
+          "description": "When principles are revised after deployment, results must be re-run, and comparing them across principle versions is hard because a change in score may come from the model, the principles or the test criteria."
         }
       ],
       "resources": [
@@ -1982,22 +1979,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The conversational assistant consistently refuses requests for harmful information whilst maintaining helpful responses to legitimate educational queries",
+          "text": "On the evaluation's test prompts, the assistant refuses requests for harmful information while still answering legitimate educational queries",
           "domain": "general",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The healthcare chatbot maintains its boundary between providing supportive information and offering medical advice across diverse emotional contexts",
+          "text": "Across the scripted crisis conversations, the support chatbot keeps to its boundary between supportive information and medical diagnosis",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The content moderation system applies its stated community standards consistently across different cultural contexts and topic sensitivities",
-          "domain": "general",
+          "text": "Across the matched test stories, the news summariser adds editorial language no more often for one political position than for another",
+          "domain": "journalism",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The educational assistant upholds its pedagogical values without reverting to direct answer provision when users express frustration or urgency",
+          "text": "The homework assistant keeps to its principle of guiding learning without giving direct answers when users express frustration or urgency, at the rate set in the release criteria",
           "domain": "general",
           "assuranceGoal": "reliability"
         }
@@ -2006,11 +2003,10 @@
     {
       "slug": "continual-learning-stability-testing",
       "name": "Continual Learning Stability Testing",
-      "description": "Continual learning stability testing evaluates whether models that learn from streaming data maintain performance on previously learned tasks while acquiring new capabilities. This technique measures catastrophic forgetting (performance degradation on old tasks), forward transfer (whether old knowledge helps new learning), and backward transfer (whether new learning damages old performance). Testing includes challenging scenarios where data distributions shift significantly and evaluates whether stability techniques like experience replay or regularisation effectively preserve knowledge.",
+      "description": "Continual learning stability testing checks whether a model that is updated over time with new data or tasks keeps what it learned earlier, by scoring it after each update on a test set for every task in the sequence. Backward transfer is the average change in accuracy on earlier tasks, and a large fall is called catastrophic forgetting. Forward transfer is accuracy on a task the model has not yet been trained on, compared with an untrained model. Scoring only at the end of each update can hide a sharp but temporary drop, so stricter tests also score the model during training and report its worst result. The scores can also show whether methods meant to protect old knowledge, such as replaying stored examples of earlier data or penalising changes to the weights that matter for earlier tasks, are working.",
       "assurance_goals": [
         "Reliability",
-        "Safety",
-        "Fairness"
+        "Safety"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -2020,8 +2016,6 @@
         "assurance-goal-category/reliability/robustness",
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/verification",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "data-requirements/access-to-training-data",
         "data-requirements/labelled-data",
         "data-type/any",
@@ -2033,41 +2027,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing whether a content moderation model updated with new harmful content patterns maintains reliable detection of previously learned violation types without catastrophic forgetting.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A trust-and-safety team retrains its abuse classifier every month on newly reported content. Before release it scores the new version on a held-out test set for each earlier abuse type and holds the release if detection of any type has fallen by more than the agreed margin."
         },
         {
-          "description": "Ensuring a medical diagnosis AI that continuously learns from new clinical cases doesn't forget how to recognize previously mastered conditions, preventing safety regressions.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A hospital team lets a triage model keep learning from new cases while it is in use. Because users meet any dip as it happens, the team scores the model on its urgent conditions at regular points during each update, not only at the end, and stops the update if the lowest score falls below the agreed floor."
         },
         {
-          "description": "Verifying that fairness improvements from continual learning don't introduce new biases or degrade performance for previously well-served demographic groups.",
-          "goal": "Fairness"
+          "goal": "Reliability",
+          "description": "A bank updates its fraud model weekly on newly confirmed cases. To see whether replaying stored examples of older fraud actually protects detection of old patterns, the team runs the same update with and without replay and compares how well each version still catches each earlier fraud type."
         },
         {
-          "description": "Testing whether a fraud detection system that continuously learns from new fraud patterns maintains its ability to detect previously identified fraud types, preventing financial losses from regression to older attack vectors.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Verifying that a customer service chatbot updated with new product knowledge doesn't degrade in handling established customer issues, maintaining consistent service quality across evolving capabilities.",
-          "goal": "Reliability"
+          "goal": "Safety",
+          "description": "A factory retrains a camera-based hazard detector when a new machine is installed. Before it returns to the line, the safety engineer scores the retrained detector on the stored test images for every previously known hazard and signs off only if none is detected less reliably than before."
         }
       ],
       "limitations": [
         {
-          "description": "Comprehensive testing requires maintaining evaluation datasets for all previously learned tasks, which becomes burdensome as systems learn continuously."
+          "description": "Every update means scoring the model on a test set for each earlier task, so total cost grows with the number of tasks as well as the number of updates. Old test sets also have to be kept, which can conflict with data-retention rules, and scoring only a sample of tasks cannot detect forgetting in the rest."
         },
         {
-          "description": "Trade-offs between plasticity (learning new tasks well) and stability (retaining old knowledge) are fundamental and difficult to optimize simultaneously."
+          "description": "Scores taken only at the end of each update can miss a sharp, temporary drop on earlier tasks while the model is still learning. This matters for a system that stays in service during training, because users meet the dip. Catching it needs repeated scoring during training, which adds to the cost."
         },
         {
-          "description": "Techniques that prevent catastrophic forgetting often require storing samples of old data, raising privacy and storage concerns."
+          "description": "Stability scores measure only one side of the stability-plasticity trade-off. A model can score perfectly on earlier tasks by refusing to learn anything new, so results must be read alongside accuracy on the new tasks."
         },
         {
-          "description": "Defining acceptable forgetting levels is application-dependent and may conflict with the need to adapt to changing environments."
+          "description": "Deciding how much forgetting is acceptable depends on the application, and the test cannot settle it. A threshold set too tight blocks adaptation to changing conditions, and one set too loose lets real losses through."
         },
         {
-          "description": "Comprehensive stability testing requires re-running full evaluation suites after each update, creating computational costs that scale linearly with model lifespan and update frequency."
+          "description": "Results hold for the sequence of tasks tested, and assume tasks with clear boundaries and a labelled test set for each. Real data streams often drift gradually, and how much a model forgets depends on how different consecutive tasks are, so a gentler test sequence understates forgetting."
         }
       ],
       "resources": [
@@ -2147,27 +2137,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic system maintains accurate detection of previously learned conditions when updated with new disease patterns",
+          "text": "At every evaluated checkpoint during the update, the diagnosis model met the stated performance floor on held-out cases of previously learned conditions",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The content moderation model retains effective identification of earlier violation types after learning to detect new forms of harmful content",
-          "domain": "general",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The fraud detection system's performance on established fraud patterns does not degrade when trained on emerging attack vectors",
+          "text": "The moderation model's worst evaluated checkpoint score on earlier violation categories remained above the stated acceptance target",
+          "domain": "general",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The fraud model's old-task scores changed by no more than the stated tolerance at the evaluated checkpoints whilst new fraud patterns were learned",
           "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The recommendation system's fairness properties for existing user demographics remain stable when the model adapts to new user populations",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The industrial safety monitoring system preserves reliable detection of known hazard conditions whilst incorporating recognition of newly identified risk factors",
+          "text": "On the retained hazard evaluation tasks, the industrial monitoring model met the stated detection floor throughout the sampled learning checkpoints",
           "domain": "manufacturing",
           "assuranceGoal": "safety"
         }
