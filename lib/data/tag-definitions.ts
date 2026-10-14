@@ -439,8 +439,6 @@ export const tagDefinitions: Record<string, string> = {
     'Techniques that build a fairness constraint, penalty or adversary into model training.',
   'assurance-goal-category/fairness/post-processing':
     'Techniques that adjust decisions or thresholds after training so that outcomes or error rates match across groups.',
-  'assurance-goal-category/transparency/assessment-results':
-    'Produces measured findings on how a system performs or behaves, in a form that can be reported to those who rely on or oversee it.',
   'assurance-goal-category/transparency/confidence-and-limits':
     'Techniques that show users how far to trust each output and when a request falls outside what the system can handle.',
   'assurance-goal-category/transparency/decision-reasons':
