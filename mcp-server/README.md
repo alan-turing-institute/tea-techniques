@@ -164,7 +164,7 @@ Rebuild against another data cut with one command (replace the ref with a full c
 DATA_REF=<data-tag-or-commit> docker compose build mcp
 ```
 
-The default data cut is `777cf5e752775b20537e1a499c3998eadc2bc184`, the cut the committed vectors were made from. A full 40-character SHA is used as given; a tag, branch or short SHA is resolved through the unauthenticated GitHub API, which allows 60 requests an hour per address. `/healthz.dataVersion` reports the commit. The claim-to-tag map used for keyword narrowing (`CONCEPT_TAGS`) names the consolidated tags `system-implementation` and `model-testing-and-validation`.
+The default data cut is `d07d92fa9ed0b19c9289a3b6220a4aa6b893cb6e`, the cut the committed vectors were made from. A full 40-character SHA is used as given; a tag, branch or short SHA is resolved through the unauthenticated GitHub API, which allows 60 requests an hour per address. `/healthz.dataVersion` reports the commit. The claim-to-tag map used for keyword narrowing (`CONCEPT_TAGS`) names the consolidated tags `system-implementation` and `model-testing-and-validation`.
 
 The runtime stage installs production dependencies without optional packages (`pnpm install --prod --no-optional`). `@huggingface/transformers` and `onnxruntime-node` are optional dependencies, so the image holds neither, nor any model files. The container starts with `TEA_OFFLINE=1`, which requires the vectors and graph to be present locally, makes no downloads and contacts no other service. `PORT` (default 3100) sets the listening port, and the image's health check reads it.
 
@@ -211,17 +211,17 @@ The optional ranker is separate from retrieval. It runs only where `RANKING_ENAB
 
 ### Model and resource requirements
 
-**The HTTP image.** It holds Node.js, the production dependencies without optional packages, the compiled service, the graph and the committed vectors. It holds no embedding model, no ONNX Runtime and no model cache, and it starts with `TEA_OFFLINE=1`: start-up needs the vectors but no model files. Serving a request is a similarity search over the loaded vectors plus keyword matching, which takes milliseconds and no inference. The image needs no GPU and little memory: 676 entries of 2560 float32 values come to about 7 MB once loaded.
+**The HTTP image.** It holds Node.js, the production dependencies without optional packages, the compiled service, the graph and the committed vectors. It holds no embedding model, no ONNX Runtime and no model cache, and it starts with `TEA_OFFLINE=1`: start-up needs the vectors but no model files. Serving a request is a similarity search over the loaded vectors plus keyword matching, which takes milliseconds and no inference. The image needs no GPU and little memory: 813 entries of 2560 float32 values come to about 8 MB once loaded.
 
 Measured on an x86-64 Linux host with the default data cut:
 
 | Measure | Value |
 |---|---|
-| Image layers (sum of `docker history`) | about 280 MB: base `node:22-bookworm-slim` 244 MB, production dependencies 24.9 MB, data 10.6 MB, compiled code 0.4 MB |
-| `docker image ls` disk usage / compressed content size | 370 MB / 89.9 MB |
-| Resident memory after start-up | about 151 MiB |
-| Resident memory after 50 `tools/call` requests with a supplied vector | about 163 MiB (`docker stats` reports 117 MiB) |
-| One `curl` `tools/call` with a supplied vector | about 22 ms (median 26 ms over 50 calls) |
+| Image layers (sum of `docker history`) | about 282 MB: base `node:22-bookworm-slim` 244 MB, production dependencies 24.9 MB, data 13.2 MB, compiled code 0.4 MB |
+| `docker image ls` disk usage / content size | 374 MB / 91.5 MB |
+| Resident memory of the Node process after start-up | about 165 MiB when `/healthz` first answers, settling to about 92 MiB within seconds (`docker stats` reports 45 MiB) |
+| Resident memory after 50 `tools/call` requests with a supplied vector | about 137 MiB (`docker stats` reports 91 MiB) |
+| One `curl` `tools/call` with a supplied vector (a 57 KB request body) | median 39 ms over 50 calls; the first call after start-up took about 80 ms |
 
 Re-measure after a data cut or model change with:
 
@@ -231,11 +231,11 @@ docker image inspect tea-techniques-mcp:local --format '{{.Size}}'
 docker stats --no-stream
 ```
 
-**The HTTP service's vectors.** `vectors/embeddings.qwen3.json` (about 9.3 MB) holds 676 catalogue entries and 4 probe vectors made by `Qwen/Qwen3-Embedding-4B`: the `onnx-community/Qwen3-Embedding-4B-ONNX` export at revision `7d046e08591811ddd93dfe815b1d3bfccb16c041`, fp32 (16 GB of weights), through onnxruntime-node, taking the exported `sentence_embedding` output and scaling it to unit length. Each input ends with the end-of-text token. Technique descriptions and sample claims are embedded as `title: {technique name} | text: {content}` with no prefix; questions with the instruction prefix described under [Question vectors](#question-vectors). Vectors are stored as base64 little-endian float32, which is exact. The file records the model, repository, revision, dtype, dimensions, both formats, the data commit and the corpus hash, and the loader checks them against `CATALOGUE_MODEL` in `src/embedding/specs.ts`.
+**The HTTP service's vectors.** `vectors/embeddings.qwen3.json` (about 11 MB) holds 813 catalogue entries and 4 probe vectors made by `Qwen/Qwen3-Embedding-4B`: the `onnx-community/Qwen3-Embedding-4B-ONNX` export at revision `7d046e08591811ddd93dfe815b1d3bfccb16c041`, fp32 (16 GB of weights), through onnxruntime-node, taking the exported `sentence_embedding` output and scaling it to unit length. Each input ends with the end-of-text token. Technique descriptions and sample claims are embedded as `title: {technique name} | text: {content}` with no prefix; questions with the instruction prefix described under [Question vectors](#question-vectors). Vectors are stored as base64 little-endian float32, which is exact. The file records the model, repository, revision, dtype, dimensions, both formats, the data commit and the corpus hash, and the loader checks them against `CATALOGUE_MODEL` in `src/embedding/specs.ts`.
 
-Generating it needs about 14 GB of free memory and took about 4.5 minutes on 16 threads, so it runs on a build host and not in the image build.
+Generating it needs about 14 GB of free memory and took about 8 minutes for the 813 entries on 16 threads, so it runs on a build host and not in the image build.
 
-**The stdio server's vectors.** `public/data/ld/embeddings.json` (about 5 MB) is made by `Xenova/all-MiniLM-L12-v2` at revision `beeb2e4b69e95f188a15cc2e90d09fd035dac229`, fp32, mean pooling, normalized, 384 dimensions, over the published graph. Questions carry no prefix. It stores plain number arrays, so earlier releases of this package can read it.
+**The stdio server's vectors.** `public/data/ld/embeddings.json` (about 6.6 MB) is made by `Xenova/all-MiniLM-L12-v2` at revision `beeb2e4b69e95f188a15cc2e90d09fd035dac229`, fp32, mean pooling, normalized, 384 dimensions, over the published graph. Questions carry no prefix. It stores plain number arrays, so earlier releases of this package can read it.
 
 ### Regenerating the vectors
 
@@ -259,7 +259,7 @@ pnpm generate-embeddings --model=minilm --data-dir=../public/data \
 Run the HTTP service from source against the committed Qwen3 vectors (the directory needs the graph and the vectors file under `ld/`):
 
 ```sh
-BUILD_DATA_DIR=generated/data DATA_REF=777cf5e752775b20537e1a499c3998eadc2bc184 node scripts/fetch-build-data.mjs
+BUILD_DATA_DIR=generated/data DATA_REF=d07d92fa9ed0b19c9289a3b6220a4aa6b893cb6e node scripts/fetch-build-data.mjs
 cp vectors/embeddings.qwen3.json generated/data/ld/embeddings.json
 pnpm build
 DATA_DIR=generated/data TEA_OFFLINE=1 RANKING_ENABLED=false pnpm start:http

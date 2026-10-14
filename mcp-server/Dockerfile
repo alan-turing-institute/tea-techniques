@@ -13,7 +13,7 @@ COPY src ./src
 RUN pnpm build
 
 FROM build AS data
-ARG DATA_REF=777cf5e752775b20537e1a499c3998eadc2bc184
+ARG DATA_REF=d07d92fa9ed0b19c9289a3b6220a4aa6b893cb6e
 ENV DATA_REF=${DATA_REF}
 COPY scripts/fetch-build-data.mjs ./scripts/fetch-build-data.mjs
 RUN node scripts/fetch-build-data.mjs
