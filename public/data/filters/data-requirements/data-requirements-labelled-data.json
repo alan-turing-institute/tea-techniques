@@ -3867,11 +3867,9 @@
     {
       "slug": "adversarial-training-evaluation",
       "name": "Adversarial Training Evaluation",
-      "description": "Adversarial training evaluation assesses whether models trained with adversarial examples have genuinely improved robustness rather than merely overfitting to specific attack methods. This technique tests robustness against diverse attack algorithms including those not used during training, measures certified robustness bounds, and evaluates whether adversarial training creates exploitable trade-offs in clean accuracy or introduces new vulnerabilities. Evaluation ensures adversarial training provides genuine security benefits rather than superficial improvements.",
+      "description": "Adversarial training evaluation tests whether a model trained on adversarial examples (inputs altered slightly to cause errors) is really more robust, or has only learned to resist the attacks used in training. The evaluator first states a threat model, meaning the kind and size of change allowed and what the attacker knows. The model is then attacked with a varied set of strong methods, including ones not used in training, ones adapted to this particular defence, and ones that do not rely on the model's gradients, which exposes models that merely hide them. The main output is robust accuracy, the share of inputs still classified correctly under attack, plotted against the allowed size of the change and reported next to accuracy on unaltered inputs. Because attacks can only find weaknesses, the result is an upper bound on robustness, not a guarantee.",
       "assurance_goals": [
-        "Security",
-        "Reliability",
-        "Transparency"
+        "Security"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -3879,10 +3877,6 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/security",
         "assurance-goal-category/security/vulnerability-testing",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "data-type/any",
         "data-requirements/labelled-data",
         "lifecycle-stage/model-development",
@@ -3894,45 +3888,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Verifying that an adversarially-trained facial recognition system demonstrates genuine robustness against diverse attack types beyond those used in training, preventing false confidence in security.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "A building-access provider trains its face-recognition model with adversarial examples from a single standard attack. Before relying on it, the security team attacks the model with methods not used in training, including a gradient-free attack, and reports robust accuracy at the perturbation size in its threat model, to check the gain is not overfitting to the training attack."
         },
         {
-          "description": "Ensuring adversarial training of a spam filter improves reliable detection of adversarial emails without significantly degrading performance on normal messages.",
-          "goal": "Reliability"
+          "goal": "Security",
+          "description": "A mail provider adversarially trains its spam filter against text-perturbation attacks. The evaluation measures how much attacker-altered spam still gets through when attacks not used in training are applied, and how the false-positive rate on ordinary mail has changed, to decide whether the clean-accuracy cost of the hardened filter is acceptable."
         },
         {
-          "description": "Evaluating whether adversarial training of a loan approval model maintains fair lending decisions whilst improving robustness against applicants attempting to game the system through strategic feature manipulation.",
-          "goal": "Reliability"
+          "goal": "Security",
+          "description": "A hospital adversarially trains a tumour-detection classifier for scans. The evaluation attacks it with a strong attack ensemble at several perturbation sizes and compares accuracy on routine scans before and after hardening, to decide whether the hardened model is safe to deploy in the screening workflow."
         },
         {
-          "description": "Assessing whether adversarially-trained automated essay grading systems remain reliable on standard student submissions whilst becoming more robust to attempts at deliberately confusing the model with adversarial writing patterns.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Verifying that adversarial training of a medical imaging classifier for tumour detection maintains diagnostic accuracy on routine cases whilst improving robustness to image quality variations and potential adversarial attacks.",
-          "goal": "Security"
-        },
-        {
-          "description": "Documenting adversarial training evaluation results in a model card or technical dossier to meet transparency and disclosure obligations for high-risk AI systems, enabling regulators and deployers to assess whether robustness claims are substantiated by rigorous evaluation across diverse attack types beyond those used in training.",
-          "goal": "Transparency"
+          "goal": "Security",
+          "description": "A driver-assistance supplier trains its road-sign classifier against changes of up to a fixed size per pixel. The evaluation also attacks it with a different kind of change (a limit on total distortion across the image) and with rotations and shifts, to see whether the robustness holds outside the threat model used in training."
         }
       ],
       "limitations": [
         {
-          "description": "Models may overfit to adversarial examples in training data without generalizing to fundamentally different attack strategies."
+          "description": "The result is an upper bound on robustness, not a guarantee. Robust accuracy is measured against the attacks that were run, so a model that survives them can still be broken by a stronger attack, and an evaluation can never prove that no attack exists."
         },
         {
-          "description": "Adversarial training typically reduces clean accuracy by 2-10 percentage points, requiring careful evaluation of security-accuracy trade-offs for each application."
+          "description": "Findings hold only for the threat model tested. Robustness to changes of one kind and size says little about other kinds or larger sizes, so each result must be reported with the perturbation type, size and attacker knowledge it assumed."
         },
         {
-          "description": "Difficult to achieve certified robustness guarantees that hold against all possible attacks within a specified threat model."
+          "description": "Weak or poorly tuned attacks overstate robustness. Default settings, a single attack or the attack used in training can leave a model looking robust, and gradient masking can make gradient-based attacks fail. In one large study, a standard attack ensemble lowered the robust accuracy reported for 13 of over 50 published models by more than 10%."
         },
         {
-          "description": "Adversarial training increases training time by 2-10x compared to standard training, as each batch requires generating adversarial examples, making it resource-intensive for large models or datasets."
+          "description": "A thorough evaluation is expensive and needs expertise. Strong attacks run many iterations and restarts, gradient-free and hard-label attacks need far more queries, and attacks often have to be adapted to the defence by someone who understands how it works."
         },
         {
-          "description": "Requires diverse attack types for comprehensive evaluation beyond training distribution, necessitating ongoing research into emerging attack methods and regular re-evaluation cycles."
+          "description": "Attack methods keep improving, so a result is dated. The evaluation should be repeated when stronger attacks appear and should include attacks not used in training or tuning, which means keeping a current set of attack methods."
         }
       ],
       "resources": [
@@ -4039,24 +4025,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The system maintains reliable performance when subjected to attack strategies not encountered during its development",
+          "text": "The model's robust accuracy under attacks not used in its adversarial training stays within an agreed margin of its robust accuracy under the training attack, at the perturbation size set in the threat model",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "security"
         },
         {
-          "text": "The facial recognition system resists malicious manipulation attempts that fundamentally differ from those used to harden its defenses",
+          "text": "The face-verification model had a lower observed attack success rate than its baseline under the specified impersonation threat model and test suite.",
           "domain": "security",
           "assuranceGoal": "security"
         },
         {
           "text": "The spam filter's improved resilience to adversarial messages does not significantly degrade its accuracy on legitimate communications",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "security"
         },
         {
-          "text": "The model's documented robustness improvements reflect genuine security gains rather than adaptation to specific test cases",
+          "text": "The model's robustness gain over its undefended baseline survives attacks not used to train or tune it, including gradient-free attacks, so it is not explained by overfitting to one attack or by gradient masking",
           "domain": "general",
-          "assuranceGoal": "transparency"
+          "assuranceGoal": "security"
         },
         {
           "text": "The medical imaging classifier maintains diagnostic accuracy on routine cases while demonstrating measurable resistance to deliberate input perturbations",

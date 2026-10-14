@@ -1,7 +1,7 @@
 {
   "slug": "differential-privacy",
   "name": "Differential Privacy",
-  "description": "Differential privacy provides mathematically rigorous privacy protection by adding carefully calibrated random noise to data queries, statistical computations, or machine learning outputs. The technique works by ensuring that the presence or absence of any individual's data has minimal impact on the results - specifically, any query result should be nearly indistinguishable whether or not a particular person's data is included. This is achieved through controlled noise addition that scales with the query's sensitivity and a privacy budget (epsilon) that quantifies the privacy-utility trade-off. The smaller the epsilon, the more noise is added and the stronger the privacy guarantee, but at the cost of reduced accuracy.",
+  "description": "Differential privacy puts a mathematical limit on what a published result reveals about any one person. The data holder adds random noise, drawn for example from a Laplace or Gaussian distribution, to each answer before release, such as a count, an average or a table of statistics, so the answer would look almost the same with or without any one person's data. The amount of noise depends on how much one person could change the answer (its sensitivity) and on a privacy budget called epsilon, which sets how far the two cases may differ (the Gaussian mechanism adds a second, small parameter, delta, for the chance of exceeding that limit). A smaller epsilon means more noise, a stronger guarantee and less accurate answers, and each release spends part of the budget. The guarantee covers whether a person's data took part, not conclusions about the wider population that the results legitimately show.",
   "assurance_goals": [
     "Privacy",
     "Transparency"
@@ -26,29 +26,37 @@
   ],
   "example_use_cases": [
     {
-      "description": "Protecting individual privacy in census data analysis by adding calibrated noise to demographic statistics, ensuring households cannot be re-identified whilst maintaining accurate population insights for policy planning.",
-      "goal": "Privacy"
+      "goal": "Privacy",
+      "description": "A national statistics office adds calibrated noise to published census tables so that no single household's presence changes the results by more than a set amount. Statisticians use the epsilon setting to decide how much accuracy small areas must give up."
     },
     {
-      "description": "Publishing differentially private aggregate statistics about model performance across different demographic groups, enabling transparent bias auditing without exposing sensitive individual prediction details or group membership.",
-      "goal": "Transparency"
+      "goal": "Privacy",
+      "description": "A health authority publishes weekly hospital admission counts by postcode district with Laplace noise added, so a rare diagnosis in a small district cannot be tied to one patient. Its privacy officer sets a yearly budget and decides how many weekly releases it can cover."
+    },
+    {
+      "goal": "Privacy",
+      "description": "An analytics team lets internal analysts query customer purchase data only through an interface that adds noise and tracks each analyst's privacy budget. The data protection lead uses the budget log to decide when an analyst must stop querying."
+    },
+    {
+      "goal": "Transparency",
+      "description": "A model-evaluation team publishes noisy aggregate performance counts for declared groups. It documents the protected unit, sensitivity bound, noise mechanism and cumulative privacy budget so reviewers can interpret the release's guarantee."
     }
   ],
   "limitations": [
     {
-      "description": "Adding noise inherently reduces the accuracy and utility of results, with stronger privacy guarantees (smaller epsilon values) leading to more significant degradation in data quality."
+      "description": "Noise lowers accuracy, and for a given epsilon the noise on a count does not shrink as the dataset grows, so small groups, rare categories and fine-grained tables suffer most. A strong guarantee (small epsilon) can make statistics for small subgroups unusable."
     },
     {
       "description": "Setting the privacy budget (epsilon) requires expertise and careful consideration of the privacy-utility trade-off, with no universal guidelines for appropriate values across different applications."
     },
     {
-      "description": "Sequential queries consume the privacy budget cumulatively, potentially requiring careful query planning and potentially prohibiting future analyses once the budget is exhausted."
+      "description": "Each release spends part of a fixed privacy budget, and the epsilons add up across releases. Once the budget is spent, no further analysis of the same data is possible without weakening the guarantee, so releases must be planned in advance."
     },
     {
-      "description": "Implementation complexity is high, requiring deep understanding of sensitivity analysis, noise mechanisms, and composition theorems to avoid inadvertent privacy violations."
+      "description": "The guarantee depends on correct sensitivity analysis: if a query's sensitivity is underestimated, or one person can contribute many records, too little noise is added and the stated epsilon no longer holds."
     },
     {
-      "description": "May not protect against all privacy attacks, particularly sophisticated adversaries with auxiliary information or when combined with other data sources that could aid re-identification."
+      "description": "The guarantee concerns whether one person's data took part, not what the results show about the population. Conclusions that hold for everyone still apply to each individual, and protection weakens for groups, such as a family, by a factor equal to the group size."
     }
   ],
   "resources": [
@@ -162,24 +170,29 @@
   ],
   "sample_claims": [
     {
-      "text": "The census data analysis results remain statistically indistinguishable whether any single household's data is included or excluded",
+      "text": "The published census tables were produced by a mechanism satisfying epsilon-differential privacy with a stated epsilon, so adding or removing any one household changes the probability of any published output by at most a factor of e to the power epsilon",
       "domain": "public sector",
       "assuranceGoal": "privacy"
     },
     {
-      "text": "The medical research system's published statistics provide quantified privacy guarantees that bound the maximum disclosure risk for any individual patient",
+      "text": "Weekly admission counts are released with Laplace noise calibrated to a sensitivity of one patient, and the total privacy budget spent across all releases is tracked and capped",
       "domain": "healthcare",
+      "assuranceGoal": "privacy"
+    },
+    {
+      "text": "The analytics interface refuses further queries from an analyst once their allocated privacy budget is spent, so cumulative disclosure about any one individual stays within the agreed bound",
+      "domain": "general",
+      "assuranceGoal": "privacy"
+    },
+    {
+      "text": "Aggregate spending statistics shared with a research partner carry a documented epsilon, which bounds how much the partner can learn about whether any one customer's data was included",
+      "domain": "finance",
       "assuranceGoal": "privacy"
     },
     {
       "text": "The model performance metrics across demographic groups are accompanied by documented privacy budget allocation and noise parameters",
       "domain": "general",
       "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The system's privacy protection level is mathematically bounded and remains effective even under repeated queries within the allocated budget",
-      "domain": "general",
-      "assuranceGoal": "privacy"
     }
   ]
 }

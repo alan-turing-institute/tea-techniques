@@ -2689,10 +2689,9 @@
     {
       "slug": "federated-learning",
       "name": "Federated Learning",
-      "description": "Federated learning enables collaborative model training across multiple distributed parties (devices, organisations, or data centres) without requiring centralised data sharing. Participants train models locally on their private datasets and only share model updates (gradients, weights, or aggregated statistics) with a central coordinator. This distributed approach serves multiple purposes: preserving data privacy and sovereignty, reducing communication costs, enabling learning from diverse data sources, improving model robustness through heterogeneous training, and facilitating compliance with data protection regulations whilst maintaining model performance comparable to centralised training.",
+      "description": "Federated learning trains one shared model across several parties, such as phones or hospitals, without collecting their data in one place. Each party trains the current model on its own data and sends back only an update, such as the changed weights (the model's internal numbers) or the gradients (the direction of change). A central coordinator combines the updates, typically by averaging, into an improved shared model and sends it out again, and the cycle repeats over many rounds. Raw records stay with their owners, which limits how much sensitive data is stored or moved and can support data protection rules that favour collecting less. It is not a privacy guarantee on its own, because updates can still reveal information about the data behind them and the coordinator has to be trusted.",
       "assurance_goals": [
-        "Privacy",
-        "Reliability"
+        "Privacy"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -2704,8 +2703,6 @@
         "assurance-goal-category/privacy",
         "assurance-goal-category/privacy/exposure-reduction",
         "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "evidence-type/model-artefact",
@@ -2719,12 +2716,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Developing a smartphone keyboard prediction model by learning from users' typing patterns without their text ever leaving their devices, enabling personalised predictions whilst maintaining complete data privacy.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A mobile keyboard team trains a next-word prediction model on users' phones and receives only model updates, so typed text never reaches its servers. The team uses this to decide whether personalised suggestions can ship without collecting message content centrally."
         },
         {
-          "description": "Training a medical diagnosis model across multiple hospitals without sharing patient records, ensuring model robustness by learning from diverse patient populations and clinical practices across different institutions.",
-          "goal": "Reliability"
+          "goal": "Privacy",
+          "description": "Hospitals in several countries train a model that predicts COVID-19 outcomes on their own patient records and share only model updates with a coordinating centre, so no patient record leaves a hospital. Each hospital's data governance board uses this to decide whether it can join the collaboration."
+        },
+        {
+          "goal": "Privacy",
+          "description": "Several banks jointly train a fraud-detection model on their own transaction data and share only model updates, so no bank's customer records reach a competitor. Each bank's compliance team uses the setup to decide whether joint training fits its data-sharing restrictions."
         }
       ],
       "limitations": [
@@ -2741,7 +2742,7 @@
           "description": "Privacy vulnerabilities remain through gradient leakage attacks, model inversion, and membership inference attacks that can potentially reconstruct sensitive information from shared model updates."
         },
         {
-          "description": "Coordination complexity increases with the number of participants, requiring sophisticated aggregation protocols, fault tolerance mechanisms, and secure communication infrastructure."
+          "description": "A faulty or malicious participant can submit harmful updates that the coordinator cannot check against the participant's data, for example to plant a hidden backdoor in the shared model. Defences such as robust aggregation add cost, and the coordinator must also be trusted with the updates it receives."
         }
       ],
       "resources": [
@@ -3203,12 +3204,17 @@
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The diagnostic model performs reliably despite learning from patient populations with heterogeneous clinical characteristics across multiple sites",
-          "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "The keyboard prediction model learns from user typing patterns without transmitting personal text content to central servers",
+          "domain": "general",
+          "assuranceGoal": "privacy"
         },
         {
-          "text": "The keyboard prediction model learns from user typing patterns without transmitting personal text content to central servers",
+          "text": "Each participating bank trained the shared fraud-detection model without moving customer transaction records out of its own environment; only model updates reached the coordinator",
+          "domain": "finance",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The central server holds no copy of any participant's raw training data; it holds the shared model and, briefly, the updates it is aggregating",
           "domain": "general",
           "assuranceGoal": "privacy"
         }
@@ -5184,11 +5190,9 @@
     {
       "slug": "adversarial-training-evaluation",
       "name": "Adversarial Training Evaluation",
-      "description": "Adversarial training evaluation assesses whether models trained with adversarial examples have genuinely improved robustness rather than merely overfitting to specific attack methods. This technique tests robustness against diverse attack algorithms including those not used during training, measures certified robustness bounds, and evaluates whether adversarial training creates exploitable trade-offs in clean accuracy or introduces new vulnerabilities. Evaluation ensures adversarial training provides genuine security benefits rather than superficial improvements.",
+      "description": "Adversarial training evaluation tests whether a model trained on adversarial examples (inputs altered slightly to cause errors) is really more robust, or has only learned to resist the attacks used in training. The evaluator first states a threat model, meaning the kind and size of change allowed and what the attacker knows. The model is then attacked with a varied set of strong methods, including ones not used in training, ones adapted to this particular defence, and ones that do not rely on the model's gradients, which exposes models that merely hide them. The main output is robust accuracy, the share of inputs still classified correctly under attack, plotted against the allowed size of the change and reported next to accuracy on unaltered inputs. Because attacks can only find weaknesses, the result is an upper bound on robustness, not a guarantee.",
       "assurance_goals": [
-        "Security",
-        "Reliability",
-        "Transparency"
+        "Security"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -5196,10 +5200,6 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/security",
         "assurance-goal-category/security/vulnerability-testing",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "data-type/any",
         "data-requirements/labelled-data",
         "lifecycle-stage/model-development",
@@ -5211,45 +5211,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Verifying that an adversarially-trained facial recognition system demonstrates genuine robustness against diverse attack types beyond those used in training, preventing false confidence in security.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "A building-access provider trains its face-recognition model with adversarial examples from a single standard attack. Before relying on it, the security team attacks the model with methods not used in training, including a gradient-free attack, and reports robust accuracy at the perturbation size in its threat model, to check the gain is not overfitting to the training attack."
         },
         {
-          "description": "Ensuring adversarial training of a spam filter improves reliable detection of adversarial emails without significantly degrading performance on normal messages.",
-          "goal": "Reliability"
+          "goal": "Security",
+          "description": "A mail provider adversarially trains its spam filter against text-perturbation attacks. The evaluation measures how much attacker-altered spam still gets through when attacks not used in training are applied, and how the false-positive rate on ordinary mail has changed, to decide whether the clean-accuracy cost of the hardened filter is acceptable."
         },
         {
-          "description": "Evaluating whether adversarial training of a loan approval model maintains fair lending decisions whilst improving robustness against applicants attempting to game the system through strategic feature manipulation.",
-          "goal": "Reliability"
+          "goal": "Security",
+          "description": "A hospital adversarially trains a tumour-detection classifier for scans. The evaluation attacks it with a strong attack ensemble at several perturbation sizes and compares accuracy on routine scans before and after hardening, to decide whether the hardened model is safe to deploy in the screening workflow."
         },
         {
-          "description": "Assessing whether adversarially-trained automated essay grading systems remain reliable on standard student submissions whilst becoming more robust to attempts at deliberately confusing the model with adversarial writing patterns.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Verifying that adversarial training of a medical imaging classifier for tumour detection maintains diagnostic accuracy on routine cases whilst improving robustness to image quality variations and potential adversarial attacks.",
-          "goal": "Security"
-        },
-        {
-          "description": "Documenting adversarial training evaluation results in a model card or technical dossier to meet transparency and disclosure obligations for high-risk AI systems, enabling regulators and deployers to assess whether robustness claims are substantiated by rigorous evaluation across diverse attack types beyond those used in training.",
-          "goal": "Transparency"
+          "goal": "Security",
+          "description": "A driver-assistance supplier trains its road-sign classifier against changes of up to a fixed size per pixel. The evaluation also attacks it with a different kind of change (a limit on total distortion across the image) and with rotations and shifts, to see whether the robustness holds outside the threat model used in training."
         }
       ],
       "limitations": [
         {
-          "description": "Models may overfit to adversarial examples in training data without generalizing to fundamentally different attack strategies."
+          "description": "The result is an upper bound on robustness, not a guarantee. Robust accuracy is measured against the attacks that were run, so a model that survives them can still be broken by a stronger attack, and an evaluation can never prove that no attack exists."
         },
         {
-          "description": "Adversarial training typically reduces clean accuracy by 2-10 percentage points, requiring careful evaluation of security-accuracy trade-offs for each application."
+          "description": "Findings hold only for the threat model tested. Robustness to changes of one kind and size says little about other kinds or larger sizes, so each result must be reported with the perturbation type, size and attacker knowledge it assumed."
         },
         {
-          "description": "Difficult to achieve certified robustness guarantees that hold against all possible attacks within a specified threat model."
+          "description": "Weak or poorly tuned attacks overstate robustness. Default settings, a single attack or the attack used in training can leave a model looking robust, and gradient masking can make gradient-based attacks fail. In one large study, a standard attack ensemble lowered the robust accuracy reported for 13 of over 50 published models by more than 10%."
         },
         {
-          "description": "Adversarial training increases training time by 2-10x compared to standard training, as each batch requires generating adversarial examples, making it resource-intensive for large models or datasets."
+          "description": "A thorough evaluation is expensive and needs expertise. Strong attacks run many iterations and restarts, gradient-free and hard-label attacks need far more queries, and attacks often have to be adapted to the defence by someone who understands how it works."
         },
         {
-          "description": "Requires diverse attack types for comprehensive evaluation beyond training distribution, necessitating ongoing research into emerging attack methods and regular re-evaluation cycles."
+          "description": "Attack methods keep improving, so a result is dated. The evaluation should be repeated when stronger attacks appear and should include attacks not used in training or tuning, which means keeping a current set of attack methods."
         }
       ],
       "resources": [
@@ -5356,24 +5348,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The system maintains reliable performance when subjected to attack strategies not encountered during its development",
+          "text": "The model's robust accuracy under attacks not used in its adversarial training stays within an agreed margin of its robust accuracy under the training attack, at the perturbation size set in the threat model",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "security"
         },
         {
-          "text": "The facial recognition system resists malicious manipulation attempts that fundamentally differ from those used to harden its defenses",
+          "text": "The face-verification model had a lower observed attack success rate than its baseline under the specified impersonation threat model and test suite.",
           "domain": "security",
           "assuranceGoal": "security"
         },
         {
           "text": "The spam filter's improved resilience to adversarial messages does not significantly degrade its accuracy on legitimate communications",
           "domain": "general",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "security"
         },
         {
-          "text": "The model's documented robustness improvements reflect genuine security gains rather than adaptation to specific test cases",
+          "text": "The model's robustness gain over its undefended baseline survives attacks not used to train or tune it, including gradient-free attacks, so it is not explained by overfitting to one attack or by gradient masking",
           "domain": "general",
-          "assuranceGoal": "transparency"
+          "assuranceGoal": "security"
         },
         {
           "text": "The medical imaging classifier maintains diagnostic accuracy on routine cases while demonstrating measurable resistance to deliberate input perturbations",
@@ -6566,7 +6558,7 @@
     {
       "slug": "machine-unlearning",
       "name": "Machine Unlearning",
-      "description": "Machine unlearning enables removal of specific training data's influence from trained models without complete retraining. This technique addresses privacy rights like GDPR's right to be forgotten by selectively erasing learned patterns associated with particular data points, individuals, or sensitive attributes. Methods include exact unlearning (provably equivalent to retraining without the data), approximate unlearning (efficient algorithms that closely approximate retraining), and certified unlearning (providing formal guarantees about information removal).",
+      "description": "Machine unlearning removes the influence of specific training records from a trained model, so that the model behaves as if it had never seen them. It is used when someone withdraws consent or asks for deletion, for example under the right to erasure (the 'right to be forgotten') in data protection law, and retraining from scratch would be too slow or costly. Exact methods, such as sharded training, split the data into parts that each train their own sub-model, so a deletion means retraining only the sub-model that used those records, which gives a result statistically the same as retraining without them. Approximate methods instead edit the trained model directly to reduce the records' influence, which is faster but gives weaker assurance, and certified methods add a formal bound on how much influence can remain.",
       "assurance_goals": [
         "Privacy",
         "Transparency"
@@ -6579,7 +6571,7 @@
         "assurance-goal-category/privacy",
         "assurance-goal-category/privacy/exposure-reduction",
         "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/confidential-verification",
+        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/access-to-training-data",
         "data-type/any",
         "evidence-type/quantitative-metric",
@@ -6596,32 +6588,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Responding to user deletion requests in a social media recommendation system by removing all influence of that user's historical interactions, ensuring GDPR compliance and verifiable data removal.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A social media platform responds to a user's deletion request by removing that user's interaction history from its recommendation model, retraining only the affected part rather than the whole system. The data protection team uses this to decide whether it can meet deletion deadlines without a full retrain each time."
         },
         {
-          "description": "Enabling a financial institution to demonstrate regulatory compliance by providing cryptographic proof that a former customer's transaction history has been completely removed from credit risk assessment models following account closure.",
-          "goal": "Transparency"
+          "goal": "Privacy",
+          "description": "A hospital withdraws a patient's records from a readmission-risk model after the patient withdraws consent for research use, retraining only the shard that contained them. The research governance board uses the retraining log to decide whether the model can stay in use."
+        },
+        {
+          "goal": "Privacy",
+          "description": "A lender removes a former customer's transaction history from its credit-risk model after the customer withdraws consent for analytics use. The model risk team decides whether a faster approximate update is acceptable or whether the affected shard must be retrained exactly."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A financial institution records the withdrawn transaction-record identifiers, affected constituent models and retraining checkpoints in its SISA workflow. Reviewers use this update history to inspect the scope of the completed unlearning operation."
         }
       ],
       "limitations": [
         {
-          "description": "Exact unlearning for complex models like deep neural networks is computationally expensive, often nearly as costly as full retraining."
+          "description": "Exact unlearning for deep neural networks gives limited savings over full retraining: sharded training sped unlearning up by only 1.36 times on ImageNet-scale classification in the SISA paper. For very large foundation models, even storing the checkpoints needed for partial retraining can be infeasible, which limits exact methods to smaller models."
         },
         {
-          "description": "Approximate unlearning methods may not provide strong guarantees that information has been fully removed, potentially leaving residual influence."
+          "description": "Approximate methods can leave residual influence from the removed data in the model, and their guarantees are weaker or only probabilistic. That matters when a regulator or the data subject expects genuine erasure, because the result cannot be shown to match a model retrained without the data."
         },
         {
-          "description": "Difficult to verify unlearning effectiveness, as adversaries might extract information about supposedly removed data through membership inference or other attacks."
+          "description": "Unlearning is hard to verify from outside. There is no direct way to measure one record's influence on a model's weights, so the data subject must largely trust the provider's procedure, and membership inference tests can detect leakage but cannot prove removal."
         },
         {
-          "description": "Repeated unlearning requests can degrade model performance significantly, especially if many data points are removed from the training distribution."
+          "description": "Removing many records, or records the model relies on, can lower accuracy, and sharded exact methods lose accuracy because each sub-model sees only part of the data, most on complex tasks. Teams with frequent deletion requests need to monitor accuracy after each round."
         },
         {
-          "description": "Requires access to model architecture and training process details (white-box access), making it difficult to apply to third-party models or models where internal structure is proprietary."
-        },
-        {
-          "description": "Particularly challenging for very large foundation models where even storing checkpoints for potential retraining is infeasible, limiting practical applicability to smaller, domain-specific models."
+          "description": "Exact approaches such as sharded training must be built into the training pipeline before the model is first trained, and most methods need white-box access to weights and training data. A model already trained without them, or a third-party model, can only be retrained or approximately edited."
         }
       ],
       "resources": [
@@ -6723,18 +6720,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The model demonstrably excludes the influence of withdrawn patient records without requiring complete retraining of the clinical risk assessment system",
+          "text": "After patient withdrawals, the risk model was updated by retraining only the data shards that contained the withdrawn records, so it is equivalent to a model never trained on them",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The recommendation system provides verifiable evidence that deleted user data no longer affects personalized content rankings following account closure requests",
+          "text": "Each deletion request was handled by retraining the model components that used the user's data, and the processing log records which components were retrained and when",
           "domain": "general",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The system documents which training examples have been removed and provides formal guarantees about the completeness of their erasure from model behavior",
+          "text": "The production model can honour a deletion request within the legal deadline without a full retrain, at an accuracy cost inside the agreed tolerance",
           "domain": "general",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The financial model's update history identifies the withdrawn record set, affected constituents, checkpoint scope and completed retraining operations.",
+          "domain": "finance",
           "assuranceGoal": "transparency"
         }
       ]
@@ -6742,7 +6744,7 @@
     {
       "slug": "model-extraction-defence-testing",
       "name": "Model Extraction Defence Testing",
-      "description": "Model extraction defence testing evaluates protections against attackers who attempt to steal model functionality by querying it and training surrogate models. This technique assesses defences like query limiting, output perturbation, watermarking, and fingerprinting by simulating extraction attacks and measuring how much model functionality can be replicated. Testing evaluates both the effectiveness of defences in preventing extraction and their impact on legitimate use cases, ensuring security measures don't excessively degrade user experience.",
+      "description": "Model extraction defence testing checks whether a model offered through a query interface, such as a prediction API, can be copied by someone who can only send it inputs and read its outputs. The tester plays the attacker, spends a fixed query budget on the protected interface, then uses the answers to train a surrogate model (a copy trained on the answers) or to solve for the model's parameters, and compares the copy with the original. Fidelity is usually measured as the share of inputs on which the copy agrees with the original, together with how many queries that took. The same attack is run with and without each defence, such as limiting queries, rounding or removing confidence scores, or adding noise to outputs, to show how much each defence raises the attacker's cost. The tester also measures the effect on legitimate users, for example accuracy or response time.",
       "assurance_goals": [
         "Security"
       ],
@@ -6763,36 +6765,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing protections for a proprietary fraud detection API to ensure competitors cannot recreate the model's decision boundaries through systematic querying, by simulating extraction attacks using query budgets, active learning strategies, and substitute model training.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "Testing protections for a proprietary fraud detection API to ensure competitors cannot recreate the model's decision boundaries through systematic querying, by simulating extraction attacks using query budgets, active learning strategies, and substitute model training."
         },
         {
-          "description": "Evaluating whether rate limiting and output obfuscation for an automated essay grading API prevent competitors from extracting the scoring model through systematic submission of probe essays designed to reverse-engineer grading criteria.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "Evaluating whether rate limiting and output obfuscation for an automated essay grading API prevent competitors from extracting the scoring model through systematic submission of probe essays designed to reverse-engineer grading criteria."
         },
         {
-          "description": "Testing whether a traffic prediction API's defensive perturbations prevent extraction of the underlying routing optimization model whilst maintaining sufficient accuracy for legitimate urban planning applications.",
-          "goal": "Reliability"
+          "goal": "Security",
+          "description": "A transport authority sells access to a traffic-prediction API and rounds its forecasts to deter copying. It runs extraction attacks against rounded and unrounded versions to see how much rounding makes a surrogate lose fidelity, then checks that the rounded forecasts remain accurate enough for urban planners."
         }
       ],
       "limitations": [
         {
-          "description": "Sophisticated attackers may use transfer learning, active learning, or knowledge distillation to extract models with 10-50x fewer queries than static defences anticipate, and can adapt their strategies as they probe defences, requiring dynamic rather than static protection mechanisms."
+          "description": "A defence is tested only against the attacks the tester thinks to run, and attackers adapt. A 2024 attack recovered part of production language models through log-probability and logit-bias options that designers had treated as harmless, so passing a test is not a guarantee of protection."
         },
         {
-          "description": "Defensive measures like output perturbation can degrade model utility for legitimate users, creating tension between security and usability."
+          "description": "Defences that perturb or hide outputs can reduce utility for legitimate users, and the acceptable loss depends on the application. The test has to measure legitimate accuracy and latency as well as extraction fidelity, or it will reward defences that quietly break the service."
         },
         {
-          "description": "Difficult to distinguish between legitimate high-volume use and malicious extraction attempts, potentially blocking valid users."
+          "description": "It is hard to tell legitimate high-volume use from extraction, so query limits and detection can block valid users. Published stateful detection defences have themselves been bypassed, so a detector that passes a test may still fail against an adaptive attacker."
         },
         {
-          "description": "Watermarking and fingerprinting techniques may be removed or obscured by attackers who post-process extracted models."
+          "description": "Results depend on what the simulated attacker is assumed to know, such as the model type, the training-data distribution, and whether the API returns confidence scores or accepts partial inputs. Testing against a weak assumed attacker overstates protection."
         },
         {
-          "description": "Difficult to validate defence effectiveness without exposing the model to actual extraction attempts, and limited public benchmarks make it challenging to compare defence strategies objectively across different model types and threat scenarios."
-        },
-        {
-          "description": "Requires specialised expertise in adversarial machine learning and attack simulation to design realistic extraction scenarios, making it challenging for organisations without dedicated security teams to implement comprehensive testing."
+          "description": "There is no agreed threshold for how much copying fidelity is acceptable, and a fidelity figure depends on the query budget and the measure used. Results are therefore hard to compare across models and defences, and the pass mark is a judgement."
         }
       ],
       "resources": [
@@ -6864,18 +6863,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The proprietary fraud detection API withstands systematic querying attempts designed to replicate its decision boundaries without degrading service for legitimate users",
+          "text": "Under the documented query budget, the fraud API's output restriction reduced extracted-model agreement compared with the unrestricted baseline.",
           "domain": "finance",
           "assuranceGoal": "security"
         },
         {
-          "text": "The model service distinguishes between legitimate high-volume use and malicious extraction attempts through behavioral analysis",
+          "text": "The essay-scoring API evaluation reports extraction success and rejection of legitimate requests for the tested rate-limit settings.",
           "domain": "general",
           "assuranceGoal": "security"
         },
         {
-          "text": "The autonomous vehicle perception API maintains protection against competitors extracting routing optimization logic through probe queries across varied traffic scenarios",
-          "domain": "autonomous systems",
+          "text": "A surrogate model trained on answers from the traffic-prediction API within the permitted query budget agrees with the production model on no more than an agreed share of held-out inputs, while the forecasts stay accurate enough for planners",
+          "domain": "transport",
+          "assuranceGoal": "security"
+        },
+        {
+          "text": "The prediction API returns only the output fields its legitimate users need, so extraction attacks that depend on confidence scores or partial inputs do not succeed",
+          "domain": "general",
           "assuranceGoal": "security"
         }
       ]
@@ -6883,11 +6887,10 @@
     {
       "slug": "membership-inference-attack-testing",
       "name": "Membership Inference Attack Testing",
-      "description": "Membership inference attack testing evaluates whether adversaries can determine if specific data points were included in a model's training set. This technique simulates attacks where adversaries use model confidence scores, prediction patterns, or loss values to distinguish training data from non-training data. Testing measures privacy leakage by calculating attack success rates, precision-recall trade-offs, and advantage over random guessing. Results inform decisions about privacy-enhancing techniques like differential privacy or regularisation.",
+      "description": "Membership inference attack testing checks whether someone with access to a trained model can tell if a particular record was in its training data. The tester plays the attacker, using the model's confidence scores, its prediction patterns or its loss on a record, often with shadow models, which are copies trained on similar data whose members are known. The attack is scored on records known to be members and records known to be non-members, which the tester must keep apart. The key result is the share of true members the attack identifies when it wrongly flags only a tiny share of non-members (for example 0.1%), because overall accuracy can hide an attack that identifies a few records with near certainty. The results guide the choice of mitigations, such as differential privacy or regularisation.",
       "assurance_goals": [
         "Privacy",
-        "Security",
-        "Transparency"
+        "Security"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -6896,8 +6899,6 @@
         "assurance-goal-category/privacy/leakage-testing",
         "assurance-goal-category/security",
         "assurance-goal-category/security/vulnerability-testing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "data-requirements/access-to-training-data",
         "data-type/any",
         "evidence-type/quantitative-metric",
@@ -6910,16 +6911,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing a genomics research model to ensure attackers cannot determine which individuals' genetic data were used in training, protecting highly sensitive hereditary and health information from privacy breaches.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A genomics group plans to share a model trained on participants' genetic data. Before release, it runs shadow-model membership inference attacks and reports how many participants the attack picks out at a very low false-positive rate, to decide whether the model can be shared or needs stronger protection such as differential privacy."
         },
         {
-          "description": "Evaluating whether a facial recognition system leaks information about whose faces were in the training set, preventing unauthorized identification of individuals in training data.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "A law firm fine-tunes a language model on confidential client contracts. A red team tests whether an outsider with query access can tell that a given contract was in the fine-tuning set, using member contracts and held-out contracts from the same period and source, to decide whether the model can be opened to wider use."
         },
         {
-          "description": "Auditing a credit scoring model used by multiple lenders to verify and transparently document that the model doesn't leak information about which specific customers' financial histories were used in training, supporting fair lending compliance reporting.",
-          "goal": "Transparency"
+          "goal": "Privacy",
+          "description": "A lender audits its credit-scoring model before sharing it with partner lenders. The audit compares attack results before and after regularisation, to decide whether the remaining leakage of which customers were in the training set is acceptable."
         }
       ],
       "limitations": [
@@ -6927,13 +6928,16 @@
           "description": "Attack success rates vary significantly depending on model architecture, training procedures, and data characteristics, making it difficult to establish universal thresholds for acceptable privacy."
         },
         {
-          "description": "Sophisticated attackers with shadow models or auxiliary data may achieve attack success rates 2-3x higher than standard evaluation scenarios test."
+          "description": "A failed attack proves little, because the result holds only for the attacks that were run. A published likelihood-ratio attack found members about ten times more often at low false-positive rates than earlier methods, so a model that resists weaker attacks may still leak, and no result amounts to a formal guarantee."
         },
         {
-          "description": "Trade-off between model utility and privacy protection means defending against membership inference often reduces model accuracy."
+          "description": "Overall measures such as accuracy or area under the curve can look modest while a few records are identified with near certainty, and leakage tends to fall on unusual or out-of-distribution records. Reporting only an average therefore understates the risk to the individuals most exposed."
         },
         {
-          "description": "Testing requires access to both training and non-training data from the same distribution, which may not always be available for realistic evaluation."
+          "description": "Members and non-members must come from the same distribution. If non-members are drawn from a different period or source, as in many language-model benchmarks, the attack can learn that difference instead of membership and overstate the leakage."
+        },
+        {
+          "description": "The strongest attacks are expensive. The likelihood-ratio attack trains hundreds of shadow models (256 for most datasets in its evaluation), which can be costly for large models, and a cheaper attack gives a weaker test."
         }
       ],
       "resources": [
@@ -7025,27 +7029,27 @@
       ],
       "sample_claims": [
         {
-          "text": "The genomics research model does not reveal which individuals' genetic data were included in its training dataset",
+          "text": "At a false-positive rate of 0.1%, a membership inference attack using shadow models identifies no more of the genomics model's training participants than random guessing would",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The facial recognition system resists attempts to identify whose images were used during model development",
-          "domain": "general",
+          "text": "The credit-scoring model's measured membership leakage, expressed as the share of training customers identified at a 0.1% false-positive rate, is below the threshold set in the lender's privacy risk assessment",
+          "domain": "finance",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "An outsider with query access cannot tell, better than chance at a low false-positive rate, whether a given confidential contract was in the firm's fine-tuning data",
+          "domain": "legal",
           "assuranceGoal": "security"
         },
         {
-          "text": "The credit scoring model's documented privacy characteristics include quantified risk of exposing individual customers' training data participation",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The medical diagnosis system protects patient privacy by preventing determination of which clinical records were used in training",
+          "text": "After the diagnosis model was retrained with differential privacy, a membership inference attack's true-positive rate at a 0.1% false-positive rate fell compared with the previous model",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The recommendation system maintains user privacy even when adversaries systematically probe for training data membership",
+          "text": "The leakage figure comes from the strongest available attack, with shadow models trained on data from the same distribution as the target's training set, so a low result is not due to a weak test",
           "domain": "general",
           "assuranceGoal": "security"
         }

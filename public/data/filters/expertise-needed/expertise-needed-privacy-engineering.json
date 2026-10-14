@@ -9,11 +9,9 @@
     {
       "slug": "gan-based-tabular-synthetic-data",
       "name": "GAN-Based Tabular Synthetic Data",
-      "description": "Generates synthetic tabular datasets using Generative Adversarial Networks, most commonly through architectures such as CTGAN (Conditional Tabular GAN) and TVAE (Triplet-based Variational Autoencoder). These models learn the joint distribution of mixed-type columns — continuous, discrete, and categorical — by training a generator and discriminator in an adversarial framework, with mode-specific normalisation to handle multimodal continuous distributions and training-by-sampling to address class imbalance. The resulting synthetic tables aim to preserve statistical relationships, correlations, and marginal distributions of the original data whilst containing no real records, supporting privacy-preserving data sharing, model development on sensitive datasets, and augmentation of limited training data.",
+      "description": "GAN-based tabular synthetic data generation trains a generative model on a real table, then samples new rows from it to produce a synthetic table that can be shared or used in place of the original. In CTGAN (Conditional Tabular GAN), a generator network learns to produce rows and a discriminator network learns to tell them from real ones. CTGAN suits tables through mode-specific normalisation, which treats each numeric column as a mixture of clusters, and through training-by-sampling, which shows rare categories to the model often enough for it to learn them. TVAE is a related model built on a variational autoencoder, another kind of generative network, rather than a GAN. The synthetic table aims to preserve the original's column distributions and correlations, and its rows are generated rather than copied, but this is not a privacy guarantee, because a generator can memorise and reproduce training rows.",
       "assurance_goals": [
-        "Privacy",
-        "Reliability",
-        "Fairness"
+        "Privacy"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/generative/gan",
@@ -25,10 +23,6 @@
         "assurance-goal-category/privacy",
         "assurance-goal-category/privacy/exposure-reduction",
         "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/pre-processing",
         "data-type/tabular",
         "evidence-type/synthetic-data",
         "expertise-needed/ml-engineering",
@@ -42,16 +36,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Generating synthetic patient records from hospital databases using CTGAN to enable multi-institution collaborative research on treatment outcomes without sharing identifiable health data across organisational boundaries.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "Generating synthetic patient records from hospital databases using CTGAN to enable multi-institution collaborative research on treatment outcomes without sharing identifiable health data across organisational boundaries."
         },
         {
-          "description": "Augmenting a limited fraud detection training set by generating synthetic fraudulent transaction records that preserve the statistical characteristics of rare fraud patterns, improving model recall on underrepresented fraud types.",
-          "goal": "Reliability"
+          "goal": "Privacy",
+          "description": "A bank's analytics team generates a synthetic copy of its customer transactions with CTGAN and gives it to an external vendor building a spending-insights dashboard. Before release, the team checks the table for rows that closely match real customers and decides whether it is safe to hand over."
         },
         {
-          "description": "Creating balanced synthetic datasets for credit scoring by generating additional records for underrepresented demographic groups, enabling fairness testing across protected characteristics without collecting new sensitive data.",
-          "goal": "Fairness"
+          "goal": "Privacy",
+          "description": "A government statistics office produces a CTGAN synthetic version of a restricted household survey so researchers can develop and test analysis code before applying for access to the real data. The office uses it to decide what can be released openly and what stays in a secure facility."
         }
       ],
       "limitations": [
@@ -59,13 +53,16 @@
           "description": "Training instability inherent to GAN architectures (mode collapse, vanishing gradients) can result in synthetic data that fails to capture the full diversity of the original distribution, particularly for rare categories or tail distributions."
         },
         {
-          "description": "Requires substantial computational resources and hyperparameter tuning, with training times scaling poorly for datasets with many columns or complex inter-column dependencies."
+          "description": "There is no reliable rule for setting CTGAN's hyperparameters, such as epochs, batch size and learning rates, so users must experiment and watch whether the generator and discriminator losses converge. Training time grows with the number of epochs and can be shortened with a GPU."
         },
         {
-          "description": "Privacy guarantees are not inherent — without additional mechanisms like differential privacy, GAN-generated data may leak information about training records through memorisation or membership inference attacks."
+          "description": "Privacy guarantees are not inherent. Without additional mechanisms such as differential privacy, GAN-generated data may leak information about training records through memorisation or membership inference attacks."
         },
         {
-          "description": "Performance degrades significantly on datasets with high cardinality categorical columns, complex temporal dependencies, or relational structures across multiple tables."
+          "description": "CTGAN samples each row independently from fully connected networks, so it does not preserve row order, time dependencies or links between tables, and columns with many categories are harder to learn because each value is one-hot encoded."
+        },
+        {
+          "description": "The synthetic table can only reproduce what the training table contains: biases, gaps and thinly covered subgroups carry over or are lost, and models trained on synthetic rows are normally no better than models trained on the real table they imitate. Fidelity has to be tested separately against real data before the table is used."
         }
       ],
       "resources": [
@@ -154,19 +151,19 @@
       ],
       "sample_claims": [
         {
-          "text": "The synthetic patient dataset generated by CTGAN preserves statistical correlations between clinical variables whilst containing no records traceable to real patients",
+          "text": "The patient table shared with partner institutions consists only of model-generated rows, so no original patient record leaves the hospital's controlled environment",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The augmented training dataset includes GAN-generated records for underrepresented demographic groups, achieving balanced representation across all protected characteristics",
+          "text": "The external vendor built and tested its dashboard on a synthetic copy of the transaction table, so no real customer row was disclosed outside the bank",
           "domain": "finance",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "privacy"
         },
         {
-          "text": "The fraud detection model has been validated on GAN-generated synthetic transaction data that preserves the statistical distribution of rare fraud patterns from the original dataset",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "Every row in the published survey file was generated by a model trained on the restricted data, not copied from a respondent's record",
+          "domain": "public sector",
+          "assuranceGoal": "privacy"
         }
       ]
     },
@@ -307,10 +304,9 @@
     {
       "slug": "federated-learning",
       "name": "Federated Learning",
-      "description": "Federated learning enables collaborative model training across multiple distributed parties (devices, organisations, or data centres) without requiring centralised data sharing. Participants train models locally on their private datasets and only share model updates (gradients, weights, or aggregated statistics) with a central coordinator. This distributed approach serves multiple purposes: preserving data privacy and sovereignty, reducing communication costs, enabling learning from diverse data sources, improving model robustness through heterogeneous training, and facilitating compliance with data protection regulations whilst maintaining model performance comparable to centralised training.",
+      "description": "Federated learning trains one shared model across several parties, such as phones or hospitals, without collecting their data in one place. Each party trains the current model on its own data and sends back only an update, such as the changed weights (the model's internal numbers) or the gradients (the direction of change). A central coordinator combines the updates, typically by averaging, into an improved shared model and sends it out again, and the cycle repeats over many rounds. Raw records stay with their owners, which limits how much sensitive data is stored or moved and can support data protection rules that favour collecting less. It is not a privacy guarantee on its own, because updates can still reveal information about the data behind them and the coordinator has to be trusted.",
       "assurance_goals": [
-        "Privacy",
-        "Reliability"
+        "Privacy"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -322,8 +318,6 @@
         "assurance-goal-category/privacy",
         "assurance-goal-category/privacy/exposure-reduction",
         "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "evidence-type/model-artefact",
@@ -337,12 +331,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Developing a smartphone keyboard prediction model by learning from users' typing patterns without their text ever leaving their devices, enabling personalised predictions whilst maintaining complete data privacy.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A mobile keyboard team trains a next-word prediction model on users' phones and receives only model updates, so typed text never reaches its servers. The team uses this to decide whether personalised suggestions can ship without collecting message content centrally."
         },
         {
-          "description": "Training a medical diagnosis model across multiple hospitals without sharing patient records, ensuring model robustness by learning from diverse patient populations and clinical practices across different institutions.",
-          "goal": "Reliability"
+          "goal": "Privacy",
+          "description": "Hospitals in several countries train a model that predicts COVID-19 outcomes on their own patient records and share only model updates with a coordinating centre, so no patient record leaves a hospital. Each hospital's data governance board uses this to decide whether it can join the collaboration."
+        },
+        {
+          "goal": "Privacy",
+          "description": "Several banks jointly train a fraud-detection model on their own transaction data and share only model updates, so no bank's customer records reach a competitor. Each bank's compliance team uses the setup to decide whether joint training fits its data-sharing restrictions."
         }
       ],
       "limitations": [
@@ -359,7 +357,7 @@
           "description": "Privacy vulnerabilities remain through gradient leakage attacks, model inversion, and membership inference attacks that can potentially reconstruct sensitive information from shared model updates."
         },
         {
-          "description": "Coordination complexity increases with the number of participants, requiring sophisticated aggregation protocols, fault tolerance mechanisms, and secure communication infrastructure."
+          "description": "A faulty or malicious participant can submit harmful updates that the coordinator cannot check against the participant's data, for example to plant a hidden backdoor in the shared model. Defences such as robust aggregation add cost, and the coordinator must also be trusted with the updates it receives."
         }
       ],
       "resources": [
@@ -821,12 +819,17 @@
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The diagnostic model performs reliably despite learning from patient populations with heterogeneous clinical characteristics across multiple sites",
-          "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "The keyboard prediction model learns from user typing patterns without transmitting personal text content to central servers",
+          "domain": "general",
+          "assuranceGoal": "privacy"
         },
         {
-          "text": "The keyboard prediction model learns from user typing patterns without transmitting personal text content to central servers",
+          "text": "Each participating bank trained the shared fraud-detection model without moving customer transaction records out of its own environment; only model updates reached the coordinator",
+          "domain": "finance",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The central server holds no copy of any participant's raw training data; it holds the shared model and, briefly, the updates it is aggregating",
           "domain": "general",
           "assuranceGoal": "privacy"
         }
@@ -835,7 +838,7 @@
     {
       "slug": "differential-privacy",
       "name": "Differential Privacy",
-      "description": "Differential privacy provides mathematically rigorous privacy protection by adding carefully calibrated random noise to data queries, statistical computations, or machine learning outputs. The technique works by ensuring that the presence or absence of any individual's data has minimal impact on the results - specifically, any query result should be nearly indistinguishable whether or not a particular person's data is included. This is achieved through controlled noise addition that scales with the query's sensitivity and a privacy budget (epsilon) that quantifies the privacy-utility trade-off. The smaller the epsilon, the more noise is added and the stronger the privacy guarantee, but at the cost of reduced accuracy.",
+      "description": "Differential privacy puts a mathematical limit on what a published result reveals about any one person. The data holder adds random noise, drawn for example from a Laplace or Gaussian distribution, to each answer before release, such as a count, an average or a table of statistics, so the answer would look almost the same with or without any one person's data. The amount of noise depends on how much one person could change the answer (its sensitivity) and on a privacy budget called epsilon, which sets how far the two cases may differ (the Gaussian mechanism adds a second, small parameter, delta, for the chance of exceeding that limit). A smaller epsilon means more noise, a stronger guarantee and less accurate answers, and each release spends part of the budget. The guarantee covers whether a person's data took part, not conclusions about the wider population that the results legitimately show.",
       "assurance_goals": [
         "Privacy",
         "Transparency"
@@ -860,29 +863,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Protecting individual privacy in census data analysis by adding calibrated noise to demographic statistics, ensuring households cannot be re-identified whilst maintaining accurate population insights for policy planning.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A national statistics office adds calibrated noise to published census tables so that no single household's presence changes the results by more than a set amount. Statisticians use the epsilon setting to decide how much accuracy small areas must give up."
         },
         {
-          "description": "Publishing differentially private aggregate statistics about model performance across different demographic groups, enabling transparent bias auditing without exposing sensitive individual prediction details or group membership.",
-          "goal": "Transparency"
+          "goal": "Privacy",
+          "description": "A health authority publishes weekly hospital admission counts by postcode district with Laplace noise added, so a rare diagnosis in a small district cannot be tied to one patient. Its privacy officer sets a yearly budget and decides how many weekly releases it can cover."
+        },
+        {
+          "goal": "Privacy",
+          "description": "An analytics team lets internal analysts query customer purchase data only through an interface that adds noise and tracks each analyst's privacy budget. The data protection lead uses the budget log to decide when an analyst must stop querying."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A model-evaluation team publishes noisy aggregate performance counts for declared groups. It documents the protected unit, sensitivity bound, noise mechanism and cumulative privacy budget so reviewers can interpret the release's guarantee."
         }
       ],
       "limitations": [
         {
-          "description": "Adding noise inherently reduces the accuracy and utility of results, with stronger privacy guarantees (smaller epsilon values) leading to more significant degradation in data quality."
+          "description": "Noise lowers accuracy, and for a given epsilon the noise on a count does not shrink as the dataset grows, so small groups, rare categories and fine-grained tables suffer most. A strong guarantee (small epsilon) can make statistics for small subgroups unusable."
         },
         {
           "description": "Setting the privacy budget (epsilon) requires expertise and careful consideration of the privacy-utility trade-off, with no universal guidelines for appropriate values across different applications."
         },
         {
-          "description": "Sequential queries consume the privacy budget cumulatively, potentially requiring careful query planning and potentially prohibiting future analyses once the budget is exhausted."
+          "description": "Each release spends part of a fixed privacy budget, and the epsilons add up across releases. Once the budget is spent, no further analysis of the same data is possible without weakening the guarantee, so releases must be planned in advance."
         },
         {
-          "description": "Implementation complexity is high, requiring deep understanding of sensitivity analysis, noise mechanisms, and composition theorems to avoid inadvertent privacy violations."
+          "description": "The guarantee depends on correct sensitivity analysis: if a query's sensitivity is underestimated, or one person can contribute many records, too little noise is added and the stated epsilon no longer holds."
         },
         {
-          "description": "May not protect against all privacy attacks, particularly sophisticated adversaries with auxiliary information or when combined with other data sources that could aid re-identification."
+          "description": "The guarantee concerns whether one person's data took part, not what the results show about the population. Conclusions that hold for everyone still apply to each individual, and protection weakens for groups, such as a family, by a factor equal to the group size."
         }
       ],
       "resources": [
@@ -996,31 +1007,36 @@
       ],
       "sample_claims": [
         {
-          "text": "The census data analysis results remain statistically indistinguishable whether any single household's data is included or excluded",
+          "text": "The published census tables were produced by a mechanism satisfying epsilon-differential privacy with a stated epsilon, so adding or removing any one household changes the probability of any published output by at most a factor of e to the power epsilon",
           "domain": "public sector",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The medical research system's published statistics provide quantified privacy guarantees that bound the maximum disclosure risk for any individual patient",
+          "text": "Weekly admission counts are released with Laplace noise calibrated to a sensitivity of one patient, and the total privacy budget spent across all releases is tracked and capped",
           "domain": "healthcare",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The analytics interface refuses further queries from an analyst once their allocated privacy budget is spent, so cumulative disclosure about any one individual stays within the agreed bound",
+          "domain": "general",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "Aggregate spending statistics shared with a research partner carry a documented epsilon, which bounds how much the partner can learn about whether any one customer's data was included",
+          "domain": "finance",
           "assuranceGoal": "privacy"
         },
         {
           "text": "The model performance metrics across demographic groups are accompanied by documented privacy budget allocation and noise parameters",
           "domain": "general",
           "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The system's privacy protection level is mathematically bounded and remains effective even under repeated queries within the allocated budget",
-          "domain": "general",
-          "assuranceGoal": "privacy"
         }
       ]
     },
     {
       "slug": "machine-unlearning",
       "name": "Machine Unlearning",
-      "description": "Machine unlearning enables removal of specific training data's influence from trained models without complete retraining. This technique addresses privacy rights like GDPR's right to be forgotten by selectively erasing learned patterns associated with particular data points, individuals, or sensitive attributes. Methods include exact unlearning (provably equivalent to retraining without the data), approximate unlearning (efficient algorithms that closely approximate retraining), and certified unlearning (providing formal guarantees about information removal).",
+      "description": "Machine unlearning removes the influence of specific training records from a trained model, so that the model behaves as if it had never seen them. It is used when someone withdraws consent or asks for deletion, for example under the right to erasure (the 'right to be forgotten') in data protection law, and retraining from scratch would be too slow or costly. Exact methods, such as sharded training, split the data into parts that each train their own sub-model, so a deletion means retraining only the sub-model that used those records, which gives a result statistically the same as retraining without them. Approximate methods instead edit the trained model directly to reduce the records' influence, which is faster but gives weaker assurance, and certified methods add a formal bound on how much influence can remain.",
       "assurance_goals": [
         "Privacy",
         "Transparency"
@@ -1033,7 +1049,7 @@
         "assurance-goal-category/privacy",
         "assurance-goal-category/privacy/exposure-reduction",
         "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/confidential-verification",
+        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/access-to-training-data",
         "data-type/any",
         "evidence-type/quantitative-metric",
@@ -1050,32 +1066,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Responding to user deletion requests in a social media recommendation system by removing all influence of that user's historical interactions, ensuring GDPR compliance and verifiable data removal.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A social media platform responds to a user's deletion request by removing that user's interaction history from its recommendation model, retraining only the affected part rather than the whole system. The data protection team uses this to decide whether it can meet deletion deadlines without a full retrain each time."
         },
         {
-          "description": "Enabling a financial institution to demonstrate regulatory compliance by providing cryptographic proof that a former customer's transaction history has been completely removed from credit risk assessment models following account closure.",
-          "goal": "Transparency"
+          "goal": "Privacy",
+          "description": "A hospital withdraws a patient's records from a readmission-risk model after the patient withdraws consent for research use, retraining only the shard that contained them. The research governance board uses the retraining log to decide whether the model can stay in use."
+        },
+        {
+          "goal": "Privacy",
+          "description": "A lender removes a former customer's transaction history from its credit-risk model after the customer withdraws consent for analytics use. The model risk team decides whether a faster approximate update is acceptable or whether the affected shard must be retrained exactly."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A financial institution records the withdrawn transaction-record identifiers, affected constituent models and retraining checkpoints in its SISA workflow. Reviewers use this update history to inspect the scope of the completed unlearning operation."
         }
       ],
       "limitations": [
         {
-          "description": "Exact unlearning for complex models like deep neural networks is computationally expensive, often nearly as costly as full retraining."
+          "description": "Exact unlearning for deep neural networks gives limited savings over full retraining: sharded training sped unlearning up by only 1.36 times on ImageNet-scale classification in the SISA paper. For very large foundation models, even storing the checkpoints needed for partial retraining can be infeasible, which limits exact methods to smaller models."
         },
         {
-          "description": "Approximate unlearning methods may not provide strong guarantees that information has been fully removed, potentially leaving residual influence."
+          "description": "Approximate methods can leave residual influence from the removed data in the model, and their guarantees are weaker or only probabilistic. That matters when a regulator or the data subject expects genuine erasure, because the result cannot be shown to match a model retrained without the data."
         },
         {
-          "description": "Difficult to verify unlearning effectiveness, as adversaries might extract information about supposedly removed data through membership inference or other attacks."
+          "description": "Unlearning is hard to verify from outside. There is no direct way to measure one record's influence on a model's weights, so the data subject must largely trust the provider's procedure, and membership inference tests can detect leakage but cannot prove removal."
         },
         {
-          "description": "Repeated unlearning requests can degrade model performance significantly, especially if many data points are removed from the training distribution."
+          "description": "Removing many records, or records the model relies on, can lower accuracy, and sharded exact methods lose accuracy because each sub-model sees only part of the data, most on complex tasks. Teams with frequent deletion requests need to monitor accuracy after each round."
         },
         {
-          "description": "Requires access to model architecture and training process details (white-box access), making it difficult to apply to third-party models or models where internal structure is proprietary."
-        },
-        {
-          "description": "Particularly challenging for very large foundation models where even storing checkpoints for potential retraining is infeasible, limiting practical applicability to smaller, domain-specific models."
+          "description": "Exact approaches such as sharded training must be built into the training pipeline before the model is first trained, and most methods need white-box access to weights and training data. A model already trained without them, or a third-party model, can only be retrained or approximately edited."
         }
       ],
       "resources": [
@@ -1177,18 +1198,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The model demonstrably excludes the influence of withdrawn patient records without requiring complete retraining of the clinical risk assessment system",
+          "text": "After patient withdrawals, the risk model was updated by retraining only the data shards that contained the withdrawn records, so it is equivalent to a model never trained on them",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The recommendation system provides verifiable evidence that deleted user data no longer affects personalized content rankings following account closure requests",
+          "text": "Each deletion request was handled by retraining the model components that used the user's data, and the processing log records which components were retrained and when",
           "domain": "general",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The system documents which training examples have been removed and provides formal guarantees about the completeness of their erasure from model behavior",
+          "text": "The production model can honour a deletion request within the legal deadline without a full retrain, at an accuracy cost inside the agreed tolerance",
           "domain": "general",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The financial model's update history identifies the withdrawn record set, affected constituents, checkpoint scope and completed retraining operations.",
+          "domain": "finance",
           "assuranceGoal": "transparency"
         }
       ]
@@ -1196,11 +1222,10 @@
     {
       "slug": "membership-inference-attack-testing",
       "name": "Membership Inference Attack Testing",
-      "description": "Membership inference attack testing evaluates whether adversaries can determine if specific data points were included in a model's training set. This technique simulates attacks where adversaries use model confidence scores, prediction patterns, or loss values to distinguish training data from non-training data. Testing measures privacy leakage by calculating attack success rates, precision-recall trade-offs, and advantage over random guessing. Results inform decisions about privacy-enhancing techniques like differential privacy or regularisation.",
+      "description": "Membership inference attack testing checks whether someone with access to a trained model can tell if a particular record was in its training data. The tester plays the attacker, using the model's confidence scores, its prediction patterns or its loss on a record, often with shadow models, which are copies trained on similar data whose members are known. The attack is scored on records known to be members and records known to be non-members, which the tester must keep apart. The key result is the share of true members the attack identifies when it wrongly flags only a tiny share of non-members (for example 0.1%), because overall accuracy can hide an attack that identifies a few records with near certainty. The results guide the choice of mitigations, such as differential privacy or regularisation.",
       "assurance_goals": [
         "Privacy",
-        "Security",
-        "Transparency"
+        "Security"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -1209,8 +1234,6 @@
         "assurance-goal-category/privacy/leakage-testing",
         "assurance-goal-category/security",
         "assurance-goal-category/security/vulnerability-testing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "data-requirements/access-to-training-data",
         "data-type/any",
         "evidence-type/quantitative-metric",
@@ -1223,16 +1246,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing a genomics research model to ensure attackers cannot determine which individuals' genetic data were used in training, protecting highly sensitive hereditary and health information from privacy breaches.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A genomics group plans to share a model trained on participants' genetic data. Before release, it runs shadow-model membership inference attacks and reports how many participants the attack picks out at a very low false-positive rate, to decide whether the model can be shared or needs stronger protection such as differential privacy."
         },
         {
-          "description": "Evaluating whether a facial recognition system leaks information about whose faces were in the training set, preventing unauthorized identification of individuals in training data.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "A law firm fine-tunes a language model on confidential client contracts. A red team tests whether an outsider with query access can tell that a given contract was in the fine-tuning set, using member contracts and held-out contracts from the same period and source, to decide whether the model can be opened to wider use."
         },
         {
-          "description": "Auditing a credit scoring model used by multiple lenders to verify and transparently document that the model doesn't leak information about which specific customers' financial histories were used in training, supporting fair lending compliance reporting.",
-          "goal": "Transparency"
+          "goal": "Privacy",
+          "description": "A lender audits its credit-scoring model before sharing it with partner lenders. The audit compares attack results before and after regularisation, to decide whether the remaining leakage of which customers were in the training set is acceptable."
         }
       ],
       "limitations": [
@@ -1240,13 +1263,16 @@
           "description": "Attack success rates vary significantly depending on model architecture, training procedures, and data characteristics, making it difficult to establish universal thresholds for acceptable privacy."
         },
         {
-          "description": "Sophisticated attackers with shadow models or auxiliary data may achieve attack success rates 2-3x higher than standard evaluation scenarios test."
+          "description": "A failed attack proves little, because the result holds only for the attacks that were run. A published likelihood-ratio attack found members about ten times more often at low false-positive rates than earlier methods, so a model that resists weaker attacks may still leak, and no result amounts to a formal guarantee."
         },
         {
-          "description": "Trade-off between model utility and privacy protection means defending against membership inference often reduces model accuracy."
+          "description": "Overall measures such as accuracy or area under the curve can look modest while a few records are identified with near certainty, and leakage tends to fall on unusual or out-of-distribution records. Reporting only an average therefore understates the risk to the individuals most exposed."
         },
         {
-          "description": "Testing requires access to both training and non-training data from the same distribution, which may not always be available for realistic evaluation."
+          "description": "Members and non-members must come from the same distribution. If non-members are drawn from a different period or source, as in many language-model benchmarks, the attack can learn that difference instead of membership and overstate the leakage."
+        },
+        {
+          "description": "The strongest attacks are expensive. The likelihood-ratio attack trains hundreds of shadow models (256 for most datasets in its evaluation), which can be costly for large models, and a cheaper attack gives a weaker test."
         }
       ],
       "resources": [
@@ -1338,27 +1364,27 @@
       ],
       "sample_claims": [
         {
-          "text": "The genomics research model does not reveal which individuals' genetic data were included in its training dataset",
+          "text": "At a false-positive rate of 0.1%, a membership inference attack using shadow models identifies no more of the genomics model's training participants than random guessing would",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The facial recognition system resists attempts to identify whose images were used during model development",
-          "domain": "general",
+          "text": "The credit-scoring model's measured membership leakage, expressed as the share of training customers identified at a 0.1% false-positive rate, is below the threshold set in the lender's privacy risk assessment",
+          "domain": "finance",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "An outsider with query access cannot tell, better than chance at a low false-positive rate, whether a given confidential contract was in the firm's fine-tuning data",
+          "domain": "legal",
           "assuranceGoal": "security"
         },
         {
-          "text": "The credit scoring model's documented privacy characteristics include quantified risk of exposing individual customers' training data participation",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The medical diagnosis system protects patient privacy by preventing determination of which clinical records were used in training",
+          "text": "After the diagnosis model was retrained with differential privacy, a membership inference attack's true-positive rate at a 0.1% false-positive rate fell compared with the previous model",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The recommendation system maintains user privacy even when adversaries systematically probe for training data membership",
+          "text": "The leakage figure comes from the strongest available attack, with shadow models trained on data from the same distribution as the target's training set, so a low result is not due to a weak test",
           "domain": "general",
           "assuranceGoal": "security"
         }

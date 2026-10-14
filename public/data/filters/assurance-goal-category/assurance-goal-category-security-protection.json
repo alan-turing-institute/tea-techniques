@@ -9,7 +9,7 @@
     {
       "slug": "homomorphic-encryption",
       "name": "Homomorphic Encryption",
-      "description": "Homomorphic encryption allows computation on encrypted data without decrypting it first, producing encrypted results that, when decrypted, match the results of performing the same operations on the plaintext. This enables secure outsourced computation where sensitive data remains encrypted throughout processing. By allowing ML operations on encrypted data, it provides strong privacy guarantees for applications involving highly sensitive information.",
+      "description": "Homomorphic encryption lets a server compute on data that stays encrypted, so the server never sees the underlying values. The data owner encrypts the inputs, the server performs the arithmetic directly on the encrypted data, and only the holder of the secret key can decrypt the result. For machine learning, the model is first rewritten using operations the scheme supports, such as additions, multiplications and polynomial approximations of other functions. Exact schemes return the same answer as the unencrypted computation, while approximate schemes, often used for neural networks, return a close one. The guarantee is confidentiality of the data while it is processed, on the usual assumption that the server follows the protocol.",
       "assurance_goals": [
         "Privacy",
         "Security"
@@ -37,29 +37,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Enabling a cloud-based medical diagnosis service to process encrypted patient data and return encrypted results without the cloud provider ever accessing actual medical information, ensuring complete patient privacy during outsourced computation.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A hospital group wants a cloud service to score patients' readmission risk without the provider seeing patient records. The hospital encrypts the patient features, the cloud evaluates a logistic regression model on the encrypted values, and the hospital decrypts the scores. A linear model is chosen on purpose, since encrypted computation becomes costly as models get larger."
         },
         {
-          "description": "Protecting ML model intellectual property and confidential inference inputs during cloud deployment by running encrypted inference, ensuring that neither the client sensitive input data nor the server proprietary model weights and architecture are exposed to the cloud provider or the counterparty, enabling secure outsourced inference without requiring mutual trust assumptions.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "A bank outsources credit scoring to a third-party cloud host. It encrypts customer financial data under a key that never leaves the bank, so an attacker who breaches the host, or an administrator there, can only copy ciphertexts. The bank checks that the host holds no decryption key and that the chosen parameters meet its required security level."
+        },
+        {
+          "goal": "Privacy",
+          "description": "A research team outsources a genome-wide association study to a cloud server. The team encrypts participants' genotype and phenotype data, the server computes the association statistics on the ciphertexts, and only the final statistics are decrypted. One published prototype handled 1,000 individuals and 131,071 genetic variants in about ten minutes on a 28-core server."
         }
       ],
       "limitations": [
         {
-          "description": "Extremely computationally expensive, often 100-1000x slower than unencrypted computation, making it impractical for real-time applications or large-scale data processing."
+          "description": "Computation is typically orders of magnitude slower than on unencrypted data and ciphertexts are much larger, so real-time use, large models and large datasets are often out of reach. A published encrypted logistic regression training run took about 116 minutes on a real-world dataset."
         },
         {
-          "description": "Limited range of operations supported efficiently, with complex operations like divisions, comparisons, and non-polynomial functions being particularly challenging or impossible to implement."
+          "description": "Only some computations are practical. Circuit depth is limited by noise growth unless costly bootstrapping resets it, and comparisons and non-polynomial functions, such as most neural-network activations, must be approximated or quantised to integers, which can lower accuracy compared with the unencrypted model."
         },
         {
-          "description": "Implementation requires deep cryptographic expertise to avoid security vulnerabilities, choose appropriate parameters, and optimise performance for specific use cases."
+          "description": "The usual security model is an honest-but-curious server. Ciphertexts can be altered, so encryption alone gives no assurance that the server ran the intended computation correctly, and a malicious host could return a wrong result that still decrypts without error."
         },
         {
-          "description": "Memory and storage requirements are significantly higher than traditional computation, as encrypted data typically requires much more space than plaintext equivalents."
+          "description": "Encryption protects data during processing, not what the result reveals. Whoever decrypts the output can still learn about the model or the data behind it through attacks such as membership inference, and with the approximate CKKS scheme, sharing decrypted results can enable a key-recovery attack."
         },
         {
-          "description": "Current fully homomorphic encryption schemes have practical limitations on computation depth before noise accumulation requires expensive bootstrapping operations to refresh ciphertexts."
+          "description": "Correct use needs cryptographic expertise. Choosing scheme parameters, encodings and noise budgets wrongly can leave the system insecure or stop results decrypting correctly, and the right choices differ by scheme and library."
         }
       ],
       "resources": [
@@ -147,13 +151,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The cloud-based service processes patient data without the service provider ever accessing the underlying medical information",
+          "text": "The cloud provider processes the hospital's patient records only in encrypted form and holds no key that can decrypt them",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The financial analysis platform maintains data confidentiality throughout all computational operations performed by third-party infrastructure",
+          "text": "Individual-level genotype data stay encrypted at every stage on the analysis server, and only the aggregate association statistics are ever decrypted",
+          "domain": "healthcare",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "A breach of the third-party hosting environment exposes only ciphertexts of the bank's customer data, because the secret key never leaves the bank",
           "domain": "finance",
+          "assuranceGoal": "security"
+        },
+        {
+          "text": "Encrypted queries sent to the hosted model reveal neither the client's inputs nor the predictions to the operator, even to an administrator with full access to the server's memory and storage",
+          "domain": "general",
           "assuranceGoal": "security"
         }
       ]

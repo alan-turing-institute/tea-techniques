@@ -473,7 +473,7 @@
     {
       "slug": "homomorphic-encryption",
       "name": "Homomorphic Encryption",
-      "description": "Homomorphic encryption allows computation on encrypted data without decrypting it first, producing encrypted results that, when decrypted, match the results of performing the same operations on the plaintext. This enables secure outsourced computation where sensitive data remains encrypted throughout processing. By allowing ML operations on encrypted data, it provides strong privacy guarantees for applications involving highly sensitive information.",
+      "description": "Homomorphic encryption lets a server compute on data that stays encrypted, so the server never sees the underlying values. The data owner encrypts the inputs, the server performs the arithmetic directly on the encrypted data, and only the holder of the secret key can decrypt the result. For machine learning, the model is first rewritten using operations the scheme supports, such as additions, multiplications and polynomial approximations of other functions. Exact schemes return the same answer as the unencrypted computation, while approximate schemes, often used for neural networks, return a close one. The guarantee is confidentiality of the data while it is processed, on the usual assumption that the server follows the protocol.",
       "assurance_goals": [
         "Privacy",
         "Security"
@@ -501,29 +501,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Enabling a cloud-based medical diagnosis service to process encrypted patient data and return encrypted results without the cloud provider ever accessing actual medical information, ensuring complete patient privacy during outsourced computation.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A hospital group wants a cloud service to score patients' readmission risk without the provider seeing patient records. The hospital encrypts the patient features, the cloud evaluates a logistic regression model on the encrypted values, and the hospital decrypts the scores. A linear model is chosen on purpose, since encrypted computation becomes costly as models get larger."
         },
         {
-          "description": "Protecting ML model intellectual property and confidential inference inputs during cloud deployment by running encrypted inference, ensuring that neither the client sensitive input data nor the server proprietary model weights and architecture are exposed to the cloud provider or the counterparty, enabling secure outsourced inference without requiring mutual trust assumptions.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "A bank outsources credit scoring to a third-party cloud host. It encrypts customer financial data under a key that never leaves the bank, so an attacker who breaches the host, or an administrator there, can only copy ciphertexts. The bank checks that the host holds no decryption key and that the chosen parameters meet its required security level."
+        },
+        {
+          "goal": "Privacy",
+          "description": "A research team outsources a genome-wide association study to a cloud server. The team encrypts participants' genotype and phenotype data, the server computes the association statistics on the ciphertexts, and only the final statistics are decrypted. One published prototype handled 1,000 individuals and 131,071 genetic variants in about ten minutes on a 28-core server."
         }
       ],
       "limitations": [
         {
-          "description": "Extremely computationally expensive, often 100-1000x slower than unencrypted computation, making it impractical for real-time applications or large-scale data processing."
+          "description": "Computation is typically orders of magnitude slower than on unencrypted data and ciphertexts are much larger, so real-time use, large models and large datasets are often out of reach. A published encrypted logistic regression training run took about 116 minutes on a real-world dataset."
         },
         {
-          "description": "Limited range of operations supported efficiently, with complex operations like divisions, comparisons, and non-polynomial functions being particularly challenging or impossible to implement."
+          "description": "Only some computations are practical. Circuit depth is limited by noise growth unless costly bootstrapping resets it, and comparisons and non-polynomial functions, such as most neural-network activations, must be approximated or quantised to integers, which can lower accuracy compared with the unencrypted model."
         },
         {
-          "description": "Implementation requires deep cryptographic expertise to avoid security vulnerabilities, choose appropriate parameters, and optimise performance for specific use cases."
+          "description": "The usual security model is an honest-but-curious server. Ciphertexts can be altered, so encryption alone gives no assurance that the server ran the intended computation correctly, and a malicious host could return a wrong result that still decrypts without error."
         },
         {
-          "description": "Memory and storage requirements are significantly higher than traditional computation, as encrypted data typically requires much more space than plaintext equivalents."
+          "description": "Encryption protects data during processing, not what the result reveals. Whoever decrypts the output can still learn about the model or the data behind it through attacks such as membership inference, and with the approximate CKKS scheme, sharing decrypted results can enable a key-recovery attack."
         },
         {
-          "description": "Current fully homomorphic encryption schemes have practical limitations on computation depth before noise accumulation requires expensive bootstrapping operations to refresh ciphertexts."
+          "description": "Correct use needs cryptographic expertise. Choosing scheme parameters, encodings and noise budgets wrongly can leave the system insecure or stop results decrypting correctly, and the right choices differ by scheme and library."
         }
       ],
       "resources": [
@@ -611,13 +615,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The cloud-based service processes patient data without the service provider ever accessing the underlying medical information",
+          "text": "The cloud provider processes the hospital's patient records only in encrypted form and holds no key that can decrypt them",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The financial analysis platform maintains data confidentiality throughout all computational operations performed by third-party infrastructure",
+          "text": "Individual-level genotype data stay encrypted at every stage on the analysis server, and only the aggregate association statistics are ever decrypted",
+          "domain": "healthcare",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "A breach of the third-party hosting environment exposes only ciphertexts of the bank's customer data, because the secret key never leaves the bank",
           "domain": "finance",
+          "assuranceGoal": "security"
+        },
+        {
+          "text": "Encrypted queries sent to the hosted model reveal neither the client's inputs nor the predictions to the operator, even to an administrator with full access to the server's memory and storage",
+          "domain": "general",
           "assuranceGoal": "security"
         }
       ]
@@ -2409,7 +2423,7 @@
     {
       "slug": "machine-unlearning",
       "name": "Machine Unlearning",
-      "description": "Machine unlearning enables removal of specific training data's influence from trained models without complete retraining. This technique addresses privacy rights like GDPR's right to be forgotten by selectively erasing learned patterns associated with particular data points, individuals, or sensitive attributes. Methods include exact unlearning (provably equivalent to retraining without the data), approximate unlearning (efficient algorithms that closely approximate retraining), and certified unlearning (providing formal guarantees about information removal).",
+      "description": "Machine unlearning removes the influence of specific training records from a trained model, so that the model behaves as if it had never seen them. It is used when someone withdraws consent or asks for deletion, for example under the right to erasure (the 'right to be forgotten') in data protection law, and retraining from scratch would be too slow or costly. Exact methods, such as sharded training, split the data into parts that each train their own sub-model, so a deletion means retraining only the sub-model that used those records, which gives a result statistically the same as retraining without them. Approximate methods instead edit the trained model directly to reduce the records' influence, which is faster but gives weaker assurance, and certified methods add a formal bound on how much influence can remain.",
       "assurance_goals": [
         "Privacy",
         "Transparency"
@@ -2422,7 +2436,7 @@
         "assurance-goal-category/privacy",
         "assurance-goal-category/privacy/exposure-reduction",
         "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/confidential-verification",
+        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/access-to-training-data",
         "data-type/any",
         "evidence-type/quantitative-metric",
@@ -2439,32 +2453,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Responding to user deletion requests in a social media recommendation system by removing all influence of that user's historical interactions, ensuring GDPR compliance and verifiable data removal.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A social media platform responds to a user's deletion request by removing that user's interaction history from its recommendation model, retraining only the affected part rather than the whole system. The data protection team uses this to decide whether it can meet deletion deadlines without a full retrain each time."
         },
         {
-          "description": "Enabling a financial institution to demonstrate regulatory compliance by providing cryptographic proof that a former customer's transaction history has been completely removed from credit risk assessment models following account closure.",
-          "goal": "Transparency"
+          "goal": "Privacy",
+          "description": "A hospital withdraws a patient's records from a readmission-risk model after the patient withdraws consent for research use, retraining only the shard that contained them. The research governance board uses the retraining log to decide whether the model can stay in use."
+        },
+        {
+          "goal": "Privacy",
+          "description": "A lender removes a former customer's transaction history from its credit-risk model after the customer withdraws consent for analytics use. The model risk team decides whether a faster approximate update is acceptable or whether the affected shard must be retrained exactly."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A financial institution records the withdrawn transaction-record identifiers, affected constituent models and retraining checkpoints in its SISA workflow. Reviewers use this update history to inspect the scope of the completed unlearning operation."
         }
       ],
       "limitations": [
         {
-          "description": "Exact unlearning for complex models like deep neural networks is computationally expensive, often nearly as costly as full retraining."
+          "description": "Exact unlearning for deep neural networks gives limited savings over full retraining: sharded training sped unlearning up by only 1.36 times on ImageNet-scale classification in the SISA paper. For very large foundation models, even storing the checkpoints needed for partial retraining can be infeasible, which limits exact methods to smaller models."
         },
         {
-          "description": "Approximate unlearning methods may not provide strong guarantees that information has been fully removed, potentially leaving residual influence."
+          "description": "Approximate methods can leave residual influence from the removed data in the model, and their guarantees are weaker or only probabilistic. That matters when a regulator or the data subject expects genuine erasure, because the result cannot be shown to match a model retrained without the data."
         },
         {
-          "description": "Difficult to verify unlearning effectiveness, as adversaries might extract information about supposedly removed data through membership inference or other attacks."
+          "description": "Unlearning is hard to verify from outside. There is no direct way to measure one record's influence on a model's weights, so the data subject must largely trust the provider's procedure, and membership inference tests can detect leakage but cannot prove removal."
         },
         {
-          "description": "Repeated unlearning requests can degrade model performance significantly, especially if many data points are removed from the training distribution."
+          "description": "Removing many records, or records the model relies on, can lower accuracy, and sharded exact methods lose accuracy because each sub-model sees only part of the data, most on complex tasks. Teams with frequent deletion requests need to monitor accuracy after each round."
         },
         {
-          "description": "Requires access to model architecture and training process details (white-box access), making it difficult to apply to third-party models or models where internal structure is proprietary."
-        },
-        {
-          "description": "Particularly challenging for very large foundation models where even storing checkpoints for potential retraining is infeasible, limiting practical applicability to smaller, domain-specific models."
+          "description": "Exact approaches such as sharded training must be built into the training pipeline before the model is first trained, and most methods need white-box access to weights and training data. A model already trained without them, or a third-party model, can only be retrained or approximately edited."
         }
       ],
       "resources": [
@@ -2566,18 +2585,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The model demonstrably excludes the influence of withdrawn patient records without requiring complete retraining of the clinical risk assessment system",
+          "text": "After patient withdrawals, the risk model was updated by retraining only the data shards that contained the withdrawn records, so it is equivalent to a model never trained on them",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The recommendation system provides verifiable evidence that deleted user data no longer affects personalized content rankings following account closure requests",
+          "text": "Each deletion request was handled by retraining the model components that used the user's data, and the processing log records which components were retrained and when",
           "domain": "general",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The system documents which training examples have been removed and provides formal guarantees about the completeness of their erasure from model behavior",
+          "text": "The production model can honour a deletion request within the legal deadline without a full retrain, at an accuracy cost inside the agreed tolerance",
           "domain": "general",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The financial model's update history identifies the withdrawn record set, affected constituents, checkpoint scope and completed retraining operations.",
+          "domain": "finance",
           "assuranceGoal": "transparency"
         }
       ]

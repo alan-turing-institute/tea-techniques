@@ -6,7 +6,7 @@
     {
       "slug": "differential-privacy",
       "name": "Differential Privacy",
-      "description": "Differential privacy provides mathematically rigorous privacy protection by adding carefully calibrated random noise to data queries, statistical computations, or machine learning outputs. The technique works by ensuring that the presence or absence of any individual's data has minimal impact on the results - specifically, any query result should be nearly indistinguishable whether or not a particular person's data is included. This is achieved through controlled noise addition that scales with the query's sensitivity and a privacy budget (epsilon) that quantifies the privacy-utility trade-off. The smaller the epsilon, the more noise is added and the stronger the privacy guarantee, but at the cost of reduced accuracy.",
+      "description": "Differential privacy puts a mathematical limit on what a published result reveals about any one person. The data holder adds random noise, drawn for example from a Laplace or Gaussian distribution, to each answer before release, such as a count, an average or a table of statistics, so the answer would look almost the same with or without any one person's data. The amount of noise depends on how much one person could change the answer (its sensitivity) and on a privacy budget called epsilon, which sets how far the two cases may differ (the Gaussian mechanism adds a second, small parameter, delta, for the chance of exceeding that limit). A smaller epsilon means more noise, a stronger guarantee and less accurate answers, and each release spends part of the budget. The guarantee covers whether a person's data took part, not conclusions about the wider population that the results legitimately show.",
       "assurance_goals": [
         "Privacy",
         "Transparency"
@@ -31,29 +31,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Protecting individual privacy in census data analysis by adding calibrated noise to demographic statistics, ensuring households cannot be re-identified whilst maintaining accurate population insights for policy planning.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A national statistics office adds calibrated noise to published census tables so that no single household's presence changes the results by more than a set amount. Statisticians use the epsilon setting to decide how much accuracy small areas must give up."
         },
         {
-          "description": "Publishing differentially private aggregate statistics about model performance across different demographic groups, enabling transparent bias auditing without exposing sensitive individual prediction details or group membership.",
-          "goal": "Transparency"
+          "goal": "Privacy",
+          "description": "A health authority publishes weekly hospital admission counts by postcode district with Laplace noise added, so a rare diagnosis in a small district cannot be tied to one patient. Its privacy officer sets a yearly budget and decides how many weekly releases it can cover."
+        },
+        {
+          "goal": "Privacy",
+          "description": "An analytics team lets internal analysts query customer purchase data only through an interface that adds noise and tracks each analyst's privacy budget. The data protection lead uses the budget log to decide when an analyst must stop querying."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A model-evaluation team publishes noisy aggregate performance counts for declared groups. It documents the protected unit, sensitivity bound, noise mechanism and cumulative privacy budget so reviewers can interpret the release's guarantee."
         }
       ],
       "limitations": [
         {
-          "description": "Adding noise inherently reduces the accuracy and utility of results, with stronger privacy guarantees (smaller epsilon values) leading to more significant degradation in data quality."
+          "description": "Noise lowers accuracy, and for a given epsilon the noise on a count does not shrink as the dataset grows, so small groups, rare categories and fine-grained tables suffer most. A strong guarantee (small epsilon) can make statistics for small subgroups unusable."
         },
         {
           "description": "Setting the privacy budget (epsilon) requires expertise and careful consideration of the privacy-utility trade-off, with no universal guidelines for appropriate values across different applications."
         },
         {
-          "description": "Sequential queries consume the privacy budget cumulatively, potentially requiring careful query planning and potentially prohibiting future analyses once the budget is exhausted."
+          "description": "Each release spends part of a fixed privacy budget, and the epsilons add up across releases. Once the budget is spent, no further analysis of the same data is possible without weakening the guarantee, so releases must be planned in advance."
         },
         {
-          "description": "Implementation complexity is high, requiring deep understanding of sensitivity analysis, noise mechanisms, and composition theorems to avoid inadvertent privacy violations."
+          "description": "The guarantee depends on correct sensitivity analysis: if a query's sensitivity is underestimated, or one person can contribute many records, too little noise is added and the stated epsilon no longer holds."
         },
         {
-          "description": "May not protect against all privacy attacks, particularly sophisticated adversaries with auxiliary information or when combined with other data sources that could aid re-identification."
+          "description": "The guarantee concerns whether one person's data took part, not what the results show about the population. Conclusions that hold for everyone still apply to each individual, and protection weakens for groups, such as a family, by a factor equal to the group size."
         }
       ],
       "resources": [
@@ -167,198 +175,27 @@
       ],
       "sample_claims": [
         {
-          "text": "The census data analysis results remain statistically indistinguishable whether any single household's data is included or excluded",
+          "text": "The published census tables were produced by a mechanism satisfying epsilon-differential privacy with a stated epsilon, so adding or removing any one household changes the probability of any published output by at most a factor of e to the power epsilon",
           "domain": "public sector",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The medical research system's published statistics provide quantified privacy guarantees that bound the maximum disclosure risk for any individual patient",
+          "text": "Weekly admission counts are released with Laplace noise calibrated to a sensitivity of one patient, and the total privacy budget spent across all releases is tracked and capped",
           "domain": "healthcare",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The analytics interface refuses further queries from an analyst once their allocated privacy budget is spent, so cumulative disclosure about any one individual stays within the agreed bound",
+          "domain": "general",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "Aggregate spending statistics shared with a research partner carry a documented epsilon, which bounds how much the partner can learn about whether any one customer's data was included",
+          "domain": "finance",
           "assuranceGoal": "privacy"
         },
         {
           "text": "The model performance metrics across demographic groups are accompanied by documented privacy budget allocation and noise parameters",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The system's privacy protection level is mathematically bounded and remains effective even under repeated queries within the allocated budget",
-          "domain": "general",
-          "assuranceGoal": "privacy"
-        }
-      ]
-    },
-    {
-      "slug": "machine-unlearning",
-      "name": "Machine Unlearning",
-      "description": "Machine unlearning enables removal of specific training data's influence from trained models without complete retraining. This technique addresses privacy rights like GDPR's right to be forgotten by selectively erasing learned patterns associated with particular data points, individuals, or sensitive attributes. Methods include exact unlearning (provably equivalent to retraining without the data), approximate unlearning (efficient algorithms that closely approximate retraining), and certified unlearning (providing formal guarantees about information removal).",
-      "assurance_goals": [
-        "Privacy",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/requirements/white-box",
-        "applicable-models/requirements/model-internals",
-        "assurance-goal-category/privacy",
-        "assurance-goal-category/privacy/exposure-reduction",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/confidential-verification",
-        "data-requirements/access-to-training-data",
-        "data-type/any",
-        "evidence-type/quantitative-metric",
-        "evidence-type/model-artefact",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/regulatory-compliance",
-        "expertise-needed/statistics",
-        "expertise-needed/privacy-engineering",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation",
-        "lifecycle-stage/system-deployment",
-        "technique-type/algorithmic",
-        "lifecycle-stage/system-deployment/model-updating-or-deprovisioning"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Responding to user deletion requests in a social media recommendation system by removing all influence of that user's historical interactions, ensuring GDPR compliance and verifiable data removal.",
-          "goal": "Privacy"
-        },
-        {
-          "description": "Enabling a financial institution to demonstrate regulatory compliance by providing cryptographic proof that a former customer's transaction history has been completely removed from credit risk assessment models following account closure.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Exact unlearning for complex models like deep neural networks is computationally expensive, often nearly as costly as full retraining."
-        },
-        {
-          "description": "Approximate unlearning methods may not provide strong guarantees that information has been fully removed, potentially leaving residual influence."
-        },
-        {
-          "description": "Difficult to verify unlearning effectiveness, as adversaries might extract information about supposedly removed data through membership inference or other attacks."
-        },
-        {
-          "description": "Repeated unlearning requests can degrade model performance significantly, especially if many data points are removed from the training distribution."
-        },
-        {
-          "description": "Requires access to model architecture and training process details (white-box access), making it difficult to apply to third-party models or models where internal structure is proprietary."
-        },
-        {
-          "description": "Particularly challenging for very large foundation models where even storing checkpoints for potential retraining is infeasible, limiting practical applicability to smaller, domain-specific models."
-        }
-      ],
-      "resources": [
-        {
-          "title": "OpenUnlearning documentation: running experiments",
-          "url": "https://github.com/locuslab/open-unlearning/blob/main/docs/experiments.md",
-          "source_type": "documentation",
-          "citationKey": "OpenUnlearningDocumentationRunning",
-          "abstract": "[NeurIPS D&B '25] The one-stop repository for LLM unlearning - locuslab/open-unlearning"
-        },
-        {
-          "title": "OpenUnlearning (locuslab/open-unlearning)",
-          "url": "https://github.com/locuslab/open-unlearning",
-          "source_type": "software_package",
-          "publication_date": "2026-10-07T11:43:26Z",
-          "citationKey": "OpenUnlearningLocuslabOpenunlearning2026",
-          "abstract": "[NeurIPS D&B '25] The one-stop repository for LLM unlearning"
-        },
-        {
-          "title": "Digital forgetting in large language models: A survey of unlearning methods",
-          "url": "https://doi.org/10.1007/s10462-024-11078-6",
-          "source_type": "technical_paper",
-          "authors": [
-            "Alberto Blanco-Justicia",
-            "Najeeb Jebreel",
-            "Benet Manzanares-Salor",
-            "David Sánchez",
-            "Josep Domingo-Ferrer",
-            "Guillem Collell",
-            "Kuan Eeik Tan",
-            "Alberto Blanco-Justicia",
-            "Najeeb Jebreel",
-            "Benet Manzanares-Salor",
-            "David Sánchez",
-            "Josep Domingo-Ferrer",
-            "Guillem Collell",
-            "Kuan Eeik Tan"
-          ],
-          "publication_date": "2025-01-13",
-          "citationKey": "blanco-justiciaDigitalForgettingLarge2025",
-          "abstract": "Large language models (LLMs) have become the state of the art in natural language processing. The massive adoption of generative LLMs and the capabilities they have shown have prompted public concerns regarding their impact on the labor market, privacy, the use of copyrighted work, and how these models align with human ethics and the rule of law. As a response, new regulations are being pushed, which require developers and service providers to evaluate, monitor, and forestall or at least mitigate the risks posed by their models. One mitigation strategy is digital forgetting: given a model with undesirable knowledge or behavior, the goal is to obtain a new model where the detected issues are no longer present. Digital forgetting is usually enforced via machine unlearning techniques, which modify trained machine learning models for them to behave as models trained on a subset of the original training data. In this work, we describe the motivations and desirable properties of digital forgetting when applied to LLMs, and we survey recent works on machine unlearning. Specifically, we propose a taxonomy of unlearning methods based on the reach and depth of the modifications done on the models, we discuss and compare the effectiveness of machine unlearning methods for LLMs proposed so far, and we survey their evaluation. Finally, we describe open problems of machine unlearning applied to LLMs and we put forward recommendations for developers and practitioners."
-        },
-        {
-          "title": "Towards Making Systems Forget with Machine Unlearning",
-          "url": "https://doi.org/10.1109/sp.2015.35",
-          "source_type": "technical_paper",
-          "authors": [
-            "Yinzhi Cao",
-            "Junfeng Yang"
-          ],
-          "publication_date": "2015-5",
-          "citationKey": "caoMakingSystemsForget2015",
-          "abstract": "Today's systems produce a rapidly exploding amount of data, and the data further derives more data, forming a complex data propagation network that we call the data's lineage. There are many reasons that users want systems to forget certain data including its lineage. From a privacy perspective, users who become concerned with new privacy risks of a system often want the system to forget their data and lineage. From a security perspective, if an attacker pollutes an anomaly detector by injecting manually crafted data into the training data set, the detector must forget the injected data to regain security. From a usability perspective, a user can remove noise and incorrect entries so that a recommendation engine gives useful recommendations. Therefore, we envision forgetting systems, capable of forgetting certain data and their lineages, completely and quickly. This paper focuses on making learning systems forget, the process of which we call machine unlearning, or simply unlearning. We present a general, efficient unlearning approach by transforming learning algorithms used by a system into a summation form. To forget a training data sample, our approach simply updates a small number of summations -- asymptotically faster than retraining from scratch. Our approach is general, because the summation form is from the statistical query learning in which many machine learning algorithms can be implemented. Our approach also applies to all stages of machine learning, including feature selection and modeling. Our evaluation, on four diverse learning systems and real-world workloads, shows that our approach is general, effective, fast, and easy to use."
-        },
-        {
-          "title": "Machine Unlearning",
-          "url": "https://doi.org/10.1109/sp40001.2021.00019",
-          "source_type": "technical_paper",
-          "authors": [
-            "Lucas Bourtoule",
-            "Varun Chandrasekaran",
-            "Christopher A. Choquette-Choo",
-            "Hengrui Jia",
-            "Adelin Travers",
-            "Baiwu Zhang",
-            "David Lie",
-            "Nicolas Papernot"
-          ],
-          "publication_date": "2021-5",
-          "citationKey": "bourtouleMachineUnlearning2021",
-          "abstract": "Once users have shared their data online, it is generally difficult for them to revoke access and ask for the data to be deleted. Machine learning (ML) exacerbates this problem because any model trained with said data may have memorized it, putting users at risk of a successful privacy attack exposing their information. Yet, having models unlearn is notoriously difficult.We introduce SISA training, a framework that expedites the unlearning process by strategically limiting the influence of a data point in the training procedure. While our framework is applicable to any learning algorithm, it is designed to achieve the largest improvements for stateful algorithms like stochastic gradient descent for deep neural networks. SISA training reduces the computational overhead associated with unlearning, even in the worst-case setting where unlearning requests are made uniformly across the training set. In some cases, the service provider may have a prior on the distribution of unlearning requests that will be issued by users. We may take this prior into account to partition and order data accordingly, and further decrease overhead from unlearning.Our evaluation spans several datasets from different domains, with corresponding motivations for unlearning. Under no distributional assumptions, for simple learning tasks, we observe that SISA training improves time to unlearn points from the Purchase dataset by 4.63×, and 2.45× for the SVHN dataset, over retraining from scratch. SISA training also provides a speed-up of 1.36× in retraining for complex learning tasks such as ImageNet classification; aided by transfer learning, this results in a small degradation in accuracy. Our work contributes to practical data governance in machine unlearning."
-        },
-        {
-          "title": "NeurIPS 2023 Machine Unlearning Challenge: starting kit (CIFAR-10 notebook)",
-          "url": "https://github.com/unlearning-challenge/starting-kit/blob/main/unlearning-CIFAR10.ipynb",
-          "source_type": "tutorial",
-          "citationKey": "NeurIPS2023Machine",
-          "abstract": "Starting kit for the NeurIPS 2023 unlearning challenge - unlearning-challenge/starting-kit"
-        },
-        {
-          "title": "Recommendation Unlearning",
-          "url": "https://doi.org/10.1145/3485447.3511997",
-          "source_type": "application_paper",
-          "authors": [
-            "Chong Chen",
-            "Fei Sun",
-            "Min Zhang",
-            "Bolin Ding"
-          ],
-          "publication_date": "2022-4-25",
-          "citationKey": "chenRecommendationUnlearning2022",
-          "abstract": "Recommender systems provide essential web services by learning users’ personal preferences from collected data. However, in many cases, systems also need to forget some training data. From the perspective of privacy, users desire a tool to erase the impacts of their sensitive data from the trained models. From the perspective of utility, if a system’s utility is damaged by some bad data, the system needs to forget such data to regain utility. While unlearning is very important, it has not been well-considered in existing recommender systems. Although there are some researches have studied the problem of machine unlearning, existing methods can not be directly applied to recommendation as they are unable to consider the collaborative information."
-        }
-      ],
-      "related_techniques": [
-        "membership-inference-attack-testing",
-        "influence-functions",
-        "differential-privacy"
-      ],
-      "sample_claims": [
-        {
-          "text": "The model demonstrably excludes the influence of withdrawn patient records without requiring complete retraining of the clinical risk assessment system",
-          "domain": "healthcare",
-          "assuranceGoal": "privacy"
-        },
-        {
-          "text": "The recommendation system provides verifiable evidence that deleted user data no longer affects personalized content rankings following account closure requests",
-          "domain": "general",
-          "assuranceGoal": "privacy"
-        },
-        {
-          "text": "The system documents which training examples have been removed and provides formal guarantees about the completeness of their erasure from model behavior",
           "domain": "general",
           "assuranceGoal": "transparency"
         }
@@ -496,5 +333,5 @@
       ]
     }
   ],
-  "count": 3
+  "count": 2
 }

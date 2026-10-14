@@ -1,11 +1,10 @@
 {
   "slug": "membership-inference-attack-testing",
   "name": "Membership Inference Attack Testing",
-  "description": "Membership inference attack testing evaluates whether adversaries can determine if specific data points were included in a model's training set. This technique simulates attacks where adversaries use model confidence scores, prediction patterns, or loss values to distinguish training data from non-training data. Testing measures privacy leakage by calculating attack success rates, precision-recall trade-offs, and advantage over random guessing. Results inform decisions about privacy-enhancing techniques like differential privacy or regularisation.",
+  "description": "Membership inference attack testing checks whether someone with access to a trained model can tell if a particular record was in its training data. The tester plays the attacker, using the model's confidence scores, its prediction patterns or its loss on a record, often with shadow models, which are copies trained on similar data whose members are known. The attack is scored on records known to be members and records known to be non-members, which the tester must keep apart. The key result is the share of true members the attack identifies when it wrongly flags only a tiny share of non-members (for example 0.1%), because overall accuracy can hide an attack that identifies a few records with near certainty. The results guide the choice of mitigations, such as differential privacy or regularisation.",
   "assurance_goals": [
     "Privacy",
-    "Security",
-    "Transparency"
+    "Security"
   ],
   "tags": [
     "applicable-models/architecture/model-agnostic",
@@ -14,8 +13,6 @@
     "assurance-goal-category/privacy/leakage-testing",
     "assurance-goal-category/security",
     "assurance-goal-category/security/vulnerability-testing",
-    "assurance-goal-category/transparency",
-    "assurance-goal-category/transparency/assessment-results",
     "data-requirements/access-to-training-data",
     "data-type/any",
     "evidence-type/quantitative-metric",
@@ -28,16 +25,16 @@
   ],
   "example_use_cases": [
     {
-      "description": "Testing a genomics research model to ensure attackers cannot determine which individuals' genetic data were used in training, protecting highly sensitive hereditary and health information from privacy breaches.",
-      "goal": "Privacy"
+      "goal": "Privacy",
+      "description": "A genomics group plans to share a model trained on participants' genetic data. Before release, it runs shadow-model membership inference attacks and reports how many participants the attack picks out at a very low false-positive rate, to decide whether the model can be shared or needs stronger protection such as differential privacy."
     },
     {
-      "description": "Evaluating whether a facial recognition system leaks information about whose faces were in the training set, preventing unauthorized identification of individuals in training data.",
-      "goal": "Security"
+      "goal": "Security",
+      "description": "A law firm fine-tunes a language model on confidential client contracts. A red team tests whether an outsider with query access can tell that a given contract was in the fine-tuning set, using member contracts and held-out contracts from the same period and source, to decide whether the model can be opened to wider use."
     },
     {
-      "description": "Auditing a credit scoring model used by multiple lenders to verify and transparently document that the model doesn't leak information about which specific customers' financial histories were used in training, supporting fair lending compliance reporting.",
-      "goal": "Transparency"
+      "goal": "Privacy",
+      "description": "A lender audits its credit-scoring model before sharing it with partner lenders. The audit compares attack results before and after regularisation, to decide whether the remaining leakage of which customers were in the training set is acceptable."
     }
   ],
   "limitations": [
@@ -45,13 +42,16 @@
       "description": "Attack success rates vary significantly depending on model architecture, training procedures, and data characteristics, making it difficult to establish universal thresholds for acceptable privacy."
     },
     {
-      "description": "Sophisticated attackers with shadow models or auxiliary data may achieve attack success rates 2-3x higher than standard evaluation scenarios test."
+      "description": "A failed attack proves little, because the result holds only for the attacks that were run. A published likelihood-ratio attack found members about ten times more often at low false-positive rates than earlier methods, so a model that resists weaker attacks may still leak, and no result amounts to a formal guarantee."
     },
     {
-      "description": "Trade-off between model utility and privacy protection means defending against membership inference often reduces model accuracy."
+      "description": "Overall measures such as accuracy or area under the curve can look modest while a few records are identified with near certainty, and leakage tends to fall on unusual or out-of-distribution records. Reporting only an average therefore understates the risk to the individuals most exposed."
     },
     {
-      "description": "Testing requires access to both training and non-training data from the same distribution, which may not always be available for realistic evaluation."
+      "description": "Members and non-members must come from the same distribution. If non-members are drawn from a different period or source, as in many language-model benchmarks, the attack can learn that difference instead of membership and overstate the leakage."
+    },
+    {
+      "description": "The strongest attacks are expensive. The likelihood-ratio attack trains hundreds of shadow models (256 for most datasets in its evaluation), which can be costly for large models, and a cheaper attack gives a weaker test."
     }
   ],
   "resources": [
@@ -143,27 +143,27 @@
   ],
   "sample_claims": [
     {
-      "text": "The genomics research model does not reveal which individuals' genetic data were included in its training dataset",
+      "text": "At a false-positive rate of 0.1%, a membership inference attack using shadow models identifies no more of the genomics model's training participants than random guessing would",
       "domain": "healthcare",
       "assuranceGoal": "privacy"
     },
     {
-      "text": "The facial recognition system resists attempts to identify whose images were used during model development",
-      "domain": "general",
+      "text": "The credit-scoring model's measured membership leakage, expressed as the share of training customers identified at a 0.1% false-positive rate, is below the threshold set in the lender's privacy risk assessment",
+      "domain": "finance",
+      "assuranceGoal": "privacy"
+    },
+    {
+      "text": "An outsider with query access cannot tell, better than chance at a low false-positive rate, whether a given confidential contract was in the firm's fine-tuning data",
+      "domain": "legal",
       "assuranceGoal": "security"
     },
     {
-      "text": "The credit scoring model's documented privacy characteristics include quantified risk of exposing individual customers' training data participation",
-      "domain": "finance",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The medical diagnosis system protects patient privacy by preventing determination of which clinical records were used in training",
+      "text": "After the diagnosis model was retrained with differential privacy, a membership inference attack's true-positive rate at a 0.1% false-positive rate fell compared with the previous model",
       "domain": "healthcare",
       "assuranceGoal": "privacy"
     },
     {
-      "text": "The recommendation system maintains user privacy even when adversaries systematically probe for training data membership",
+      "text": "The leakage figure comes from the strongest available attack, with shadow models trained on data from the same distribution as the target's training set, so a low result is not due to a weak test",
       "domain": "general",
       "assuranceGoal": "security"
     }

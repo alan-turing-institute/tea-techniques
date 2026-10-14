@@ -9,10 +9,9 @@
     {
       "slug": "federated-learning",
       "name": "Federated Learning",
-      "description": "Federated learning enables collaborative model training across multiple distributed parties (devices, organisations, or data centres) without requiring centralised data sharing. Participants train models locally on their private datasets and only share model updates (gradients, weights, or aggregated statistics) with a central coordinator. This distributed approach serves multiple purposes: preserving data privacy and sovereignty, reducing communication costs, enabling learning from diverse data sources, improving model robustness through heterogeneous training, and facilitating compliance with data protection regulations whilst maintaining model performance comparable to centralised training.",
+      "description": "Federated learning trains one shared model across several parties, such as phones or hospitals, without collecting their data in one place. Each party trains the current model on its own data and sends back only an update, such as the changed weights (the model's internal numbers) or the gradients (the direction of change). A central coordinator combines the updates, typically by averaging, into an improved shared model and sends it out again, and the cycle repeats over many rounds. Raw records stay with their owners, which limits how much sensitive data is stored or moved and can support data protection rules that favour collecting less. It is not a privacy guarantee on its own, because updates can still reveal information about the data behind them and the coordinator has to be trusted.",
       "assurance_goals": [
-        "Privacy",
-        "Reliability"
+        "Privacy"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -24,8 +23,6 @@
         "assurance-goal-category/privacy",
         "assurance-goal-category/privacy/exposure-reduction",
         "assurance-goal-category/privacy/exposure-reduction/data-minimisation",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "evidence-type/model-artefact",
@@ -39,12 +36,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Developing a smartphone keyboard prediction model by learning from users' typing patterns without their text ever leaving their devices, enabling personalised predictions whilst maintaining complete data privacy.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A mobile keyboard team trains a next-word prediction model on users' phones and receives only model updates, so typed text never reaches its servers. The team uses this to decide whether personalised suggestions can ship without collecting message content centrally."
         },
         {
-          "description": "Training a medical diagnosis model across multiple hospitals without sharing patient records, ensuring model robustness by learning from diverse patient populations and clinical practices across different institutions.",
-          "goal": "Reliability"
+          "goal": "Privacy",
+          "description": "Hospitals in several countries train a model that predicts COVID-19 outcomes on their own patient records and share only model updates with a coordinating centre, so no patient record leaves a hospital. Each hospital's data governance board uses this to decide whether it can join the collaboration."
+        },
+        {
+          "goal": "Privacy",
+          "description": "Several banks jointly train a fraud-detection model on their own transaction data and share only model updates, so no bank's customer records reach a competitor. Each bank's compliance team uses the setup to decide whether joint training fits its data-sharing restrictions."
         }
       ],
       "limitations": [
@@ -61,7 +62,7 @@
           "description": "Privacy vulnerabilities remain through gradient leakage attacks, model inversion, and membership inference attacks that can potentially reconstruct sensitive information from shared model updates."
         },
         {
-          "description": "Coordination complexity increases with the number of participants, requiring sophisticated aggregation protocols, fault tolerance mechanisms, and secure communication infrastructure."
+          "description": "A faulty or malicious participant can submit harmful updates that the coordinator cannot check against the participant's data, for example to plant a hidden backdoor in the shared model. Defences such as robust aggregation add cost, and the coordinator must also be trusted with the updates it receives."
         }
       ],
       "resources": [
@@ -523,12 +524,17 @@
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The diagnostic model performs reliably despite learning from patient populations with heterogeneous clinical characteristics across multiple sites",
-          "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "The keyboard prediction model learns from user typing patterns without transmitting personal text content to central servers",
+          "domain": "general",
+          "assuranceGoal": "privacy"
         },
         {
-          "text": "The keyboard prediction model learns from user typing patterns without transmitting personal text content to central servers",
+          "text": "Each participating bank trained the shared fraud-detection model without moving customer transaction records out of its own environment; only model updates reached the coordinator",
+          "domain": "finance",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The central server holds no copy of any participant's raw training data; it holds the shared model and, briefly, the updates it is aggregating",
           "domain": "general",
           "assuranceGoal": "privacy"
         }
@@ -1204,7 +1210,7 @@
     {
       "slug": "model-extraction-defence-testing",
       "name": "Model Extraction Defence Testing",
-      "description": "Model extraction defence testing evaluates protections against attackers who attempt to steal model functionality by querying it and training surrogate models. This technique assesses defences like query limiting, output perturbation, watermarking, and fingerprinting by simulating extraction attacks and measuring how much model functionality can be replicated. Testing evaluates both the effectiveness of defences in preventing extraction and their impact on legitimate use cases, ensuring security measures don't excessively degrade user experience.",
+      "description": "Model extraction defence testing checks whether a model offered through a query interface, such as a prediction API, can be copied by someone who can only send it inputs and read its outputs. The tester plays the attacker, spends a fixed query budget on the protected interface, then uses the answers to train a surrogate model (a copy trained on the answers) or to solve for the model's parameters, and compares the copy with the original. Fidelity is usually measured as the share of inputs on which the copy agrees with the original, together with how many queries that took. The same attack is run with and without each defence, such as limiting queries, rounding or removing confidence scores, or adding noise to outputs, to show how much each defence raises the attacker's cost. The tester also measures the effect on legitimate users, for example accuracy or response time.",
       "assurance_goals": [
         "Security"
       ],
@@ -1225,36 +1231,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing protections for a proprietary fraud detection API to ensure competitors cannot recreate the model's decision boundaries through systematic querying, by simulating extraction attacks using query budgets, active learning strategies, and substitute model training.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "Testing protections for a proprietary fraud detection API to ensure competitors cannot recreate the model's decision boundaries through systematic querying, by simulating extraction attacks using query budgets, active learning strategies, and substitute model training."
         },
         {
-          "description": "Evaluating whether rate limiting and output obfuscation for an automated essay grading API prevent competitors from extracting the scoring model through systematic submission of probe essays designed to reverse-engineer grading criteria.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "Evaluating whether rate limiting and output obfuscation for an automated essay grading API prevent competitors from extracting the scoring model through systematic submission of probe essays designed to reverse-engineer grading criteria."
         },
         {
-          "description": "Testing whether a traffic prediction API's defensive perturbations prevent extraction of the underlying routing optimization model whilst maintaining sufficient accuracy for legitimate urban planning applications.",
-          "goal": "Reliability"
+          "goal": "Security",
+          "description": "A transport authority sells access to a traffic-prediction API and rounds its forecasts to deter copying. It runs extraction attacks against rounded and unrounded versions to see how much rounding makes a surrogate lose fidelity, then checks that the rounded forecasts remain accurate enough for urban planners."
         }
       ],
       "limitations": [
         {
-          "description": "Sophisticated attackers may use transfer learning, active learning, or knowledge distillation to extract models with 10-50x fewer queries than static defences anticipate, and can adapt their strategies as they probe defences, requiring dynamic rather than static protection mechanisms."
+          "description": "A defence is tested only against the attacks the tester thinks to run, and attackers adapt. A 2024 attack recovered part of production language models through log-probability and logit-bias options that designers had treated as harmless, so passing a test is not a guarantee of protection."
         },
         {
-          "description": "Defensive measures like output perturbation can degrade model utility for legitimate users, creating tension between security and usability."
+          "description": "Defences that perturb or hide outputs can reduce utility for legitimate users, and the acceptable loss depends on the application. The test has to measure legitimate accuracy and latency as well as extraction fidelity, or it will reward defences that quietly break the service."
         },
         {
-          "description": "Difficult to distinguish between legitimate high-volume use and malicious extraction attempts, potentially blocking valid users."
+          "description": "It is hard to tell legitimate high-volume use from extraction, so query limits and detection can block valid users. Published stateful detection defences have themselves been bypassed, so a detector that passes a test may still fail against an adaptive attacker."
         },
         {
-          "description": "Watermarking and fingerprinting techniques may be removed or obscured by attackers who post-process extracted models."
+          "description": "Results depend on what the simulated attacker is assumed to know, such as the model type, the training-data distribution, and whether the API returns confidence scores or accepts partial inputs. Testing against a weak assumed attacker overstates protection."
         },
         {
-          "description": "Difficult to validate defence effectiveness without exposing the model to actual extraction attempts, and limited public benchmarks make it challenging to compare defence strategies objectively across different model types and threat scenarios."
-        },
-        {
-          "description": "Requires specialised expertise in adversarial machine learning and attack simulation to design realistic extraction scenarios, making it challenging for organisations without dedicated security teams to implement comprehensive testing."
+          "description": "There is no agreed threshold for how much copying fidelity is acceptable, and a fidelity figure depends on the query budget and the measure used. Results are therefore hard to compare across models and defences, and the pass mark is a judgement."
         }
       ],
       "resources": [
@@ -1326,18 +1329,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The proprietary fraud detection API withstands systematic querying attempts designed to replicate its decision boundaries without degrading service for legitimate users",
+          "text": "Under the documented query budget, the fraud API's output restriction reduced extracted-model agreement compared with the unrestricted baseline.",
           "domain": "finance",
           "assuranceGoal": "security"
         },
         {
-          "text": "The model service distinguishes between legitimate high-volume use and malicious extraction attempts through behavioral analysis",
+          "text": "The essay-scoring API evaluation reports extraction success and rejection of legitimate requests for the tested rate-limit settings.",
           "domain": "general",
           "assuranceGoal": "security"
         },
         {
-          "text": "The autonomous vehicle perception API maintains protection against competitors extracting routing optimization logic through probe queries across varied traffic scenarios",
-          "domain": "autonomous systems",
+          "text": "A surrogate model trained on answers from the traffic-prediction API within the permitted query budget agrees with the production model on no more than an agreed share of held-out inputs, while the forecasts stay accurate enough for planners",
+          "domain": "transport",
+          "assuranceGoal": "security"
+        },
+        {
+          "text": "The prediction API returns only the output fields its legitimate users need, so extraction attacks that depend on confidence scores or partial inputs do not succeed",
+          "domain": "general",
           "assuranceGoal": "security"
         }
       ]

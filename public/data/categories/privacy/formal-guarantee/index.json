@@ -6,7 +6,7 @@
     {
       "slug": "differential-privacy",
       "name": "Differential Privacy",
-      "description": "Differential privacy provides mathematically rigorous privacy protection by adding carefully calibrated random noise to data queries, statistical computations, or machine learning outputs. The technique works by ensuring that the presence or absence of any individual's data has minimal impact on the results - specifically, any query result should be nearly indistinguishable whether or not a particular person's data is included. This is achieved through controlled noise addition that scales with the query's sensitivity and a privacy budget (epsilon) that quantifies the privacy-utility trade-off. The smaller the epsilon, the more noise is added and the stronger the privacy guarantee, but at the cost of reduced accuracy.",
+      "description": "Differential privacy puts a mathematical limit on what a published result reveals about any one person. The data holder adds random noise, drawn for example from a Laplace or Gaussian distribution, to each answer before release, such as a count, an average or a table of statistics, so the answer would look almost the same with or without any one person's data. The amount of noise depends on how much one person could change the answer (its sensitivity) and on a privacy budget called epsilon, which sets how far the two cases may differ (the Gaussian mechanism adds a second, small parameter, delta, for the chance of exceeding that limit). A smaller epsilon means more noise, a stronger guarantee and less accurate answers, and each release spends part of the budget. The guarantee covers whether a person's data took part, not conclusions about the wider population that the results legitimately show.",
       "assurance_goals": [
         "Privacy",
         "Transparency"
@@ -31,29 +31,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Protecting individual privacy in census data analysis by adding calibrated noise to demographic statistics, ensuring households cannot be re-identified whilst maintaining accurate population insights for policy planning.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A national statistics office adds calibrated noise to published census tables so that no single household's presence changes the results by more than a set amount. Statisticians use the epsilon setting to decide how much accuracy small areas must give up."
         },
         {
-          "description": "Publishing differentially private aggregate statistics about model performance across different demographic groups, enabling transparent bias auditing without exposing sensitive individual prediction details or group membership.",
-          "goal": "Transparency"
+          "goal": "Privacy",
+          "description": "A health authority publishes weekly hospital admission counts by postcode district with Laplace noise added, so a rare diagnosis in a small district cannot be tied to one patient. Its privacy officer sets a yearly budget and decides how many weekly releases it can cover."
+        },
+        {
+          "goal": "Privacy",
+          "description": "An analytics team lets internal analysts query customer purchase data only through an interface that adds noise and tracks each analyst's privacy budget. The data protection lead uses the budget log to decide when an analyst must stop querying."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A model-evaluation team publishes noisy aggregate performance counts for declared groups. It documents the protected unit, sensitivity bound, noise mechanism and cumulative privacy budget so reviewers can interpret the release's guarantee."
         }
       ],
       "limitations": [
         {
-          "description": "Adding noise inherently reduces the accuracy and utility of results, with stronger privacy guarantees (smaller epsilon values) leading to more significant degradation in data quality."
+          "description": "Noise lowers accuracy, and for a given epsilon the noise on a count does not shrink as the dataset grows, so small groups, rare categories and fine-grained tables suffer most. A strong guarantee (small epsilon) can make statistics for small subgroups unusable."
         },
         {
           "description": "Setting the privacy budget (epsilon) requires expertise and careful consideration of the privacy-utility trade-off, with no universal guidelines for appropriate values across different applications."
         },
         {
-          "description": "Sequential queries consume the privacy budget cumulatively, potentially requiring careful query planning and potentially prohibiting future analyses once the budget is exhausted."
+          "description": "Each release spends part of a fixed privacy budget, and the epsilons add up across releases. Once the budget is spent, no further analysis of the same data is possible without weakening the guarantee, so releases must be planned in advance."
         },
         {
-          "description": "Implementation complexity is high, requiring deep understanding of sensitivity analysis, noise mechanisms, and composition theorems to avoid inadvertent privacy violations."
+          "description": "The guarantee depends on correct sensitivity analysis: if a query's sensitivity is underestimated, or one person can contribute many records, too little noise is added and the stated epsilon no longer holds."
         },
         {
-          "description": "May not protect against all privacy attacks, particularly sophisticated adversaries with auxiliary information or when combined with other data sources that could aid re-identification."
+          "description": "The guarantee concerns whether one person's data took part, not what the results show about the population. Conclusions that hold for everyone still apply to each individual, and protection weakens for groups, such as a family, by a factor equal to the group size."
         }
       ],
       "resources": [
@@ -167,31 +175,36 @@
       ],
       "sample_claims": [
         {
-          "text": "The census data analysis results remain statistically indistinguishable whether any single household's data is included or excluded",
+          "text": "The published census tables were produced by a mechanism satisfying epsilon-differential privacy with a stated epsilon, so adding or removing any one household changes the probability of any published output by at most a factor of e to the power epsilon",
           "domain": "public sector",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The medical research system's published statistics provide quantified privacy guarantees that bound the maximum disclosure risk for any individual patient",
+          "text": "Weekly admission counts are released with Laplace noise calibrated to a sensitivity of one patient, and the total privacy budget spent across all releases is tracked and capped",
           "domain": "healthcare",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "The analytics interface refuses further queries from an analyst once their allocated privacy budget is spent, so cumulative disclosure about any one individual stays within the agreed bound",
+          "domain": "general",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "Aggregate spending statistics shared with a research partner carry a documented epsilon, which bounds how much the partner can learn about whether any one customer's data was included",
+          "domain": "finance",
           "assuranceGoal": "privacy"
         },
         {
           "text": "The model performance metrics across demographic groups are accompanied by documented privacy budget allocation and noise parameters",
           "domain": "general",
           "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The system's privacy protection level is mathematically bounded and remains effective even under repeated queries within the allocated budget",
-          "domain": "general",
-          "assuranceGoal": "privacy"
         }
       ]
     },
     {
       "slug": "homomorphic-encryption",
       "name": "Homomorphic Encryption",
-      "description": "Homomorphic encryption allows computation on encrypted data without decrypting it first, producing encrypted results that, when decrypted, match the results of performing the same operations on the plaintext. This enables secure outsourced computation where sensitive data remains encrypted throughout processing. By allowing ML operations on encrypted data, it provides strong privacy guarantees for applications involving highly sensitive information.",
+      "description": "Homomorphic encryption lets a server compute on data that stays encrypted, so the server never sees the underlying values. The data owner encrypts the inputs, the server performs the arithmetic directly on the encrypted data, and only the holder of the secret key can decrypt the result. For machine learning, the model is first rewritten using operations the scheme supports, such as additions, multiplications and polynomial approximations of other functions. Exact schemes return the same answer as the unencrypted computation, while approximate schemes, often used for neural networks, return a close one. The guarantee is confidentiality of the data while it is processed, on the usual assumption that the server follows the protocol.",
       "assurance_goals": [
         "Privacy",
         "Security"
@@ -219,29 +232,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Enabling a cloud-based medical diagnosis service to process encrypted patient data and return encrypted results without the cloud provider ever accessing actual medical information, ensuring complete patient privacy during outsourced computation.",
-          "goal": "Privacy"
+          "goal": "Privacy",
+          "description": "A hospital group wants a cloud service to score patients' readmission risk without the provider seeing patient records. The hospital encrypts the patient features, the cloud evaluates a logistic regression model on the encrypted values, and the hospital decrypts the scores. A linear model is chosen on purpose, since encrypted computation becomes costly as models get larger."
         },
         {
-          "description": "Protecting ML model intellectual property and confidential inference inputs during cloud deployment by running encrypted inference, ensuring that neither the client sensitive input data nor the server proprietary model weights and architecture are exposed to the cloud provider or the counterparty, enabling secure outsourced inference without requiring mutual trust assumptions.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "A bank outsources credit scoring to a third-party cloud host. It encrypts customer financial data under a key that never leaves the bank, so an attacker who breaches the host, or an administrator there, can only copy ciphertexts. The bank checks that the host holds no decryption key and that the chosen parameters meet its required security level."
+        },
+        {
+          "goal": "Privacy",
+          "description": "A research team outsources a genome-wide association study to a cloud server. The team encrypts participants' genotype and phenotype data, the server computes the association statistics on the ciphertexts, and only the final statistics are decrypted. One published prototype handled 1,000 individuals and 131,071 genetic variants in about ten minutes on a 28-core server."
         }
       ],
       "limitations": [
         {
-          "description": "Extremely computationally expensive, often 100-1000x slower than unencrypted computation, making it impractical for real-time applications or large-scale data processing."
+          "description": "Computation is typically orders of magnitude slower than on unencrypted data and ciphertexts are much larger, so real-time use, large models and large datasets are often out of reach. A published encrypted logistic regression training run took about 116 minutes on a real-world dataset."
         },
         {
-          "description": "Limited range of operations supported efficiently, with complex operations like divisions, comparisons, and non-polynomial functions being particularly challenging or impossible to implement."
+          "description": "Only some computations are practical. Circuit depth is limited by noise growth unless costly bootstrapping resets it, and comparisons and non-polynomial functions, such as most neural-network activations, must be approximated or quantised to integers, which can lower accuracy compared with the unencrypted model."
         },
         {
-          "description": "Implementation requires deep cryptographic expertise to avoid security vulnerabilities, choose appropriate parameters, and optimise performance for specific use cases."
+          "description": "The usual security model is an honest-but-curious server. Ciphertexts can be altered, so encryption alone gives no assurance that the server ran the intended computation correctly, and a malicious host could return a wrong result that still decrypts without error."
         },
         {
-          "description": "Memory and storage requirements are significantly higher than traditional computation, as encrypted data typically requires much more space than plaintext equivalents."
+          "description": "Encryption protects data during processing, not what the result reveals. Whoever decrypts the output can still learn about the model or the data behind it through attacks such as membership inference, and with the approximate CKKS scheme, sharing decrypted results can enable a key-recovery attack."
         },
         {
-          "description": "Current fully homomorphic encryption schemes have practical limitations on computation depth before noise accumulation requires expensive bootstrapping operations to refresh ciphertexts."
+          "description": "Correct use needs cryptographic expertise. Choosing scheme parameters, encodings and noise budgets wrongly can leave the system insecure or stop results decrypting correctly, and the right choices differ by scheme and library."
         }
       ],
       "resources": [
@@ -329,13 +346,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The cloud-based service processes patient data without the service provider ever accessing the underlying medical information",
+          "text": "The cloud provider processes the hospital's patient records only in encrypted form and holds no key that can decrypt them",
           "domain": "healthcare",
           "assuranceGoal": "privacy"
         },
         {
-          "text": "The financial analysis platform maintains data confidentiality throughout all computational operations performed by third-party infrastructure",
+          "text": "Individual-level genotype data stay encrypted at every stage on the analysis server, and only the aggregate association statistics are ever decrypted",
+          "domain": "healthcare",
+          "assuranceGoal": "privacy"
+        },
+        {
+          "text": "A breach of the third-party hosting environment exposes only ciphertexts of the bank's customer data, because the secret key never leaves the bank",
           "domain": "finance",
+          "assuranceGoal": "security"
+        },
+        {
+          "text": "Encrypted queries sent to the hosted model reveal neither the client's inputs nor the predictions to the operator, even to an administrator with full access to the server's memory and storage",
+          "domain": "general",
           "assuranceGoal": "security"
         }
       ]
