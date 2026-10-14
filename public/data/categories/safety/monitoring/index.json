@@ -333,7 +333,7 @@
     {
       "slug": "api-usage-pattern-monitoring",
       "name": "API Usage Pattern Monitoring",
-      "description": "API usage pattern monitoring analyses AI model API usage to detect anomalies and generate evidence of secure operation. This technique tracks request patterns, input distributions, and usage velocity to produce security reports, anomaly detection evidence, and usage compliance documentation. Monitoring generates quantitative metrics on extraction attempt frequency, adversarial probing patterns, and deviation from intended use, creating auditable evidence for assurance cases.",
+      "description": "API usage pattern monitoring examines how each account uses a deployed model's API, to catch misuse that no single request reveals. The monitor keeps a running record per account and compares it with a baseline of normal use, raising an alert when the account departs from it. Published detectors for model theft show two ways to do this: one tests whether the distances between an account's successive queries follow the bell-shaped pattern that ordinary use produces, and another estimates how much of the model's behaviour the account's queries and responses would let someone rebuild. Providers also score how often an account triggers content filters or repeats jailbreak attempts, and send high scores for review. The output is a log of alerts and the actions taken, which gives a dated record of how the API was used compared with the uses it was approved for.",
       "assurance_goals": [
         "Security",
         "Safety",
@@ -363,48 +363,41 @@
       ],
       "example_use_cases": [
         {
-          "description": "Detecting suspicious query patterns in a fraud detection API that might indicate attackers are probing to understand decision boundaries and evade detection.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "A fraud-scoring API provider examines each client's query stream for runs of near-identical transactions altered in small steps, which suggest someone is probing for the score at which a transaction passes. Flagged accounts are rate-limited and sent to the security team for review."
         },
         {
-          "description": "Monitoring a content moderation API for unexpected input distributions that might indicate new types of harmful content not adequately covered by current safety measures.",
-          "goal": "Safety"
+          "goal": "Security",
+          "description": "A company selling traffic-sign recognition as a paid API tests whether the spacing between each customer's successive image queries follows the pattern ordinary use produces. Accounts whose queries look synthetic and widely spread, as in model-copying attacks, are flagged for investigation and possible suspension."
         },
         {
-          "description": "Providing transparent reporting on actual API usage patterns versus intended use cases, enabling proactive identification of misuse and appropriate interventions.",
-          "goal": "Transparency"
+          "goal": "Safety",
+          "description": "A health-technology company serving a paediatric triage model to many clinics monitors each clinic's query volumes and the ages in its requests. A clinic sending mostly adult patients, or a sudden change after a software update, is flagged so the company can contact it before unsafe advice is given."
         },
         {
-          "description": "Monitoring query patterns in a healthcare diagnosis API to detect when clinics are submitting unusual volumes or types of queries that might indicate misuse (e.g., using a pediatric model for geriatric patients) or system integration errors requiring intervention.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A provider of a text-generation API scores each customer's usage by how often prompts and responses are flagged as harmful and whether jailbreak attempts recur. Customers with high scores go to review, which can lead to a warning or suspension."
         },
         {
-          "description": "Analyzing usage patterns in an educational content recommendation API to identify when schools or districts are experiencing different student interaction patterns than expected, enabling proactive quality assurance and equity reviews.",
-          "goal": "Transparency"
-        },
-        {
-          "description": "Detecting anomalous query sequences in a loan underwriting API that might indicate adversarial testing by competitors or attackers attempting to reverse-engineer decision boundaries for circumvention.",
-          "goal": "Security"
+          "goal": "Transparency",
+          "description": "A bank's model risk team compares the monthly log of calls to its credit-scoring API, by internal team and purpose, with the uses approved at validation. The comparison is filed in the model's audit record, so reviewers can see whether the model is used as documented."
         }
       ],
       "limitations": [
         {
-          "description": "Defining normal versus anomalous usage patterns requires establishing baselines that may not capture legitimate diversity in usage."
+          "description": "Anomalies are defined against a baseline of normal use, and ordinary users can be unusual. In PRADA's tests, legitimate queries made of consecutive frames from a sequence triggered false alarms at stricter settings, so the alert threshold has to be tuned to each model and use case."
         },
         {
-          "description": "Sophisticated adversaries may disguise malicious activity to blend with normal traffic, evading pattern-based detection."
+          "description": "A patient attacker can stay inside normal limits by querying slowly, adding dummy queries or spreading queries across many accounts. PRADA's authors show that padding queries raises the attacker's cost three to ten times, and that multiple accounts defeat per-account analysis."
         },
         {
-          "description": "Privacy concerns may limit the extent to which usage data can be collected and analyzed, especially for sensitive applications."
+          "description": "Useful monitoring needs request content, or features of it, to be logged and sometimes read by reviewers. For sensitive applications that may be unlawful or unacceptable, and Microsoft notes that detection may be less accurate when human review is switched off for such customers."
         },
         {
-          "description": "High false positive rates (often 20-40% in anomaly detection) can create alert fatigue, reducing the effectiveness of human review processes."
+          "description": "Detectors keep state for every account. PRADA's authors estimate a few gigabytes in total for a few hundred clients of an image model, and the cost rises with traffic and with the retention period set for audit evidence."
         },
         {
-          "description": "Continuous pattern analysis requires storing and processing large volumes of query logs (potentially petabytes for high-traffic APIs), creating significant infrastructure and data retention costs."
-        },
-        {
-          "description": "Real-time anomaly detection can add 5-20ms latency per request depending on analysis complexity, potentially impacting service level agreements for low-latency applications."
+          "description": "The published extraction detectors were tested on small models, decision trees in one case and image classifiers in the other, against simulated attackers. Kesarwani et al. describe their warning as approximate, so an alert is a lead for investigation, not proof of theft."
         }
       ],
       "resources": [
@@ -473,29 +466,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The system detects and logs query patterns consistent with attempts to reverse-engineer decision boundaries",
-          "domain": "general",
+          "text": "The fraud API logs alerts from the configured query-distance detector so the security team can investigate suspected extraction-style sequences.",
+          "domain": "finance",
           "assuranceGoal": "security"
         },
         {
-          "text": "The deployed model identifies when usage patterns deviate from the validated operational envelope",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The API service maintains auditable records demonstrating alignment between actual usage and documented intended purposes",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The healthcare AI system flags unusual request volumes or distributions that may indicate integration errors or misuse",
+          "text": "The clinical assistant records recurring harmful-content classifier flags by frequency and severity for the stated monitoring period.",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The model API detects coordinated query sequences characteristic of adversarial probing attempts",
+          "text": "The education API makes its request-volume summaries, monitoring settings and alert histories available for review of actual usage.",
           "domain": "general",
-          "assuranceGoal": "security"
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The moderation API records recurring harmful-content signals and the resulting safety-review alerts.",
+          "domain": "content moderation",
+          "assuranceGoal": "safety"
         }
       ]
     },

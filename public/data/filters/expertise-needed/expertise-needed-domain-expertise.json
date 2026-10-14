@@ -943,7 +943,7 @@
     {
       "slug": "human-in-the-loop-safeguards",
       "name": "Human-in-the-Loop Safeguards",
-      "description": "Human-in-the-loop safeguards establish systematic checkpoints where human experts review, validate, or override AI/ML system decisions before they take effect. This governance approach combines automated efficiency with human judgement by defining clear intervention criteria (such as uncertainty thresholds, risk levels, or sensitive contexts) that trigger mandatory human oversight. By incorporating domain expertise, ethical considerations, and contextual understanding that machines may lack, these safeguards help ensure that critical decisions maintain appropriate human accountability whilst preserving the benefits of automated processing for routine cases.",
+      "description": "Human-in-the-loop safeguards hold an AI system's output at a checkpoint until a trained person has reviewed it. Designers set the rules that send a case to review, such as low model confidence (the system's own estimate of how likely it is to be right), a high-stakes outcome or a request to appeal. Some schemes also review a random sample of routine cases to audit the rest. The reviewer approves, changes or rejects the output, and the record of each review shows how often people overrode the system. Review protects only where reviewers keep using independent judgement, so the design also has to guard against over-trust and fatigue.",
       "assurance_goals": [
         "General",
         "Safety",
@@ -972,33 +972,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Implementing mandatory human physician review for any medical AI diagnostic recommendation before treatment decisions are made, especially for complex cases or when the system confidence is below established thresholds, ensuring patient safety through expert oversight.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Implementing mandatory human physician review for any medical AI diagnostic recommendation before treatment decisions are made, especially for complex cases or when the system confidence is below established thresholds, ensuring patient safety through expert oversight."
         },
         {
-          "description": "Requiring human review of automated loan approval decisions when applicants request explanations or appeal rejections, allowing human underwriters to provide clear reasoning and ensure customers understand the decision-making process behind their application outcomes.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "Requiring human review of automated loan approval decisions when applicants request explanations or appeal rejections, allowing human underwriters to provide clear reasoning and ensure customers understand the decision-making process behind their application outcomes."
         },
         {
-          "description": "Mandating human oversight when hiring algorithms flag candidates from underrepresented groups for rejection, enabling recruiters to verify that decisions are based on legitimate job-relevant criteria rather than potential algorithmic bias, and providing fair recourse mechanisms.",
-          "goal": "Fairness"
+          "goal": "General",
+          "description": "A recruitment agency requires a named recruiter to confirm or reverse every automated rejection before it is sent, and logs the decision and the reason. The agency's governance board reviews the override rate each quarter to see whether the screening tool and its reviewers are working as intended."
         }
       ],
       "limitations": [
         {
-          "description": "Scales poorly with high request volumes, creating bottlenecks that can delay critical decisions and potentially overwhelm human reviewers with excessive workload."
+          "description": "Review capacity sets a ceiling. As volume rises, cases queue, decisions are delayed and time-sensitive uses become impractical, so the escalation rules must be tuned to what the available trained reviewers can handle."
         },
         {
-          "description": "Introduces significant latency into automated processes, potentially making time-sensitive applications impractical or reducing user satisfaction with slower response times."
+          "description": "Reviewers tire and drift. Attention and consistency fall over a long shift or a run of similar cases, so two reviewers, or one reviewer at different times, may decide the same case differently."
         },
         {
-          "description": "Human reviewers may experience decision fatigue, leading to decreased attention quality over time and potential inconsistency in review standards across different cases or time periods."
+          "description": "Automation bias. People tend to accept a system's recommendation, particularly under time pressure, so review can become a rubber stamp. A very high approval rate with almost no overrides may signal this rather than a good system."
         },
         {
-          "description": "Risk of automation bias where humans defer too readily to AI recommendations rather than providing meaningful independent review, undermining the safeguard's effectiveness."
+          "description": "The escalation rules decide what a human ever sees. A confidently wrong output passes without review when only low-confidence cases are escalated, so reviewing a random sample of routine cases is needed to find these errors."
         },
         {
-          "description": "Requires significant ongoing investment in human resources, training, and expertise maintenance, making it expensive to implement and sustain across large-scale systems."
+          "description": "Human review does not reliably improve decisions. A meta-analysis of 106 experiments found human-AI combinations performed worse on average than the better of human or AI alone, with losses in decision-making tasks. The effect of a checkpoint should be tested, not assumed."
         }
       ],
       "resources": [
@@ -1079,19 +1079,14 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous vehicle system requires qualified driver intervention before executing maneuvers flagged as high-risk by safety criteria",
+          "text": "The autonomous vehicle system requires qualified driver intervention before executing manoeuvres flagged as high-risk by safety criteria",
           "domain": "autonomous systems",
           "assuranceGoal": "safety"
         },
         {
-          "text": "All loan denial decisions are subject to review by qualified underwriters who can access the reasoning behind algorithmic recommendations",
+          "text": "All loan denial decisions that are appealed are reviewed by qualified underwriters, and the applicant receives the underwriter's recorded reasons for the outcome",
           "domain": "finance",
           "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The hiring system routes candidates from underrepresented groups to human reviewers when automated scores fall within a defined uncertainty range",
-          "domain": "general",
-          "assuranceGoal": "fairness"
         },
         {
           "text": "The diagnostic support system prevents treatment recommendations from being actioned until reviewed by a licensed physician",
@@ -1099,16 +1094,21 @@
           "assuranceGoal": "safety"
         },
         {
+          "text": "Every automated rejection in the recruitment pipeline is held until a named reviewer has confirmed or reversed it, and each decision is logged with the reviewer's reason",
+          "domain": "general",
+          "assuranceGoal": "general"
+        },
+        {
           "text": "The content moderation system escalates borderline cases to human moderators based on defined criteria rather than relying solely on automated classification",
           "domain": "public sector",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "general"
         }
       ]
     },
     {
       "slug": "confidence-thresholding",
       "name": "Confidence Thresholding",
-      "description": "Confidence thresholding creates decision boundaries based on model uncertainty scores, routing predictions into different handling workflows depending on their confidence levels. High-confidence predictions (e.g., above 95%) proceed automatically, whilst medium-confidence cases (e.g., 70-95%) may trigger additional validation or human review, and low-confidence predictions (below 70%) receive extensive oversight or default to conservative fallback actions. This technique enables organisations to maintain automated efficiency for clear-cut cases whilst ensuring appropriate human intervention for uncertain decisions, balancing operational speed with risk management across safety-critical applications.",
+      "description": "Confidence thresholding uses a model score to decide whether a prediction should proceed automatically or receive different handling. For classification, a defined reject variant accepts the most likely class only when its estimated probability exceeds a chosen threshold and otherwise withholds the automatic decision. Thresholds can route withheld cases to specified review or fallback procedures, but those procedures require their own validation. Recording the score, threshold and resulting route makes the decision rule inspectable. The operating point trades automatic coverage against accepted errors, and an estimated score is not a guarantee that a decision is correct or safe.",
       "assurance_goals": [
         "General",
         "Safety",
@@ -1137,16 +1137,20 @@
       ],
       "example_use_cases": [
         {
-          "description": "Implementing tiered confidence thresholds in autonomous vehicle decision-making where high-confidence lane changes (>98%) execute automatically, medium-confidence decisions (85-98%) trigger additional sensor verification, and low-confidence situations (<85%) engage conservative defensive driving modes or request human takeover.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Implementing tiered confidence thresholds in autonomous vehicle decision-making where high-confidence lane changes (>98%) execute automatically, medium-confidence decisions (85-98%) trigger additional sensor verification, and low-confidence situations (<85%) engage conservative defensive driving modes or request human takeover."
         },
         {
-          "description": "Deploying confidence thresholding in fraud detection systems where high-confidence legitimate transactions (>90%) process immediately, medium-confidence cases (70-90%) undergo additional automated checks, and low-confidence transactions (<70%) require human analyst review, ensuring system reliability through graduated response mechanisms.",
-          "goal": "Reliability"
+          "goal": "Safety",
+          "description": "A diabetic eye-screening service has its image classifier pass the cases it is least sure about to an ophthalmologist. The service picks the referral share, for example the least certain 10 to 20 per cent of images, so that accuracy on the cases handled automatically meets its target."
         },
         {
-          "description": "Using confidence thresholds in automated loan decisions to provide clear explanations to applicants, where high-confidence approvals include simple explanations, medium-confidence decisions provide detailed reasoning about key factors, and low-confidence cases receive comprehensive explanations with guidance on potential improvements.",
-          "goal": "Transparency"
+          "goal": "General",
+          "description": "A payment processor's fraud model approves transactions it scores as clearly legitimate, runs extra automated checks on middling scores, and sends the least certain ones to an analyst. The thresholds are set so that the analyst queue stays within the team's daily capacity."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A council's tool that flags possible errors in benefit claims shows caseworkers whether each flag is above or below its confidence threshold. The council publishes the share of claims sent to manual review and the error rate among those handled automatically, so the public can see when the tool declines to decide."
         }
       ],
       "limitations": [
@@ -1163,7 +1167,7 @@
           "description": "Static thresholds may become inappropriate over time as model performance degrades, data distribution shifts occur, or operational contexts change, requiring ongoing monitoring and adjustment."
         },
         {
-          "description": "Implementation complexity increases significantly when managing multiple confidence levels and routing mechanisms, potentially introducing system failures or inconsistencies in how different confidence ranges are handled."
+          "description": "Withholding a prediction does not make the subsequent process safe. Review delays, failed routing and inadequate fallback capacity can undermine the intended safeguard."
         }
       ],
       "resources": [
@@ -1235,36 +1239,36 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous system transitions to conservative fallback modes when prediction confidence falls below established operational thresholds",
+          "text": "The vehicle's planner switches to its conservative fallback whenever perception confidence falls below the validated threshold.",
           "domain": "autonomous systems",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The system routes low-confidence predictions to human review while processing high-confidence cases automatically",
-          "domain": "general",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The fraud detection system applies graduated verification steps based on transaction confidence levels",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The diagnostic system communicates the level of certainty alongside each prediction to support clinical decision-making",
+          "text": "Screening results the model is least certain about are referred to a clinician, and the error rate among results released without review stays within the clinical target at the chosen threshold.",
           "domain": "healthcare",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "Transactions scoring below the review threshold go to an analyst, and the resulting review queue stays within the fraud team's agreed daily capacity.",
+          "domain": "finance",
+          "assuranceGoal": "general"
+        },
+        {
+          "text": "The deferral rate and the error rate among automatically handled cases at the operating threshold are documented and reported to the oversight board.",
+          "domain": "public sector",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The automated decision system engages additional safeguards when operating in regions of high uncertainty",
-          "domain": "public sector",
-          "assuranceGoal": "safety"
+          "text": "Each prediction shown to staff carries its confidence level, and predictions below the threshold are labelled as low confidence.",
+          "domain": "general",
+          "assuranceGoal": "transparency"
         }
       ]
     },
     {
       "slug": "datasheets-for-datasets",
       "name": "Datasheets for Datasets",
-      "description": "Datasheets for datasets establish comprehensive documentation standards for datasets, systematically recording creation methodology, data composition, collection procedures, preprocessing transformations, intended applications, potential biases, privacy considerations, and maintenance protocols. These structured documents enhance dataset transparency by providing essential context for appropriate usage, enabling informed decisions about dataset suitability for specific tasks, supporting bias detection and mitigation efforts, ensuring compliance with data protection regulations, and promoting responsible data stewardship throughout the entire data lifecycle from collection to disposal.",
+      "description": "A datasheet for a dataset is a short document that accompanies the dataset and answers a set of questions about it, in the way an electronic component comes with a datasheet. Gebru and colleagues group the questions into seven sections: why the dataset was made, what it contains, how it was collected, how it was cleaned and labelled, what it should and should not be used for, how it is distributed, and who maintains it. Creators read the questions before collecting data, answer them when the dataset is finished, and update the sheet when the dataset changes. People considering the dataset read it to judge whether it suits their task and what risks it carries. The questions are a prompt rather than a checklist, and a datasheet records what is known without testing it.",
       "assurance_goals": [
         "General",
         "Safety",
@@ -1295,41 +1299,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Documenting a medical imaging dataset with detailed information about patient privacy protections, anonymisation procedures, and data sharing constraints to ensure sensitive health information is handled appropriately and regulatory compliance is maintained.",
-          "goal": "Privacy"
+          "goal": "Transparency",
+          "description": "A bank's model risk team asks a vendor for the datasheet of a transaction dataset before approving it for fraud-model training. The answers on how transactions were sampled, which merchants and periods are missing, and what the data should not be used for let the team judge whether the dataset fits its purpose."
         },
         {
-          "description": "Creating comprehensive datasheets for recruitment datasets that document demographic representation across different job categories, helping developers identify potential bias in training data and develop more equitable hiring algorithms.",
-          "goal": "Fairness"
+          "goal": "Safety",
+          "description": "Documenting a safety-critical autonomous vehicle perception dataset with records of sensor calibration procedures, environmental conditions during collection, edge-case scenario coverage, and known distributional gaps, enabling safety engineers to assess whether training data adequately represents the operating conditions required for safe deployment and to support regulatory type-approval submissions."
         },
         {
-          "description": "Establishing transparent documentation for financial transaction datasets that clearly describes data collection methodology, preprocessing steps, and intended use cases, enabling researchers to make informed decisions about dataset appropriateness for their specific applications.",
-          "goal": "Transparency"
+          "goal": "General",
+          "description": "A hospital trust's data governance group will not release a medical imaging dataset to model developers until its datasheet is complete. The sheet records consent, anonymisation, sensitive attributes and sharing limits, and the group files it with the release approval as the record of what was checked."
         },
         {
-          "description": "Documenting a safety-critical autonomous vehicle perception dataset with records of sensor calibration procedures, environmental conditions during collection, edge-case scenario coverage, and known distributional gaps, enabling safety engineers to assess whether training data adequately represents the operating conditions required for safe deployment and to support regulatory type-approval submissions.",
-          "goal": "Safety"
-        },
-        {
-          "description": "Documenting the statistical distributions, temporal coverage, and known quality characteristics of training datasets to support model monitoring pipelines, enabling operations teams to detect data drift and assess whether production data remains within the documented training distribution for informed decisions about model retraining or recalibration.",
-          "goal": "Reliability"
+          "goal": "Transparency",
+          "description": "A recruitment-technology team documents its CV dataset: the mix of applicants by job category and demographic group, how outcome labels were assigned, and which groups are thinly represented. Developers read this before training a screening model, so they know the limits of the data before they choose and test the model."
         }
       ],
       "limitations": [
         {
-          "description": "Creating thorough datasheets requires significant time investment and domain expertise to properly document collection methods, biases, and ethical considerations, potentially delaying dataset release or publication."
+          "description": "Writing a thorough datasheet takes time and knowledge of how the dataset was built, and the work recurs with each version, which can delay release. Gebru et al. note that the overhead is real and that organisational workflows and incentives need to change to accommodate it."
         },
         {
-          "description": "Information may become outdated as datasets undergo preprocessing, cleaning, or augmentation, requiring ongoing maintenance to ensure documentation accuracy throughout the data lifecycle."
+          "description": "A datasheet describes the dataset as it was when written. Cleaning, augmentation or new data make it wrong unless it is revised, and Gebru et al. say the format fits dynamic datasets poorly, so each updated version needs an updated datasheet."
         },
         {
-          "description": "Absence of standardised templates and enforcement mechanisms leads to inconsistent documentation quality and completeness across different organisations and research communities."
+          "description": "There is no single mandated template. Gebru et al. give a set of questions and say it is not prescriptive. ECMA-424 (CycloneDX 1.7, December 2025) standardises a machine-readable record of a dataset's contents, sensitive data and owners, but not the account of motivation, collection and intended use. Without enforcement, depth and completeness vary."
         },
         {
-          "description": "Dataset creators may intentionally omit sensitive information about collection methods, participant consent, or potential biases to avoid legal liability or competitive disadvantage."
+          "description": "Answers come from the dataset's creators and nothing checks them. Creators may leave out sensitive details about collection, consent or bias to avoid legal or commercial exposure, so a datasheet can look complete and still mislead."
         },
         {
-          "description": "Limited adoption and awareness means many existing datasets lack proper documentation, creating gaps in the historical record and making legacy dataset assessment difficult."
+          "description": "A datasheet records what its authors know. It does not measure bias, check coverage or find errors, and Gebru et al. note that spotting societal bias often needs demographic labels that creators may not hold. A clean-looking datasheet is not evidence the data suits a particular use."
         }
       ],
       "resources": [
@@ -1405,14 +1405,14 @@
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The dataset composition across demographic groups and protected characteristics is documented to enable bias detection during model development",
+          "text": "The dataset's composition by demographic group and its sampling method are documented, so model developers can judge whether the data represents the population the model will serve.",
           "domain": "finance",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "transparency"
         },
         {
-          "text": "The dataset's privacy protections, anonymisation procedures, and re-identification risks are documented before data sharing",
-          "domain": "healthcare",
-          "assuranceGoal": "privacy"
+          "text": "Every dataset used to train the eligibility model has a completed datasheet that the data governance group reviewed before training began.",
+          "domain": "general",
+          "assuranceGoal": "general"
         },
         {
           "text": "The data provenance from original sources through preprocessing transformations is traceable for regulatory review",
@@ -1420,9 +1420,9 @@
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The environmental sensing dataset documents geographic coverage, temporal distribution, and known measurement biases across different operating conditions",
-          "domain": "environmental",
-          "assuranceGoal": "fairness"
+          "text": "The datasheet for the perception training data records the operating conditions covered and those known to be missing, so the safety case can state the limits of the data.",
+          "domain": "autonomous systems",
+          "assuranceGoal": "safety"
         }
       ]
     },
@@ -3901,11 +3901,10 @@
     {
       "slug": "jailbreak-resistance-testing",
       "name": "Jailbreak Resistance Testing",
-      "description": "Jailbreak resistance testing evaluates LLM defences against techniques that bypass safety constraints. This involves testing role-playing attacks, hypothetical framing, encoded instructions, and multi-turn manipulation. Testing measures immediate resistance to jailbreaks and the system's ability to detect and block evolving attack patterns, producing reports on vulnerability severity and exploit paths.",
+      "description": "Jailbreak resistance testing checks whether a language model or chatbot can be talked out of its safety rules. Testers write or collect prompts that try to elicit content the system is meant to refuse, such as role-playing a character without restrictions, framing the request as hypothetical, hiding it in an encoding such as Base64, or combining several of these. Each response is judged as a refusal, a breach or unclear, by a reviewer or an automated check. The result is the rate at which each attack family succeeds, with the example prompts that worked. This shows where the safeguards fail, but only for the attacks tried.",
       "assurance_goals": [
         "Safety",
-        "Security",
-        "Reliability"
+        "Security"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/transformer/llm",
@@ -3914,8 +3913,6 @@
         "assurance-goal-category/safety/verification",
         "assurance-goal-category/security",
         "assurance-goal-category/security/vulnerability-testing",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
         "data-type/text",
         "lifecycle-stage/model-development",
         "lifecycle-stage/model-development/model-testing-and-validation",
@@ -3930,40 +3927,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing a mental health support chatbot to ensure it cannot be jailbroken into providing medical advice that contradicts established clinical guidelines or suggesting harmful interventions, even when users employ emotional manipulation or role-playing scenarios.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Testing a mental health support chatbot to ensure it cannot be jailbroken into providing medical advice that contradicts established clinical guidelines or suggesting harmful interventions, even when users employ emotional manipulation or role-playing scenarios."
         },
         {
-          "description": "Validating that a financial advisory AI cannot be manipulated through multi-turn conversations into revealing proprietary trading algorithms, internal risk assessment models, or client portfolio information through social engineering techniques.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "Validating that a financial advisory AI cannot be manipulated through multi-turn conversations into revealing proprietary trading algorithms, internal risk assessment models, or client portfolio information through social engineering techniques."
         },
         {
-          "description": "Ensuring an educational assessment AI maintains reliable grading standards and cannot be convinced to inflate scores, provide test answers, or bypass academic integrity checks through creative prompt engineering or hypothetical framing.",
-          "goal": "Reliability"
+          "goal": "Security",
+          "description": "Testing an AI marking assistant used by a university to confirm that students cannot talk it into inflating a grade, revealing exam answers or skipping its academic-integrity checks, using role-play or hypothetical framing."
         },
         {
-          "description": "Testing a legal research AI assistant to verify it cannot be jailbroken into generating legally problematic content, revealing confidential case strategies, or providing advice that contradicts professional ethics rules through iterative prompt refinement.",
-          "goal": "Security"
+          "goal": "Safety",
+          "description": "Testing a legal research assistant used by a law firm to confirm it cannot be pushed, through repeated rewording of a request, into drafting misleading material or giving advice that breaks professional ethics rules."
         }
       ],
       "limitations": [
         {
-          "description": "New jailbreak techniques emerge constantly as adversaries discover creative attack vectors, requiring continuous testing and defense updates."
+          "description": "Results describe only the attacks that were tried. New jailbreaks appear constantly, so a clean result today says little about next month, and the attack library has to be refreshed and the tests re-run on a schedule."
         },
         {
-          "description": "Overly restrictive defenses can cause false positive rates of 5-15%, blocking legitimate queries about sensitive topics for educational or research purposes."
+          "description": "Fixed prompt sets understate a determined attacker. In the original study, trying several attack types on each prompt succeeded on almost every prompt, so coverage depends on the testers' creativity and on how adaptively attacks are chosen."
         },
         {
-          "description": "Testing coverage is inherently limited by the creativity of testers, potentially missing novel jailbreak approaches that real users might discover."
+          "description": "Multi-turn jailbreaks build up over a conversation, so they are hard to anticipate and test systematically. A system that refuses single-turn probes can still be steered across several turns."
         },
         {
-          "description": "Some jailbreaks work through subtle multi-turn interactions that are difficult to anticipate and test systematically."
+          "description": "Deciding whether a response is a breach is a judgement. Refusals, partial answers and off-topic replies need labelling, outputs can be obfuscated or encoded so manual checking is often needed, and what counts as unacceptable varies by context and culture, so success rates are hard to compare across systems."
         },
         {
-          "description": "Defence mechanisms such as output filtering, multi-stage validation, and adversarial prompt detection add 100-300ms latency per response, which may impact user experience in real-time applications."
-        },
-        {
-          "description": "Defining clear boundaries for what constitutes unacceptable behaviour versus legitimate edge case queries is context-dependent and culturally variable, making universal jailbreak resistance metrics difficult to establish."
+          "description": "Results hold for one model version, system prompt and safeguard set, and any update can change them. Resistance is also uneven: in the original study one model refused every role-play attack yet remained open to other attack types. And a system that refuses everything looks resistant, so harmless control prompts are needed to tell selective resistance from blanket refusal."
         }
       ],
       "resources": [
@@ -4043,29 +4037,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The mental health chatbot maintains established clinical guidelines and refuses harmful recommendations even when users attempt emotional manipulation or hypothetical scenario framing",
+          "text": "The clinical chatbot's responses to the recorded jailbreak set have been labelled against stated harmful-recommendation criteria, with failures and unclear cases reported.",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The financial advisory system's confidentiality safeguards remain effective against conversational techniques designed to extract proprietary information",
+          "text": "The financial assistant's tested configuration has a recorded disclosure-failure rate for the specified confidential test target and attack budget.",
           "domain": "finance",
           "assuranceGoal": "security"
         },
         {
-          "text": "The educational assessment system enforces academic integrity policies consistently regardless of how creatively students phrase requests for inappropriate assistance",
-          "domain": "general",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The legal research assistant detects and blocks attempts to circumvent professional ethics constraints through iterative prompt refinement",
+          "text": "The assessment assistant's restriction-bypass tests report observed violations and harmless-control refusals for the stated model version.",
           "domain": "public sector",
           "assuranceGoal": "security"
         },
         {
-          "text": "The customer service chatbot's safety boundaries withstand techniques that attempt to redefine its role or operational constraints during conversations",
+          "text": "The assessment assistant withheld protected answer material in the recorded multi-turn policy-bypass tests.",
           "domain": "general",
-          "assuranceGoal": "safety"
+          "assuranceGoal": "security"
         }
       ]
     },
@@ -5002,10 +4991,9 @@
     {
       "slug": "toxicity-detection",
       "name": "Toxicity Detection",
-      "description": "Toxicity detection uses automated classifiers and human review to identify harmful, offensive, or dangerous content in model outputs. This technique employs tools trained to detect toxic language, hate speech, threats, and other harmful content through targeted testing with adversarial prompts. Detection covers explicit toxicity (slurs, threats, graphic content) and implicit harm (manipulative advice, dangerous instructions). For bias and fairness evaluation of model outputs, see related techniques such as few-shot fairness evaluation and demographic parity assessment.",
+      "description": "Toxicity detection scores a model's outputs with a classifier trained to recognise abusive language, such as insults, threats, hate speech and profanity. Testers send the model a large set of prompts, including prompts that tend to provoke toxic replies, and score every response. Results are reported as the share of responses above a chosen score threshold, or as the worst score found across repeated attempts. Human reviewers check a sample of flagged and unflagged responses, because classifiers have known blind spots. The method measures offensive language, not every kind of harm, so dangerous instructions or manipulative advice can pass unflagged.",
       "assurance_goals": [
-        "Safety",
-        "Reliability"
+        "Safety"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -5014,8 +5002,6 @@
         "applicable-models/paradigm/generative",
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/verification",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/behavioural-consistency",
         "data-type/text",
         "data-requirements/no-special-requirements",
         "technique-type/testing",
@@ -5031,42 +5017,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Screening a chatbot's responses for toxic language, hate speech, and harmful content before deployment in public-facing applications where vulnerable users including children might interact with it.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Before a chatbot goes live on a public-facing site used by children, its replies to a large set of provocative and adversarial prompts are scored with a toxicity classifier. The team decides whether it can launch by checking how many replies exceed an agreed toxicity threshold."
         },
         {
-          "description": "Screening an AI writing assistant for educational content to ensure it maintains appropriate language and doesn't generate offensive material that could be harmful in classroom or academic settings.",
-          "goal": "Reliability"
+          "goal": "Safety",
+          "description": "A bank tests its customer-complaints assistant with abusive and provocative messages, scoring every reply with a toxicity classifier, to decide whether it can go live without replying in kind or repeating offensive wording back to customers."
         },
         {
-          "description": "Screening a mental health support chatbot to ensure it doesn't generate stigmatising language about mental health conditions, substance use, or marginalised communities, which could cause harm to vulnerable patients seeking help.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Before launching a mental health support chatbot, a clinical safety team scores its replies to simulated user messages with a toxicity classifier and has clinicians read a sample of flagged and unflagged replies, because subtle stigmatising wording can pass the classifier."
         }
       ],
       "limitations": [
         {
-          "description": "Toxicity classifiers themselves may have biases, potentially flagging legitimate discussions of sensitive topics or minority language patterns as toxic."
+          "description": "Classifiers can be biased. They lean on words such as slurs and profanity, so they tend to flag text that mentions minority identities or is written in dialects such as African American English, while missing polite but harmful text. Pass or fail results are only as fair as the classifier."
         },
         {
-          "description": "Context-dependent nature of toxicity makes automated detection challenging, as the same phrase may be harmful or harmless depending on usage context."
+          "description": "Toxicity depends on context. The same phrase can be abuse, a quotation, reclaimed language or a discussion of abuse, and classifiers score text with little of that context. Expect false alarms in education, news and support settings, and misses where harm is implied rather than stated."
         },
         {
-          "description": "Evolving language and cultural differences mean toxicity definitions change over time and vary across communities, requiring constant updating."
+          "description": "Performance can drop outside the languages, dialects and slang a classifier was built for, and norms about what is offensive vary between communities and change over time. Multilingual or code-switched deployments need validation with local reviewers, and thresholds need re-checking."
         },
         {
-          "description": "Sophisticated models may generate subtle bias or coded language that evades automated detection while still being harmful."
+          "description": "The pass mark is a choice. A low threshold blocks legitimate content and a high one lets harmful content through, and stakeholders often disagree about the balance. Report the threshold and the error rates it implies, or toxicity rates cannot be compared between systems."
         },
         {
-          "description": "Comprehensive toxicity detection often requires human review to validate automated findings and handle edge cases, which is resource-intensive and may not scale to high-volume applications or real-time content generation."
-        },
-        {
-          "description": "Toxicity classifiers require large labeled datasets of harmful content for training and validation, which are expensive to create, emotionally taxing for annotators, and raise ethical concerns about exposing people to harmful material."
-        },
-        {
-          "description": "Configuring detection thresholds involves tradeoffs between false positives (over-censoring legitimate content) and false negatives (missing harmful content), with different stakeholders often disagreeing on acceptable balance points."
-        },
-        {
-          "description": "Detection performance often degrades significantly for non-English languages, code-switching, dialects, and internet slang, limiting effectiveness for global or multilingual applications."
+          "description": "Subtle or coded harm, and harm that does not sound abusive, such as dangerous instructions or manipulative advice, can pass the classifier. Catching it needs human review of samples, which is slow, costly and distressing for reviewers, and may not scale to high-volume or real-time use."
         }
       ],
       "resources": [
@@ -5155,19 +5132,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The mental health support assistant does not generate stigmatising language about psychiatric conditions or marginalised communities when responding to vulnerable patients",
+          "text": "In testing with simulated distressed users, the mental health assistant's replies stayed below the agreed toxicity threshold, and clinicians found no demeaning wording in the reviewed sample",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The customer service chatbot's responses are free from offensive content and hate speech when users introduce adversarial or provocative queries",
+          "text": "None of the customer service chatbot's replies to the adversarial and provocative test prompts scored above the agreed toxicity threshold",
           "domain": "finance",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The public-facing chatbot maintains appropriate language standards and does not produce harmful outputs when deployed in educational environments with young users",
+          "text": "The public-facing learning assistant's replies to the pre-launch test prompts stayed below the agreed toxicity threshold, including prompts written to provoke offensive language",
           "domain": "public sector",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "The toxicity classifier used for release testing was checked against human-labelled examples in the languages and dialects of the deployment, and its error rates were recorded",
+          "domain": "general",
+          "assuranceGoal": "safety"
         }
       ]
     },

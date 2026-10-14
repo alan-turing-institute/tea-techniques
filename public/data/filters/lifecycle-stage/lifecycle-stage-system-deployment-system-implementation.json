@@ -802,7 +802,7 @@
     {
       "slug": "human-in-the-loop-safeguards",
       "name": "Human-in-the-Loop Safeguards",
-      "description": "Human-in-the-loop safeguards establish systematic checkpoints where human experts review, validate, or override AI/ML system decisions before they take effect. This governance approach combines automated efficiency with human judgement by defining clear intervention criteria (such as uncertainty thresholds, risk levels, or sensitive contexts) that trigger mandatory human oversight. By incorporating domain expertise, ethical considerations, and contextual understanding that machines may lack, these safeguards help ensure that critical decisions maintain appropriate human accountability whilst preserving the benefits of automated processing for routine cases.",
+      "description": "Human-in-the-loop safeguards hold an AI system's output at a checkpoint until a trained person has reviewed it. Designers set the rules that send a case to review, such as low model confidence (the system's own estimate of how likely it is to be right), a high-stakes outcome or a request to appeal. Some schemes also review a random sample of routine cases to audit the rest. The reviewer approves, changes or rejects the output, and the record of each review shows how often people overrode the system. Review protects only where reviewers keep using independent judgement, so the design also has to guard against over-trust and fatigue.",
       "assurance_goals": [
         "General",
         "Safety",
@@ -831,33 +831,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Implementing mandatory human physician review for any medical AI diagnostic recommendation before treatment decisions are made, especially for complex cases or when the system confidence is below established thresholds, ensuring patient safety through expert oversight.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Implementing mandatory human physician review for any medical AI diagnostic recommendation before treatment decisions are made, especially for complex cases or when the system confidence is below established thresholds, ensuring patient safety through expert oversight."
         },
         {
-          "description": "Requiring human review of automated loan approval decisions when applicants request explanations or appeal rejections, allowing human underwriters to provide clear reasoning and ensure customers understand the decision-making process behind their application outcomes.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "Requiring human review of automated loan approval decisions when applicants request explanations or appeal rejections, allowing human underwriters to provide clear reasoning and ensure customers understand the decision-making process behind their application outcomes."
         },
         {
-          "description": "Mandating human oversight when hiring algorithms flag candidates from underrepresented groups for rejection, enabling recruiters to verify that decisions are based on legitimate job-relevant criteria rather than potential algorithmic bias, and providing fair recourse mechanisms.",
-          "goal": "Fairness"
+          "goal": "General",
+          "description": "A recruitment agency requires a named recruiter to confirm or reverse every automated rejection before it is sent, and logs the decision and the reason. The agency's governance board reviews the override rate each quarter to see whether the screening tool and its reviewers are working as intended."
         }
       ],
       "limitations": [
         {
-          "description": "Scales poorly with high request volumes, creating bottlenecks that can delay critical decisions and potentially overwhelm human reviewers with excessive workload."
+          "description": "Review capacity sets a ceiling. As volume rises, cases queue, decisions are delayed and time-sensitive uses become impractical, so the escalation rules must be tuned to what the available trained reviewers can handle."
         },
         {
-          "description": "Introduces significant latency into automated processes, potentially making time-sensitive applications impractical or reducing user satisfaction with slower response times."
+          "description": "Reviewers tire and drift. Attention and consistency fall over a long shift or a run of similar cases, so two reviewers, or one reviewer at different times, may decide the same case differently."
         },
         {
-          "description": "Human reviewers may experience decision fatigue, leading to decreased attention quality over time and potential inconsistency in review standards across different cases or time periods."
+          "description": "Automation bias. People tend to accept a system's recommendation, particularly under time pressure, so review can become a rubber stamp. A very high approval rate with almost no overrides may signal this rather than a good system."
         },
         {
-          "description": "Risk of automation bias where humans defer too readily to AI recommendations rather than providing meaningful independent review, undermining the safeguard's effectiveness."
+          "description": "The escalation rules decide what a human ever sees. A confidently wrong output passes without review when only low-confidence cases are escalated, so reviewing a random sample of routine cases is needed to find these errors."
         },
         {
-          "description": "Requires significant ongoing investment in human resources, training, and expertise maintenance, making it expensive to implement and sustain across large-scale systems."
+          "description": "Human review does not reliably improve decisions. A meta-analysis of 106 experiments found human-AI combinations performed worse on average than the better of human or AI alone, with losses in decision-making tasks. The effect of a checkpoint should be tested, not assumed."
         }
       ],
       "resources": [
@@ -938,19 +938,14 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous vehicle system requires qualified driver intervention before executing maneuvers flagged as high-risk by safety criteria",
+          "text": "The autonomous vehicle system requires qualified driver intervention before executing manoeuvres flagged as high-risk by safety criteria",
           "domain": "autonomous systems",
           "assuranceGoal": "safety"
         },
         {
-          "text": "All loan denial decisions are subject to review by qualified underwriters who can access the reasoning behind algorithmic recommendations",
+          "text": "All loan denial decisions that are appealed are reviewed by qualified underwriters, and the applicant receives the underwriter's recorded reasons for the outcome",
           "domain": "finance",
           "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The hiring system routes candidates from underrepresented groups to human reviewers when automated scores fall within a defined uncertainty range",
-          "domain": "general",
-          "assuranceGoal": "fairness"
         },
         {
           "text": "The diagnostic support system prevents treatment recommendations from being actioned until reviewed by a licensed physician",
@@ -958,16 +953,21 @@
           "assuranceGoal": "safety"
         },
         {
+          "text": "Every automated rejection in the recruitment pipeline is held until a named reviewer has confirmed or reversed it, and each decision is logged with the reviewer's reason",
+          "domain": "general",
+          "assuranceGoal": "general"
+        },
+        {
           "text": "The content moderation system escalates borderline cases to human moderators based on defined criteria rather than relying solely on automated classification",
           "domain": "public sector",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "general"
         }
       ]
     },
     {
       "slug": "confidence-thresholding",
       "name": "Confidence Thresholding",
-      "description": "Confidence thresholding creates decision boundaries based on model uncertainty scores, routing predictions into different handling workflows depending on their confidence levels. High-confidence predictions (e.g., above 95%) proceed automatically, whilst medium-confidence cases (e.g., 70-95%) may trigger additional validation or human review, and low-confidence predictions (below 70%) receive extensive oversight or default to conservative fallback actions. This technique enables organisations to maintain automated efficiency for clear-cut cases whilst ensuring appropriate human intervention for uncertain decisions, balancing operational speed with risk management across safety-critical applications.",
+      "description": "Confidence thresholding uses a model score to decide whether a prediction should proceed automatically or receive different handling. For classification, a defined reject variant accepts the most likely class only when its estimated probability exceeds a chosen threshold and otherwise withholds the automatic decision. Thresholds can route withheld cases to specified review or fallback procedures, but those procedures require their own validation. Recording the score, threshold and resulting route makes the decision rule inspectable. The operating point trades automatic coverage against accepted errors, and an estimated score is not a guarantee that a decision is correct or safe.",
       "assurance_goals": [
         "General",
         "Safety",
@@ -996,16 +996,20 @@
       ],
       "example_use_cases": [
         {
-          "description": "Implementing tiered confidence thresholds in autonomous vehicle decision-making where high-confidence lane changes (>98%) execute automatically, medium-confidence decisions (85-98%) trigger additional sensor verification, and low-confidence situations (<85%) engage conservative defensive driving modes or request human takeover.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Implementing tiered confidence thresholds in autonomous vehicle decision-making where high-confidence lane changes (>98%) execute automatically, medium-confidence decisions (85-98%) trigger additional sensor verification, and low-confidence situations (<85%) engage conservative defensive driving modes or request human takeover."
         },
         {
-          "description": "Deploying confidence thresholding in fraud detection systems where high-confidence legitimate transactions (>90%) process immediately, medium-confidence cases (70-90%) undergo additional automated checks, and low-confidence transactions (<70%) require human analyst review, ensuring system reliability through graduated response mechanisms.",
-          "goal": "Reliability"
+          "goal": "Safety",
+          "description": "A diabetic eye-screening service has its image classifier pass the cases it is least sure about to an ophthalmologist. The service picks the referral share, for example the least certain 10 to 20 per cent of images, so that accuracy on the cases handled automatically meets its target."
         },
         {
-          "description": "Using confidence thresholds in automated loan decisions to provide clear explanations to applicants, where high-confidence approvals include simple explanations, medium-confidence decisions provide detailed reasoning about key factors, and low-confidence cases receive comprehensive explanations with guidance on potential improvements.",
-          "goal": "Transparency"
+          "goal": "General",
+          "description": "A payment processor's fraud model approves transactions it scores as clearly legitimate, runs extra automated checks on middling scores, and sends the least certain ones to an analyst. The thresholds are set so that the analyst queue stays within the team's daily capacity."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A council's tool that flags possible errors in benefit claims shows caseworkers whether each flag is above or below its confidence threshold. The council publishes the share of claims sent to manual review and the error rate among those handled automatically, so the public can see when the tool declines to decide."
         }
       ],
       "limitations": [
@@ -1022,7 +1026,7 @@
           "description": "Static thresholds may become inappropriate over time as model performance degrades, data distribution shifts occur, or operational contexts change, requiring ongoing monitoring and adjustment."
         },
         {
-          "description": "Implementation complexity increases significantly when managing multiple confidence levels and routing mechanisms, potentially introducing system failures or inconsistencies in how different confidence ranges are handled."
+          "description": "Withholding a prediction does not make the subsequent process safe. Review delays, failed routing and inadequate fallback capacity can undermine the intended safeguard."
         }
       ],
       "resources": [
@@ -1094,29 +1098,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous system transitions to conservative fallback modes when prediction confidence falls below established operational thresholds",
+          "text": "The vehicle's planner switches to its conservative fallback whenever perception confidence falls below the validated threshold.",
           "domain": "autonomous systems",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The system routes low-confidence predictions to human review while processing high-confidence cases automatically",
-          "domain": "general",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The fraud detection system applies graduated verification steps based on transaction confidence levels",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The diagnostic system communicates the level of certainty alongside each prediction to support clinical decision-making",
+          "text": "Screening results the model is least certain about are referred to a clinician, and the error rate among results released without review stays within the clinical target at the chosen threshold.",
           "domain": "healthcare",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "Transactions scoring below the review threshold go to an analyst, and the resulting review queue stays within the fraud team's agreed daily capacity.",
+          "domain": "finance",
+          "assuranceGoal": "general"
+        },
+        {
+          "text": "The deferral rate and the error rate among automatically handled cases at the operating threshold are documented and reported to the oversight board.",
+          "domain": "public sector",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The automated decision system engages additional safeguards when operating in regions of high uncertainty",
-          "domain": "public sector",
-          "assuranceGoal": "safety"
+          "text": "Each prediction shown to staff carries its confidence level, and predictions below the threshold are labelled as low confidence.",
+          "domain": "general",
+          "assuranceGoal": "transparency"
         }
       ]
     },

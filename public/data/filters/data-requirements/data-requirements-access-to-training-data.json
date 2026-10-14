@@ -1817,7 +1817,7 @@
     {
       "slug": "model-cards",
       "name": "Model Cards",
-      "description": "Model cards are standardised documentation frameworks that systematically document machine learning models through structured templates. The templates cover intended use cases, performance metrics across different demographic groups and operating conditions, training data characteristics, evaluation procedures, limitations, and ethical considerations. They serve as comprehensive technical specifications that enable informed model selection, prevent inappropriate deployment, support regulatory compliance, and facilitate fair assessment by providing transparent reporting of model capabilities and constraints across diverse populations and scenarios.",
+      "description": "A model card is a short structured document published with a trained model, stating what the model is for and what it should not be used for. It reports how the model performs on stated evaluation data, with results broken down by group (for example age or sex) and by operating condition (for example lighting or device) where these matter. It also records the training data, the metrics chosen and why, ethical considerations and known caveats. Readers use the card to judge whether the model suits their purpose before they deploy it. The original proposal gives suggested sections rather than a fixed format, and a card is only as reliable as the evaluation behind it.",
       "assurance_goals": [
         "Transparency",
         "Fairness",
@@ -1849,33 +1849,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Documenting a medical diagnosis AI with detailed performance metrics across different patient demographics, age groups, and clinical conditions, enabling healthcare providers to understand when the model should be trusted and when additional expert consultation is needed for patient safety.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Documenting a medical diagnosis AI with detailed performance metrics across different patient demographics, age groups, and clinical conditions, enabling healthcare providers to understand when the model should be trusted and when additional expert consultation is needed for patient safety."
         },
         {
-          "description": "Creating comprehensive model cards for hiring algorithms that transparently report performance differences across demographic groups, helping HR departments identify potential bias issues and ensure equitable candidate evaluation processes.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "Publishing a model card for a CV-screening model that reports selection rates and error rates for each gender and age band. An HR team deciding whether to adopt the tool can see where results differ between groups and ask the vendor for further evidence before using it."
         },
         {
-          "description": "Publishing detailed model documentation for a credit scoring API that clearly describes training data sources, evaluation methodologies, and performance limitations, enabling financial institutions to make informed decisions about model deployment and regulatory compliance.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "Publishing detailed model documentation for a credit scoring API that clearly describes training data sources, evaluation methodologies, and performance limitations, enabling financial institutions to make informed decisions about model deployment and regulatory compliance."
+        },
+        {
+          "goal": "General",
+          "description": "A public body that buys AI tools asks each supplier for a model card and files it in its register of deployed models. Before approving a tool for a new use, officials compare the card's stated intended use and evaluation data with the proposed use and record any gaps."
         }
       ],
       "limitations": [
         {
-          "description": "Creating comprehensive model cards requires substantial time, expertise, and resources to gather performance data across diverse conditions and demographic groups, potentially delaying model deployment timelines."
+          "description": "Group-wise results need evaluation data labelled with the relevant attributes, which is often unavailable or restricted for privacy and legal reasons. Teams then report fewer groups than matter, and building the card takes time and statistical skill that can delay release."
         },
         {
-          "description": "Information can become outdated quickly as models are retrained, updated, or deployed in new contexts, requiring ongoing maintenance and version control to remain accurate and useful."
+          "description": "Cards are written by the developer and nothing in the format requires an independent check. Unflattering results or commercially sensitive details can be left out, and a study of 32,111 Hugging Face model cards found the evaluation and limitations sections among the least often completed."
         },
         {
-          "description": "Organisations may provide incomplete or superficial documentation to avoid revealing competitive advantages or potential liabilities, undermining the transparency goals of model cards."
+          "description": "A card describes the model as evaluated at one point, on particular test data. Retraining, new deployment settings and data drift make it stale, and it stays in circulation unless someone owns updates and versioning."
         },
         {
-          "description": "Lack of standardised formats and enforcement mechanisms means model card quality and completeness vary significantly across different organisations and use cases."
+          "description": "A machine-readable model card format now exists (the model card object in the CycloneDX bill of materials, defined in ECMA-424, second edition, December 2025). The original template is still a set of suggested sections, and cards differ widely in structure and depth, which makes them hard to compare across models and vendors."
         },
         {
-          "description": "Technical complexity of documenting model behaviour across all relevant dimensions may exceed the expertise of some development teams, leading to gaps in critical information."
+          "description": "A card informs readers but does not constrain use or show that the model is safe. It cannot stop deployment outside the stated intended use, and the evidence it carries is only as good as the evaluations behind it."
         }
       ],
       "resources": [
@@ -1979,12 +1983,12 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's performance characteristics are documented across all relevant demographic groups and operating conditions",
+          "text": "The model's performance report identifies the assessed groups, operating conditions, metrics and evaluation datasets, including stated gaps.",
           "domain": "general",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The diagnostic system's accuracy and error rates are reported separately for each patient subpopulation",
+          "text": "The diagnostic model's card reports measured error differences and uncertainty for the specified patient groups and intersections.",
           "domain": "healthcare",
           "assuranceGoal": "fairness"
         },
@@ -1994,12 +1998,12 @@
           "assuranceGoal": "safety"
         },
         {
-          "text": "The lending model's approval rates and error distributions are transparently reported for all applicant demographics",
+          "text": "The lending model's card reports the selected group-comparison metrics and their assessment scope, without asserting equitable decisions from documentation alone.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The system's training data characteristics, evaluation procedures, and ethical considerations are comprehensively documented",
+          "text": "The system's card records the stated training context, evaluation procedures and ethical considerations for inspection.",
           "domain": "public sector",
           "assuranceGoal": "transparency"
         }
@@ -3869,10 +3873,9 @@
     {
       "slug": "data-poisoning-detection",
       "name": "Data Poisoning Detection",
-      "description": "Data poisoning detection identifies malicious training data designed to compromise model behaviour. This technique detects various poisoning attacks including backdoor injection (triggers causing specific behaviours), availability attacks (degrading overall performance), and targeted attacks (causing errors on specific inputs). Detection methods include statistical outlier analysis, influence function analysis to identify high-impact training points, and validation-based approaches that test for suspicious model behaviours indicative of poisoning.",
+      "description": "Data poisoning detection looks for training examples that an attacker has planted to change how a model behaves. The best-studied case is the backdoor: a few examples carrying a hidden trigger, such as a sticker on a stop sign, are mislabelled so that the model misclassifies any input with the trigger while it performs normally on clean data. Detection first trains a model on the untrusted data, then examines how that model represents each training example internally (its activations in the last hidden layer), one class at a time. Activation clustering splits a class into two groups by those activations and flags the smaller group when the split is clear, and spectral signatures score each example by its position along the main direction of variation and flag the highest scores. The flagged examples are reviewed or removed and the model is retrained, which yields a list of suspected examples and a measure of how cleanly each class separates.",
       "assurance_goals": [
         "Security",
-        "Reliability",
         "Safety"
       ],
       "tags": [
@@ -3881,8 +3884,6 @@
         "applicable-models/requirements/gradient-access",
         "assurance-goal-category/security",
         "assurance-goal-category/security/detection",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/safeguards",
         "data-requirements/access-to-training-data",
@@ -3899,41 +3900,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Scanning training data for an autonomous driving system to detect images that might contain backdoor triggers designed to cause unsafe behavior when specific objects appear in the environment.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A team building a traffic-sign classifier for a driver-assistance system trains a trial model on images gathered from several suppliers and runs activation clustering on each class. A small separate group of stop-sign images labelled as speed limits, all carrying the same sticker, is flagged and removed before the final training run."
         },
         {
-          "description": "Protecting a federated learning system for hospital patient diagnosis models from malicious participants who might inject poisoned medical records designed to create backdoors that misclassify specific patient profiles or degrade overall diagnostic reliability.",
-          "goal": "Security"
+          "goal": "Security",
+          "description": "A research platform builds a chest X-ray classifier from images contributed by many partner hospitals. Before any partner's images enter the training set, it trains a trial model and scores each class for the small, separable group of examples a planted backdoor leaves, because one contributor's data could be compromised."
         },
         {
-          "description": "Ensuring a content moderation model hasn't been poisoned with data designed to make it fail on specific types of harmful content, maintaining reliable safety filtering.",
-          "goal": "Reliability"
+          "goal": "Safety",
+          "description": "A platform trains a harmful-content classifier on labels supplied by crowd workers. Analysts scan each class for a small separate group of examples sharing a trigger phrase and labelled as harmless, which would let that phrase slip past the filter, and remove them before retraining."
         },
         {
-          "description": "Detecting poisoned training data in recidivism prediction models used for sentencing recommendations, where malicious actors might inject manipulated records to systematically bias predictions for specific demographic groups.",
-          "goal": "Safety"
-        },
-        {
-          "description": "Scanning training data for algorithmic trading models to identify poisoned market data designed to create exploitable patterns, ensuring reliable trading decisions and preventing market manipulation vulnerabilities.",
-          "goal": "Reliability"
+          "goal": "Security",
+          "description": "An insurer trains a damage-assessment classifier on claims photos labelled by an outside vendor. Before relying on the labels, it scores each class for a small, separate group of photos carrying the same mark and labelled undamaged, which a compromised vendor account could have planted so that damaged vehicles with the mark pass unchecked. Flagged photos go back to the vendor for explanation."
         }
       ],
       "limitations": [
         {
-          "description": "Sophisticated poisoning attacks can be designed to evade statistical detection by mimicking benign data distributions closely."
+          "description": "An attacker who knows the detector can adapt. Both methods rely on poisoned examples standing out in the model's learned representation, so an attack that keeps them close to genuine examples can slip through. Chen et al. found no obvious way round activation clustering within their threat model, but say further work is needed."
         },
         {
-          "description": "High false positive rates may lead to incorrectly filtering legitimate but unusual training examples, reducing training data quality and diversity."
+          "description": "False alarms can remove legitimate but unusual examples, reducing data quality and diversity. Chen et al. suggest a silhouette-score cut-off of about 0.10 to 0.15 based on three datasets; another data type or model may need different values, and a wrong value either removes good data or leaves poison in."
         },
         {
-          "description": "Computationally expensive to apply influence function analysis or deep inspection to very large training datasets, potentially requiring hours to days for thorough analysis of datasets with millions of samples, particularly when using gradient-based detection methods."
+          "description": "Both methods assume poisoned examples are a minority that separates from clean ones in the learned representation, and Tran et al.'s needs an upper bound on how many there are. They were designed and tested on backdoors in image and text classifiers, so attacks that only lower overall accuracy lie outside what the original papers show."
         },
         {
-          "description": "Difficult to detect poisoning in scenarios where attackers have knowledge of detection methods and can adapt attacks accordingly."
+          "description": "Both methods first train a model on the untrusted data, read its internal activations, then retrain after removing flagged examples. They need the full training data and white-box access to the model, and cost at least two training runs, so they cannot be applied to a model someone else trained when the data or weights are unavailable."
         },
         {
-          "description": "Establishing ground truth for what constitutes 'poisoned' versus legitimate but unusual data is challenging, particularly when dealing with naturally occurring outliers or edge cases in the data distribution."
+          "description": "Real poison is unlabelled, so a detector's accuracy can only be measured on poison the tester injects, and a clean result shows that this detector found nothing, not that the data is clean. Telling poison from naturally unusual data is hard."
         }
       ],
       "resources": [
@@ -4026,29 +4023,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The training data is free from malicious examples designed to compromise model behaviour on specific trigger patterns",
+          "text": "Training images for the traffic-sign classifier were screened for backdoor poisoning with representation-based detection, and every flagged example was reviewed and then removed or cleared.",
           "domain": "autonomous systems",
           "assuranceGoal": "security"
         },
         {
-          "text": "The diagnostic system's training dataset contains no manipulated medical records that systematically bias predictions for specific patient profiles",
-          "domain": "healthcare",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The content moderation model's training corpus has not been corrupted with examples designed to suppress detection of particular harmful content categories",
-          "domain": "general",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The federated learning system detects and rejects training contributions containing backdoor triggers before they influence the global model",
-          "domain": "healthcare",
+          "text": "Photos labelled by the outside vendor were screened per class for a small separable group of planted examples before training, and no class exceeded the agreed alert threshold.",
+          "domain": "insurance",
           "assuranceGoal": "security"
         },
         {
-          "text": "The financial model's training data is validated to exclude manipulated records designed to create exploitable prediction patterns",
-          "domain": "finance",
+          "text": "Screening found no class in the imaging model's training set with the tight, separable group of examples that a planted backdoor leaves in a trained model's representations, at the agreed threshold.",
+          "domain": "healthcare",
           "assuranceGoal": "safety"
+        },
+        {
+          "text": "The moderation classifier's training data was screened for backdoor-style poisoning that would let a trigger phrase bypass the filter, and flagged examples were removed before the final training run.",
+          "domain": "online safety",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "After flagged examples were removed and the model retrained, inputs carrying the known test trigger were misclassified no more often than by a model trained on clean data.",
+          "domain": "general",
+          "assuranceGoal": "security"
         }
       ]
     },
