@@ -1307,9 +1307,10 @@
     {
       "slug": "gradient-saliency",
       "name": "Gradient Saliency",
-      "description": "Gradient saliency (also called vanilla gradient saliency) is the simplest gradient-based explanation for image classifiers, showing which pixels the score for a chosen class is most sensitive to. It takes the gradient of the class score (the network's output for that class before it becomes a probability) with respect to every input pixel, in one backward pass. The gradient says how much the score would change if that pixel changed slightly. The method keeps the size of each gradient and, for colour images, the largest across the colour channels, then shows one value per pixel as a heatmap. Because the sign is dropped, the map shows sensitivity but not whether a pixel supports or counts against the class.",
+      "description": "Gradient saliency (also called vanilla gradient saliency) is the simplest gradient-based explanation for image classifiers: it takes the gradient of the score for a chosen class (the network's output for that class before it becomes a probability) with respect to every input pixel, in one backward pass, to show which pixels that score is most sensitive to. The gradient says how much the score would change if that pixel changed slightly. The method keeps the size of each gradient and, for colour images, the largest across the colour channels, then shows one value per pixel as a heatmap. Because the sign is dropped, the map shows sensitivity but not whether a pixel supports or counts against the class. In a bias-diagnosis use, the maps are drawn for the errors of a classifier already known to err more for one group, to see whether the sensitive pixels sit on a cue linked to that group; the group-wise errors come from a separate check.",
       "assurance_goals": [
-        "Explainability"
+        "Explainability",
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -1321,6 +1322,8 @@
         "assurance-goal-category/explainability/property/comprehensibility",
         "assurance-goal-category/explainability/property/efficiency",
         "assurance-goal-category/explainability/visualization-methods/activation-maps",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
         "applicable-models/requirements/model-internals",
         "data-type/image",
         "evidence-type/visualisation",
@@ -1341,6 +1344,10 @@
         {
           "goal": "Explainability",
           "description": "An agricultural technology company testing a plant disease classifier on leaf photographs taken in the field computes gradient saliency for the images it misclassifies. It checks whether the sensitive pixels sit on the diseased leaf area or on soil, trays and hands in the frame, and decides whether to collect photographs with more varied backgrounds."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A team studying dataset bias fine-tunes an image classifier to separate doctors from nurses in photographs and finds, on a gender-balanced test set, that it errs far more often for one gender. It then inspects gradient saliency on those errors. Where the most sensitive pixels sit on faces and hair rather than on uniforms or equipment, the model is using appearance linked to gender as a shortcut, so the team rebalances the training photographs and retrains."
         }
       ],
       "limitations": [
@@ -1440,15 +1447,21 @@
           "text": "Gradient saliency maps used as evidence for this classifier were repeated on models retrained with different random seeds, and the sensitive regions agree across runs above the stated threshold",
           "domain": "general",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "On the audit images, the retrained doctor-versus-nurse classifier's gradient saliency maps place the most sensitive pixels on uniforms and equipment rather than on faces and hair, the cue found on its errors before the training photographs were rebalanced",
+          "domain": "general",
+          "assuranceGoal": "fairness"
         }
       ]
     },
     {
       "slug": "gradient-weighted-class-activation-mapping",
       "name": "Gradient-weighted Class Activation Mapping",
-      "description": "Grad-CAM (Gradient-weighted Class Activation Mapping) draws a heatmap over an image showing which regions most raise a convolutional neural network's score for a chosen class. The last convolutional layer produces a stack of feature maps, each a coarse grid recording where one learned pattern appears. Grad-CAM takes the gradient of the class score with respect to each map (how much the score changes as that map's values change), averages it to give the map a weight, and adds the weighted maps together. It keeps only the positive values, so the result marks regions that count in favour of the class, then enlarges the grid to the image's size and lays it over the image. The output is coarse, showing broad regions rather than pixels, and any class can be chosen, including one the model did not predict.",
+      "description": "Grad-CAM (Gradient-weighted Class Activation Mapping) draws a heatmap over an image showing which regions most raise a convolutional neural network's score for a chosen class, which need not be the one the model predicted. The last convolutional layer produces a stack of feature maps, each a coarse grid recording where one learned pattern appears. Grad-CAM takes the gradient of the class score with respect to each map (how much the score changes as that map's values change), averages it to give the map a weight, and adds the weighted maps together. It keeps only the positive values, so the result marks regions that count in favour of the class, then enlarges the coarse grid to the image's size and lays it over the image, so the output shows broad regions rather than pixels. In a bias-diagnosis use, the maps are laid over the errors of a classifier already known to err more for one group, to see which image region the model relies on; the group-wise errors and the training-data counts come from separate checks.",
       "assurance_goals": [
-        "Explainability"
+        "Explainability",
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/convolutional",
@@ -1463,6 +1476,8 @@
         "assurance-goal-category/explainability/property/efficiency",
         "assurance-goal-category/explainability/property/sparsity",
         "assurance-goal-category/explainability/visualization-methods/activation-maps",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
         "applicable-models/requirements/model-internals",
         "data-type/image",
         "evidence-type/visualisation",
@@ -1483,6 +1498,10 @@
         {
           "goal": "Explainability",
           "description": "A team developing the traffic sign recogniser for a driver assistance system overlays Grad-CAM on the test images it misclassifies. When the heat sits on the background or a shadow rather than on the sign, they add training images with similar backgrounds and lighting, then recheck the overlays before the release decision."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A team studying dataset bias fine-tunes an image classifier to separate doctors from nurses in photographs and finds, on a gender-balanced test set, that it errs far more often for one gender. It overlays Grad-CAM on those errors: heat on faces and hairstyles rather than on uniforms or equipment shows the model has learned a gender shortcut, and a count of the training photographs by gender shows why. The team rebalances the photographs, retrains and checks that the heat moves."
         }
       ],
       "limitations": [
@@ -1616,6 +1635,11 @@
           "text": "The land-cover classifier's Grad-CAM region for each class in the labelled satellite tiles falls on the matching surface type and not on shadows or neighbouring land",
           "domain": "environmental",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "On the audit images, the retrained doctor-versus-nurse classifier's Grad-CAM regions fall on uniforms and equipment rather than on faces and hair, the cue found on its errors before the training photographs were rebalanced",
+          "domain": "general",
+          "assuranceGoal": "fairness"
         }
       ]
     },
@@ -1964,9 +1988,10 @@
     {
       "slug": "influence-functions",
       "name": "Influence Functions",
-      "description": "Influence functions estimate which training examples most affected a model's prediction on a particular test example. For each training example, they estimate how much the model's loss on the test example would change if that example counted slightly more or slightly less, which approximates removing it and retraining without actually doing so. The estimate combines the gradient of the loss at the test and training points with the Hessian (the matrix of second derivatives, which describes the curvature of the training loss). The output ranks training examples as helpful or harmful for that prediction, so a reviewer can inspect the top few for mislabelled or unrepresentative cases. The theory assumes a smooth, convex loss, so for deep networks the ranking is approximate, pointing to examples worth inspecting rather than proving why the model erred.",
+      "description": "Influence functions estimate which training examples most affected a model's prediction on a particular test example. For each training example, they estimate how much the model's loss on the test example would change if that example counted slightly more or slightly less, which approximates removing it and retraining without actually doing so. The estimate combines the gradient of the loss at the test and training points with the Hessian (the matrix of second derivatives, which describes the curvature of the training loss). The output ranks training examples as helpful or harmful for that prediction; because the theory assumes a smooth, convex loss, for deep networks the ranking is approximate, pointing to examples worth inspecting for mislabelled or unrepresentative cases rather than proving why the model erred. In a bias-diagnosis use, the rejections of a group already known from a separate check to be rejected more often are explained one by one, to find the training records that drive them.",
       "assurance_goals": [
-        "Explainability"
+        "Explainability",
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -1984,6 +2009,8 @@
         "assurance-goal-category/explainability/instance-based/influence-analysis",
         "assurance-goal-category/explainability/property/causality",
         "assurance-goal-category/explainability/property/fidelity",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
@@ -2000,6 +2027,10 @@
         {
           "goal": "Explainability",
           "description": "An email-security team asks why its spam filter blocked a legitimate supplier invoice. It lists the training emails with the most influence on that decision, finds near-duplicate phishing messages with a similar layout, and decides whether to relabel, remove or down-weight them before retraining the filter."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A bank's model-risk team has found, from a separate check of approval rates by group, that applicants from one protected group are rejected more often. It takes a sample of that group's rejected applications and lists, for each, the training loans with the greatest influence on the rejection. It reviews whether those records are historical rejections made under discontinued underwriting rules or by branches with a known bias, and decides whether to remove or re-weight them."
         }
       ],
       "limitations": [
@@ -2095,6 +2126,11 @@
           "text": "For each false positive in the spam filter's audit sample, the ten most influential training emails were reviewed and the cause of the error, mislabelled or unrepresentative training data, was recorded",
           "domain": "general",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The training records most influential for the audited protected-group rejections were reviewed, and none comes from underwriting rules since withdrawn or from branches with a documented bias",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         }
       ]
     },

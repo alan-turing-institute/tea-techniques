@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/fairness",
     "slug": "assurance-goal-category-fairness",
-    "count": 44,
+    "count": 47,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -517,6 +517,345 @@
       ]
     },
     {
+      "slug": "gradient-saliency",
+      "name": "Gradient Saliency",
+      "description": "Gradient saliency (also called vanilla gradient saliency) is the simplest gradient-based explanation for image classifiers: it takes the gradient of the score for a chosen class (the network's output for that class before it becomes a probability) with respect to every input pixel, in one backward pass, to show which pixels that score is most sensitive to. The gradient says how much the score would change if that pixel changed slightly. The method keeps the size of each gradient and, for colour images, the largest across the colour channels, then shows one value per pixel as a heatmap. Because the sign is dropped, the map shows sensitivity but not whether a pixel supports or counts against the class. In a bias-diagnosis use, the maps are drawn for the errors of a classifier already known to err more for one group, to see whether the sensitive pixels sit on a cue linked to that group; the group-wise errors come from a separate check.",
+      "assurance_goals": [
+        "Explainability",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/requirements/differentiable",
+        "applicable-models/requirements/gradient-access",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/gradient-based",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/property/comprehensibility",
+        "assurance-goal-category/explainability/property/efficiency",
+        "assurance-goal-category/explainability/visualization-methods/activation-maps",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
+        "applicable-models/requirements/model-internals",
+        "data-type/image",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/deep-learning",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "technique-type/visualisation",
+        "data-requirements/no-special-requirements",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Explainability",
+          "description": "A hospital imaging team validating a pneumonia detection model on chest X-rays computes gradient saliency for a sample of confirmed cases and checks whether the most sensitive pixels lie over the lungs rather than over tubes, monitoring leads or position markers. They use the result to decide whether the model is ready for a clinical pilot or needs retraining on cleaner images."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An agricultural technology company testing a plant disease classifier on leaf photographs taken in the field computes gradient saliency for the images it misclassifies. It checks whether the sensitive pixels sit on the diseased leaf area or on soil, trays and hands in the frame, and decides whether to collect photographs with more varied backgrounds."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A team studying dataset bias fine-tunes an image classifier to separate doctors from nurses in photographs and finds, on a gender-balanced test set, that it errs far more often for one gender. It then inspects gradient saliency on those errors. Where the most sensitive pixels sit on faces and hair rather than on uniforms or equipment, the model is using appearance linked to gender as a shortcut, so the team rebalances the training photographs and retrains."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Maps are noisy and can change sharply for tiny changes to the image, so one map is weak evidence. A study of upper-limb X-ray classifiers found that plain-gradient maps were less accurate at locating abnormalities, and less repeatable, than radiologists' markings (Venkatesh et al., 2024). Look at many images and more than one trained model before drawing a conclusion about the model."
+        },
+        {
+          "description": "The gradient is local. Where the model's output has flattened, for example once a feature is already strongly present, the gradient is near zero, so a pixel the model relies on can get almost no score. Sundararajan et al. (2017) show this with a one-ReLU example, which is why methods such as Integrated Gradients measure the change from a baseline instead."
+        },
+        {
+          "description": "Because only the size of each gradient is kept, the map cannot say whether a pixel supports or counts against the chosen class. Evidence that argues against the prediction looks the same as evidence for it, so a map cannot show that a pixel was used in the way a reviewer assumes."
+        },
+        {
+          "description": "A high score means the output is sensitive to a small change in that pixel, not that the model relied on it or that removing it would change the decision. Pixel-level scores are scattered and often capture only the most discriminative part of an object (Simonyan et al., 2013), so they rarely outline a whole lesion or object a reviewer can name."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Saliency — Captum API reference",
+          "url": "https://captum.ai/api/saliency.html",
+          "source_type": "documentation",
+          "citationKey": "SaliencyCaptumAPI",
+          "abstract": "Model Interpretability for PyTorch"
+        },
+        {
+          "title": "pytorch-cnn-visualizations",
+          "url": "https://github.com/utkuozbulak/pytorch-cnn-visualizations",
+          "source_type": "software_package",
+          "publication_date": "2017-10-21",
+          "citationKey": "utkuozbulakPytorchcnnvisualizations2017",
+          "abstract": "Pytorch implementation of convolutional neural network visualization techniques"
+        },
+        {
+          "title": "captum",
+          "url": "https://github.com/meta-pytorch/captum",
+          "source_type": "software_package",
+          "publication_date": "2019-08-27",
+          "citationKey": "meta-pytorchCaptum2019",
+          "abstract": "Model interpretability and understanding for PyTorch"
+        },
+        {
+          "title": "Deep Inside Convolutional Networks: Visualising Image Classification Models and Saliency Maps",
+          "url": "https://arxiv.org/abs/1312.6034",
+          "source_type": "technical_paper",
+          "authors": [
+            "Karen Simonyan",
+            "Andrea Vedaldi",
+            "Andrew Zisserman"
+          ],
+          "publication_date": "2013-12-20",
+          "citationKey": "simonyanDeepConvolutionalNetworks2013",
+          "abstract": "This paper addresses the visualisation of image classification models, learnt using deep Convolutional Networks (ConvNets). We consider two visualisation techniques, based on computing the gradient of the class score with respect to the input image. The first one generates an image, which maximises the class score [Erhan et al., 2009], thus visualising the notion of the class, captured by a ConvNet. The second technique computes a class saliency map, specific to a given image and class. We show that such maps can be employed for weakly supervised object segmentation using classification ConvNets. Finally, we establish the connection between the gradient-based ConvNet visualisation methods and deconvolutional networks [Zeiler et al., 2013]."
+        },
+        {
+          "title": "Interpreting a CIFAR-10 TorchVision model with Captum",
+          "url": "https://captum.ai/tutorials/CIFAR_TorchVision_Interpret",
+          "source_type": "tutorial",
+          "citationKey": "InterpretingCIFAR10TorchVision",
+          "abstract": "Model Interpretability for PyTorch"
+        },
+        {
+          "title": "Gradient-Based Saliency Maps Are Not Trustworthy Visual Explanations of Automated AI Musculoskeletal Diagnoses",
+          "url": "https://doi.org/10.1007/s10278-024-01136-4",
+          "source_type": "application_paper",
+          "authors": [
+            "Kesavan Venkatesh",
+            "Simukayi Mutasa",
+            "Fletcher Moore",
+            "Jeremias Sulam",
+            "Paul H. Yi"
+          ],
+          "publication_date": "2024-5-6",
+          "citationKey": "venkateshGradientBasedSaliencyMaps2024",
+          "abstract": "Saliency maps are popularly used to “explain” decisions made by modern machine learning models, including deep convolutional neural networks (DCNNs). While the resulting heatmaps purportedly indicate important image features, their “trustworthiness,” i.e., utility and robustness, has not been evaluated for musculoskeletal imaging. The purpose of this study was to systematically evaluate the trustworthiness of saliency maps used in disease diagnosis on upper extremity X-ray images. The underlying DCNNs were trained using the Stanford MURA dataset. We studied four trustworthiness criteria—(1) localization accuracy of abnormalities, (2) repeatability, (3) reproducibility, and (4) sensitivity to underlying DCNN weights—across six different gradient-based saliency methods (Grad-CAM (GCAM), gradient explanation (GRAD), integrated gradients (IG), Smoothgrad (SG), smooth IG (SIG), and XRAI). Ground-truth was defined by the consensus of three fellowship-trained musculoskeletal radiologists who each placed bounding boxes around abnormalities on a holdout saliency test set. Compared to radiologists, all saliency methods showed inferior localization (AUPRCs: 0.438 (SG)–0.590 (XRAI); average radiologist AUPRC: 0.816), repeatability (IoUs: 0.427 (SG)–0.551 (IG); average radiologist IOU: 0.613), and reproducibility (IoUs: 0.250 (SG)–0.502 (XRAI); average radiologist IOU: 0.613) on abnormalities such as fractures, orthopedic hardware insertions, and arthritis. Five methods (GCAM, GRAD, IG, SG, XRAI) passed the sensitivity test. Ultimately, no saliency method met all four trustworthiness criteria; therefore, we recommend caution and rigorous evaluation of saliency maps prior to their clinical use."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [
+        "deeplift",
+        "gradient-weighted-class-activation-mapping",
+        "integrated-gradients",
+        "layer-wise-relevance-propagation"
+      ],
+      "sample_claims": [
+        {
+          "text": "For the pneumonia model's confirmed cases in the validation sample, gradient saliency places the most sensitive pixels over the lung fields and not over tubes, leads or position markers, in at least the proportion of cases the acceptance criteria set",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The plant disease classifier's gradient saliency maps for its misclassified field photographs show sensitivity concentrated on the leaf area and not on soil, trays or hands in the frame",
+          "domain": "environmental",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Gradient saliency maps used as evidence for this classifier were repeated on models retrained with different random seeds, and the sensitive regions agree across runs above the stated threshold",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "On the audit images, the retrained doctor-versus-nurse classifier's gradient saliency maps place the most sensitive pixels on uniforms and equipment rather than on faces and hair, the cue found on its errors before the training photographs were rebalanced",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        }
+      ]
+    },
+    {
+      "slug": "gradient-weighted-class-activation-mapping",
+      "name": "Gradient-weighted Class Activation Mapping",
+      "description": "Grad-CAM (Gradient-weighted Class Activation Mapping) draws a heatmap over an image showing which regions most raise a convolutional neural network's score for a chosen class, which need not be the one the model predicted. The last convolutional layer produces a stack of feature maps, each a coarse grid recording where one learned pattern appears. Grad-CAM takes the gradient of the class score with respect to each map (how much the score changes as that map's values change), averages it to give the map a weight, and adds the weighted maps together. It keeps only the positive values, so the result marks regions that count in favour of the class, then enlarges the coarse grid to the image's size and lays it over the image, so the output shows broad regions rather than pixels. In a bias-diagnosis use, the maps are laid over the errors of a classifier already known to err more for one group, to see which image region the model relies on; the group-wise errors and the training-data counts come from separate checks.",
+      "assurance_goals": [
+        "Explainability",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/convolutional",
+        "applicable-models/requirements/architecture-specific",
+        "applicable-models/requirements/gradient-access",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/gradient-based",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/explains/internal-mechanisms",
+        "assurance-goal-category/explainability/property/comprehensibility",
+        "assurance-goal-category/explainability/property/efficiency",
+        "assurance-goal-category/explainability/property/sparsity",
+        "assurance-goal-category/explainability/visualization-methods/activation-maps",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
+        "applicable-models/requirements/model-internals",
+        "data-type/image",
+        "evidence-type/visualisation",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/deep-learning",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "technique-type/algorithmic",
+        "technique-type/visualisation",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "data-requirements/no-special-requirements"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Explainability",
+          "description": "A dermatology AI team validating a melanoma classifier overlays Grad-CAM on dermoscopy images and compares the highlighted region with the lesion outline drawn by a clinician. Cases where the heat falls on a ruler, hair or skin markings are collected, and the team decides whether the training images need cleaning before the model goes to clinical evaluation."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A team developing the traffic sign recogniser for a driver assistance system overlays Grad-CAM on the test images it misclassifies. When the heat sits on the background or a shadow rather than on the sign, they add training images with similar backgrounds and lighting, then recheck the overlays before the release decision."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A team studying dataset bias fine-tunes an image classifier to separate doctors from nurses in photographs and finds, on a gender-balanced test set, that it errs far more often for one gender. It overlays Grad-CAM on those errors: heat on faces and hairstyles rather than on uniforms or equipment shows the model has learned a gender shortcut, and a count of the training photographs by gender shows why. The team rebalances the photographs, retrains and checks that the heat moves."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Needs the network's gradients and its last convolutional feature maps, so it cannot be run on a model reached only through an API, or on architectures without convolutional layers. The user must also choose which layer to use, and the paper reports that maps become progressively worse for earlier layers (Selvaraju et al., Sec 3)."
+        },
+        {
+          "description": "The map has the resolution of the last convolutional layer (14 by 14 for VGG-16 and AlexNet), then is enlarged to the image. Small or irregular findings, such as a few-millimetre lesion or a thin sign pole, fall inside one or two cells, so the overlay cannot show whether the model attended to the finding or to its surroundings."
+        },
+        {
+          "description": "In a chest X-ray benchmark Grad-CAM generally located pathologies better than six other saliency methods but worse than radiologists, with the largest gap for small, complex-shaped findings, and it located them better when the model was confident (Saporta et al., 2022). The overlays are least reliable for the uncertain, hard cases where a reviewer most wants an explanation."
+        },
+        {
+          "description": "A bright region means features there raise the class score under a local linear approximation, not that the model relied on them. In the paper's own check, Grad-CAM's ranking of image patches agreed only moderately with occlusion, which masks patches and re-scores the image (rank correlation 0.254, Sec 5.3). The ReLU also hides regions that count against the class."
+        }
+      ],
+      "resources": [
+        {
+          "title": "pytorch-grad-cam documentation (Jupyter Book)",
+          "url": "https://jacobgil.github.io/pytorch-gradcam-book/introduction.html",
+          "source_type": "documentation",
+          "citationKey": "PytorchgradcamDocumentationJupyter"
+        },
+        {
+          "title": "pytorch-grad-cam",
+          "url": "https://github.com/jacobgil/pytorch-grad-cam",
+          "source_type": "software_package",
+          "publication_date": "2017-05-31",
+          "citationKey": "jacobgilPytorchgradcam2017",
+          "abstract": "Advanced AI Explainability for computer vision.  Support for CNNs, Vision Transformers, Classification, Object detection, Segmentation, Image similarity and more."
+        },
+        {
+          "title": "grad-cam-pytorch",
+          "url": "https://github.com/kazuto1011/grad-cam-pytorch",
+          "source_type": "software_package",
+          "publication_date": "2017-05-18",
+          "citationKey": "kazuto1011Gradcampytorch2017",
+          "abstract": "PyTorch re-implementation of Grad-CAM (+ vanilla/guided backpropagation, deconvnet, and occlusion sensitivity maps)"
+        },
+        {
+          "title": "Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization",
+          "url": "https://doi.org/10.1007/s11263-019-01228-7",
+          "source_type": "technical_paper",
+          "authors": [
+            "Ramprasaath R. Selvaraju",
+            "Michael Cogswell",
+            "Abhishek Das",
+            "Ramakrishna Vedantam",
+            "Devi Parikh",
+            "Dhruv Batra"
+          ],
+          "publication_date": "2016-10-07",
+          "citationKey": "r.selvarajuGradCAMVisualExplanations2016",
+          "abstract": "We propose a technique for producing \"visual explanations\" for decisions from a large class of CNN-based models, making them more transparent. Our approach - Gradient-weighted Class Activation Mapping (Grad-CAM), uses the gradients of any target concept, flowing into the final convolutional layer to produce a coarse localization map highlighting important regions in the image for predicting the concept. Grad-CAM is applicable to a wide variety of CNN model-families: (1) CNNs with fully-connected layers, (2) CNNs used for structured outputs, (3) CNNs used in tasks with multimodal inputs or reinforcement learning, without any architectural changes or re-training. We combine Grad-CAM with fine-grained visualizations to create a high-resolution class-discriminative visualization and apply it to off-the-shelf image classification, captioning, and visual question answering (VQA) models, including ResNet-based architectures. In the context of image classification models, our visualizations (a) lend insights into their failure modes, (b) are robust to adversarial images, (c) outperform previous methods on localization, (d) are more faithful to the underlying model and (e) help achieve generalization by identifying dataset bias. For captioning and VQA, we show that even non-attention based models can localize inputs. We devise a way to identify important neurons through Grad-CAM and combine it with neuron names to provide textual explanations for model decisions. Finally, we design and conduct human studies to measure if Grad-CAM helps users establish appropriate trust in predictions from models and show that Grad-CAM helps untrained users successfully discern a 'stronger' nodel from a 'weaker' one even when both make identical predictions. Our code is available at https://github.com/ramprs/grad-cam/, along with a demo at http://gradcam.cloudcv.org, and a video at youtu.be/COjUB9Izk6E."
+        },
+        {
+          "title": "Grad-CAM: Visualize class activation maps with Keras, TensorFlow ...",
+          "url": "https://pyimagesearch.com/2020/03/09/grad-cam-visualize-class-activation-maps-with-keras-tensorflow-and-deep-learning",
+          "source_type": "tutorial",
+          "authors": [
+            "Adrian Rosebrock"
+          ],
+          "publication_date": "2020-03-09",
+          "citationKey": "rosebrockGradCAMVisualizeClass2020"
+        },
+        {
+          "title": "Grad-CAM class activation visualization — Keras code example",
+          "url": "https://keras.io/examples/vision/grad_cam/",
+          "source_type": "tutorial",
+          "authors": [
+            "Keras Team"
+          ],
+          "citationKey": "teamGradCAMClassActivation",
+          "abstract": "Keras documentation: Grad-CAM class activation visualization"
+        },
+        {
+          "title": "A Tutorial on Explainable Image Classification for Dementia Stages Using Convolutional Neural Network and Gradient-weighted Class Activation Mapping",
+          "url": "https://doi.org/10.3233/SHTI251444",
+          "source_type": "application_paper",
+          "authors": [
+            "Kevin Kam Fung Yuen"
+          ],
+          "publication_date": "2024",
+          "citationKey": "kamfungyuenTutorialExplainableImage2024",
+          "abstract": "This paper presents a tutorial of an explainable approach using Convolutional Neural Network (CNN) and Gradient-weighted Class Activation Mapping (Grad-CAM) to classify four progressive dementia stages based on open MRI brain images. The detailed implementation steps are demonstrated with an explanation. Whilst the proposed CNN architecture is demonstrated to achieve more than 99% accuracy for the test dataset, the computational procedure of CNN remains a black box. The visualisation based on Grad-CAM is attempted to explain such very high accuracy and may provide useful information for physicians. Future motivation based on this work is discussed."
+        },
+        {
+          "title": "Benchmarking saliency methods for chest X-ray interpretation",
+          "url": "https://doi.org/10.1038/s42256-022-00536-x",
+          "source_type": "application_paper",
+          "authors": [
+            "Adriel Saporta",
+            "Xiaotong Gui",
+            "Ashwin Agrawal",
+            "Anuj Pareek",
+            "Steven Q. H. Truong",
+            "Chanh D. T. Nguyen",
+            "Van-Doan Ngo",
+            "Jayne Seekins",
+            "Francis G. Blankenberg",
+            "Andrew Y. Ng",
+            "Matthew P. Lungren",
+            "Pranav Rajpurkar"
+          ],
+          "publication_date": "2022-10-10",
+          "citationKey": "saportaBenchmarkingSaliencyMethods2022",
+          "abstract": "Saliency methods, which produce heat maps that highlight the areas of the medical image that influence model prediction, are often presented to clinicians as an aid in diagnostic decision-making. However, rigorous investigation of the accuracy and reliability of these strategies is necessary before they are integrated into the clinical setting. In this work, we quantitatively evaluate seven saliency methods, including Grad-CAM, across multiple neural network architectures using two evaluation metrics. We establish the first human benchmark for chest X-ray segmentation in a multilabel classification set-up, and examine under what clinical conditions saliency maps might be more prone to failure in localizing important pathologies compared with a human expert benchmark. We find that (1) while Grad-CAM generally localized pathologies better than the other evaluated saliency methods, all seven performed significantly worse compared with the human benchmark, (2) the gap in localization performance between Grad-CAM and the human benchmark was largest for pathologies that were smaller in size and had shapes that were more complex, and (3) model confidence was positively correlated with Grad-CAM localization performance. Our work demonstrates that several important limitations of saliency methods must be addressed before we can rely on them for deep learning explainability in medical imaging."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "acronym": "Grad-CAM",
+      "related_techniques": [
+        "integrated-gradients",
+        "gradient-saliency",
+        "occlusion-sensitivity",
+        "layer-wise-relevance-propagation"
+      ],
+      "sample_claims": [
+        {
+          "text": "For the melanoma classifier's validation images, the Grad-CAM region for the predicted class overlaps the clinician-drawn lesion outline in at least the proportion of cases set in the acceptance criteria",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "For the traffic sign recogniser's misclassified test images, the Grad-CAM region falls on the sign face and not the background in all but a reported fraction of cases, and each remaining case has been reviewed",
+          "domain": "autonomous systems",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The land-cover classifier's Grad-CAM region for each class in the labelled satellite tiles falls on the matching surface type and not on shadows or neighbouring land",
+          "domain": "environmental",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "On the audit images, the retrained doctor-versus-nurse classifier's Grad-CAM regions fall on uniforms and equipment rather than on faces and hair, the cue found on its errors before the training photographs were rebalanced",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        }
+      ]
+    },
+    {
       "slug": "prototype-and-criticism-models",
       "name": "Prototype and Criticism Models",
       "description": "Prototype and Criticism Models provide data understanding by identifying two complementary sets of examples: prototypes represent the most typical instances that best summarise common patterns in the data, whilst criticisms are outliers or edge cases that are poorly represented by the prototypes. For example, in a dataset of customer transactions, prototypes might be the most representative buying patterns (frequent small purchases, occasional large purchases), whilst criticisms could be unusual behaviours (bulk buyers, one-time high-value customers). This dual approach reveals both what is normal and what is exceptional, helping understand data coverage and model blind spots.",
@@ -680,6 +1019,155 @@
         {
           "text": "The system's performance on atypical cases is documented alongside its behaviour on prototypical examples",
           "domain": "general",
+          "assuranceGoal": "fairness"
+        }
+      ]
+    },
+    {
+      "slug": "influence-functions",
+      "name": "Influence Functions",
+      "description": "Influence functions estimate which training examples most affected a model's prediction on a particular test example. For each training example, they estimate how much the model's loss on the test example would change if that example counted slightly more or slightly less, which approximates removing it and retraining without actually doing so. The estimate combines the gradient of the loss at the test and training points with the Hessian (the matrix of second derivatives, which describes the curvature of the training loss). The output ranks training examples as helpful or harmful for that prediction; because the theory assumes a smooth, convex loss, for deep networks the ranking is approximate, pointing to examples worth inspecting for mislabelled or unrepresentative cases rather than proving why the model erred. In a bias-diagnosis use, the rejections of a group already known from a separate check to be rejected more often are explained one by one, to find the training records that drive them.",
+      "assurance_goals": [
+        "Explainability",
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/linear-models",
+        "applicable-models/architecture/neural-networks",
+        "applicable-models/paradigm/parametric",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/differentiable",
+        "applicable-models/requirements/gradient-access",
+        "data-requirements/access-to-training-data",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/gradient-based",
+        "assurance-goal-category/explainability/explains/causal-pathways",
+        "assurance-goal-category/explainability/explains/data-patterns",
+        "assurance-goal-category/explainability/instance-based/influence-analysis",
+        "assurance-goal-category/explainability/property/causality",
+        "assurance-goal-category/explainability/property/fidelity",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "explanatory-scope/local",
+        "technique-type/algorithmic",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Explainability",
+          "description": "A hospital analytics team finds that its readmission model misclassifies many children. For a misclassified child, influence functions single out a handful of paediatric training records with far more influence than any others, showing that the training data holds very few children. The team collects more paediatric data before deciding whether the model can be used on that group."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An email-security team asks why its spam filter blocked a legitimate supplier invoice. It lists the training emails with the most influence on that decision, finds near-duplicate phishing messages with a similar layout, and decides whether to relabel, remove or down-weight them before retraining the filter."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A bank's model-risk team has found, from a separate check of approval rates by group, that applicants from one protected group are rejected more often. It takes a sample of that group's rejected applications and lists, for each, the training loans with the greatest influence on the rejection. It reviews whether those records are historical rejections made under discontinued underwriting rules or by branches with a known bias, and decides whether to remove or re-weight them."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Exact influence needs the inverse of the Hessian, which is out of reach for networks with millions of parameters. Implementations approximate it with Hessian-vector products or block-diagonal and low-rank forms, which still costs extra passes over the training data for every prediction explained and adds error. Plan to explain a sample of decisions, not all of them."
+        },
+        {
+          "description": "Needs the full training set, the loss function and parameters at or near a minimum of the training loss. A model delivered as an API or a finished file, or trained on data the assessor cannot see, cannot be examined. For models that are early-stopped or not trained to a minimum, the paper adds a damping term to the Hessian, one more setting that can change the ranking."
+        },
+        {
+          "description": "The derivation assumes a convex, twice-differentiable loss. On a non-convex CNN the paper still found a 0.86 correlation with actual retraining, but a larger study found estimates often erroneous for deeper networks and dependent on architecture, weight decay and the test point (Basu et al., 2020). Check the estimates against real retraining on a few examples before relying on them."
+        },
+        {
+          "description": "Losses with kinks, such as the hinge loss of a support vector machine, break the method. In the paper, influence computed on the unsmoothed hinge loss considerably overestimated the effect of removal, and a smooth approximation of the loss was needed. Check that the loss is smooth for the model in hand, or smooth it for the calculation."
+        }
+      ],
+      "resources": [
+        {
+          "title": "The influence function — pyDVL documentation",
+          "url": "https://pydvl.org/stable/influence/",
+          "source_type": "documentation",
+          "citationKey": "InfluenceFunctionPyDVL",
+          "abstract": "None"
+        },
+        {
+          "title": "influence-release (kohpangwei/influence-release)",
+          "url": "https://github.com/kohpangwei/influence-release",
+          "source_type": "software_package",
+          "publication_date": "2026-08-29T16:45:24Z",
+          "citationKey": "kohpangweiInfluencereleaseKohpangweiInfluencerelease2026"
+        },
+        {
+          "title": "Kronfluence (pomonam/kronfluence)",
+          "url": "https://github.com/pomonam/kronfluence",
+          "source_type": "software_package",
+          "publication_date": "2026-10-01T19:38:07Z",
+          "citationKey": "baeKronfluencePomonamKronfluence2026",
+          "abstract": "Influence Functions with (Eigenvalue-corrected) Kronecker-Factored Approximate Curvature"
+        },
+        {
+          "title": "Understanding Black-box Predictions via Influence Functions",
+          "url": "https://proceedings.mlr.press/v70/koh17a.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Pang Wei Koh",
+            "Percy Liang"
+          ],
+          "publication_date": "2017",
+          "citationKey": "weikohUnderstandingBlackboxPredictions2017",
+          "abstract": "How can we explain the predictions of a black-box model? In this paper, we use influence functions — a classic technique from robust statistics — to trace a model's prediction through the learning algorithm and back to its training data, thereby identifying training points most responsible for a given prediction. To scale up influence functions to modern machine learning settings, we develop a simple, efficient implementation that requires only oracle access to gradients and Hessian-vector products. We show that even on non-convex and non-differentiable models where the theory breaks down, approximations to influence functions can still provide valuable information. On linear models and convolutional neural networks, we demonstrate that influence functions are useful for multiple purposes: understanding model behavior, debugging models, detecting dataset errors, and even creating visually-indistinguishable training-set attacks."
+        },
+        {
+          "title": "Kronfluence CIFAR-10 example",
+          "url": "https://github.com/pomonam/kronfluence/blob/main/examples/cifar/README.md",
+          "source_type": "tutorial",
+          "citationKey": "KronfluenceCIFAR10Example",
+          "abstract": "Influence Functions with (Eigenvalue-corrected) Kronecker-Factored Approximate Curvature - pomonam/kronfluence"
+        },
+        {
+          "title": "Explaining Black Box Predictions and Unveiling Data Artifacts through Influence Functions",
+          "url": "https://doi.org/10.18653/v1/2020.acl-main.492",
+          "source_type": "application_paper",
+          "authors": [
+            "Xiaochuang Han",
+            "Byron C. Wallace",
+            "Yulia Tsvetkov"
+          ],
+          "publication_date": "2020",
+          "citationKey": "hanExplainingBlackBox2020",
+          "abstract": "Modern deep learning models for NLP are notoriously opaque.This has motivated the development of methods for interpreting such models, e.g., via gradient-based saliency maps or the visualization of attention weights.Such approaches aim to provide explanations for a particular model prediction by highlighting important words in the corresponding input text.While this might be useful for tasks where decisions are explicitly influenced by individual tokens in the input, we suspect that such highlighting is not always suitable for tasks where model decisions should be driven by more complex reasoning.In this work, we investigate the use of influence functions for NLP, providing an alternative approach to interpreting neural text classifiers.Influence functions explain the decisions of a model by identifying influential training examples.Despite the promise of this approach, influence functions have not yet been extensively evaluated in the context of NLP, a gap addressed by this work.We conduct a comparison between influence functions and common word-saliency methods on representative tasks.As suspected, we find that influence functions are particularly useful for natural language inference, a task in which 'saliency maps' may not provide clear interpretation.Furthermore, we develop a new quantitative measure based on influence functions that can reveal artifacts in training data."
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 5,
+      "related_techniques": [
+        "jackknife-resampling",
+        "machine-unlearning",
+        "data-poisoning-detection",
+        "membership-inference-attack-testing"
+      ],
+      "sample_claims": [
+        {
+          "text": "The training records most influential for the readmission model's errors on paediatric patients have been identified with influence functions and reviewed by a clinical data steward",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "No training record among the ten most influential for any audited declined application is a known data-entry or labelling error",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "For each false positive in the spam filter's audit sample, the ten most influential training emails were reviewed and the cause of the error, mislabelled or unrepresentative training data, was recorded",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The training records most influential for the audited protected-group rejections were reviewed, and none comes from underwriting rules since withdrawn or from branches with a documented bias",
+          "domain": "finance",
           "assuranceGoal": "fairness"
         }
       ]
@@ -8569,5 +9057,5 @@
       ]
     }
   ],
-  "count": 54
+  "count": 57
 }

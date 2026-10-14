@@ -2244,9 +2244,10 @@
     {
       "slug": "influence-functions",
       "name": "Influence Functions",
-      "description": "Influence functions estimate which training examples most affected a model's prediction on a particular test example. For each training example, they estimate how much the model's loss on the test example would change if that example counted slightly more or slightly less, which approximates removing it and retraining without actually doing so. The estimate combines the gradient of the loss at the test and training points with the Hessian (the matrix of second derivatives, which describes the curvature of the training loss). The output ranks training examples as helpful or harmful for that prediction, so a reviewer can inspect the top few for mislabelled or unrepresentative cases. The theory assumes a smooth, convex loss, so for deep networks the ranking is approximate, pointing to examples worth inspecting rather than proving why the model erred.",
+      "description": "Influence functions estimate which training examples most affected a model's prediction on a particular test example. For each training example, they estimate how much the model's loss on the test example would change if that example counted slightly more or slightly less, which approximates removing it and retraining without actually doing so. The estimate combines the gradient of the loss at the test and training points with the Hessian (the matrix of second derivatives, which describes the curvature of the training loss). The output ranks training examples as helpful or harmful for that prediction; because the theory assumes a smooth, convex loss, for deep networks the ranking is approximate, pointing to examples worth inspecting for mislabelled or unrepresentative cases rather than proving why the model erred. In a bias-diagnosis use, the rejections of a group already known from a separate check to be rejected more often are explained one by one, to find the training records that drive them.",
       "assurance_goals": [
-        "Explainability"
+        "Explainability",
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -2264,6 +2265,8 @@
         "assurance-goal-category/explainability/instance-based/influence-analysis",
         "assurance-goal-category/explainability/property/causality",
         "assurance-goal-category/explainability/property/fidelity",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
@@ -2280,6 +2283,10 @@
         {
           "goal": "Explainability",
           "description": "An email-security team asks why its spam filter blocked a legitimate supplier invoice. It lists the training emails with the most influence on that decision, finds near-duplicate phishing messages with a similar layout, and decides whether to relabel, remove or down-weight them before retraining the filter."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A bank's model-risk team has found, from a separate check of approval rates by group, that applicants from one protected group are rejected more often. It takes a sample of that group's rejected applications and lists, for each, the training loans with the greatest influence on the rejection. It reviews whether those records are historical rejections made under discontinued underwriting rules or by branches with a known bias, and decides whether to remove or re-weight them."
         }
       ],
       "limitations": [
@@ -2375,6 +2382,11 @@
           "text": "For each false positive in the spam filter's audit sample, the ten most influential training emails were reviewed and the cause of the error, mislabelled or unrepresentative training data, was recorded",
           "domain": "general",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The training records most influential for the audited protected-group rejections were reviewed, and none comes from underwriting rules since withdrawn or from branches with a documented bias",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         }
       ]
     },
