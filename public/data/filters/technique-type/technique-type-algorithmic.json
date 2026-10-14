@@ -4631,10 +4631,9 @@
     {
       "slug": "statistical-oversampling-methods",
       "name": "Statistical Oversampling Methods",
-      "description": "A family of data augmentation techniques that generate synthetic minority-class examples through geometric interpolation in feature space, addressing class imbalance problems that degrade classifier performance on underrepresented groups. The foundational method, SMOTE (Synthetic Minority Over-sampling Technique), creates new instances by interpolating between existing minority samples and their k-nearest neighbours. Extensions include Borderline-SMOTE (focusing generation near decision boundaries), ADASYN (adaptively weighting harder-to-learn instances), and SVMSMOTE (using support vectors to guide generation). These methods operate directly on feature vectors without requiring neural network training, making them computationally lightweight and applicable to any tabular classification task.",
+      "description": "Statistical oversampling methods rebalance a training set by adding synthetic examples of an under-represented category instead of copying existing ones. The foundational method, SMOTE (Synthetic Minority Over-sampling Technique), takes a minority-class example, picks one of its nearest minority-class neighbours, and creates a new example at a random point on the line between the two in feature space. Variants differ in which examples seed the new points, such as Borderline-SMOTE (examples near the class boundary), ADASYN (examples with many neighbours from the other class) and SVMSMOTE (the support vectors of a support vector machine). Standard SMOTE balances the outcome labels and ignores group membership, so for fairness work the same generation is applied within each combination of protected group and label, making every combination equally large in the training data. Only the training data change, and plain SMOTE needs numeric features, with SMOTE-NC covering a mix of numeric and categorical ones.",
       "assurance_goals": [
-        "Fairness",
-        "Reliability"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -4642,8 +4641,6 @@
         "data-requirements/access-to-training-data",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
         "data-requirements/labelled-data",
         "data-type/tabular",
         "evidence-type/synthetic-data",
@@ -4656,34 +4653,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Applying SMOTE to oversample underrepresented ethnic groups in a loan approval training dataset, ensuring the classifier has sufficient examples from each demographic group to learn fair decision boundaries.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A bank's credit team finds that approved applicants from one ethnic group make up a small share of its loan training data. It adds synthetic approved applicants for that group with SMOTE until every group-and-outcome combination is the same size, then compares the approval-rate gap between groups, and the gap in approval of applicants who went on to repay, on held-out applications against a model trained on the original data."
         },
         {
-          "description": "Using ADASYN to generate synthetic examples of rare manufacturing defect types, improving the reliability of quality control classifiers on edge cases that occur in fewer than 1% of production runs.",
-          "goal": "Reliability"
+          "goal": "Fairness",
+          "description": "A hospital analytics team building a readmission model finds that patients from one small ethnic group rarely appear among the readmitted cases. It applies Borderline-SMOTE within each group's readmitted cases, then reports recall for each group on held-out patients, with and without oversampling, to its clinical safety committee before deployment."
         },
         {
-          "description": "Applying Borderline-SMOTE to augment minority-class examples near the decision boundary in a medical diagnosis task, reducing false-negative rates for rare conditions without collecting additional patient data.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Oversampling underrepresented protected groups in a hiring dataset to enable equitable evaluation of candidates across gender and ethnicity, ensuring the model does not simply learn to predict the majority class.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A university's student-support team builds a dropout-risk model from past cohorts in which students from low-income areas who left are few. It uses ADASYN to add synthetic examples for that combination, then checks on held-out cohorts that the model flags those students at a rate no further below the rate for other students than the model trained on the original data."
         }
       ],
       "limitations": [
         {
-          "description": "Interpolation in feature space can generate synthetic instances that fall in regions of the feature space not occupied by the true data distribution, introducing noise or unrealistic combinations — particularly problematic for high-dimensional data."
+          "description": "Plain SMOTE and its variants balance the outcome labels, not the groups, and can widen group gaps. In one study (logistic regression on the Adult income data), SMOTE raised the statistical parity difference between sexes from 0.21 to 0.33 (Chakraborty et al., 2021). Balancing protected-group-and-label combinations is needed for fairness, and the gaps must be measured on held-out data."
         },
         {
-          "description": "Does not address the root cause of class imbalance (e.g. data collection bias, structural underrepresentation) and may mask rather than resolve underlying fairness issues in the data pipeline."
+          "description": "Synthetic points are interpolated from the few real examples already present, so they add no new information about a small group and do not repair why it is under-represented, such as how the data were collected. Counts on the oversampled set look larger than the real evidence behind them."
         },
         {
-          "description": "Performance degrades on high-dimensional datasets where the nearest-neighbour assumption breaks down, and oversampling in such spaces can amplify noise dimensions without improving classification."
+          "description": "Interpolation assumes the space between two minority examples also belongs to the minority class. Where examples are scattered, overlap the majority class or include outliers, new points land in the wrong region and add label noise. ADASYN, which favours hard cases, can concentrate on outliers."
         },
         {
-          "description": "Assumes the minority class forms coherent clusters in feature space; when minority examples are scattered or overlap heavily with majority-class regions, interpolation produces ambiguous or mislabelled synthetic samples."
+          "description": "In high-dimensional data SMOTE mostly fails to correct the lean towards the majority class and is less effective than random undersampling. It lowers variability and makes synthetic points correlated, and with k-nearest-neighbour classifiers and no feature selection it tips predictions towards the minority class (Blagus and Lusa, 2013)."
+        },
+        {
+          "description": "Oversampling before splitting the data, or before cross-validation, leaks information into the test set and inflates results. Resampling must touch only the training part, for example inside an imbalanced-learn Pipeline, and tests should use the natural class mix."
         }
       ],
       "resources": [
@@ -4770,19 +4766,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The training dataset has been balanced using SMOTE oversampling to ensure the classifier has sufficient representation of all demographic groups for equitable decision-making",
+          "text": "The credit model was trained on data in which approved and refused applicants from each ethnic group were equally represented, using synthetic examples generated within each group-and-outcome combination, and its approval-rate gap between groups on held-out applicants is reported against the same model trained on the original data.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The rare defect classifier has been trained on an ADASYN-augmented dataset that maintains the original feature distributions whilst ensuring adequate representation of all defect categories",
-          "domain": "manufacturing",
-          "assuranceGoal": "reliability"
+          "text": "Oversampling by ethnic group and outcome did not widen the gap in recall between groups for the readmission model: recall for each group on held-out patients is reported with and without oversampling.",
+          "domain": "healthcare",
+          "assuranceGoal": "fairness"
         },
         {
-          "text": "The diagnostic model performance on rare conditions has been improved through Borderline-SMOTE augmentation targeting samples near the decision boundary, without introducing fabricated clinical relationships",
-          "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "text": "The dropout-risk model flags students from low-income areas at a rate no further below that of other students than the same model trained without oversampling, measured on held-out cohorts.",
+          "domain": "education",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "Every combination of protected group and outcome has the same number of training examples, because synthetic examples were generated for each smaller combination up to the size of the largest.",
+          "domain": "general",
+          "assuranceGoal": "fairness"
         }
       ]
     },
@@ -7965,10 +7966,9 @@
     {
       "slug": "reweighing",
       "name": "Reweighing",
-      "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
+      "description": "Reweighing is a fairness method, presented by Kamiran and Calders (2012), that adjusts the training data before any model is trained so that a protected attribute, such as sex or ethnicity, has no statistical link to the outcome label. It does this by giving each training example a weight, leaving every feature value and label unchanged. Each combination of group and label (for example, women who were hired) gets a weight equal to the number of examples it would hold if group and label were unrelated, divided by the number it actually holds. Combinations rarer than that expectation, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so every group has the same rate of positive labels in the weighted data. A model is then trained on the original data with these weights, so the learning algorithm must accept example weights.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -7976,8 +7976,6 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/access-to-training-data",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
@@ -7991,20 +7989,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model."
         },
         {
-          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one."
         },
         {
-          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "An auditor reviewing a benefits-fraud model asks for the table of reweighing weights kept with the training run. A weight of 1.8 on one nationality group's not-fraud cases shows how far that group's historical labels departed from independence, and the table records exactly how the training data were adjusted, so the auditor can reconstruct the intervention without rerunning it.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications."
         }
       ],
       "limitations": [
@@ -8019,6 +8013,9 @@
         },
         {
           "description": "When a group-label combination is rare its weight is large (a combination with a tenth of its expected count gets a weight of ten), so a handful of examples can dominate training. This raises variance and amplifies any labelling errors in exactly the group the method is meant to protect, and it bites hardest with small or intersectional groups."
+        },
+        {
+          "description": "An absent group-label combination cannot be created by weighting existing records. Zero observed counts require explicit handling rather than applying the ratio unchanged."
         }
       ],
       "resources": [
@@ -8112,13 +8109,8 @@
         },
         {
           "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
-          "domain": "general",
+          "domain": "employment",
           "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
         }
       ]
     },

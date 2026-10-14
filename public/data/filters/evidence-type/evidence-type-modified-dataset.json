@@ -9,10 +9,9 @@
     {
       "slug": "reweighing",
       "name": "Reweighing",
-      "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
+      "description": "Reweighing is a fairness method, presented by Kamiran and Calders (2012), that adjusts the training data before any model is trained so that a protected attribute, such as sex or ethnicity, has no statistical link to the outcome label. It does this by giving each training example a weight, leaving every feature value and label unchanged. Each combination of group and label (for example, women who were hired) gets a weight equal to the number of examples it would hold if group and label were unrelated, divided by the number it actually holds. Combinations rarer than that expectation, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so every group has the same rate of positive labels in the weighted data. A model is then trained on the original data with these weights, so the learning algorithm must accept example weights.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -20,8 +19,6 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/access-to-training-data",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
@@ -35,20 +32,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model."
         },
         {
-          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one."
         },
         {
-          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "An auditor reviewing a benefits-fraud model asks for the table of reweighing weights kept with the training run. A weight of 1.8 on one nationality group's not-fraud cases shows how far that group's historical labels departed from independence, and the table records exactly how the training data were adjusted, so the auditor can reconstruct the intervention without rerunning it.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications."
         }
       ],
       "limitations": [
@@ -63,6 +56,9 @@
         },
         {
           "description": "When a group-label combination is rare its weight is large (a combination with a tenth of its expected count gets a weight of ten), so a handful of examples can dominate training. This raises variance and amplifies any labelling errors in exactly the group the method is meant to protect, and it bites hardest with small or intersectional groups."
+        },
+        {
+          "description": "An absent group-label combination cannot be created by weighting existing records. Zero observed counts require explicit handling rather than applying the ratio unchanged."
         }
       ],
       "resources": [
@@ -156,13 +152,8 @@
         },
         {
           "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
-          "domain": "general",
+          "domain": "employment",
           "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
         }
       ]
     },

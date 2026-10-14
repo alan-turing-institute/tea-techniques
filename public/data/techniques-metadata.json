@@ -1799,10 +1799,9 @@
   {
     "slug": "statistical-oversampling-methods",
     "name": "Statistical Oversampling Methods",
-    "description": "A family of data augmentation techniques that generate synthetic minority-class examples through geometric interpolation in feature space, addressing class imbalance problems that degrade classifier performance on underrepresented groups. The foundational method, SMOTE (Synthetic Minority Over-sampling Technique), creates new instances by interpolating between existing minority samples and their k-nearest neighbours. Extensions include Borderline-SMOTE (focusing generation near decision boundaries), ADASYN (adaptively weighting harder-to-learn instances), and SVMSMOTE (using support vectors to guide generation). These methods operate directly on feature vectors without requiring neural network training, making them computationally lightweight and applicable to any tabular classification task.",
+    "description": "Statistical oversampling methods rebalance a training set by adding synthetic examples of an under-represented category instead of copying existing ones. The foundational method, SMOTE (Synthetic Minority Over-sampling Technique), takes a minority-class example, picks one of its nearest minority-class neighbours, and creates a new example at a random point on the line between the two in feature space. Variants differ in which examples seed the new points, such as Borderline-SMOTE (examples near the class boundary), ADASYN (examples with many neighbours from the other class) and SVMSMOTE (the support vectors of a support vector machine). Standard SMOTE balances the outcome labels and ignores group membership, so for fairness work the same generation is applied within each combination of protected group and label, making every combination equally large in the training data. Only the training data change, and plain SMOTE needs numeric features, with SMOTE-NC covering a mix of numeric and categorical ones.",
     "assurance_goals": [
-      "Fairness",
-      "Reliability"
+      "Fairness"
     ],
     "tags": [
       "applicable-models/architecture/model-agnostic",
@@ -1810,8 +1809,6 @@
       "data-requirements/access-to-training-data",
       "assurance-goal-category/fairness",
       "assurance-goal-category/fairness/pre-processing",
-      "assurance-goal-category/reliability",
-      "assurance-goal-category/reliability/robustness",
       "data-requirements/labelled-data",
       "data-type/tabular",
       "evidence-type/synthetic-data",
@@ -1824,19 +1821,24 @@
     ],
     "sample_claims": [
       {
-        "text": "The training dataset has been balanced using SMOTE oversampling to ensure the classifier has sufficient representation of all demographic groups for equitable decision-making",
+        "text": "The credit model was trained on data in which approved and refused applicants from each ethnic group were equally represented, using synthetic examples generated within each group-and-outcome combination, and its approval-rate gap between groups on held-out applicants is reported against the same model trained on the original data.",
         "domain": "finance",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The rare defect classifier has been trained on an ADASYN-augmented dataset that maintains the original feature distributions whilst ensuring adequate representation of all defect categories",
-        "domain": "manufacturing",
-        "assuranceGoal": "reliability"
+        "text": "Oversampling by ethnic group and outcome did not widen the gap in recall between groups for the readmission model: recall for each group on held-out patients is reported with and without oversampling.",
+        "domain": "healthcare",
+        "assuranceGoal": "fairness"
       },
       {
-        "text": "The diagnostic model performance on rare conditions has been improved through Borderline-SMOTE augmentation targeting samples near the decision boundary, without introducing fabricated clinical relationships",
-        "domain": "healthcare",
-        "assuranceGoal": "reliability"
+        "text": "The dropout-risk model flags students from low-income areas at a rate no further below that of other students than the same model trained without oversampling, measured on held-out cohorts.",
+        "domain": "education",
+        "assuranceGoal": "fairness"
+      },
+      {
+        "text": "Every combination of protected group and outcome has the same number of training examples, because synthetic examples were generated for each smaller combination up to the size of the largest.",
+        "domain": "general",
+        "assuranceGoal": "fairness"
       }
     ]
   },
@@ -2527,7 +2529,7 @@
   {
     "slug": "algorithm-review-boards",
     "name": "Algorithm Review Boards",
-    "description": "An algorithm review board is a standing, multidisciplinary body inside an organisation that examines proposed AI systems or AI research projects at set points and decides whether, and on what conditions, they may proceed. The literature also calls these bodies AI ethics boards or AI review boards. They differ from an Institutional Review Board (IRB), which protects the human subjects of research, because they also weigh harms to the people a system will affect and to society. A risk-based triage decides which projects need full review; the project team then submits a written account of the system's purpose, data, foreseeable harms and planned mitigations, and members drawn from technical, legal, ethical and domain backgrounds, sometimes with people from affected communities, question the team and iterate on that account with them. The board approves, approves with conditions such as a monitoring plan or a re-review date, or rejects, and the output is a dated decision record with its reasons and conditions that later reviews and audits can check against what was built.",
+    "description": "An algorithm review board, also called an AI ethics board or AI review board, is a standing group from different disciplines that examines proposed AI systems or AI research projects before they proceed. It differs from an Institutional Review Board (IRB), which protects the human subjects of research, because it also weighs harms to the people a system will affect and to society. Many boards first sort projects by risk, and for higher-risk work the project team submits a written account of the system's purpose, data, foreseeable harms and planned mitigations, which members with technical, legal, ethical and domain backgrounds question and iterate on with the team. Where it has the power to decide, the board approves, approves with conditions such as a monitoring plan or a re-review date, or rejects; where it only advises, it recommends one of these. It keeps a dated record of its decision, reasons and conditions that later reviews and audits can check against what was built, and some organisations share that record with an oversight body or publish it.",
     "assurance_goals": [
       "General",
       "Transparency"
@@ -2943,7 +2945,7 @@
   {
     "slug": "mlflow-experiment-tracking",
     "name": "MLflow Experiment Tracking",
-    "description": "MLflow is an open-source platform that tracks machine learning experiments by automatically logging parameters, metrics, models, and artifacts throughout the ML lifecycle. It provides a centralised repository for comparing different experimental runs, reproducing results, and managing model versions. Teams can track hyperparameters, evaluation metrics, model files, and execution environment details, creating a comprehensive audit trail that supports collaboration, reproducibility, and regulatory compliance across the entire machine learning development process.",
+    "description": "MLflow Tracking is the part of the open-source MLflow platform that records each run of a machine learning training script. Developers add logging calls to their code, or switch on automatic logging for supported libraries. Each run's record holds its parameters (the settings chosen, including hyperparameters, which are fixed before training), its metrics (results such as accuracy), the code version, its start and end times, and output files called artefacts, such as the trained model. Runs are grouped into experiments that can be searched and compared in a web interface, and they stay on the developer's machine unless a shared tracking server is set up. The result is a dated record of how each model was built, which a reviewer can use to see what was tried and which run produced the deployed model, but only for what was actually logged.",
     "assurance_goals": [
       "General",
       "Transparency"
@@ -2974,23 +2976,18 @@
         "assuranceGoal": "transparency"
       },
       {
-        "text": "The deployed clinical model is reproducible from logged training parameters, data versions, and execution environment specifications",
-        "domain": "healthcare",
-        "assuranceGoal": "reliability"
-      },
-      {
-        "text": "The fraud detection model's performance evolution across successive training runs is traceable through logged metrics and artifact histories",
+        "text": "The deployed fraud-detection model can be traced to the logged run that produced it, including that run's parameters, code version and evaluation metrics",
         "domain": "finance",
         "assuranceGoal": "transparency"
       },
       {
-        "text": "The production model version can be systematically compared against alternative experimental configurations evaluated during development",
-        "domain": "environmental",
-        "assuranceGoal": "reliability"
+        "text": "Changes in parameters, code version and evaluation metrics between successive releases of the clinical risk model are recorded in the tracking log and available to the clinical safety team before each release",
+        "domain": "healthcare",
+        "assuranceGoal": "general"
       },
       {
-        "text": "Model training artifacts and evaluation metrics are accessible to authorized team members through a centralized repository supporting collaborative review",
-        "domain": "general",
+        "text": "The development log for the demand-forecasting model is held on an access-controlled, backed-up tracking server, and no run has been deleted since the model was approved",
+        "domain": "energy",
         "assuranceGoal": "transparency"
       }
     ]
@@ -2998,7 +2995,7 @@
   {
     "slug": "data-version-control",
     "name": "Data Version Control",
-    "description": "Data Version Control (DVC) is a Git-like version control system specifically designed for machine learning data, models, and experiments. It tracks changes to large data files, maintains reproducible ML pipelines, and creates a complete audit trail of data transformations, model training, and evaluation processes. DVC works alongside Git to provide end-to-end lineage tracking from raw data through preprocessing, training, and deployment, enabling teams to reproduce any model version and understand exactly how datasets evolved throughout the ML lifecycle.",
+    "description": "Data Version Control (DVC) is an open-source tool that records which version of a dataset or model was used at each point in a machine learning project. It works alongside Git, the standard system for tracking changes to code. DVC keeps large data and model files in separate storage, such as a cloud storage service, and puts a small pointer file into Git that holds a fingerprint (hash) of the file's contents. A team can also describe a pipeline, meaning the ordered steps from raw data through preprocessing to a trained model, and DVC then records fingerprints of each step's inputs, settings and outputs. Committed to Git, these files give a dated history of how data and models changed and let the team restore an earlier version, but only for what was added to DVC and committed.",
     "assurance_goals": [
       "General",
       "Transparency"
@@ -3024,14 +3021,14 @@
     ],
     "sample_claims": [
       {
-        "text": "The training dataset's lineage is traceable from original data sources through all preprocessing transformations to the deployed model",
+        "text": "The training dataset's lineage is traceable from the original data sources through every preprocessing step to the trained model",
         "domain": "healthcare",
         "assuranceGoal": "transparency"
       },
       {
-        "text": "The model's performance can be recreated using the exact dataset version and pipeline configuration from any prior release",
+        "text": "The dataset version and pipeline configuration behind any prior release of the credit-scoring model are recorded in version control and can be restored for inspection",
         "domain": "finance",
-        "assuranceGoal": "reliability"
+        "assuranceGoal": "transparency"
       },
       {
         "text": "All modifications to sensor calibration data and feature extraction steps are documented with timestamps and author attribution",
@@ -3039,14 +3036,14 @@
         "assuranceGoal": "transparency"
       },
       {
-        "text": "The system can be rolled back to any previous data processing pipeline version when performance degradation is detected",
-        "domain": "autonomous systems",
-        "assuranceGoal": "reliability"
+        "text": "Each release of the defect-detection model is tagged in version control with the record of the training data and pipeline settings that produced it",
+        "domain": "manufacturing",
+        "assuranceGoal": "general"
       },
       {
-        "text": "The complete history of dataset changes is preserved and queryable across the model's development lifecycle",
+        "text": "Every committed change to the training data since the model was first approved can be listed, with date and author, from the project's version history before each new release is signed off",
         "domain": "general",
-        "assuranceGoal": "transparency"
+        "assuranceGoal": "general"
       }
     ]
   },
@@ -3369,10 +3366,9 @@
   {
     "slug": "reweighing",
     "name": "Reweighing",
-    "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
+    "description": "Reweighing is a fairness method, presented by Kamiran and Calders (2012), that adjusts the training data before any model is trained so that a protected attribute, such as sex or ethnicity, has no statistical link to the outcome label. It does this by giving each training example a weight, leaving every feature value and label unchanged. Each combination of group and label (for example, women who were hired) gets a weight equal to the number of examples it would hold if group and label were unrelated, divided by the number it actually holds. Combinations rarer than that expectation, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so every group has the same rate of positive labels in the weighted data. A model is then trained on the original data with these weights, so the learning algorithm must accept example weights.",
     "assurance_goals": [
-      "Fairness",
-      "Transparency"
+      "Fairness"
     ],
     "tags": [
       "applicable-models/architecture/model-agnostic",
@@ -3380,8 +3376,6 @@
       "applicable-models/requirements/black-box",
       "assurance-goal-category/fairness",
       "assurance-goal-category/fairness/pre-processing",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/audit-trail",
       "data-requirements/access-to-training-data",
       "data-requirements/labelled-data",
       "data-requirements/sensitive-attributes",
@@ -3406,13 +3400,8 @@
       },
       {
         "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
-        "domain": "general",
+        "domain": "employment",
         "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
-        "domain": "public sector",
-        "assuranceGoal": "transparency"
       }
     ]
   },
@@ -4404,11 +4393,9 @@
   {
     "slug": "chain-of-thought-faithfulness-evaluation",
     "name": "Chain-of-Thought Faithfulness Evaluation",
-    "description": "Chain-of-thought faithfulness evaluation assesses the quality and faithfulness of step-by-step reasoning produced by language models. This technique evaluates whether intermediate reasoning steps are logically valid, factually accurate, and actually responsible for final answers (rather than post-hoc rationalisations). Evaluation methods include consistency checking (whether altered reasoning changes answers), counterfactual testing (injecting errors in reasoning chains), and comparison between reasoning paths for equivalent problems to ensure systematic rather than spurious reasoning.",
+    "description": "Chain-of-thought faithfulness evaluation tests whether the step-by-step reasoning a language model writes out is what actually produces its answer, rather than an account added afterwards. One set of tests alters the reasoning itself, by cutting it short, inserting a deliberate mistake, rewording it or replacing it with filler text, and checks whether the final answer changes. If the answer never changes, the reasoning is probably not doing the work. Another set adds a cue to the input that points to a particular answer, such as a user's stated guess, and checks whether the answer shifts while the explanation never mentions the cue. Each test gives a rate, such as how often the answer changes, and passing one rules out a single kind of unfaithfulness without showing that the reasoning is faithful or that its steps are correct.",
     "assurance_goals": [
-      "Explainability",
-      "Reliability",
-      "Transparency"
+      "Explainability"
     ],
     "tags": [
       "applicable-models/architecture/neural-networks/transformer/llm",
@@ -4417,10 +4404,6 @@
       "assurance-goal-category/explainability",
       "assurance-goal-category/explainability/explains/internal-mechanisms",
       "assurance-goal-category/explainability/property/fidelity",
-      "assurance-goal-category/reliability",
-      "assurance-goal-category/reliability/performance-assessment",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/decision-reasons",
       "data-requirements/labelled-data",
       "data-type/text",
       "evidence-type/qualitative-report",
@@ -4436,29 +4419,24 @@
     ],
     "sample_claims": [
       {
-        "text": "The system's intermediate reasoning steps are logically valid and directly contribute to final conclusions",
-        "domain": "general",
+        "text": "On the held-out science questions, the tutoring assistant's final answer changed in at least the share of cases set in the test plan when its working was cut short or given an inserted mistake.",
+        "domain": "education",
         "assuranceGoal": "explainability"
       },
       {
-        "text": "The medical triage assistant's step-by-step symptom analysis reflects genuine clinical reasoning rather than post-hoc justification",
-        "domain": "healthcare",
-        "assuranceGoal": "reliability"
-      },
-      {
-        "text": "The legal research tool's case analysis demonstrates consistent application of precedent across equivalent legal questions",
-        "domain": "public sector",
-        "assuranceGoal": "transparency"
-      },
-      {
-        "text": "The tutoring system's problem-solving explanations maintain factual accuracy at each step without logical gaps",
-        "domain": "general",
-        "assuranceGoal": "reliability"
-      },
-      {
-        "text": "The financial advisory model's investment recommendations are grounded in verifiable reasoning that users can trace and validate",
+        "text": "Wherever the underwriting assistant's recommendation changed after a colleague's stated preference was added to the prompt, its written rationale named that preference, across all validation cases.",
         "domain": "finance",
-        "assuranceGoal": "transparency"
+        "assuranceGoal": "explainability"
+      },
+      {
+        "text": "For candidate pairs with their weak evidence swapped, the shortlisting assistant picked a different candidate in each version, or declined to choose in both, in at least the share of pairs set in the audit plan.",
+        "domain": "employment",
+        "assuranceGoal": "explainability"
+      },
+      {
+        "text": "On the same test questions, with answer order shuffled, the model chosen for the casework tool changed its answer when its reasoning was removed more often than the alternative model did.",
+        "domain": "public sector",
+        "assuranceGoal": "explainability"
       }
     ]
   },

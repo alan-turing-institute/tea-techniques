@@ -6,7 +6,7 @@
     {
       "slug": "algorithm-review-boards",
       "name": "Algorithm Review Boards",
-      "description": "An algorithm review board is a standing, multidisciplinary body inside an organisation that examines proposed AI systems or AI research projects at set points and decides whether, and on what conditions, they may proceed. The literature also calls these bodies AI ethics boards or AI review boards. They differ from an Institutional Review Board (IRB), which protects the human subjects of research, because they also weigh harms to the people a system will affect and to society. A risk-based triage decides which projects need full review; the project team then submits a written account of the system's purpose, data, foreseeable harms and planned mitigations, and members drawn from technical, legal, ethical and domain backgrounds, sometimes with people from affected communities, question the team and iterate on that account with them. The board approves, approves with conditions such as a monitoring plan or a re-review date, or rejects, and the output is a dated decision record with its reasons and conditions that later reviews and audits can check against what was built.",
+      "description": "An algorithm review board, also called an AI ethics board or AI review board, is a standing group from different disciplines that examines proposed AI systems or AI research projects before they proceed. It differs from an Institutional Review Board (IRB), which protects the human subjects of research, because it also weighs harms to the people a system will affect and to society. Many boards first sort projects by risk, and for higher-risk work the project team submits a written account of the system's purpose, data, foreseeable harms and planned mitigations, which members with technical, legal, ethical and domain backgrounds question and iterate on with the team. Where it has the power to decide, the board approves, approves with conditions such as a monitoring plan or a re-review date, or rejects; where it only advises, it recommends one of these. It keeps a dated record of its decision, reasons and conditions that later reviews and audits can check against what was built, and some organisations share that record with an oversight body or publish it.",
       "assurance_goals": [
         "General",
         "Transparency"
@@ -390,7 +390,7 @@
     {
       "slug": "mlflow-experiment-tracking",
       "name": "MLflow Experiment Tracking",
-      "description": "MLflow is an open-source platform that tracks machine learning experiments by automatically logging parameters, metrics, models, and artifacts throughout the ML lifecycle. It provides a centralised repository for comparing different experimental runs, reproducing results, and managing model versions. Teams can track hyperparameters, evaluation metrics, model files, and execution environment details, creating a comprehensive audit trail that supports collaboration, reproducibility, and regulatory compliance across the entire machine learning development process.",
+      "description": "MLflow Tracking is the part of the open-source MLflow platform that records each run of a machine learning training script. Developers add logging calls to their code, or switch on automatic logging for supported libraries. Each run's record holds its parameters (the settings chosen, including hyperparameters, which are fixed before training), its metrics (results such as accuracy), the code version, its start and end times, and output files called artefacts, such as the trained model. Runs are grouped into experiments that can be searched and compared in a web interface, and they stay on the developer's machine unless a shared tracking server is set up. The result is a dated record of how each model was built, which a reviewer can use to see what was tried and which run produced the deployed model, but only for what was actually logged.",
       "assurance_goals": [
         "General",
         "Transparency"
@@ -416,33 +416,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Tracking medical diagnosis model experiments across different hospitals, logging hyperparameters, performance metrics, and model artifacts to ensure reproducible research and enable regulatory audits of model development processes.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A hospital group develops a diagnostic imaging model across three sites. Ahead of an external assessment, the team exports the logged runs, with the parameters, evaluation metrics, code version and time of each run, so the assessor can see every configuration tried and trace the submitted model to the run that produced it."
         },
         {
-          "description": "Managing fraud detection model versions in production, tracking which specific model configuration and training data version is deployed, enabling quick rollback and performance comparison when system reliability issues arise.",
-          "goal": "Reliability"
+          "goal": "General",
+          "description": "A bank's fraud-detection team sees alert precision fall after a retraining. They compare the logged runs for the old and new model, covering parameters, training-dataset reference, code version and metrics, find that a feature setting changed, and note the cause on the run before the next release."
         },
         {
-          "description": "Documenting loan approval model experiments with complete parameter tracking and performance logging across demographic groups, supporting fair lending compliance by providing transparent records of model development and validation processes.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "An energy company's data science team keeps every hyperparameter search for its demand-forecasting models on a shared tracking server. When an internal auditor asks why one configuration went live, the team shows the full set of runs searched, their metrics and when each was logged, and the run chosen for deployment."
         }
       ],
       "limitations": [
         {
-          "description": "Requires teams to adopt disciplined logging practices and may introduce overhead to development workflows if not properly integrated into existing processes."
+          "description": "The record holds only what developers log, plus the default set that automatic logging picks up for supported libraries. A preprocessing choice made in a notebook and never logged is absent, and the log gives no sign that anything is missing, so the audit trail is only as complete as the team's logging habits."
         },
         {
-          "description": "Storage costs can grow substantially with extensive artifact logging, especially for large models or high-frequency experimentation."
+          "description": "Dataset tracking stores metadata about a dataset, such as its name, a hash of its contents and where it came from, not the data itself. A logged run can show which dataset was used but cannot restore it, so reproducing a result needs the data to be versioned or retained separately."
         },
         {
-          "description": "Tracking quality depends on developers consistently logging relevant information, with incomplete logging leading to gaps in experimental records."
+          "description": "A tracking server is a working store, not a sealed ledger. Runs can be marked as deleted and tags overwritten by anyone with write access, so the log supports an audit only if access is restricted and the store is backed up."
         },
         {
-          "description": "Complex multi-stage pipelines may require custom instrumentation to capture dependencies and data flow relationships effectively."
+          "description": "Complex multi-stage pipelines may require custom instrumentation to capture dependencies and data flow relationships effectively. Where that is not done, the record of one stage will not show what fed it."
         },
         {
-          "description": "Security and access control configurations require careful setup to protect sensitive model information and experimental data in shared environments."
+          "description": "Artefact storage grows with every logged model and file, so heavy experimentation with large models raises storage costs. Deleting old runs to save space removes part of the record that an audit would rely on."
         }
       ],
       "resources": [
@@ -539,23 +539,18 @@
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The deployed clinical model is reproducible from logged training parameters, data versions, and execution environment specifications",
-          "domain": "healthcare",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The fraud detection model's performance evolution across successive training runs is traceable through logged metrics and artifact histories",
+          "text": "The deployed fraud-detection model can be traced to the logged run that produced it, including that run's parameters, code version and evaluation metrics",
           "domain": "finance",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The production model version can be systematically compared against alternative experimental configurations evaluated during development",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "Changes in parameters, code version and evaluation metrics between successive releases of the clinical risk model are recorded in the tracking log and available to the clinical safety team before each release",
+          "domain": "healthcare",
+          "assuranceGoal": "general"
         },
         {
-          "text": "Model training artifacts and evaluation metrics are accessible to authorized team members through a centralized repository supporting collaborative review",
-          "domain": "general",
+          "text": "The development log for the demand-forecasting model is held on an access-controlled, backed-up tracking server, and no run has been deleted since the model was approved",
+          "domain": "energy",
           "assuranceGoal": "transparency"
         }
       ]
@@ -563,7 +558,7 @@
     {
       "slug": "data-version-control",
       "name": "Data Version Control",
-      "description": "Data Version Control (DVC) is a Git-like version control system specifically designed for machine learning data, models, and experiments. It tracks changes to large data files, maintains reproducible ML pipelines, and creates a complete audit trail of data transformations, model training, and evaluation processes. DVC works alongside Git to provide end-to-end lineage tracking from raw data through preprocessing, training, and deployment, enabling teams to reproduce any model version and understand exactly how datasets evolved throughout the ML lifecycle.",
+      "description": "Data Version Control (DVC) is an open-source tool that records which version of a dataset or model was used at each point in a machine learning project. It works alongside Git, the standard system for tracking changes to code. DVC keeps large data and model files in separate storage, such as a cloud storage service, and puts a small pointer file into Git that holds a fingerprint (hash) of the file's contents. A team can also describe a pipeline, meaning the ordered steps from raw data through preprocessing to a trained model, and DVC then records fingerprints of each step's inputs, settings and outputs. Committed to Git, these files give a dated history of how data and models changed and let the team restore an earlier version, but only for what was added to DVC and committed.",
       "assurance_goals": [
         "General",
         "Transparency"
@@ -589,33 +584,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Tracking medical imaging dataset versions and model training pipelines to ensure reproducible research results, enabling hospitals to verify which specific data version and preprocessing steps were used for regulatory submissions.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A hospital research group trains a chest X-ray classifier. When a regulator asks which images and preprocessing produced the version it submitted, the group checks out the tagged Git commit, shows the dataset fingerprints and pipeline steps recorded in it, and restores that exact data to confirm."
         },
         {
-          "description": "Managing credit scoring model data pipelines with complete version control of training datasets, feature engineering steps, and model artifacts, ensuring reliable model reproduction and rollback capabilities when performance issues arise.",
-          "goal": "Reliability"
+          "goal": "General",
+          "description": "A lender's credit-scoring team sees approval rates shift after a quarterly data refresh. Using DVC with Git, they list the files that changed between the datasets behind the last two model releases, trace the shift to one refresh, and decide whether to revert to the earlier data version."
         },
         {
-          "description": "Maintaining pharmaceutical drug discovery data lineage across multiple research teams, tracking compound datasets, feature extraction processes, and model versions to support FDA submissions with complete experimental provenance.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A flood-forecasting agency versions its river-sensor calibration data and the feature-extraction steps that use it. When a forecast is challenged, an independent reviewer can see from the version history who changed the calibration data and when, and which model release was trained on each version."
+        },
+        {
+          "goal": "General",
+          "description": "A manufacturer's quality team retrains a defect-detection model each month and tags each release in Git with the DVC record of its training images. When a customer reports a missed defect, the team retrieves the exact images behind the model then in use and sees what was added or removed since the previous release."
         }
       ],
       "limitations": [
         {
-          "description": "Requires learning Git-like workflows and CLI commands, which may have a steep learning curve for teams unfamiliar with version control systems."
+          "description": "DVC records only what has been added to it and committed to Git. Data edited outside DVC, or changes that were never committed, leave no trace, and nothing in the history shows what is missing, so the record is only as complete as the team's habits."
         },
         {
-          "description": "Storage costs can be substantial for large datasets with frequent changes, especially when maintaining multiple versions and branches of data."
+          "description": "Lineage exists only for steps defined as DVC pipeline stages. A study of 56 open-source projects found that 85.7% used only DVC's versioning and tracking feature, so a project that uses DVC may hold no record of how its data was preprocessed or its model trained."
         },
         {
-          "description": "Complex data pipelines with many interdependencies may require significant setup time and careful configuration to track properly."
+          "description": "Restoring an earlier model takes more than DVC's files. The code, the software environment and the stored data must all still exist, and the pipeline lock file records commands, file fingerprints and parameter values but not library versions, so a restored pipeline can still give different results."
         },
         {
-          "description": "Performance can degrade with very large files or datasets due to checksumming and synchronisation overhead during operations."
+          "description": "Scale costs time and storage. A changed data file is stored again as a new copy, and the documentation notes that operations such as pulling become slow with tens of thousands of files, pointing teams that need to branch and merge large datasets in object storage to a different tool."
         },
         {
-          "description": "Team coordination becomes essential as improper branch management or merge conflicts can disrupt collaborative workflows."
+          "description": "When several people change the same data files or pipeline, merge conflicts in DVC's tracking files have to be resolved by hand. Without agreed branching rules the history becomes hard to trust."
         }
       ],
       "resources": [
@@ -683,14 +682,14 @@
       ],
       "sample_claims": [
         {
-          "text": "The training dataset's lineage is traceable from original data sources through all preprocessing transformations to the deployed model",
+          "text": "The training dataset's lineage is traceable from the original data sources through every preprocessing step to the trained model",
           "domain": "healthcare",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The model's performance can be recreated using the exact dataset version and pipeline configuration from any prior release",
+          "text": "The dataset version and pipeline configuration behind any prior release of the credit-scoring model are recorded in version control and can be restored for inspection",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "transparency"
         },
         {
           "text": "All modifications to sensor calibration data and feature extraction steps are documented with timestamps and author attribution",
@@ -698,174 +697,14 @@
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The system can be rolled back to any previous data processing pipeline version when performance degradation is detected",
-          "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
+          "text": "Each release of the defect-detection model is tagged in version control with the record of the training data and pipeline settings that produced it",
+          "domain": "manufacturing",
+          "assuranceGoal": "general"
         },
         {
-          "text": "The complete history of dataset changes is preserved and queryable across the model's development lifecycle",
+          "text": "Every committed change to the training data since the model was first approved can be listed, with date and author, from the project's version history before each new release is signed off",
           "domain": "general",
-          "assuranceGoal": "transparency"
-        }
-      ]
-    },
-    {
-      "slug": "reweighing",
-      "name": "Reweighing",
-      "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
-      "assurance_goals": [
-        "Fairness",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/black-box",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
-        "data-requirements/access-to-training-data",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
-        "data-type/any",
-        "evidence-type/modified-dataset",
-        "expertise-needed/domain-expertise",
-        "expertise-needed/statistics",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/preprocessing-and-feature-engineering",
-        "technique-type/algorithmic"
-      ],
-      "example_use_cases": [
-        {
-          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "An auditor reviewing a benefits-fraud model asks for the table of reweighing weights kept with the training run. A weight of 1.8 on one nationality group's not-fraud cases shows how far that group's historical labels departed from independence, and the table records exactly how the training data were adjusted, so the auditor can reconstruct the intervention without rerunning it.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Its target is fixed: equal rates of positive labels across groups in the weighted training data (statistical parity). It does not aim at equal error rates such as equal opportunity, and the weights are computed once, before training, so they cannot respond to where the trained model actually errs. An adaptive variant (Krasanakis et al., 2018) re-estimates weights during training for error-rate criteria, but it has no maintained implementation."
-        },
-        {
-          "description": "It removes all association between group and label, including any part a legitimate factor explains. Kamiran and Calders give the example of car insurance, where more accidents among men may justify different outcomes by sex; reweighing erases that difference too, so it over-corrects wherever some gap between groups is warranted."
-        },
-        {
-          "description": "The learning algorithm must accept example weights; where it cannot, the data have to be resampled instead, which is a different method. Only the training data are balanced, so the trained model's predictions are not guaranteed to be: outcome rates by group must be measured on held-out data after training rather than assumed."
-        },
-        {
-          "description": "When a group-label combination is rare its weight is large (a combination with a tenth of its expected count gets a weight of ten), so a handful of examples can dominate training. This raises variance and amplifies any labelling errors in exactly the group the method is meant to protect, and it bites hardest with small or intersectional groups."
-        }
-      ],
-      "resources": [
-        {
-          "title": "aif360.sklearn.preprocessing.Reweighing — aif360 0.6.1 ...",
-          "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.sklearn.preprocessing.Reweighing.html",
-          "source_type": "documentation",
-          "authors": [
-            "Aif360 Developers"
-          ],
-          "publication_date": "2018",
-          "citationKey": "aif360developersAif360sklearnpreprocessingReweighingAif3600612018"
-        },
-        {
-          "title": "AIF360",
-          "url": "https://github.com/Trusted-AI/AIF360",
-          "source_type": "software_package",
-          "publication_date": "2018-08-22",
-          "citationKey": "trusted-aiAIF3602018",
-          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
-        },
-        {
-          "title": "Data preprocessing techniques for classification without discrimination",
-          "url": "https://doi.org/10.1007/s10115-011-0463-8",
-          "source_type": "technical_paper",
-          "authors": [
-            "Faisal Kamiran",
-            "Toon Calders"
-          ],
-          "publication_date": "2012-06-01",
-          "citationKey": "kamiranDataPreprocessingTechniques2012",
-          "abstract": "Recently, the following Discrimination-Aware Classification Problem was introduced: Suppose we are given training data that exhibit unlawful discrimination; e.g., toward sensitive attributes such as gender or ethnicity. The task is to learn a classifier that optimizes accuracy, but does not have this discrimination in its predictions on test data. This problem is relevant in many settings, such as when the data are generated by a biased decision process or when the sensitive attribute serves as a proxy for unobserved features. In this paper, we concentrate on the case with only one binary sensitive attribute and a two-class classification problem. We first study the theoretically optimal trade-off between accuracy and non-discrimination for pure classifiers. Then, we look at algorithmic solutions that preprocess the data to remove discrimination before a classifier is learned. We survey and extend our existing data preprocessing techniques, being suppression of the sensitive attribute, massaging the dataset by changing class labels, and reweighing or resampling the data to remove discrimination without relabeling instances. These preprocessing techniques have been implemented in a modified version of Weka and we present the results of experiments on real-life data."
-        },
-        {
-          "title": "AIF360 tutorial: Detecting and mitigating age bias on credit decisions (notebook)",
-          "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/tutorial_credit_scoring.ipynb",
-          "source_type": "tutorial",
-          "citationKey": "AIF360TutorialDetecting",
-          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models. - Trusted-AI/AIF360"
-        },
-        {
-          "title": "Comparison of Methods to Reduce Bias From Clinical Prediction Models of Postpartum Depression",
-          "url": "https://doi.org/10.1001/jamanetworkopen.2021.3909",
-          "source_type": "application_paper",
-          "authors": [
-            "Yoonyoung Park",
-            "Jianying Hu",
-            "Moninder Singh",
-            "Issa Sylla",
-            "Irene Dankwa-Mullan",
-            "Eileen Koski",
-            "Amar K. Das"
-          ],
-          "publication_date": "2021-4-15",
-          "citationKey": "parkComparisonMethodsReduce2021",
-          "abstract": "Importance: The lack of standards in methods to reduce bias for clinical algorithms presents various challenges in providing reliable predictions and in addressing health disparities. Objective: To evaluate approaches for reducing bias in machine learning models using a real-world clinical scenario. Design, Setting, and Participants: Health data for this cohort study were obtained from the IBM MarketScan Medicaid Database. Eligibility criteria were as follows: (1) Female individuals aged 12 to 55 years with a live birth record identified by delivery-related codes from January 1, 2014, through December 31, 2018; (2) greater than 80% enrollment through pregnancy to 60 days post partum; and (3) evidence of coverage for depression screening and mental health services. Statistical analysis was performed in 2020. Exposures: Binarized race (Black individuals and White individuals). Main Outcomes and Measures: Machine learning models (logistic regression [LR], random forest, and extreme gradient boosting) were trained for 2 binary outcomes: postpartum depression (PPD) and postpartum mental health service utilization. Risk-adjusted generalized linear models were used for each outcome to assess potential disparity in the cohort associated with binarized race (Black or White). Methods for reducing bias, including reweighing, Prejudice Remover, and removing race from the models, were examined by analyzing changes in fairness metrics compared with the base models. Baseline characteristics of female individuals at the top-predicted risk decile were compared for systematic differences. Fairness metrics of disparate impact (DI, 1 indicates fairness) and equal opportunity difference (EOD, 0 indicates fairness). Results: Among 573 634 female individuals initially examined for this study, 314 903 were White (54.9%), 217 899 were Black (38.0%), and the mean (SD) age was 26.1 (5.5) years. The risk-adjusted odds ratio comparing White participants with Black participants was 2.06 (95% CI, 2.02-2.10) for clinically recognized PPD and 1.37 (95% CI, 1.33-1.40) for postpartum mental health service utilization. Taking the LR model for PPD prediction as an example, reweighing reduced bias as measured by improved DI and EOD metrics from 0.31 and -0.19 to 0.79 and 0.02, respectively. Removing race from the models had inferior performance for reducing bias compared with the other methods (PPD: DI = 0.61; EOD = -0.05; mental health service utilization: DI = 0.63; EOD = -0.04). Conclusions and Relevance: Clinical prediction models trained on potentially biased data may produce unfair outcomes on the basis of the chosen metrics. This study's results suggest that the performance varied depending on the model, outcome label, and method for reducing bias. This approach toward evaluating algorithmic bias can be used as an example for the growing number of researchers who wish to examine and address bias in their data and models."
-        },
-        {
-          "title": "Bias Discovery in Machine Learning Models for Mental Health",
-          "url": "https://doi.org/10.3390/info13050237",
-          "source_type": "application_paper",
-          "authors": [
-            "Pablo Mosteiro",
-            "Jesse Kuiper",
-            "Judith Masthoff",
-            "Floortje Scheepers",
-            "Marco Spruit"
-          ],
-          "publication_date": "2022-5-5",
-          "citationKey": "mosteiroBiasDiscoveryMachine2022",
-          "abstract": "Fairness and bias are crucial concepts in artificial intelligence, yet they are relatively ignored in machine learning applications in clinical psychiatry. We computed fairness metrics and present bias mitigation strategies using a model trained on clinical mental health data. We collected structured data related to the admission, diagnosis, and treatment of patients in the psychiatry department of the University Medical Center Utrecht. We trained a machine learning model to predict future administrations of benzodiazepines on the basis of past data. We found that gender plays an unexpected role in the predictions—this constitutes bias. Using the AI Fairness 360 package, we implemented reweighing and discrimination-aware regularization as bias mitigation strategies, and we explored their implications for model performance. This is the first application of bias exploration and mitigation in a machine learning model trained on real clinical psychiatry data."
-        }
-      ],
-      "complexity_rating": 2,
-      "computational_cost_rating": 1,
-      "related_techniques": [
-        "disparate-impact-remover",
-        "relabelling",
-        "preferential-sampling"
-      ],
-      "sample_claims": [
-        {
-          "text": "The approval model was trained on loan history reweighed so that every ethnic group has the same approval rate in the weighted data, and its approval-rate gap on held-out applicants is reported alongside its accuracy.",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The postpartum depression outreach model, trained with reweighing by race, has a disparate impact ratio within the agreed range on held-out patients.",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
+          "assuranceGoal": "general"
         }
       ]
     },
@@ -1328,5 +1167,5 @@
       ]
     }
   ],
-  "count": 8
+  "count": 7
 }

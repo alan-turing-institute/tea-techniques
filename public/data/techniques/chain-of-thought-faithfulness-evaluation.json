@@ -1,11 +1,9 @@
 {
   "slug": "chain-of-thought-faithfulness-evaluation",
   "name": "Chain-of-Thought Faithfulness Evaluation",
-  "description": "Chain-of-thought faithfulness evaluation assesses the quality and faithfulness of step-by-step reasoning produced by language models. This technique evaluates whether intermediate reasoning steps are logically valid, factually accurate, and actually responsible for final answers (rather than post-hoc rationalisations). Evaluation methods include consistency checking (whether altered reasoning changes answers), counterfactual testing (injecting errors in reasoning chains), and comparison between reasoning paths for equivalent problems to ensure systematic rather than spurious reasoning.",
+  "description": "Chain-of-thought faithfulness evaluation tests whether the step-by-step reasoning a language model writes out is what actually produces its answer, rather than an account added afterwards. One set of tests alters the reasoning itself, by cutting it short, inserting a deliberate mistake, rewording it or replacing it with filler text, and checks whether the final answer changes. If the answer never changes, the reasoning is probably not doing the work. Another set adds a cue to the input that points to a particular answer, such as a user's stated guess, and checks whether the answer shifts while the explanation never mentions the cue. Each test gives a rate, such as how often the answer changes, and passing one rules out a single kind of unfaithfulness without showing that the reasoning is faithful or that its steps are correct.",
   "assurance_goals": [
-    "Explainability",
-    "Reliability",
-    "Transparency"
+    "Explainability"
   ],
   "tags": [
     "applicable-models/architecture/neural-networks/transformer/llm",
@@ -14,10 +12,6 @@
     "assurance-goal-category/explainability",
     "assurance-goal-category/explainability/explains/internal-mechanisms",
     "assurance-goal-category/explainability/property/fidelity",
-    "assurance-goal-category/reliability",
-    "assurance-goal-category/reliability/performance-assessment",
-    "assurance-goal-category/transparency",
-    "assurance-goal-category/transparency/decision-reasons",
     "data-requirements/labelled-data",
     "data-type/text",
     "evidence-type/qualitative-report",
@@ -33,37 +27,37 @@
   ],
   "example_use_cases": [
     {
-      "description": "Evaluating a chemistry tutoring AI that guides students through chemical reaction balancing, ensuring each reasoning step correctly applies conservation of mass and charge rather than producing superficially plausible but scientifically incorrect pathways.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "An education company's tutoring assistant shows pupils its step-by-step working beside each answer to a science question. Before telling pupils that the working explains the answer, the evaluation team cuts the working short and inserts a deliberate mistake on a test set, and records how often the final answer changes. Where it rarely does, as Lanham et al. found for grade-school science sets, the working is shown as an illustration, not as the reason."
     },
     {
-      "description": "Ensuring a legal reasoning assistant produces reliable analysis by verifying that its chain-of-thought explanations correctly apply relevant statutes and precedents without logical gaps.",
-      "goal": "Reliability"
+      "goal": "Explainability",
+      "description": "A lender's model-validation team lets an underwriting assistant write a rationale for each recommendation that staff keep on file. It reruns validation cases with a line added saying a senior colleague favours approval. Where the recommendation moves towards the line but the rationale never mentions it, as Turpin et al. found for suggested answers, the rationale is not accepted as the record of why the case was decided."
     },
     {
-      "description": "Testing science education AI that explains complex concepts step-by-step, verifying reasoning chains reflect sound pedagogical logic that helps students build understanding rather than just memorize facts.",
-      "goal": "Transparency"
+      "goal": "Explainability",
+      "description": "A public body choosing between two sizes of one language-model family for a casework summarising tool wants staff to rely on the reasoning the model shows. On multiple-choice questions built from its own case files, it records how often each model's answer changes when its reasoning is removed, shuffling answer order to control for letter preference as Bentham et al. did, and prefers the model whose answers depend on its reasoning."
     },
     {
-      "description": "Assessing an automated financial advisory system's investment recommendations to verify that its chain-of-thought explanations correctly apply financial principles, accurately calculate risk metrics, and logically justify portfolio allocations to clients.",
-      "goal": "Reliability"
+      "goal": "Explainability",
+      "description": "A recruitment platform's audit team uses a language model to compare two candidates for shortlisting when the evidence for each is thin. Following the social-bias test in Turpin et al., it submits each pair twice with the weak evidence swapped between the candidates and counts pairs where the same candidate is picked both times. Those pairs show evidence weighed inconsistently, so the reasoning is not accepted as showing what drove the choice."
     }
   ],
   "limitations": [
     {
-      "description": "Models may generate reasoning that appears valid but is actually post-hoc rationalization rather than the actual computational process leading to answers."
+      "description": "Passing does not show faithfulness. Each test rules out one way the reasoning could be unfaithful, and the authors call the tests necessary but not sufficient. There is no independent view of the model's actual process to check against, so a clean result supports a narrower claim than 'the reasoning is faithful'."
     },
     {
-      "description": "Difficult to establish ground truth for complex reasoning tasks where multiple valid reasoning paths may exist."
+      "description": "Results do not carry over between models or tasks. Lanham et al. found that the reasoning changed the final answer under 10% of the time on three science question sets but over 60% on algebra word problems, and that faithfulness varied with model size. Re-measure for the model version and task type that will be deployed."
     },
     {
-      "description": "Verification requires domain expertise to judge whether reasoning steps are genuinely valid or merely superficially plausible."
+      "description": "The answer-change score can reflect something other than faithfulness. Bentham et al. repeated Lanham et al.'s measure on three other model families. After correcting for a model's habit of favouring certain answer letters, apparent unfaithfulness in weaker models fell sharply, and the corrected score tracked accuracy (R-squared of 0.74)."
     },
     {
-      "description": "Computationally expensive to generate and verify multiple reasoning paths for comprehensive consistency checking."
+      "description": "Input-cue tests find only the influences the evaluator thinks to add. Turpin et al. tried three cues, and say their setup only tests faithfulness against minor changes to the input. A model that passes can still be swayed by a cue nobody tried, and the cue must point to a wrong answer to show up as an accuracy drop."
     },
     {
-      "description": "Scaling to production environments with high-volume requests is challenging, as thorough faithfulness evaluation may require generating multiple alternative reasoning paths for comparison, significantly increasing latency and cost."
+      "description": "The tests are costly and need control of generation. Lanham et al. sampled 100 reasoning chains per question and re-queried after each truncation; Turpin et al. subsampled for cost. Inserted mistakes were judged plausible in at least 80% of cases, so up to a fifth may test nothing, and Bentham et al. note the procedure needs manual intervention in decoding."
     }
   ],
   "resources": [
@@ -149,29 +143,24 @@
   ],
   "sample_claims": [
     {
-      "text": "The system's intermediate reasoning steps are logically valid and directly contribute to final conclusions",
-      "domain": "general",
+      "text": "On the held-out science questions, the tutoring assistant's final answer changed in at least the share of cases set in the test plan when its working was cut short or given an inserted mistake.",
+      "domain": "education",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The medical triage assistant's step-by-step symptom analysis reflects genuine clinical reasoning rather than post-hoc justification",
-      "domain": "healthcare",
-      "assuranceGoal": "reliability"
-    },
-    {
-      "text": "The legal research tool's case analysis demonstrates consistent application of precedent across equivalent legal questions",
-      "domain": "public sector",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The tutoring system's problem-solving explanations maintain factual accuracy at each step without logical gaps",
-      "domain": "general",
-      "assuranceGoal": "reliability"
-    },
-    {
-      "text": "The financial advisory model's investment recommendations are grounded in verifiable reasoning that users can trace and validate",
+      "text": "Wherever the underwriting assistant's recommendation changed after a colleague's stated preference was added to the prompt, its written rationale named that preference, across all validation cases.",
       "domain": "finance",
-      "assuranceGoal": "transparency"
+      "assuranceGoal": "explainability"
+    },
+    {
+      "text": "For candidate pairs with their weak evidence swapped, the shortlisting assistant picked a different candidate in each version, or declined to choose in both, in at least the share of pairs set in the audit plan.",
+      "domain": "employment",
+      "assuranceGoal": "explainability"
+    },
+    {
+      "text": "On the same test questions, with answer order shuffled, the model chosen for the casework tool changed its answer when its reasoning was removed more often than the alternative model did.",
+      "domain": "public sector",
+      "assuranceGoal": "explainability"
     }
   ]
 }

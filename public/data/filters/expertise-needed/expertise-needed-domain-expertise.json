@@ -750,7 +750,7 @@
     {
       "slug": "algorithm-review-boards",
       "name": "Algorithm Review Boards",
-      "description": "An algorithm review board is a standing, multidisciplinary body inside an organisation that examines proposed AI systems or AI research projects at set points and decides whether, and on what conditions, they may proceed. The literature also calls these bodies AI ethics boards or AI review boards. They differ from an Institutional Review Board (IRB), which protects the human subjects of research, because they also weigh harms to the people a system will affect and to society. A risk-based triage decides which projects need full review; the project team then submits a written account of the system's purpose, data, foreseeable harms and planned mitigations, and members drawn from technical, legal, ethical and domain backgrounds, sometimes with people from affected communities, question the team and iterate on that account with them. The board approves, approves with conditions such as a monitoring plan or a re-review date, or rejects, and the output is a dated decision record with its reasons and conditions that later reviews and audits can check against what was built.",
+      "description": "An algorithm review board, also called an AI ethics board or AI review board, is a standing group from different disciplines that examines proposed AI systems or AI research projects before they proceed. It differs from an Institutional Review Board (IRB), which protects the human subjects of research, because it also weighs harms to the people a system will affect and to society. Many boards first sort projects by risk, and for higher-risk work the project team submits a written account of the system's purpose, data, foreseeable harms and planned mitigations, which members with technical, legal, ethical and domain backgrounds question and iterate on with the team. Where it has the power to decide, the board approves, approves with conditions such as a monitoring plan or a re-review date, or rejects; where it only advises, it recommends one of these. It keeps a dated record of its decision, reasons and conditions that later reviews and audits can check against what was built, and some organisations share that record with an oversight body or publish it.",
       "assurance_goals": [
         "General",
         "Transparency"
@@ -1955,10 +1955,9 @@
     {
       "slug": "reweighing",
       "name": "Reweighing",
-      "description": "Reweighing is a pre-processing method, from Kamiran and Calders (2012), that removes the statistical association between a protected attribute and the outcome label in training data by giving each training example a weight, without changing any feature values or labels. For every combination of group and label (for example, women who were hired), the weight is the number of examples that combination would have if group and label were independent, divided by the number it actually has: the group's share of the data times the label's share, over the combination's observed share. Combinations rarer than independence predicts, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so that in the weighted data every group has the same rate of positive labels. A model is then trained on the original data using these weights; the outputs are the weighted training set and a small table of weights that records exactly how each group-label combination was adjusted.",
+      "description": "Reweighing is a fairness method, presented by Kamiran and Calders (2012), that adjusts the training data before any model is trained so that a protected attribute, such as sex or ethnicity, has no statistical link to the outcome label. It does this by giving each training example a weight, leaving every feature value and label unchanged. Each combination of group and label (for example, women who were hired) gets a weight equal to the number of examples it would hold if group and label were unrelated, divided by the number it actually holds. Combinations rarer than that expectation, such as positive outcomes in a disadvantaged group, are weighted up and over-represented ones are weighted down, so every group has the same rate of positive labels in the weighted data. A model is then trained on the original data with these weights, so the learning algorithm must accept example weights.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -1966,8 +1965,6 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/access-to-training-data",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
@@ -1981,20 +1978,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A bank's model team finds that in the historical loan decisions used as training labels, applicants from one ethnic group were approved far less often than others. Before retraining its approval model it computes reweighing weights, so that approved applicants from that group count for more and refused ones for less, trains with them as sample weights, and compares the approval-rate gap and accuracy on held-out data against the unweighted model."
         },
         {
-          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A health insurer's analytics team building a model to target postpartum depression outreach from Medicaid claims compares reweighing by race with simply removing race from the inputs. It reports each option's disparate impact ratio (the ratio of positive-prediction rates between groups) and predictive performance to its clinical governance group before choosing one."
         },
         {
-          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "An auditor reviewing a benefits-fraud model asks for the table of reweighing weights kept with the training run. A weight of 1.8 on one nationality group's not-fraud cases shows how far that group's historical labels departed from independence, and the table records exactly how the training data were adjusted, so the auditor can reconstruct the intervention without rerunning it.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A recruitment platform training a shortlisting model on past hiring outcomes, in which women were hired into senior engineering roles less often than men, applies reweighing by sex before training so that the weighted history shows equal hiring rates, then checks shortlisting rates by sex on a held-out set of applications."
         }
       ],
       "limitations": [
@@ -2009,6 +2002,9 @@
         },
         {
           "description": "When a group-label combination is rare its weight is large (a combination with a tenth of its expected count gets a weight of ten), so a handful of examples can dominate training. This raises variance and amplifies any labelling errors in exactly the group the method is meant to protect, and it bites hardest with small or intersectional groups."
+        },
+        {
+          "description": "An absent group-label combination cannot be created by weighting existing records. Zero observed counts require explicit handling rather than applying the ratio unchanged."
         }
       ],
       "resources": [
@@ -2102,13 +2098,8 @@
         },
         {
           "text": "The shortlisting model's training data were reweighed by sex before training, and shortlisting rates by sex on held-out applications fall within the agreed tolerance.",
-          "domain": "general",
+          "domain": "employment",
           "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The adjustment made to the fraud model's training data is recorded as a table of weights for each group and label, kept with the training run, from which an auditor can reconstruct how the data were changed.",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
         }
       ]
     },
@@ -3333,11 +3324,9 @@
     {
       "slug": "chain-of-thought-faithfulness-evaluation",
       "name": "Chain-of-Thought Faithfulness Evaluation",
-      "description": "Chain-of-thought faithfulness evaluation assesses the quality and faithfulness of step-by-step reasoning produced by language models. This technique evaluates whether intermediate reasoning steps are logically valid, factually accurate, and actually responsible for final answers (rather than post-hoc rationalisations). Evaluation methods include consistency checking (whether altered reasoning changes answers), counterfactual testing (injecting errors in reasoning chains), and comparison between reasoning paths for equivalent problems to ensure systematic rather than spurious reasoning.",
+      "description": "Chain-of-thought faithfulness evaluation tests whether the step-by-step reasoning a language model writes out is what actually produces its answer, rather than an account added afterwards. One set of tests alters the reasoning itself, by cutting it short, inserting a deliberate mistake, rewording it or replacing it with filler text, and checks whether the final answer changes. If the answer never changes, the reasoning is probably not doing the work. Another set adds a cue to the input that points to a particular answer, such as a user's stated guess, and checks whether the answer shifts while the explanation never mentions the cue. Each test gives a rate, such as how often the answer changes, and passing one rules out a single kind of unfaithfulness without showing that the reasoning is faithful or that its steps are correct.",
       "assurance_goals": [
-        "Explainability",
-        "Reliability",
-        "Transparency"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/transformer/llm",
@@ -3346,10 +3335,6 @@
         "assurance-goal-category/explainability",
         "assurance-goal-category/explainability/explains/internal-mechanisms",
         "assurance-goal-category/explainability/property/fidelity",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/performance-assessment",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/decision-reasons",
         "data-requirements/labelled-data",
         "data-type/text",
         "evidence-type/qualitative-report",
@@ -3365,37 +3350,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating a chemistry tutoring AI that guides students through chemical reaction balancing, ensuring each reasoning step correctly applies conservation of mass and charge rather than producing superficially plausible but scientifically incorrect pathways.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "An education company's tutoring assistant shows pupils its step-by-step working beside each answer to a science question. Before telling pupils that the working explains the answer, the evaluation team cuts the working short and inserts a deliberate mistake on a test set, and records how often the final answer changes. Where it rarely does, as Lanham et al. found for grade-school science sets, the working is shown as an illustration, not as the reason."
         },
         {
-          "description": "Ensuring a legal reasoning assistant produces reliable analysis by verifying that its chain-of-thought explanations correctly apply relevant statutes and precedents without logical gaps.",
-          "goal": "Reliability"
+          "goal": "Explainability",
+          "description": "A lender's model-validation team lets an underwriting assistant write a rationale for each recommendation that staff keep on file. It reruns validation cases with a line added saying a senior colleague favours approval. Where the recommendation moves towards the line but the rationale never mentions it, as Turpin et al. found for suggested answers, the rationale is not accepted as the record of why the case was decided."
         },
         {
-          "description": "Testing science education AI that explains complex concepts step-by-step, verifying reasoning chains reflect sound pedagogical logic that helps students build understanding rather than just memorize facts.",
-          "goal": "Transparency"
+          "goal": "Explainability",
+          "description": "A public body choosing between two sizes of one language-model family for a casework summarising tool wants staff to rely on the reasoning the model shows. On multiple-choice questions built from its own case files, it records how often each model's answer changes when its reasoning is removed, shuffling answer order to control for letter preference as Bentham et al. did, and prefers the model whose answers depend on its reasoning."
         },
         {
-          "description": "Assessing an automated financial advisory system's investment recommendations to verify that its chain-of-thought explanations correctly apply financial principles, accurately calculate risk metrics, and logically justify portfolio allocations to clients.",
-          "goal": "Reliability"
+          "goal": "Explainability",
+          "description": "A recruitment platform's audit team uses a language model to compare two candidates for shortlisting when the evidence for each is thin. Following the social-bias test in Turpin et al., it submits each pair twice with the weak evidence swapped between the candidates and counts pairs where the same candidate is picked both times. Those pairs show evidence weighed inconsistently, so the reasoning is not accepted as showing what drove the choice."
         }
       ],
       "limitations": [
         {
-          "description": "Models may generate reasoning that appears valid but is actually post-hoc rationalization rather than the actual computational process leading to answers."
+          "description": "Passing does not show faithfulness. Each test rules out one way the reasoning could be unfaithful, and the authors call the tests necessary but not sufficient. There is no independent view of the model's actual process to check against, so a clean result supports a narrower claim than 'the reasoning is faithful'."
         },
         {
-          "description": "Difficult to establish ground truth for complex reasoning tasks where multiple valid reasoning paths may exist."
+          "description": "Results do not carry over between models or tasks. Lanham et al. found that the reasoning changed the final answer under 10% of the time on three science question sets but over 60% on algebra word problems, and that faithfulness varied with model size. Re-measure for the model version and task type that will be deployed."
         },
         {
-          "description": "Verification requires domain expertise to judge whether reasoning steps are genuinely valid or merely superficially plausible."
+          "description": "The answer-change score can reflect something other than faithfulness. Bentham et al. repeated Lanham et al.'s measure on three other model families. After correcting for a model's habit of favouring certain answer letters, apparent unfaithfulness in weaker models fell sharply, and the corrected score tracked accuracy (R-squared of 0.74)."
         },
         {
-          "description": "Computationally expensive to generate and verify multiple reasoning paths for comprehensive consistency checking."
+          "description": "Input-cue tests find only the influences the evaluator thinks to add. Turpin et al. tried three cues, and say their setup only tests faithfulness against minor changes to the input. A model that passes can still be swayed by a cue nobody tried, and the cue must point to a wrong answer to show up as an accuracy drop."
         },
         {
-          "description": "Scaling to production environments with high-volume requests is challenging, as thorough faithfulness evaluation may require generating multiple alternative reasoning paths for comparison, significantly increasing latency and cost."
+          "description": "The tests are costly and need control of generation. Lanham et al. sampled 100 reasoning chains per question and re-queried after each truncation; Turpin et al. subsampled for cost. Inserted mistakes were judged plausible in at least 80% of cases, so up to a fifth may test nothing, and Bentham et al. note the procedure needs manual intervention in decoding."
         }
       ],
       "resources": [
@@ -3481,29 +3466,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The system's intermediate reasoning steps are logically valid and directly contribute to final conclusions",
-          "domain": "general",
+          "text": "On the held-out science questions, the tutoring assistant's final answer changed in at least the share of cases set in the test plan when its working was cut short or given an inserted mistake.",
+          "domain": "education",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The medical triage assistant's step-by-step symptom analysis reflects genuine clinical reasoning rather than post-hoc justification",
-          "domain": "healthcare",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The legal research tool's case analysis demonstrates consistent application of precedent across equivalent legal questions",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The tutoring system's problem-solving explanations maintain factual accuracy at each step without logical gaps",
-          "domain": "general",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The financial advisory model's investment recommendations are grounded in verifiable reasoning that users can trace and validate",
+          "text": "Wherever the underwriting assistant's recommendation changed after a colleague's stated preference was added to the prompt, its written rationale named that preference, across all validation cases.",
           "domain": "finance",
-          "assuranceGoal": "transparency"
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "For candidate pairs with their weak evidence swapped, the shortlisting assistant picked a different candidate in each version, or declined to choose in both, in at least the share of pairs set in the audit plan.",
+          "domain": "employment",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "On the same test questions, with answer order shuffled, the model chosen for the casework tool changed its answer when its reasoning was removed more often than the alternative model did.",
+          "domain": "public sector",
+          "assuranceGoal": "explainability"
         }
       ]
     },
