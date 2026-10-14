@@ -653,7 +653,7 @@
     {
       "slug": "factor-analysis",
       "name": "Factor Analysis",
-      "description": "Factor analysis is a statistical technique that identifies latent variables (hidden factors) underlying observed correlations in data. It works by analysing how variables relate to each other, finding a smaller number of unobserved factors that explain patterns among multiple observed variables. Unlike PCA which maximises total variance, factor analysis focuses on shared variance (communalities - the variance variables have in common) whilst separating out unique variance and measurement error. After extracting factors, rotation methods like varimax (which creates uncorrelated factors) or oblimin (allowing correlated factors) help make factors more interpretable by aligning them with distinct groups of variables.",
+      "description": "Factor analysis looks for a small number of hidden factors that explain why a larger set of measured variables, such as a model's input features, tend to move together. Each variable is modelled as a weighted mix of the shared factors plus a part that is unique to it, including measurement error. The weights are called loadings, and they show which variables each factor is built from; for example, several credit-history features might all load on one 'repayment behaviour' factor. Unlike principal component analysis, which summarises as much of the total variation as it can, factor analysis models only the variation that variables share. Analysts usually rotate the factors afterwards, using varimax (factors stay uncorrelated) or oblimin (factors may correlate), so that each variable loads mainly on one factor and the factors are easier to name.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -679,26 +679,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing customer satisfaction surveys to identify key drivers (e.g., 'service quality', 'product value', 'convenience') from dozens of individual questions, helping businesses focus improvement efforts.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A bank's model validation team finds that forty macroeconomic and credit-bureau inputs to a default-risk model are heavily correlated. Exploratory factor analysis groups them into four factors the team can name, such as growth, inflation, household debt and credit conditions, and the model is rebuilt on the factor scores so its drivers can be explained to the risk committee in four terms instead of forty."
         },
         {
-          "description": "Reducing dimensionality of financial indicators to identify underlying economic factors (e.g., 'growth', 'inflation', 'credit risk') for more interpretable risk models.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A flood-forecasting team with sixty correlated gauge, soil-moisture and satellite inputs runs factor analysis on the training data to find a few underlying drivers, such as rainfall intensity, catchment wetness and river level. Forecast explanations are then reported per driver, which operators can relate to what they see on the ground."
         }
       ],
       "limitations": [
         {
-          "description": "Assumes linear relationships between variables and multivariate normality of data."
+          "description": "The standard model is linear, with each variable a weighted sum of factors plus noise. Maximum-likelihood extraction also assumes roughly normal data, so skewed, binary or strongly non-linear variables can distort the loadings. Check distributions first, or choose an extraction method that does not require normality."
         },
         {
-          "description": "Results can be abstract and require domain expertise to interpret meaningfully."
+          "description": "Factors are statistical summaries of correlation, not discovered causes. A factor labelled 'economic confidence' is the analyst's reading of which variables load together, and a different rotation or sample may support a different label."
         },
         {
-          "description": "Sensitive to the choice of number of factors and rotation method, which can significantly affect interpretability."
+          "description": "Sensitive to the choice of number of factors and rotation method, which have no single correct answer and can change both which variables group together and how readable the factors are. Report the choices made and check that the structure is stable."
         },
         {
-          "description": "Requires sufficiently large sample sizes relative to the number of variables for stable results."
+          "description": "Requires a sample that is large relative to the number of variables. With small samples the loadings are unstable and change when a few cases are added or removed."
+        },
+        {
+          "description": "Describes the structure of the data fed into it, not how a trained model uses that data. Factors of a model's inputs say nothing about which factors the model relies on, unless the model is also built on or analysed with the factor scores."
         }
       ],
       "resources": [
@@ -771,18 +774,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's high-dimensional input features are reducible to a smaller set of interpretable constructs with clear business meaning",
+          "text": "The default-risk model's correlated inputs reduce to a small number of named factors that account for most of their shared variance, so its drivers can be explained at factor level.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The survey instrument measures distinct underlying dimensions of patient experience rather than redundant overlapping concepts",
-          "domain": "healthcare",
+          "text": "The flood-forecasting inputs group into a few factors whose loadings domain experts recognise as physically meaningful drivers.",
+          "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The feature space reveals latent factors that explain correlated environmental measurements without relying on predetermined variable groupings",
-          "domain": "environmental",
+          "text": "The number of factors retained, the extraction method and the rotation are documented, and the factor structure is stable when the analysis is repeated on a separate sample.",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]
@@ -1488,7 +1491,7 @@
     {
       "slug": "concept-activation-vectors",
       "name": "Concept Activation Vectors",
-      "description": "Concept Activation Vectors (CAVs), also known as Testing with Concept Activation Vectors (TCAV), identify mathematical directions in neural network representation space that correspond to human-understandable concepts such as 'stripes', 'young', or 'medical equipment'. The technique works by finding linear directions that separate activations of concept examples from non-concept examples, then measuring how much these concept directions influence the model's predictions. This provides quantitative answers to questions like 'How much does the concept of youth affect this model's hiring decisions?' enabling systematic bias detection and model understanding.",
+      "description": "A concept activation vector (CAV) is a direction inside a neural network that stands for a human idea such as 'stripes'. The analyst supplies example inputs showing the concept and random counter-examples, and trains a simple linear classifier to separate the network's activations (the values a chosen layer produces) for the two sets. The CAV is the direction at right angles to that classifier's dividing boundary, pointing towards the concept examples. Testing with CAVs (TCAV) then reports, for one output class, the share of its inputs whose class score would rise if the activations moved in the concept's direction, and repeating this with many random counter-example sets and applying a significance test guards against a meaningless direction. Concept sets built from examples of a protected characteristic, such as gender or ethnicity, turn the test into a check of whether a class is sensitive to that characteristic, as the original paper demonstrates.",
       "assurance_goals": [
         "Explainability",
         "Fairness",
@@ -1522,33 +1525,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Auditing a medical imaging model to verify it focuses on diagnostic features (like 'tumour characteristics') rather than irrelevant concepts (like 'scanner type' or 'patient positioning') when classifying chest X-rays, ensuring clinical decisions rely on medically relevant information.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Auditing a medical imaging model to check whether its chest X-ray classifications are sensitive to diagnostic concepts (like 'tumour characteristics') or to irrelevant ones (like 'scanner type' or 'patient positioning'), so the clinical team can judge whether the model relies on medically relevant information."
         },
         {
-          "description": "Testing whether a hiring algorithm's resume screening decisions are influenced by concepts related to protected characteristics such as 'gender-associated names', 'prestigious universities', or 'employment gaps', enabling systematic bias detection and compliance verification.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A team auditing an image classifier used for content tagging builds concept sets from photographs of people of different ethnicities and genders, with random photographs as the comparison, and tests each output class for significant sensitivity to those concepts, as the original paper did. Classes with significant sensitivity to an ethnicity or gender concept are listed for retraining with balanced data; a low score is not taken as clearance."
         },
         {
-          "description": "Providing regulatory-compliant explanations for financial lending decisions by quantifying how concepts like 'debt-to-income ratio', 'employment stability', and 'credit history length' influence loan approval models, with precise sensitivity scores for audit documentation.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A developer of a driver-assistance system documents, for a type-approval authority, how its traffic-sign classifier responds to visual concepts. The report gives significance-tested TCAV scores for the 'stop sign' class against concepts such as graffiti, snow cover and low sun glare, so the authority can see what the classifier's predictions are sensitive to."
         }
       ],
       "limitations": [
         {
-          "description": "Requires clearly defined concept examples and non-concept examples, which can be challenging to obtain for abstract or subjective concepts."
+          "description": "Requires clearly defined concept examples and non-concept examples, which can be hard to obtain for abstract or subjective concepts. If the examples differ from the random counter-examples in other ways, such as image source or lighting, the CAV mixes those differences in with the concept."
         },
         {
-          "description": "Assumes that meaningful concept directions exist as linear separable directions in the model's internal representation space, which may not hold for all concepts."
+          "description": "Assumes the concept is represented as a direction that a linear classifier can pick out at the chosen layer. If the concept is not linearly separable there, the CAV is unreliable, so check that the classifier separates the two sets well before reading any scores."
         },
         {
-          "description": "Results depend heavily on which network layer is examined, as different layers capture different levels of abstraction and concept representation."
+          "description": "Results depend heavily on which layer is examined, because layers capture different levels of abstraction. A concept can be invisible at one layer and strong at another, so a single-layer result should not be generalised."
         },
         {
-          "description": "Computational cost grows significantly with model size and number of concepts tested, though recent advances like FastCAV address this limitation."
+          "description": "The significance test trains hundreds of classifiers per concept and layer (the paper uses about 500), so cost multiplies with the number of concepts and layers tested. FastCAV, a 2025 preprint, reports speed-ups of up to 63.6 times."
         },
         {
-          "description": "Interpretation requires domain expertise to define meaningful concepts and understand the significance of sensitivity scores in practical contexts."
+          "description": "Scores are class-level and describe sensitivity, not cause. A TCAV score is the share of a class's inputs whose score rises along the concept direction, so it does not explain an individual decision, and a high score does not show that the concept causes the prediction."
         }
       ],
       "resources": [
@@ -1655,28 +1658,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's classification decisions are quantifiably linked to human-interpretable concepts rather than opaque internal representations",
-          "domain": "general",
+          "text": "The chest X-ray classifier's 'pneumonia' predictions are significantly sensitive to clinically recognised findings and not significantly sensitive to scanner type or patient positioning, at the layers tested.",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring system's candidate evaluations are demonstrably independent of concepts associated with protected characteristics",
-          "domain": "public sector",
+          "text": "The content-tagging classifier's TCAV scores for the ethnicity and gender concept sets are recorded for every output class at the tested layers, and the classes with significant sensitivity are listed for review.",
+          "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The diagnostic model's sensitivity to clinically relevant concepts is documented with quantitative influence scores",
-          "domain": "healthcare",
+          "text": "The traffic-sign classifier's sensitivity to graffiti, snow cover and glare concepts is documented with significance-tested TCAV scores for each sign class the approval authority has requested.",
+          "domain": "autonomous systems",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The credit assessment model's reliance on demographic-related concepts is measurable and within acceptable bounds",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The vision system's object recognition depends on semantically meaningful visual concepts aligned with domain expertise",
-          "domain": "autonomous systems",
+          "text": "The object recogniser's class predictions depend mainly on concepts that domain experts regard as meaningful for that class, such as shape and texture, rather than on background concepts.",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]

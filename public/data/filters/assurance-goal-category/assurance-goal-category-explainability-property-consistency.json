@@ -9,7 +9,7 @@
     {
       "slug": "shapley-additive-explanations",
       "name": "SHapley Additive exPlanations",
-      "description": "SHAP explains model predictions by quantifying how much each input feature contributes to the outcome. It assigns an importance score to every feature, indicating whether it pushes the prediction towards or away from the average. The method systematically evaluates how predictions change as features are included or excluded, drawing on game theory concepts to ensure a fair distribution of contributions.",
+      "description": "SHAP (SHapley Additive exPlanations) explains one prediction by sharing out the gap between that prediction and a baseline, usually the model's average output over a background dataset, among the input features. Each feature receives a signed score, where positive means it pushed the prediction above the baseline and negative means it pushed it below. The scores are Shapley values from game theory, meaning each is the feature's average effect over every order in which the features could be added, and together they add up exactly to the gap. Exact calculation is costly, so tools usually estimate the scores by sampling or use shortcuts for particular model types, such as a fast exact method for tree ensembles, and averaging the absolute scores over many predictions gives a global ranking of features. In a fairness use, the difference in average output between two groups is shared out feature by feature in the same way, showing which inputs account for the gap.",
       "assurance_goals": [
         "Explainability",
         "Fairness"
@@ -36,26 +36,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers."
         },
         {
-          "description": "Auditing a loan approval model by comparing SHAP values for applicants from different demographic groups, ensuring that protected characteristics like race or gender do not have an undue influence on credit decisions.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A lender's model validation team investigates why a loan approval model approves one applicant group less often than another. They compute SHAP values for every applicant, compare the group averages feature by feature, and see which inputs, such as postcode or credit history length, account for most of the gap, so they know what to scrutinise first."
         }
       ],
       "limitations": [
         {
-          "description": "Assumes feature independence, which can produce misleading explanations when features are highly correlated, as the model may attribute importance to features that are merely proxies for others."
+          "description": "Common estimators fill in a 'missing' feature by sampling its value independently of the others. With correlated features, such as income and postcode, the model is then evaluated on unrealistic combinations and credit can be split between correlated features in ways that mislead. Check feature correlations before reading individual scores."
         },
         {
-          "description": "Computationally expensive for models with many features or large datasets, as the number of required predictions grows exponentially with the number of features."
+          "description": "Exact values need the model evaluated on every subset of features, which grows exponentially with the number of features. Sampling estimators trade accuracy for speed, and explaining many predictions from a slow model, or a model with hundreds of features, can take hours. Tree ensembles have a much faster exact algorithm."
         },
         {
-          "description": "The choice of background dataset for generating explanations can significantly influence the results, requiring careful selection to ensure a representative baseline."
+          "description": "Scores are relative to a baseline set by the background dataset, and a different background gives different scores. Explaining an applicant against all customers says something different from explaining them against previously approved customers, so the choice must be made on purpose and reported."
         },
         {
-          "description": "Global explanations derived from averaging local SHAP values may obscure important heterogeneous effects where features impact subgroups of the population differently."
+          "description": "SHAP describes what the model has learned, not how the world works. A large contribution does not show that changing that feature would change the real outcome, so the scores should not be used to advise people on what to change."
+        },
+        {
+          "description": "Averaging absolute scores into a global ranking can hide features that matter a great deal for a small subgroup, or that push in opposite directions for different people. Inspect the spread of per-prediction scores, not only the mean."
         }
       ],
       "resources": [
@@ -143,26 +146,31 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's predictions can be decomposed into quantified contributions from each input feature",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The credit scoring system's decision rationale is expressed as the sum of individual feature impacts on the baseline prediction",
+          "text": "For each declined application, the features with the largest SHAP contributions to the refusal match the lender's documented underwriting criteria.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's reliance on demographic attributes is quantifiable and bounded across all decision contexts",
+          "text": "Across the validation set, administrative fields such as ward code and admission day contribute negligibly to the readmission model's predictions compared with clinical measurements.",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The difference in approval rates between applicant groups on the benefits eligibility model is accounted for mainly by the documented eligibility criteria, and the share of the gap attributed to postcode and other proxy inputs is reported.",
           "domain": "public sector",
           "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The explanation shown to each fraud analyst accounts for the whole gap between the transaction's risk score and the average score.",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
         }
       ]
     },
     {
       "slug": "permutation-importance",
       "name": "Permutation Importance",
-      "description": "Permutation Importance quantifies a feature's contribution to a model's performance by randomly shuffling its values and measuring the resulting drop in predictive accuracy. If shuffling a feature significantly degrades the model's performance, that feature is considered important. This model-agnostic technique helps identify which inputs are genuinely driving predictions, rather than just being correlated with the outcome.",
+      "description": "Permutation Importance measures how much a trained model relies on each input feature. For each feature, the values in a dataset are shuffled at random, which breaks the link between that feature and the outcome, and the model is scored again. The fall in score, for example in accuracy, is the feature's importance: a large fall means the model depends on the feature, and little or no fall means it does not. Repeating the shuffle several times shows how much the result varies. The method works with any model, but it shows what the model uses, not what causes the outcome in the world.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -185,22 +193,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Assessing which patient characteristics (e.g., age, blood pressure, cholesterol) are most critical for a medical diagnosis model by observing the performance drop when each characteristic's values are randomly shuffled, ensuring the model relies on clinically relevant factors.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Assessing which patient characteristics (e.g., age, blood pressure, cholesterol) matter most to a medical diagnosis model by shuffling each one in turn on held-out patients and recording the drop in performance, so a clinician can judge whether the model relies on clinically relevant factors."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A bank's model-risk team shuffles each input to a card-fraud model in turn on held-out transactions, to check the model leans on transaction behaviour and not on a field that leaks the answer, such as a case-handling code recorded after fraud was confirmed."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A flood-forecasting team shuffles each rainfall, river-level and soil-moisture input of a model trained on historic data, to check that forecasts depend on the physical drivers hydrologists expect and not on a calendar variable."
         }
       ],
       "limitations": [
         {
-          "description": "Can be misleading when features are highly correlated, as shuffling one feature might indirectly affect others, leading to an overestimation of its importance."
+          "description": "When features are strongly correlated, shuffling one leaves the model able to rely on its correlated partner, so both can show low importance even though the model uses them. Shuffling also creates feature combinations that do not occur in real data, which can distort the scores."
         },
         {
-          "description": "Computationally expensive for large datasets or complex models, as it requires re-evaluating the model many times for each feature."
+          "description": "Computationally expensive for large datasets or complex models. The model is scored once per feature per shuffle, so cost grows with the number of features, the number of repeats and the size of the evaluation data. No retraining is needed."
         },
         {
-          "description": "Does not account for interactions between features; it measures the marginal importance of a feature, assuming other features remain unchanged."
+          "description": "The score for a feature includes the effect of its interactions with other features and cannot separate them from its own effect. If two features interact, shuffling either one lowers the score, so importances need not add up to the model's total performance."
         },
         {
-          "description": "The choice of metric for evaluating performance drop (e.g., accuracy, F1-score) can influence the perceived importance of features."
+          "description": "The ranking can change with the scoring metric, particularly for imbalanced classification, where accuracy and F1-score can give different pictures of which features matter."
+        },
+        {
+          "description": "Scores computed on training data can reflect overfitting: a feature the model has memorised can look important even though it does not help on new data. Use held-out data, and repeat the shuffle to see how much the scores vary."
         }
       ],
       "resources": [
@@ -279,8 +298,13 @@
       ],
       "sample_claims": [
         {
-          "text": "The fraud detection system's performance degrades measurably when individual transaction characteristics are unavailable",
+          "text": "The fraud model's accuracy on held-out data falls sharply when transaction amount or merchant category is shuffled and barely changes when customer postcode is shuffled.",
           "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The diagnostic model's accuracy on held-out patients depends on established clinical risk factors and not on administrative fields such as hospital identifier.",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
@@ -289,7 +313,7 @@
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The recommendation system's ability to predict user preferences depends on behavioural patterns rather than demographic attributes",
+          "text": "The recommendation-model audit reports performance changes from shuffling behavioural and demographic inputs under a stated metric, without treating small drops as proof of feature independence.",
           "domain": "general",
           "assuranceGoal": "explainability"
         }

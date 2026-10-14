@@ -1,10 +1,9 @@
 {
   "slug": "sobol-indices",
   "name": "Sobol Indices",
-  "description": "Sobol Indices quantify how much each input feature contributes to the total variance in a model's predictions through global sensitivity analysis. The technique calculates first-order indices (individual feature contributions) and total-order indices (including all interaction effects involving that feature). By systematically sampling the input space and decomposing output variance, Sobol Indices reveal which features drive model uncertainty and which interactions between features are most important for predictions.",
+  "description": "Sobol indices show how much of the variation in a model's output can be traced to each of its inputs. The analyst sets a range or probability distribution for every input and runs the model on a large, carefully designed sample of input combinations. The variance (spread) of the outputs is then split into shares. A first-order index is the share caused by one input varying on its own, and a total-order index also counts every interaction that input takes part in. A large gap between the two signals that an input matters mainly through interactions, and optional second-order indices show which pairs of inputs interact.",
   "assurance_goals": [
-    "Explainability",
-    "Fairness"
+    "Explainability"
   ],
   "tags": [
     "assurance-goal-category/explainability",
@@ -13,8 +12,6 @@
     "assurance-goal-category/explainability/explains/feature-importance",
     "assurance-goal-category/explainability/explains/causal-pathways",
     "assurance-goal-category/explainability/property/completeness",
-    "assurance-goal-category/fairness",
-    "assurance-goal-category/fairness/bias-diagnosis",
     "data-requirements/no-special-requirements",
     "data-type/tabular",
     "evidence-type/quantitative-metric",
@@ -28,30 +25,29 @@
   ],
   "example_use_cases": [
     {
-      "description": "Analysing a climate prediction model to determine which atmospheric parameters (temperature, humidity, pressure) contribute most to rainfall forecast uncertainty, helping meteorologists understand which measurements need the highest precision.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "Analysing a climate prediction model to determine which atmospheric parameters (temperature, humidity, pressure) contribute most to rainfall forecast uncertainty, helping meteorologists understand which measurements need the highest precision."
     },
     {
-      "description": "Evaluating a financial risk model to identify which economic indicators (interest rates, inflation, GDP growth) drive the most variability in portfolio value predictions, enabling better risk management strategies.",
-      "goal": "Explainability"
-    },
-    {
-      "description": "Analysing a credit scoring model to quantify how much prediction variance stems from zip code (a potential proxy for race), helping identify features that may cause disparate impact across demographic groups.",
-      "goal": "Fairness"
+      "goal": "Explainability",
+      "description": "A risk team validating a portfolio valuation model asks which economic indicators (interest rates, inflation, GDP growth) drive most of the variation in predicted portfolio value. A large gap between an indicator's total-order and first-order indices shows it acts mainly through interactions, which tells the team which scenarios to stress-test together."
     }
   ],
   "limitations": [
     {
-      "description": "Computationally expensive, requiring thousands of model evaluations to achieve stable variance estimates, making it impractical for very slow models."
+      "description": "The standard sampling scheme needs N(2D+2) model runs for D inputs (N(D+2) without second-order indices), with N often in the thousands. A slow model, or one with dozens of inputs, quickly becomes impractical. Grouping related inputs, or screening first with a cheaper method such as Morris, reduces the cost."
     },
     {
-      "description": "Assumes input features are independently distributed, which can lead to misleading results when features are correlated in real data."
+      "description": "Assumes the inputs vary independently. If real inputs are correlated, for example income and postcode, the sample contains combinations the model never meets in practice, and the indices can mislead about which inputs matter."
     },
     {
-      "description": "Curse of dimensionality makes the technique increasingly difficult and expensive to apply as the number of input features grows beyond 10-20."
+      "description": "Needs a probability distribution or range for every input, and the indices depend on that choice, because widening one input's range raises its share of the variance. If the ranges do not reflect the real deployment population, the ranking describes a model the users will never face."
     },
     {
-      "description": "Requires defining appropriate probability distributions for input features, which may not accurately reflect real-world feature distributions."
+      "description": "Variance is the only yardstick. When the output is heavily skewed or has several peaks, variance shares can be unreliable guides to which inputs matter, and a moment-independent method such as PAWN may suit better."
+    },
+    {
+      "description": "Estimates carry sampling error. With too few runs the confidence intervals can be as wide as the indices themselves, so small indices cannot be told apart from zero. Report the intervals SALib returns and check that the ranking holds when N is increased."
     }
   ],
   "resources": [
@@ -140,27 +136,17 @@
   ],
   "sample_claims": [
     {
-      "text": "The flood prediction model's output uncertainty is quantifiably attributable to specific atmospheric measurements rather than distributed uniformly across all input features",
+      "text": "Our flood-model review reports atmospheric inputs' main and total shares of output variance under the documented independent input distributions.",
       "domain": "environmental",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The financial risk model's variance decomposition reveals which economic indicators contribute most to prediction uncertainty through both direct effects and interactions with other variables",
+      "text": "The portfolio-model audit records first and total-order sensitivity indices, distinguishing main effects from overall interaction involvement.",
       "domain": "finance",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The credit assessment system's sensitivity to zip code accounts for a quantifiable proportion of total prediction variance that can be compared against variance from financially relevant features",
-      "domain": "finance",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The autonomous navigation system's steering decisions have identifiable sources of variability traceable to specific sensor inputs and their interactions",
-      "domain": "autonomous systems",
-      "assuranceGoal": "explainability"
-    },
-    {
-      "text": "The clinical outcome predictor's total uncertainty can be decomposed into contributions from individual patient characteristics and their joint effects",
+      "text": "Our clinical-model sensitivity review reports patient-input variance shares under the chosen distributions, without treating them as a decomposition of every source of prediction uncertainty.",
       "domain": "healthcare",
       "assuranceGoal": "explainability"
     }

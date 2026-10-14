@@ -36,16 +36,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Explaining why a specific patient received a high-risk diagnosis by showing which symptoms (fever, blood pressure, age) contributed most to the prediction, helping doctors validate the AI's reasoning.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Explaining why a specific patient received a high-risk diagnosis by showing which symptoms (fever, blood pressure, age) contributed most to the prediction, helping doctors validate the AI's reasoning."
         },
         {
-          "description": "Debugging a text classifier's misclassification of a movie review by highlighting which words (e.g., sarcastic phrases) confused the model, enabling targeted model improvements.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Debugging a text classifier's misclassification of a movie review by highlighting which words (e.g., sarcastic phrases) confused the model, enabling targeted model improvements."
         },
         {
-          "description": "Providing transparent explanations to customers about automated decisions in insurance claims, showing which claim features influenced approval or denial to meet regulatory requirements.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "Showing insurance customers the claim features that most influenced an automated approval or denial. A reviewer first checks that the explanation is stable across repeated runs and plausible for that claim, because it approximates the model locally and may not match its full reasoning."
         }
       ],
       "limitations": [
@@ -147,19 +147,19 @@
       ],
       "sample_claims": [
         {
-          "text": "The fraud detection system's flagging of individual transactions is attributable to specific transaction features in the local decision context",
+          "text": "For the transactions the fraud model flags, the features that the explanation ranks highest are ones fraud analysts judge relevant to the flag.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The medical diagnosis model's predictions for individual patients are interpretable through locally approximated feature contributions",
-          "domain": "healthcare",
+          "text": "Explanations of the same prediction, repeated with fresh random samples, name the same top features, so the stated reasons do not depend on chance.",
+          "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The autonomous vehicle's object classification decisions are explainable to operators through feature-level analysis of specific detection instances",
-          "domain": "autonomous systems",
-          "assuranceGoal": "transparency"
+          "text": "The explanation for each high-risk patient prediction rests on recognised clinical risk factors and not on artefacts such as the recording site or record format.",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
         },
         {
           "text": "The content moderation system provides interpretable explanations for individual moderation decisions without requiring access to model internals",
@@ -167,9 +167,9 @@
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The environmental monitoring system's anomaly alerts are accompanied by explanations showing which sensor readings contributed to each specific detection",
-          "domain": "environmental",
-          "assuranceGoal": "explainability"
+          "text": "Customers receive the main reasons for an individual automated claim decision, drawn from a local explanation of that decision and checked by a reviewer for plausibility.",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
         }
       ]
     },
@@ -473,7 +473,7 @@
     {
       "slug": "contrastive-explanation-method",
       "name": "Contrastive Explanation Method",
-      "description": "The Contrastive Explanation Method (CEM) explains model decisions by generating contrastive examples that reveal what makes a prediction distinctive. It identifies 'pertinent negatives' (minimal features that could be removed to change the prediction) and 'pertinent positives' (minimal features that must be present to maintain the prediction). This approach helps users understand not just what led to a decision, but what would need to change to achieve a different outcome, providing actionable insights for decision-making.",
+      "description": "The Contrastive Explanation Method (CEM) explains one prediction of a classifier, such as a neural network, by describing what is present and what is absent in the input. A pertinent positive is the smallest set of features already present that is enough for the model to give the same prediction. A pertinent negative is the smallest set of features not currently present that would change the prediction to a different class if they were added. CEM finds both by solving an optimisation problem that searches for the smallest change to the input, and it can use an autoencoder (a model trained to reconstruct realistic inputs) to keep the changed inputs realistic. An explanation reads like 'this digit is a 3 because these strokes are present and because a short bar at the top is absent', since adding that bar would make it a 5.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -506,30 +506,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Explaining loan application rejections by showing that removing recent late payments (pertinent negative) or adding £5,000 more annual income (pertinent positive) would change the decision to approval, giving applicants clear actionable guidance.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A procurement team uses a neural-network model that rates invoices as low, medium or high risk. For a high-risk invoice, the pertinent positives are the few triggered events that are enough for that rating, such as a large amount and a vendor with only a PO box. The pertinent negatives are events that did not occur but would lower the rating if they had, such as the vendor being registered. Reviewers check both before blocking payment."
         },
         {
-          "description": "Analysing medical diagnosis models by identifying that removing a specific symptom combination would change a high-risk classification to low-risk, helping clinicians understand the critical diagnostic factors.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A clinician reviews a decision-support model that suggests flu rather than pneumonia for a patient. The pertinent positives are the findings that are enough for that suggestion, such as cough, cold and fever. The pertinent negatives are findings that are absent but would move the suggestion to pneumonia if present, such as sputum and chills. The clinician compares both with their own reasoning to judge whether the model weighs the right findings."
         },
         {
-          "description": "Providing transparent hiring decisions by showing job candidates exactly which qualifications (pertinent positives) they need to acquire or which application elements (pertinent negatives) might be hindering their success.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A council uses a model to screen applications for housing support. When an application is declined, the pertinent negatives show which missing items, such as proof of tenancy, would have changed the outcome if present. A caseworker checks that each item is something the applicant can provide, then includes it in the decision notice."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive as it requires solving an optimisation problem for each individual instance to find minimal perturbations."
+          "description": "Each explanation needs its own optimisation run for a single instance, so explaining many decisions is slow. Models whose gradients cannot be accessed need numerical gradient estimates, which slows it further."
         },
         {
-          "description": "Results can be highly sensitive to hyperparameter settings, requiring careful tuning to produce meaningful explanations."
+          "description": "Several settings shape the result, including how strongly the search favours small changes, how confident the model must be in the new class, and whether an autoencoder is used. Different settings can give different pertinent positives and negatives for the same instance, so they need checking with someone who knows the domain."
         },
         {
-          "description": "May generate unrealistic or impossible contrastive examples if constraints are not properly specified, leading to impractical recommendations."
+          "description": "Changed inputs can be unrealistic. Without an autoencoder trained on good-quality data, a pertinent negative may describe an input that could never occur, so the explanation says little about real cases. Where data is scarce or poor, a good autoencoder may not be possible."
         },
         {
-          "description": "Limited to scenarios where feature perturbations are meaningful and actionable, making it less suitable for immutable characteristics or highly constrained domains."
+          "description": "Absence has to be defined by the user. CEM adds or removes features relative to a value that stands for no signal, such as a blank pixel, and a poor choice gives meaningless pertinent negatives. This is natural for images and binary indicators, and needs domain judgement for continuous or categorical tabular data."
+        },
+        {
+          "description": "A pertinent negative is the smallest change the model responds to, not advice a person can act on. It may involve a feature that cannot be changed, such as age, and nothing in the method checks that the change is feasible. It is most useful when the two classes are close; if they are very different, there can be too many pertinent negatives to read."
         }
       ],
       "resources": [
@@ -606,29 +609,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's decision rationale identifies both what features must be present to maintain the current prediction and what features could be removed to change it",
-          "domain": "general",
+          "text": "For the invoices the risk model rates high, compliance reviewers judge that the pertinent positives are sufficient grounds for the rating and the pertinent negatives are events that would lower it.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The loan application system communicates to applicants the minimal changes needed to reverse a rejection decision",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic model explains high-risk classifications by identifying which symptom combinations, if absent, would result in a low-risk assessment",
+          "text": "For each flagged patient record, the pertinent positives and negatives match the findings clinicians use to tell the model's diagnosis from the nearest alternative.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring system provides candidates with actionable feedback specifying which qualifications are sufficient for selection and which deficiencies drive rejection",
-          "domain": "public sector",
+          "text": "On the instances tested, keeping only the pertinent positive leaves the model's prediction unchanged, and adding the pertinent negative changes it to a different class.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Each applicant declined for credit is told which absent factors, if present, would have changed the model's decision, and a reviewer has confirmed that each is something the applicant could change.",
+          "domain": "finance",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The fraud detection model distinguishes between transactions by showing what transaction attributes would need to be different to flip the fraud classification",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
+          "text": "Caseworkers can tell an applicant which missing information, if provided, would change the eligibility model's outcome for that application.",
+          "domain": "public sector",
+          "assuranceGoal": "transparency"
         }
       ]
     },

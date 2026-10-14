@@ -12,7 +12,7 @@
     {
       "slug": "shapley-additive-explanations",
       "name": "SHapley Additive exPlanations",
-      "description": "SHAP explains model predictions by quantifying how much each input feature contributes to the outcome. It assigns an importance score to every feature, indicating whether it pushes the prediction towards or away from the average. The method systematically evaluates how predictions change as features are included or excluded, drawing on game theory concepts to ensure a fair distribution of contributions.",
+      "description": "SHAP (SHapley Additive exPlanations) explains one prediction by sharing out the gap between that prediction and a baseline, usually the model's average output over a background dataset, among the input features. Each feature receives a signed score, where positive means it pushed the prediction above the baseline and negative means it pushed it below. The scores are Shapley values from game theory, meaning each is the feature's average effect over every order in which the features could be added, and together they add up exactly to the gap. Exact calculation is costly, so tools usually estimate the scores by sampling or use shortcuts for particular model types, such as a fast exact method for tree ensembles, and averaging the absolute scores over many predictions gives a global ranking of features. In a fairness use, the difference in average output between two groups is shared out feature by feature in the same way, showing which inputs account for the gap.",
       "assurance_goals": [
         "Explainability",
         "Fairness"
@@ -39,26 +39,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers."
         },
         {
-          "description": "Auditing a loan approval model by comparing SHAP values for applicants from different demographic groups, ensuring that protected characteristics like race or gender do not have an undue influence on credit decisions.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A lender's model validation team investigates why a loan approval model approves one applicant group less often than another. They compute SHAP values for every applicant, compare the group averages feature by feature, and see which inputs, such as postcode or credit history length, account for most of the gap, so they know what to scrutinise first."
         }
       ],
       "limitations": [
         {
-          "description": "Assumes feature independence, which can produce misleading explanations when features are highly correlated, as the model may attribute importance to features that are merely proxies for others."
+          "description": "Common estimators fill in a 'missing' feature by sampling its value independently of the others. With correlated features, such as income and postcode, the model is then evaluated on unrealistic combinations and credit can be split between correlated features in ways that mislead. Check feature correlations before reading individual scores."
         },
         {
-          "description": "Computationally expensive for models with many features or large datasets, as the number of required predictions grows exponentially with the number of features."
+          "description": "Exact values need the model evaluated on every subset of features, which grows exponentially with the number of features. Sampling estimators trade accuracy for speed, and explaining many predictions from a slow model, or a model with hundreds of features, can take hours. Tree ensembles have a much faster exact algorithm."
         },
         {
-          "description": "The choice of background dataset for generating explanations can significantly influence the results, requiring careful selection to ensure a representative baseline."
+          "description": "Scores are relative to a baseline set by the background dataset, and a different background gives different scores. Explaining an applicant against all customers says something different from explaining them against previously approved customers, so the choice must be made on purpose and reported."
         },
         {
-          "description": "Global explanations derived from averaging local SHAP values may obscure important heterogeneous effects where features impact subgroups of the population differently."
+          "description": "SHAP describes what the model has learned, not how the world works. A large contribution does not show that changing that feature would change the real outcome, so the scores should not be used to advise people on what to change."
+        },
+        {
+          "description": "Averaging absolute scores into a global ranking can hide features that matter a great deal for a small subgroup, or that push in opposite directions for different people. Inspect the spread of per-prediction scores, not only the mean."
         }
       ],
       "resources": [
@@ -146,26 +149,31 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's predictions can be decomposed into quantified contributions from each input feature",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The credit scoring system's decision rationale is expressed as the sum of individual feature impacts on the baseline prediction",
+          "text": "For each declined application, the features with the largest SHAP contributions to the refusal match the lender's documented underwriting criteria.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's reliance on demographic attributes is quantifiable and bounded across all decision contexts",
+          "text": "Across the validation set, administrative fields such as ward code and admission day contribute negligibly to the readmission model's predictions compared with clinical measurements.",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The difference in approval rates between applicant groups on the benefits eligibility model is accounted for mainly by the documented eligibility criteria, and the share of the gap attributed to postcode and other proxy inputs is reported.",
           "domain": "public sector",
           "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The explanation shown to each fraud analyst accounts for the whole gap between the transaction's risk score and the average score.",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
         }
       ]
     },
     {
       "slug": "permutation-importance",
       "name": "Permutation Importance",
-      "description": "Permutation Importance quantifies a feature's contribution to a model's performance by randomly shuffling its values and measuring the resulting drop in predictive accuracy. If shuffling a feature significantly degrades the model's performance, that feature is considered important. This model-agnostic technique helps identify which inputs are genuinely driving predictions, rather than just being correlated with the outcome.",
+      "description": "Permutation Importance measures how much a trained model relies on each input feature. For each feature, the values in a dataset are shuffled at random, which breaks the link between that feature and the outcome, and the model is scored again. The fall in score, for example in accuracy, is the feature's importance: a large fall means the model depends on the feature, and little or no fall means it does not. Repeating the shuffle several times shows how much the result varies. The method works with any model, but it shows what the model uses, not what causes the outcome in the world.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -188,22 +196,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Assessing which patient characteristics (e.g., age, blood pressure, cholesterol) are most critical for a medical diagnosis model by observing the performance drop when each characteristic's values are randomly shuffled, ensuring the model relies on clinically relevant factors.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Assessing which patient characteristics (e.g., age, blood pressure, cholesterol) matter most to a medical diagnosis model by shuffling each one in turn on held-out patients and recording the drop in performance, so a clinician can judge whether the model relies on clinically relevant factors."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A bank's model-risk team shuffles each input to a card-fraud model in turn on held-out transactions, to check the model leans on transaction behaviour and not on a field that leaks the answer, such as a case-handling code recorded after fraud was confirmed."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A flood-forecasting team shuffles each rainfall, river-level and soil-moisture input of a model trained on historic data, to check that forecasts depend on the physical drivers hydrologists expect and not on a calendar variable."
         }
       ],
       "limitations": [
         {
-          "description": "Can be misleading when features are highly correlated, as shuffling one feature might indirectly affect others, leading to an overestimation of its importance."
+          "description": "When features are strongly correlated, shuffling one leaves the model able to rely on its correlated partner, so both can show low importance even though the model uses them. Shuffling also creates feature combinations that do not occur in real data, which can distort the scores."
         },
         {
-          "description": "Computationally expensive for large datasets or complex models, as it requires re-evaluating the model many times for each feature."
+          "description": "Computationally expensive for large datasets or complex models. The model is scored once per feature per shuffle, so cost grows with the number of features, the number of repeats and the size of the evaluation data. No retraining is needed."
         },
         {
-          "description": "Does not account for interactions between features; it measures the marginal importance of a feature, assuming other features remain unchanged."
+          "description": "The score for a feature includes the effect of its interactions with other features and cannot separate them from its own effect. If two features interact, shuffling either one lowers the score, so importances need not add up to the model's total performance."
         },
         {
-          "description": "The choice of metric for evaluating performance drop (e.g., accuracy, F1-score) can influence the perceived importance of features."
+          "description": "The ranking can change with the scoring metric, particularly for imbalanced classification, where accuracy and F1-score can give different pictures of which features matter."
+        },
+        {
+          "description": "Scores computed on training data can reflect overfitting: a feature the model has memorised can look important even though it does not help on new data. Use held-out data, and repeat the shuffle to see how much the scores vary."
         }
       ],
       "resources": [
@@ -282,8 +301,13 @@
       ],
       "sample_claims": [
         {
-          "text": "The fraud detection system's performance degrades measurably when individual transaction characteristics are unavailable",
+          "text": "The fraud model's accuracy on held-out data falls sharply when transaction amount or merchant category is shuffled and barely changes when customer postcode is shuffled.",
           "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The diagnostic model's accuracy on held-out patients depends on established clinical risk factors and not on administrative fields such as hospital identifier.",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
@@ -292,7 +316,7 @@
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The recommendation system's ability to predict user preferences depends on behavioural patterns rather than demographic attributes",
+          "text": "The recommendation-model audit reports performance changes from shuffling behavioural and demographic inputs under a stated metric, without treating small drops as proof of feature independence.",
           "domain": "general",
           "assuranceGoal": "explainability"
         }
@@ -1438,10 +1462,9 @@
     {
       "slug": "sobol-indices",
       "name": "Sobol Indices",
-      "description": "Sobol Indices quantify how much each input feature contributes to the total variance in a model's predictions through global sensitivity analysis. The technique calculates first-order indices (individual feature contributions) and total-order indices (including all interaction effects involving that feature). By systematically sampling the input space and decomposing output variance, Sobol Indices reveal which features drive model uncertainty and which interactions between features are most important for predictions.",
+      "description": "Sobol indices show how much of the variation in a model's output can be traced to each of its inputs. The analyst sets a range or probability distribution for every input and runs the model on a large, carefully designed sample of input combinations. The variance (spread) of the outputs is then split into shares. A first-order index is the share caused by one input varying on its own, and a total-order index also counts every interaction that input takes part in. A large gap between the two signals that an input matters mainly through interactions, and optional second-order indices show which pairs of inputs interact.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "assurance-goal-category/explainability",
@@ -1450,8 +1473,6 @@
         "assurance-goal-category/explainability/explains/feature-importance",
         "assurance-goal-category/explainability/explains/causal-pathways",
         "assurance-goal-category/explainability/property/completeness",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "data-requirements/no-special-requirements",
         "data-type/tabular",
         "evidence-type/quantitative-metric",
@@ -1465,30 +1486,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a climate prediction model to determine which atmospheric parameters (temperature, humidity, pressure) contribute most to rainfall forecast uncertainty, helping meteorologists understand which measurements need the highest precision.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Analysing a climate prediction model to determine which atmospheric parameters (temperature, humidity, pressure) contribute most to rainfall forecast uncertainty, helping meteorologists understand which measurements need the highest precision."
         },
         {
-          "description": "Evaluating a financial risk model to identify which economic indicators (interest rates, inflation, GDP growth) drive the most variability in portfolio value predictions, enabling better risk management strategies.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Analysing a credit scoring model to quantify how much prediction variance stems from zip code (a potential proxy for race), helping identify features that may cause disparate impact across demographic groups.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "A risk team validating a portfolio valuation model asks which economic indicators (interest rates, inflation, GDP growth) drive most of the variation in predicted portfolio value. A large gap between an indicator's total-order and first-order indices shows it acts mainly through interactions, which tells the team which scenarios to stress-test together."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive, requiring thousands of model evaluations to achieve stable variance estimates, making it impractical for very slow models."
+          "description": "The standard sampling scheme needs N(2D+2) model runs for D inputs (N(D+2) without second-order indices), with N often in the thousands. A slow model, or one with dozens of inputs, quickly becomes impractical. Grouping related inputs, or screening first with a cheaper method such as Morris, reduces the cost."
         },
         {
-          "description": "Assumes input features are independently distributed, which can lead to misleading results when features are correlated in real data."
+          "description": "Assumes the inputs vary independently. If real inputs are correlated, for example income and postcode, the sample contains combinations the model never meets in practice, and the indices can mislead about which inputs matter."
         },
         {
-          "description": "Curse of dimensionality makes the technique increasingly difficult and expensive to apply as the number of input features grows beyond 10-20."
+          "description": "Needs a probability distribution or range for every input, and the indices depend on that choice, because widening one input's range raises its share of the variance. If the ranges do not reflect the real deployment population, the ranking describes a model the users will never face."
         },
         {
-          "description": "Requires defining appropriate probability distributions for input features, which may not accurately reflect real-world feature distributions."
+          "description": "Variance is the only yardstick. When the output is heavily skewed or has several peaks, variance shares can be unreliable guides to which inputs matter, and a moment-independent method such as PAWN may suit better."
+        },
+        {
+          "description": "Estimates carry sampling error. With too few runs the confidence intervals can be as wide as the indices themselves, so small indices cannot be told apart from zero. Report the intervals SALib returns and check that the ranking holds when N is increased."
         }
       ],
       "resources": [
@@ -1577,27 +1597,17 @@
       ],
       "sample_claims": [
         {
-          "text": "The flood prediction model's output uncertainty is quantifiably attributable to specific atmospheric measurements rather than distributed uniformly across all input features",
+          "text": "Our flood-model review reports atmospheric inputs' main and total shares of output variance under the documented independent input distributions.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The financial risk model's variance decomposition reveals which economic indicators contribute most to prediction uncertainty through both direct effects and interactions with other variables",
+          "text": "The portfolio-model audit records first and total-order sensitivity indices, distinguishing main effects from overall interaction involvement.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit assessment system's sensitivity to zip code accounts for a quantifiable proportion of total prediction variance that can be compared against variance from financially relevant features",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The autonomous navigation system's steering decisions have identifiable sources of variability traceable to specific sensor inputs and their interactions",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The clinical outcome predictor's total uncertainty can be decomposed into contributions from individual patient characteristics and their joint effects",
+          "text": "Our clinical-model sensitivity review reports patient-input variance shares under the chosen distributions, without treating them as a decomposition of every source of prediction uncertainty.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         }
@@ -1633,16 +1643,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Explaining why a specific patient received a high-risk diagnosis by showing which symptoms (fever, blood pressure, age) contributed most to the prediction, helping doctors validate the AI's reasoning.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Explaining why a specific patient received a high-risk diagnosis by showing which symptoms (fever, blood pressure, age) contributed most to the prediction, helping doctors validate the AI's reasoning."
         },
         {
-          "description": "Debugging a text classifier's misclassification of a movie review by highlighting which words (e.g., sarcastic phrases) confused the model, enabling targeted model improvements.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Debugging a text classifier's misclassification of a movie review by highlighting which words (e.g., sarcastic phrases) confused the model, enabling targeted model improvements."
         },
         {
-          "description": "Providing transparent explanations to customers about automated decisions in insurance claims, showing which claim features influenced approval or denial to meet regulatory requirements.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "Showing insurance customers the claim features that most influenced an automated approval or denial. A reviewer first checks that the explanation is stable across repeated runs and plausible for that claim, because it approximates the model locally and may not match its full reasoning."
         }
       ],
       "limitations": [
@@ -1744,19 +1754,19 @@
       ],
       "sample_claims": [
         {
-          "text": "The fraud detection system's flagging of individual transactions is attributable to specific transaction features in the local decision context",
+          "text": "For the transactions the fraud model flags, the features that the explanation ranks highest are ones fraud analysts judge relevant to the flag.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The medical diagnosis model's predictions for individual patients are interpretable through locally approximated feature contributions",
-          "domain": "healthcare",
+          "text": "Explanations of the same prediction, repeated with fresh random samples, name the same top features, so the stated reasons do not depend on chance.",
+          "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The autonomous vehicle's object classification decisions are explainable to operators through feature-level analysis of specific detection instances",
-          "domain": "autonomous systems",
-          "assuranceGoal": "transparency"
+          "text": "The explanation for each high-risk patient prediction rests on recognised clinical risk factors and not on artefacts such as the recording site or record format.",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
         },
         {
           "text": "The content moderation system provides interpretable explanations for individual moderation decisions without requiring access to model internals",
@@ -1764,9 +1774,9 @@
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The environmental monitoring system's anomaly alerts are accompanied by explanations showing which sensor readings contributed to each specific detection",
-          "domain": "environmental",
-          "assuranceGoal": "explainability"
+          "text": "Customers receive the main reasons for an individual automated claim decision, drawn from a local explanation of that decision and checked by a reviewer for plausibility.",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
         }
       ]
     },
@@ -1941,16 +1951,16 @@
       ],
       "limitations": [
         {
-          "description": "Assumes features are independent when averaging, which can be misleading when features are highly correlated."
+          "description": "Assumes the plotted features are independent of the others. When they are correlated, the averaging pairs values that never occur together, so the curve partly reflects how the model behaves in regions with no data."
         },
         {
-          "description": "Shows only average effects across all instances, potentially hiding important variations in how different subgroups respond to feature changes."
+          "description": "Shows only the average effect. If a feature acts in opposite directions for different groups of instances, the effects cancel and the curve can look flat, so interactions with other features stay hidden."
         },
         {
-          "description": "Cannot reveal instance-specific effects or interactions between the plotted feature and other features."
+          "description": "Limited to one or two features at a time, because higher-dimensional plots cannot be read. Effects that depend on three or more features together cannot be shown."
         },
         {
-          "description": "May be computationally expensive for large datasets since it requires making predictions across the full range of feature values."
+          "description": "The basic method needs a pass over the whole dataset for every grid value, so cost grows with dataset size, the number of grid points and the time the model takes to predict."
         }
       ],
       "resources": [
@@ -2035,27 +2045,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's predicted patient risk follows a quantifiable functional relationship with clinical measurements across the population",
+          "text": "The readmission model's average predicted risk rises with the number of prior admissions and does not fall at any point, as clinical guidance would expect.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit model's average predicted default probability exhibits identifiable threshold effects at specific income levels",
+          "text": "The credit model's average predicted default probability falls as income rises, with no unexplained reversal at any income level.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The system's output response to environmental variables demonstrates interpretable marginal trends independent of individual site characteristics",
+          "text": "The crop-yield model's average predicted yield peaks within the agronomically plausible temperature range and declines on either side.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's sensitivity to feature changes reveals whether prediction adjustments follow linear, plateau, or non-monotonic patterns",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The autonomous navigation system's predicted safe speed varies systematically with visibility conditions in a manner consistent across different vehicle types",
+          "text": "The driving model's average predicted safe speed falls as visibility worsens across the full range of visibility values seen in testing.",
           "domain": "autonomous systems",
           "assuranceGoal": "explainability"
         }
@@ -2549,7 +2554,7 @@
     {
       "slug": "occlusion-sensitivity",
       "name": "Occlusion Sensitivity",
-      "description": "Occlusion sensitivity tests which parts of the input are important by occluding (masking or removing) them and seeing how the model's prediction changes. For example, portions of an image can be covered up in a sliding window fashion; if the model's confidence drops significantly when a certain region is occluded, that region was important for the prediction. This technique is model-agnostic and provides highly interpretable results by directly showing which spatial regions drive model decisions.",
+      "description": "Occlusion sensitivity shows which parts of an input a model's prediction is sensitive to. A region of the input, such as a square patch of an image, is hidden by replacing it with a neutral value like grey, and the change in the model's output is recorded, usually the probability of the class of interest. Sliding the patch across the whole input gives a map of how much the output changes when each region is hidden. A large drop marks a region the prediction depends on. The method treats the model as a black box, needing only its inputs and outputs, and is most often used on images.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -2572,16 +2577,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing which regions of a chest X-ray are critical for pneumonia detection by systematically covering different areas with grey patches and measuring how much the model's confidence drops for each occluded region.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Testing which regions of a chest X-ray are critical for pneumonia detection by systematically covering different areas with grey patches and measuring how much the model's confidence drops for each occluded region."
         },
         {
-          "description": "Evaluating whether a facial recognition system relies on specific facial features by masking eyes, nose, mouth, or other regions to identify which areas cause the biggest drop in recognition accuracy.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Evaluating whether a facial recognition system relies on specific facial features by masking eyes, nose, mouth, or other regions to identify which areas cause the biggest drop in recognition accuracy."
         },
         {
-          "description": "Analysing agricultural crop disease classification models to verify that predictions focus on visible disease symptoms (discolouration, lesions, wilting) rather than background elements like soil or irrigation equipment, ensuring reliable deployment across different farm environments.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Analysing agricultural crop disease classification models to verify that predictions focus on visible disease symptoms (discolouration, lesions, wilting) rather than background elements like soil or irrigation equipment, so that a model relying on the background is caught before use on farms with different surroundings."
         }
       ],
       "limitations": [
@@ -2589,13 +2594,13 @@
           "description": "Computationally expensive as it requires running inference multiple times for each region tested, scaling poorly with input size."
         },
         {
-          "description": "Choice of occlusion size and shape can significantly bias results - too small may miss important features, too large may occlude multiple relevant regions simultaneously."
+          "description": "The choice of patch size, shape and stride changes the map. A patch that is too small may miss features that are informative only together, and one that is too large covers several relevant regions at once and blurs the result."
         },
         {
-          "description": "Cannot capture interactions between multiple regions that jointly contribute to the prediction but are individually less important."
+          "description": "Cannot capture interactions between multiple regions that jointly contribute to the prediction but are individually less important. If two regions carry the same evidence, hiding either one alone may change little, so both can look unimportant."
         },
         {
-          "description": "Results may be misleading if the model adapts to occlusion patterns or if occluded regions are filled with unrealistic pixel values."
+          "description": "The occluding patch is itself an unnatural input. A change in the output may reflect the model reacting to the grey or black patch and not to the missing content, and the map can change with the fill value chosen."
         }
       ],
       "resources": [
@@ -2714,18 +2719,18 @@
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's predictions depend on spatially localized features that can be identified without requiring access to internal parameters",
-          "domain": "general",
+          "text": "On the images examined, the crop disease classifier's confidence falls when leaf lesions are masked and changes little when soil or background is masked.",
+          "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The perception system's object detection confidence degrades predictably when visually occluding individual components of recognized entities",
+          "text": "The traffic-sign classifier's confidence in the correct class falls sharply only when the sign face is covered, not when the surrounding scenery is covered.",
           "domain": "autonomous systems",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The visual classifier's decision-making relies on specific contiguous regions rather than distributed patterns across the entire input",
-          "domain": "environmental",
+          "text": "The image classifier's prediction does not depend on watermarks, borders or other artefacts, because masking them leaves the output unchanged on the test images.",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]
@@ -2733,7 +2738,7 @@
     {
       "slug": "contrastive-explanation-method",
       "name": "Contrastive Explanation Method",
-      "description": "The Contrastive Explanation Method (CEM) explains model decisions by generating contrastive examples that reveal what makes a prediction distinctive. It identifies 'pertinent negatives' (minimal features that could be removed to change the prediction) and 'pertinent positives' (minimal features that must be present to maintain the prediction). This approach helps users understand not just what led to a decision, but what would need to change to achieve a different outcome, providing actionable insights for decision-making.",
+      "description": "The Contrastive Explanation Method (CEM) explains one prediction of a classifier, such as a neural network, by describing what is present and what is absent in the input. A pertinent positive is the smallest set of features already present that is enough for the model to give the same prediction. A pertinent negative is the smallest set of features not currently present that would change the prediction to a different class if they were added. CEM finds both by solving an optimisation problem that searches for the smallest change to the input, and it can use an autoencoder (a model trained to reconstruct realistic inputs) to keep the changed inputs realistic. An explanation reads like 'this digit is a 3 because these strokes are present and because a short bar at the top is absent', since adding that bar would make it a 5.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -2766,30 +2771,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Explaining loan application rejections by showing that removing recent late payments (pertinent negative) or adding £5,000 more annual income (pertinent positive) would change the decision to approval, giving applicants clear actionable guidance.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A procurement team uses a neural-network model that rates invoices as low, medium or high risk. For a high-risk invoice, the pertinent positives are the few triggered events that are enough for that rating, such as a large amount and a vendor with only a PO box. The pertinent negatives are events that did not occur but would lower the rating if they had, such as the vendor being registered. Reviewers check both before blocking payment."
         },
         {
-          "description": "Analysing medical diagnosis models by identifying that removing a specific symptom combination would change a high-risk classification to low-risk, helping clinicians understand the critical diagnostic factors.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A clinician reviews a decision-support model that suggests flu rather than pneumonia for a patient. The pertinent positives are the findings that are enough for that suggestion, such as cough, cold and fever. The pertinent negatives are findings that are absent but would move the suggestion to pneumonia if present, such as sputum and chills. The clinician compares both with their own reasoning to judge whether the model weighs the right findings."
         },
         {
-          "description": "Providing transparent hiring decisions by showing job candidates exactly which qualifications (pertinent positives) they need to acquire or which application elements (pertinent negatives) might be hindering their success.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A council uses a model to screen applications for housing support. When an application is declined, the pertinent negatives show which missing items, such as proof of tenancy, would have changed the outcome if present. A caseworker checks that each item is something the applicant can provide, then includes it in the decision notice."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive as it requires solving an optimisation problem for each individual instance to find minimal perturbations."
+          "description": "Each explanation needs its own optimisation run for a single instance, so explaining many decisions is slow. Models whose gradients cannot be accessed need numerical gradient estimates, which slows it further."
         },
         {
-          "description": "Results can be highly sensitive to hyperparameter settings, requiring careful tuning to produce meaningful explanations."
+          "description": "Several settings shape the result, including how strongly the search favours small changes, how confident the model must be in the new class, and whether an autoencoder is used. Different settings can give different pertinent positives and negatives for the same instance, so they need checking with someone who knows the domain."
         },
         {
-          "description": "May generate unrealistic or impossible contrastive examples if constraints are not properly specified, leading to impractical recommendations."
+          "description": "Changed inputs can be unrealistic. Without an autoencoder trained on good-quality data, a pertinent negative may describe an input that could never occur, so the explanation says little about real cases. Where data is scarce or poor, a good autoencoder may not be possible."
         },
         {
-          "description": "Limited to scenarios where feature perturbations are meaningful and actionable, making it less suitable for immutable characteristics or highly constrained domains."
+          "description": "Absence has to be defined by the user. CEM adds or removes features relative to a value that stands for no signal, such as a blank pixel, and a poor choice gives meaningless pertinent negatives. This is natural for images and binary indicators, and needs domain judgement for continuous or categorical tabular data."
+        },
+        {
+          "description": "A pertinent negative is the smallest change the model responds to, not advice a person can act on. It may involve a feature that cannot be changed, such as age, and nothing in the method checks that the change is feasible. It is most useful when the two classes are close; if they are very different, there can be too many pertinent negatives to read."
         }
       ],
       "resources": [
@@ -2866,29 +2874,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's decision rationale identifies both what features must be present to maintain the current prediction and what features could be removed to change it",
-          "domain": "general",
+          "text": "For the invoices the risk model rates high, compliance reviewers judge that the pertinent positives are sufficient grounds for the rating and the pertinent negatives are events that would lower it.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The loan application system communicates to applicants the minimal changes needed to reverse a rejection decision",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic model explains high-risk classifications by identifying which symptom combinations, if absent, would result in a low-risk assessment",
+          "text": "For each flagged patient record, the pertinent positives and negatives match the findings clinicians use to tell the model's diagnosis from the nearest alternative.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring system provides candidates with actionable feedback specifying which qualifications are sufficient for selection and which deficiencies drive rejection",
-          "domain": "public sector",
+          "text": "On the instances tested, keeping only the pertinent positive leaves the model's prediction unchanged, and adding the pertinent negative changes it to a different class.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Each applicant declined for credit is told which absent factors, if present, would have changed the model's decision, and a reviewer has confirmed that each is something the applicant could change.",
+          "domain": "finance",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The fraud detection model distinguishes between transactions by showing what transaction attributes would need to be different to flip the fraud classification",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
+          "text": "Caseworkers can tell an applicant which missing information, if provided, would change the eligibility model's outcome for that application.",
+          "domain": "public sector",
+          "assuranceGoal": "transparency"
         }
       ]
     },
@@ -4058,7 +4066,7 @@
     {
       "slug": "factor-analysis",
       "name": "Factor Analysis",
-      "description": "Factor analysis is a statistical technique that identifies latent variables (hidden factors) underlying observed correlations in data. It works by analysing how variables relate to each other, finding a smaller number of unobserved factors that explain patterns among multiple observed variables. Unlike PCA which maximises total variance, factor analysis focuses on shared variance (communalities - the variance variables have in common) whilst separating out unique variance and measurement error. After extracting factors, rotation methods like varimax (which creates uncorrelated factors) or oblimin (allowing correlated factors) help make factors more interpretable by aligning them with distinct groups of variables.",
+      "description": "Factor analysis looks for a small number of hidden factors that explain why a larger set of measured variables, such as a model's input features, tend to move together. Each variable is modelled as a weighted mix of the shared factors plus a part that is unique to it, including measurement error. The weights are called loadings, and they show which variables each factor is built from; for example, several credit-history features might all load on one 'repayment behaviour' factor. Unlike principal component analysis, which summarises as much of the total variation as it can, factor analysis models only the variation that variables share. Analysts usually rotate the factors afterwards, using varimax (factors stay uncorrelated) or oblimin (factors may correlate), so that each variable loads mainly on one factor and the factors are easier to name.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -4084,26 +4092,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing customer satisfaction surveys to identify key drivers (e.g., 'service quality', 'product value', 'convenience') from dozens of individual questions, helping businesses focus improvement efforts.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A bank's model validation team finds that forty macroeconomic and credit-bureau inputs to a default-risk model are heavily correlated. Exploratory factor analysis groups them into four factors the team can name, such as growth, inflation, household debt and credit conditions, and the model is rebuilt on the factor scores so its drivers can be explained to the risk committee in four terms instead of forty."
         },
         {
-          "description": "Reducing dimensionality of financial indicators to identify underlying economic factors (e.g., 'growth', 'inflation', 'credit risk') for more interpretable risk models.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A flood-forecasting team with sixty correlated gauge, soil-moisture and satellite inputs runs factor analysis on the training data to find a few underlying drivers, such as rainfall intensity, catchment wetness and river level. Forecast explanations are then reported per driver, which operators can relate to what they see on the ground."
         }
       ],
       "limitations": [
         {
-          "description": "Assumes linear relationships between variables and multivariate normality of data."
+          "description": "The standard model is linear, with each variable a weighted sum of factors plus noise. Maximum-likelihood extraction also assumes roughly normal data, so skewed, binary or strongly non-linear variables can distort the loadings. Check distributions first, or choose an extraction method that does not require normality."
         },
         {
-          "description": "Results can be abstract and require domain expertise to interpret meaningfully."
+          "description": "Factors are statistical summaries of correlation, not discovered causes. A factor labelled 'economic confidence' is the analyst's reading of which variables load together, and a different rotation or sample may support a different label."
         },
         {
-          "description": "Sensitive to the choice of number of factors and rotation method, which can significantly affect interpretability."
+          "description": "Sensitive to the choice of number of factors and rotation method, which have no single correct answer and can change both which variables group together and how readable the factors are. Report the choices made and check that the structure is stable."
         },
         {
-          "description": "Requires sufficiently large sample sizes relative to the number of variables for stable results."
+          "description": "Requires a sample that is large relative to the number of variables. With small samples the loadings are unstable and change when a few cases are added or removed."
+        },
+        {
+          "description": "Describes the structure of the data fed into it, not how a trained model uses that data. Factors of a model's inputs say nothing about which factors the model relies on, unless the model is also built on or analysed with the factor scores."
         }
       ],
       "resources": [
@@ -4176,18 +4187,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's high-dimensional input features are reducible to a smaller set of interpretable constructs with clear business meaning",
+          "text": "The default-risk model's correlated inputs reduce to a small number of named factors that account for most of their shared variance, so its drivers can be explained at factor level.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The survey instrument measures distinct underlying dimensions of patient experience rather than redundant overlapping concepts",
-          "domain": "healthcare",
+          "text": "The flood-forecasting inputs group into a few factors whose loadings domain experts recognise as physically meaningful drivers.",
+          "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The feature space reveals latent factors that explain correlated environmental measurements without relying on predetermined variable groupings",
-          "domain": "environmental",
+          "text": "The number of factors retained, the extraction method and the rotation are documented, and the factor structure is stable when the analysis is repeated on a separate sample.",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]
@@ -4565,7 +4576,7 @@
     {
       "slug": "causal-mediation-analysis-in-language-models",
       "name": "Causal Mediation Analysis in Language Models",
-      "description": "Causal mediation analysis in language models is a mechanistic interpretability technique that systematically investigates how specific internal components (neurons, attention heads, or layers) causally contribute to model outputs. By performing controlled interventions—such as activating, deactivating, or modifying specific components—researchers can trace the causal pathways through which information flows and transforms within the model. This approach goes beyond correlation to establish causal relationships, enabling researchers to understand not just what features influence outputs, but how and why they do so through specific computational pathways.",
+      "description": "Causal mediation analysis traces which internal components of a language model carry the effect of a change in the input to the output. The analyst makes a controlled change to the input, such as swapping 'nurse' for 'man' in a prompt, and measures how the model's next-word probabilities shift. To find the indirect effect through one component (a single neuron, or an attention head, which is the part of the model that chooses which earlier words to focus on), they feed the model the original input but give that component the value it took on the changed input. To find the direct effect, they feed the changed input but hold that component at its original value. Repeating this across many components shows where in the network a behaviour is carried.",
       "assurance_goals": [
         "Explainability",
         "Safety"
@@ -4598,29 +4609,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Investigating causal pathways in content moderation models to understand how specific attention mechanisms contribute to flagging potentially harmful content, enabling verification that safety decisions rely on appropriate features rather than spurious correlations and ensuring robust content filtering.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A safety team finds that a language model gives unsafe medical advice when a request is phrased as an instruction rather than a question. They compare outputs for the two phrasings and use mediation analysis to find which attention heads carry most of the shift in the probability of the unsafe reply, so a fix can target those heads and the analysis can be rerun to check it worked."
         },
         {
-          "description": "Tracing causal pathways in large language models performing mathematical reasoning tasks to understand how intermediate steps are computed and stored, revealing which components are responsible for different aspects of logical inference and enabling validation of reasoning processes.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A research team studying why a language model sometimes gets subject-verb agreement wrong in sentences with an intervening clause changes the number of the subject noun and measures the shift in the verb's probability. Mediation analysis then shows which neurons carry the number information, and whether the same neurons are used across sentence structures."
         }
       ],
       "limitations": [
         {
-          "description": "Requires sophisticated understanding of model architecture to design meaningful interventions, as poorly chosen intervention points may yield misleading causal conclusions or fail to capture relevant computational pathways."
+          "description": "Needs white-box access and knowledge of the architecture. The analyst must read and overwrite activations at chosen points inside the model, so it cannot be used on a model offered only through an API, and a poorly chosen intervention point can give misleading conclusions."
         },
         {
-          "description": "Results are highly dependent on the validity of underlying causal assumptions, which can be difficult to verify in complex, high-dimensional neural network spaces where multiple causal pathways may interact."
+          "description": "Conclusions hold for the contrast tested. Swapping 'nurse' for 'man' and tracking one probability ratio tests a single contrast, and a different prompt set or outcome measure can point to different components. Effects also differ between models: larger GPT-2 models showed larger effects, and masked language models matched less well."
         },
         {
-          "description": "Comprehensive causal analysis requires extensive computational resources, particularly for large models, as each intervention requires separate forward passes and multiple intervention combinations for robust conclusions."
+          "description": "Every component and every prompt needs its own forward passes, so testing all the neurons or heads of a large model on many prompts is expensive. Analysts often test a subset or groups of components, which can miss effects elsewhere in the network."
         },
         {
-          "description": "Distinguishing between direct causal effects and indirect effects mediated through other components can be challenging, potentially leading to oversimplified causal narratives that miss important intermediate processes."
+          "description": "Single-component effects do not simply add up. Vig et al. found that intervening on all neurons together produced an effect far larger than the sum of the single-neuron effects, so ranking components one at a time can understate or misplace where a behaviour is carried."
         },
         {
-          "description": "Causal relationships identified in specific contexts or datasets may not generalise to different domains, tasks, or model versions, requiring careful validation across diverse scenarios to ensure robust findings."
+          "description": "The split into direct and indirect effects is not guaranteed to be exact. In a non-linear network the total effect need not equal their sum, and Vig et al. report only an approximate match for GPT-2, so the split should be checked rather than assumed."
         }
       ],
       "resources": [
@@ -4711,23 +4722,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The language model's outputs are traceable to specific internal computational pathways rather than distributed correlations",
+          "text": "On the tested prompts, most of the effect of the input change on the language model's output is carried by a small number of attention heads, each with a measured indirect effect.",
           "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The content moderation system's flagging decisions depend on appropriate features through verifiable causal mechanisms",
-          "domain": "public sector",
+          "text": "The model's subject-verb agreement behaviour is carried by identifiable neurons that are reused across sentences of similar structure.",
+          "domain": "language technology",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The shift in the probability of the unsafe reply caused by the instruction phrasing is mediated mainly by identified components, and the finding is reproduced on held-out prompts.",
+          "domain": "generative AI",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The model's reasoning process flows through identifiable intermediate representations that can be independently validated",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The system's harmful output generation is attributable to specific intervening mechanisms that can be isolated and addressed",
-          "domain": "general",
+          "text": "After mitigation is applied to the components identified as carrying the unsafe behaviour, rerunning the same analysis shows a reduced indirect effect.",
+          "domain": "generative AI",
           "assuranceGoal": "safety"
         }
       ]
@@ -4735,7 +4746,7 @@
     {
       "slug": "concept-activation-vectors",
       "name": "Concept Activation Vectors",
-      "description": "Concept Activation Vectors (CAVs), also known as Testing with Concept Activation Vectors (TCAV), identify mathematical directions in neural network representation space that correspond to human-understandable concepts such as 'stripes', 'young', or 'medical equipment'. The technique works by finding linear directions that separate activations of concept examples from non-concept examples, then measuring how much these concept directions influence the model's predictions. This provides quantitative answers to questions like 'How much does the concept of youth affect this model's hiring decisions?' enabling systematic bias detection and model understanding.",
+      "description": "A concept activation vector (CAV) is a direction inside a neural network that stands for a human idea such as 'stripes'. The analyst supplies example inputs showing the concept and random counter-examples, and trains a simple linear classifier to separate the network's activations (the values a chosen layer produces) for the two sets. The CAV is the direction at right angles to that classifier's dividing boundary, pointing towards the concept examples. Testing with CAVs (TCAV) then reports, for one output class, the share of its inputs whose class score would rise if the activations moved in the concept's direction, and repeating this with many random counter-example sets and applying a significance test guards against a meaningless direction. Concept sets built from examples of a protected characteristic, such as gender or ethnicity, turn the test into a check of whether a class is sensitive to that characteristic, as the original paper demonstrates.",
       "assurance_goals": [
         "Explainability",
         "Fairness",
@@ -4769,33 +4780,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Auditing a medical imaging model to verify it focuses on diagnostic features (like 'tumour characteristics') rather than irrelevant concepts (like 'scanner type' or 'patient positioning') when classifying chest X-rays, ensuring clinical decisions rely on medically relevant information.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Auditing a medical imaging model to check whether its chest X-ray classifications are sensitive to diagnostic concepts (like 'tumour characteristics') or to irrelevant ones (like 'scanner type' or 'patient positioning'), so the clinical team can judge whether the model relies on medically relevant information."
         },
         {
-          "description": "Testing whether a hiring algorithm's resume screening decisions are influenced by concepts related to protected characteristics such as 'gender-associated names', 'prestigious universities', or 'employment gaps', enabling systematic bias detection and compliance verification.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A team auditing an image classifier used for content tagging builds concept sets from photographs of people of different ethnicities and genders, with random photographs as the comparison, and tests each output class for significant sensitivity to those concepts, as the original paper did. Classes with significant sensitivity to an ethnicity or gender concept are listed for retraining with balanced data; a low score is not taken as clearance."
         },
         {
-          "description": "Providing regulatory-compliant explanations for financial lending decisions by quantifying how concepts like 'debt-to-income ratio', 'employment stability', and 'credit history length' influence loan approval models, with precise sensitivity scores for audit documentation.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A developer of a driver-assistance system documents, for a type-approval authority, how its traffic-sign classifier responds to visual concepts. The report gives significance-tested TCAV scores for the 'stop sign' class against concepts such as graffiti, snow cover and low sun glare, so the authority can see what the classifier's predictions are sensitive to."
         }
       ],
       "limitations": [
         {
-          "description": "Requires clearly defined concept examples and non-concept examples, which can be challenging to obtain for abstract or subjective concepts."
+          "description": "Requires clearly defined concept examples and non-concept examples, which can be hard to obtain for abstract or subjective concepts. If the examples differ from the random counter-examples in other ways, such as image source or lighting, the CAV mixes those differences in with the concept."
         },
         {
-          "description": "Assumes that meaningful concept directions exist as linear separable directions in the model's internal representation space, which may not hold for all concepts."
+          "description": "Assumes the concept is represented as a direction that a linear classifier can pick out at the chosen layer. If the concept is not linearly separable there, the CAV is unreliable, so check that the classifier separates the two sets well before reading any scores."
         },
         {
-          "description": "Results depend heavily on which network layer is examined, as different layers capture different levels of abstraction and concept representation."
+          "description": "Results depend heavily on which layer is examined, because layers capture different levels of abstraction. A concept can be invisible at one layer and strong at another, so a single-layer result should not be generalised."
         },
         {
-          "description": "Computational cost grows significantly with model size and number of concepts tested, though recent advances like FastCAV address this limitation."
+          "description": "The significance test trains hundreds of classifiers per concept and layer (the paper uses about 500), so cost multiplies with the number of concepts and layers tested. FastCAV, a 2025 preprint, reports speed-ups of up to 63.6 times."
         },
         {
-          "description": "Interpretation requires domain expertise to define meaningful concepts and understand the significance of sensitivity scores in practical contexts."
+          "description": "Scores are class-level and describe sensitivity, not cause. A TCAV score is the share of a class's inputs whose score rises along the concept direction, so it does not explain an individual decision, and a high score does not show that the concept causes the prediction."
         }
       ],
       "resources": [
@@ -4902,28 +4913,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's classification decisions are quantifiably linked to human-interpretable concepts rather than opaque internal representations",
-          "domain": "general",
+          "text": "The chest X-ray classifier's 'pneumonia' predictions are significantly sensitive to clinically recognised findings and not significantly sensitive to scanner type or patient positioning, at the layers tested.",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring system's candidate evaluations are demonstrably independent of concepts associated with protected characteristics",
-          "domain": "public sector",
+          "text": "The content-tagging classifier's TCAV scores for the ethnicity and gender concept sets are recorded for every output class at the tested layers, and the classes with significant sensitivity are listed for review.",
+          "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The diagnostic model's sensitivity to clinically relevant concepts is documented with quantitative influence scores",
-          "domain": "healthcare",
+          "text": "The traffic-sign classifier's sensitivity to graffiti, snow cover and glare concepts is documented with significance-tested TCAV scores for each sign class the approval authority has requested.",
+          "domain": "autonomous systems",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The credit assessment model's reliance on demographic-related concepts is measurable and within acceptable bounds",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The vision system's object recognition depends on semantically meaningful visual concepts aligned with domain expertise",
-          "domain": "autonomous systems",
+          "text": "The object recogniser's class predictions depend mainly on concepts that domain experts regard as meaningful for that class, such as shape and texture, rather than on background concepts.",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]

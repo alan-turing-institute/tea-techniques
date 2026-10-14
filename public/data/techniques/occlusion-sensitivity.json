@@ -1,7 +1,7 @@
 {
   "slug": "occlusion-sensitivity",
   "name": "Occlusion Sensitivity",
-  "description": "Occlusion sensitivity tests which parts of the input are important by occluding (masking or removing) them and seeing how the model's prediction changes. For example, portions of an image can be covered up in a sliding window fashion; if the model's confidence drops significantly when a certain region is occluded, that region was important for the prediction. This technique is model-agnostic and provides highly interpretable results by directly showing which spatial regions drive model decisions.",
+  "description": "Occlusion sensitivity shows which parts of an input a model's prediction is sensitive to. A region of the input, such as a square patch of an image, is hidden by replacing it with a neutral value like grey, and the change in the model's output is recorded, usually the probability of the class of interest. Sliding the patch across the whole input gives a map of how much the output changes when each region is hidden. A large drop marks a region the prediction depends on. The method treats the model as a black box, needing only its inputs and outputs, and is most often used on images.",
   "assurance_goals": [
     "Explainability"
   ],
@@ -24,16 +24,16 @@
   ],
   "example_use_cases": [
     {
-      "description": "Testing which regions of a chest X-ray are critical for pneumonia detection by systematically covering different areas with grey patches and measuring how much the model's confidence drops for each occluded region.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "Testing which regions of a chest X-ray are critical for pneumonia detection by systematically covering different areas with grey patches and measuring how much the model's confidence drops for each occluded region."
     },
     {
-      "description": "Evaluating whether a facial recognition system relies on specific facial features by masking eyes, nose, mouth, or other regions to identify which areas cause the biggest drop in recognition accuracy.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "Evaluating whether a facial recognition system relies on specific facial features by masking eyes, nose, mouth, or other regions to identify which areas cause the biggest drop in recognition accuracy."
     },
     {
-      "description": "Analysing agricultural crop disease classification models to verify that predictions focus on visible disease symptoms (discolouration, lesions, wilting) rather than background elements like soil or irrigation equipment, ensuring reliable deployment across different farm environments.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "Analysing agricultural crop disease classification models to verify that predictions focus on visible disease symptoms (discolouration, lesions, wilting) rather than background elements like soil or irrigation equipment, so that a model relying on the background is caught before use on farms with different surroundings."
     }
   ],
   "limitations": [
@@ -41,13 +41,13 @@
       "description": "Computationally expensive as it requires running inference multiple times for each region tested, scaling poorly with input size."
     },
     {
-      "description": "Choice of occlusion size and shape can significantly bias results - too small may miss important features, too large may occlude multiple relevant regions simultaneously."
+      "description": "The choice of patch size, shape and stride changes the map. A patch that is too small may miss features that are informative only together, and one that is too large covers several relevant regions at once and blurs the result."
     },
     {
-      "description": "Cannot capture interactions between multiple regions that jointly contribute to the prediction but are individually less important."
+      "description": "Cannot capture interactions between multiple regions that jointly contribute to the prediction but are individually less important. If two regions carry the same evidence, hiding either one alone may change little, so both can look unimportant."
     },
     {
-      "description": "Results may be misleading if the model adapts to occlusion patterns or if occluded regions are filled with unrealistic pixel values."
+      "description": "The occluding patch is itself an unnatural input. A change in the output may reflect the model reacting to the grey or black patch and not to the missing content, and the map can change with the fill value chosen."
     }
   ],
   "resources": [
@@ -166,18 +166,18 @@
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The model's predictions depend on spatially localized features that can be identified without requiring access to internal parameters",
-      "domain": "general",
+      "text": "On the images examined, the crop disease classifier's confidence falls when leaf lesions are masked and changes little when soil or background is masked.",
+      "domain": "environmental",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The perception system's object detection confidence degrades predictably when visually occluding individual components of recognized entities",
+      "text": "The traffic-sign classifier's confidence in the correct class falls sharply only when the sign face is covered, not when the surrounding scenery is covered.",
       "domain": "autonomous systems",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The visual classifier's decision-making relies on specific contiguous regions rather than distributed patterns across the entire input",
-      "domain": "environmental",
+      "text": "The image classifier's prediction does not depend on watermarks, borders or other artefacts, because masking them leaves the output unchanged on the test images.",
+      "domain": "general",
       "assuranceGoal": "explainability"
     }
   ]

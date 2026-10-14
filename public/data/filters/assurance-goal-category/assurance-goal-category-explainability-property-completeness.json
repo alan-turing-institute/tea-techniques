@@ -9,7 +9,7 @@
     {
       "slug": "shapley-additive-explanations",
       "name": "SHapley Additive exPlanations",
-      "description": "SHAP explains model predictions by quantifying how much each input feature contributes to the outcome. It assigns an importance score to every feature, indicating whether it pushes the prediction towards or away from the average. The method systematically evaluates how predictions change as features are included or excluded, drawing on game theory concepts to ensure a fair distribution of contributions.",
+      "description": "SHAP (SHapley Additive exPlanations) explains one prediction by sharing out the gap between that prediction and a baseline, usually the model's average output over a background dataset, among the input features. Each feature receives a signed score, where positive means it pushed the prediction above the baseline and negative means it pushed it below. The scores are Shapley values from game theory, meaning each is the feature's average effect over every order in which the features could be added, and together they add up exactly to the gap. Exact calculation is costly, so tools usually estimate the scores by sampling or use shortcuts for particular model types, such as a fast exact method for tree ensembles, and averaging the absolute scores over many predictions gives a global ranking of features. In a fairness use, the difference in average output between two groups is shared out feature by feature in the same way, showing which inputs account for the gap.",
       "assurance_goals": [
         "Explainability",
         "Fairness"
@@ -36,26 +36,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers."
         },
         {
-          "description": "Auditing a loan approval model by comparing SHAP values for applicants from different demographic groups, ensuring that protected characteristics like race or gender do not have an undue influence on credit decisions.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A lender's model validation team investigates why a loan approval model approves one applicant group less often than another. They compute SHAP values for every applicant, compare the group averages feature by feature, and see which inputs, such as postcode or credit history length, account for most of the gap, so they know what to scrutinise first."
         }
       ],
       "limitations": [
         {
-          "description": "Assumes feature independence, which can produce misleading explanations when features are highly correlated, as the model may attribute importance to features that are merely proxies for others."
+          "description": "Common estimators fill in a 'missing' feature by sampling its value independently of the others. With correlated features, such as income and postcode, the model is then evaluated on unrealistic combinations and credit can be split between correlated features in ways that mislead. Check feature correlations before reading individual scores."
         },
         {
-          "description": "Computationally expensive for models with many features or large datasets, as the number of required predictions grows exponentially with the number of features."
+          "description": "Exact values need the model evaluated on every subset of features, which grows exponentially with the number of features. Sampling estimators trade accuracy for speed, and explaining many predictions from a slow model, or a model with hundreds of features, can take hours. Tree ensembles have a much faster exact algorithm."
         },
         {
-          "description": "The choice of background dataset for generating explanations can significantly influence the results, requiring careful selection to ensure a representative baseline."
+          "description": "Scores are relative to a baseline set by the background dataset, and a different background gives different scores. Explaining an applicant against all customers says something different from explaining them against previously approved customers, so the choice must be made on purpose and reported."
         },
         {
-          "description": "Global explanations derived from averaging local SHAP values may obscure important heterogeneous effects where features impact subgroups of the population differently."
+          "description": "SHAP describes what the model has learned, not how the world works. A large contribution does not show that changing that feature would change the real outcome, so the scores should not be used to advise people on what to change."
+        },
+        {
+          "description": "Averaging absolute scores into a global ranking can hide features that matter a great deal for a small subgroup, or that push in opposite directions for different people. Inspect the spread of per-prediction scores, not only the mean."
         }
       ],
       "resources": [
@@ -143,19 +146,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's predictions can be decomposed into quantified contributions from each input feature",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The credit scoring system's decision rationale is expressed as the sum of individual feature impacts on the baseline prediction",
+          "text": "For each declined application, the features with the largest SHAP contributions to the refusal match the lender's documented underwriting criteria.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's reliance on demographic attributes is quantifiable and bounded across all decision contexts",
+          "text": "Across the validation set, administrative fields such as ward code and admission day contribute negligibly to the readmission model's predictions compared with clinical measurements.",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The difference in approval rates between applicant groups on the benefits eligibility model is accounted for mainly by the documented eligibility criteria, and the share of the gap attributed to postcode and other proxy inputs is reported.",
           "domain": "public sector",
           "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The explanation shown to each fraud analyst accounts for the whole gap between the transaction's risk score and the average score.",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
         }
       ]
     },
@@ -1146,10 +1154,9 @@
     {
       "slug": "sobol-indices",
       "name": "Sobol Indices",
-      "description": "Sobol Indices quantify how much each input feature contributes to the total variance in a model's predictions through global sensitivity analysis. The technique calculates first-order indices (individual feature contributions) and total-order indices (including all interaction effects involving that feature). By systematically sampling the input space and decomposing output variance, Sobol Indices reveal which features drive model uncertainty and which interactions between features are most important for predictions.",
+      "description": "Sobol indices show how much of the variation in a model's output can be traced to each of its inputs. The analyst sets a range or probability distribution for every input and runs the model on a large, carefully designed sample of input combinations. The variance (spread) of the outputs is then split into shares. A first-order index is the share caused by one input varying on its own, and a total-order index also counts every interaction that input takes part in. A large gap between the two signals that an input matters mainly through interactions, and optional second-order indices show which pairs of inputs interact.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "assurance-goal-category/explainability",
@@ -1158,8 +1165,6 @@
         "assurance-goal-category/explainability/explains/feature-importance",
         "assurance-goal-category/explainability/explains/causal-pathways",
         "assurance-goal-category/explainability/property/completeness",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "data-requirements/no-special-requirements",
         "data-type/tabular",
         "evidence-type/quantitative-metric",
@@ -1173,30 +1178,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a climate prediction model to determine which atmospheric parameters (temperature, humidity, pressure) contribute most to rainfall forecast uncertainty, helping meteorologists understand which measurements need the highest precision.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Analysing a climate prediction model to determine which atmospheric parameters (temperature, humidity, pressure) contribute most to rainfall forecast uncertainty, helping meteorologists understand which measurements need the highest precision."
         },
         {
-          "description": "Evaluating a financial risk model to identify which economic indicators (interest rates, inflation, GDP growth) drive the most variability in portfolio value predictions, enabling better risk management strategies.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Analysing a credit scoring model to quantify how much prediction variance stems from zip code (a potential proxy for race), helping identify features that may cause disparate impact across demographic groups.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "A risk team validating a portfolio valuation model asks which economic indicators (interest rates, inflation, GDP growth) drive most of the variation in predicted portfolio value. A large gap between an indicator's total-order and first-order indices shows it acts mainly through interactions, which tells the team which scenarios to stress-test together."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive, requiring thousands of model evaluations to achieve stable variance estimates, making it impractical for very slow models."
+          "description": "The standard sampling scheme needs N(2D+2) model runs for D inputs (N(D+2) without second-order indices), with N often in the thousands. A slow model, or one with dozens of inputs, quickly becomes impractical. Grouping related inputs, or screening first with a cheaper method such as Morris, reduces the cost."
         },
         {
-          "description": "Assumes input features are independently distributed, which can lead to misleading results when features are correlated in real data."
+          "description": "Assumes the inputs vary independently. If real inputs are correlated, for example income and postcode, the sample contains combinations the model never meets in practice, and the indices can mislead about which inputs matter."
         },
         {
-          "description": "Curse of dimensionality makes the technique increasingly difficult and expensive to apply as the number of input features grows beyond 10-20."
+          "description": "Needs a probability distribution or range for every input, and the indices depend on that choice, because widening one input's range raises its share of the variance. If the ranges do not reflect the real deployment population, the ranking describes a model the users will never face."
         },
         {
-          "description": "Requires defining appropriate probability distributions for input features, which may not accurately reflect real-world feature distributions."
+          "description": "Variance is the only yardstick. When the output is heavily skewed or has several peaks, variance shares can be unreliable guides to which inputs matter, and a moment-independent method such as PAWN may suit better."
+        },
+        {
+          "description": "Estimates carry sampling error. With too few runs the confidence intervals can be as wide as the indices themselves, so small indices cannot be told apart from zero. Report the intervals SALib returns and check that the ranking holds when N is increased."
         }
       ],
       "resources": [
@@ -1285,27 +1289,17 @@
       ],
       "sample_claims": [
         {
-          "text": "The flood prediction model's output uncertainty is quantifiably attributable to specific atmospheric measurements rather than distributed uniformly across all input features",
+          "text": "Our flood-model review reports atmospheric inputs' main and total shares of output variance under the documented independent input distributions.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The financial risk model's variance decomposition reveals which economic indicators contribute most to prediction uncertainty through both direct effects and interactions with other variables",
+          "text": "The portfolio-model audit records first and total-order sensitivity indices, distinguishing main effects from overall interaction involvement.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit assessment system's sensitivity to zip code accounts for a quantifiable proportion of total prediction variance that can be compared against variance from financially relevant features",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The autonomous navigation system's steering decisions have identifiable sources of variability traceable to specific sensor inputs and their interactions",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The clinical outcome predictor's total uncertainty can be decomposed into contributions from individual patient characteristics and their joint effects",
+          "text": "Our clinical-model sensitivity review reports patient-input variance shares under the chosen distributions, without treating them as a decomposition of every source of prediction uncertainty.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         }

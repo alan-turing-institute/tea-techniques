@@ -9,7 +9,7 @@
     {
       "slug": "permutation-importance",
       "name": "Permutation Importance",
-      "description": "Permutation Importance quantifies a feature's contribution to a model's performance by randomly shuffling its values and measuring the resulting drop in predictive accuracy. If shuffling a feature significantly degrades the model's performance, that feature is considered important. This model-agnostic technique helps identify which inputs are genuinely driving predictions, rather than just being correlated with the outcome.",
+      "description": "Permutation Importance measures how much a trained model relies on each input feature. For each feature, the values in a dataset are shuffled at random, which breaks the link between that feature and the outcome, and the model is scored again. The fall in score, for example in accuracy, is the feature's importance: a large fall means the model depends on the feature, and little or no fall means it does not. Repeating the shuffle several times shows how much the result varies. The method works with any model, but it shows what the model uses, not what causes the outcome in the world.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -32,22 +32,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Assessing which patient characteristics (e.g., age, blood pressure, cholesterol) are most critical for a medical diagnosis model by observing the performance drop when each characteristic's values are randomly shuffled, ensuring the model relies on clinically relevant factors.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Assessing which patient characteristics (e.g., age, blood pressure, cholesterol) matter most to a medical diagnosis model by shuffling each one in turn on held-out patients and recording the drop in performance, so a clinician can judge whether the model relies on clinically relevant factors."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A bank's model-risk team shuffles each input to a card-fraud model in turn on held-out transactions, to check the model leans on transaction behaviour and not on a field that leaks the answer, such as a case-handling code recorded after fraud was confirmed."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A flood-forecasting team shuffles each rainfall, river-level and soil-moisture input of a model trained on historic data, to check that forecasts depend on the physical drivers hydrologists expect and not on a calendar variable."
         }
       ],
       "limitations": [
         {
-          "description": "Can be misleading when features are highly correlated, as shuffling one feature might indirectly affect others, leading to an overestimation of its importance."
+          "description": "When features are strongly correlated, shuffling one leaves the model able to rely on its correlated partner, so both can show low importance even though the model uses them. Shuffling also creates feature combinations that do not occur in real data, which can distort the scores."
         },
         {
-          "description": "Computationally expensive for large datasets or complex models, as it requires re-evaluating the model many times for each feature."
+          "description": "Computationally expensive for large datasets or complex models. The model is scored once per feature per shuffle, so cost grows with the number of features, the number of repeats and the size of the evaluation data. No retraining is needed."
         },
         {
-          "description": "Does not account for interactions between features; it measures the marginal importance of a feature, assuming other features remain unchanged."
+          "description": "The score for a feature includes the effect of its interactions with other features and cannot separate them from its own effect. If two features interact, shuffling either one lowers the score, so importances need not add up to the model's total performance."
         },
         {
-          "description": "The choice of metric for evaluating performance drop (e.g., accuracy, F1-score) can influence the perceived importance of features."
+          "description": "The ranking can change with the scoring metric, particularly for imbalanced classification, where accuracy and F1-score can give different pictures of which features matter."
+        },
+        {
+          "description": "Scores computed on training data can reflect overfitting: a feature the model has memorised can look important even though it does not help on new data. Use held-out data, and repeat the shuffle to see how much the scores vary."
         }
       ],
       "resources": [
@@ -126,8 +137,13 @@
       ],
       "sample_claims": [
         {
-          "text": "The fraud detection system's performance degrades measurably when individual transaction characteristics are unavailable",
+          "text": "The fraud model's accuracy on held-out data falls sharply when transaction amount or merchant category is shuffled and barely changes when customer postcode is shuffled.",
           "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The diagnostic model's accuracy on held-out patients depends on established clinical risk factors and not on administrative fields such as hospital identifier.",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
@@ -136,7 +152,7 @@
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The recommendation system's ability to predict user preferences depends on behavioural patterns rather than demographic attributes",
+          "text": "The recommendation-model audit reports performance changes from shuffling behavioural and demographic inputs under a stated metric, without treating small drops as proof of feature independence.",
           "domain": "general",
           "assuranceGoal": "explainability"
         }
@@ -1342,7 +1358,7 @@
     {
       "slug": "concept-activation-vectors",
       "name": "Concept Activation Vectors",
-      "description": "Concept Activation Vectors (CAVs), also known as Testing with Concept Activation Vectors (TCAV), identify mathematical directions in neural network representation space that correspond to human-understandable concepts such as 'stripes', 'young', or 'medical equipment'. The technique works by finding linear directions that separate activations of concept examples from non-concept examples, then measuring how much these concept directions influence the model's predictions. This provides quantitative answers to questions like 'How much does the concept of youth affect this model's hiring decisions?' enabling systematic bias detection and model understanding.",
+      "description": "A concept activation vector (CAV) is a direction inside a neural network that stands for a human idea such as 'stripes'. The analyst supplies example inputs showing the concept and random counter-examples, and trains a simple linear classifier to separate the network's activations (the values a chosen layer produces) for the two sets. The CAV is the direction at right angles to that classifier's dividing boundary, pointing towards the concept examples. Testing with CAVs (TCAV) then reports, for one output class, the share of its inputs whose class score would rise if the activations moved in the concept's direction, and repeating this with many random counter-example sets and applying a significance test guards against a meaningless direction. Concept sets built from examples of a protected characteristic, such as gender or ethnicity, turn the test into a check of whether a class is sensitive to that characteristic, as the original paper demonstrates.",
       "assurance_goals": [
         "Explainability",
         "Fairness",
@@ -1376,33 +1392,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Auditing a medical imaging model to verify it focuses on diagnostic features (like 'tumour characteristics') rather than irrelevant concepts (like 'scanner type' or 'patient positioning') when classifying chest X-rays, ensuring clinical decisions rely on medically relevant information.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Auditing a medical imaging model to check whether its chest X-ray classifications are sensitive to diagnostic concepts (like 'tumour characteristics') or to irrelevant ones (like 'scanner type' or 'patient positioning'), so the clinical team can judge whether the model relies on medically relevant information."
         },
         {
-          "description": "Testing whether a hiring algorithm's resume screening decisions are influenced by concepts related to protected characteristics such as 'gender-associated names', 'prestigious universities', or 'employment gaps', enabling systematic bias detection and compliance verification.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A team auditing an image classifier used for content tagging builds concept sets from photographs of people of different ethnicities and genders, with random photographs as the comparison, and tests each output class for significant sensitivity to those concepts, as the original paper did. Classes with significant sensitivity to an ethnicity or gender concept are listed for retraining with balanced data; a low score is not taken as clearance."
         },
         {
-          "description": "Providing regulatory-compliant explanations for financial lending decisions by quantifying how concepts like 'debt-to-income ratio', 'employment stability', and 'credit history length' influence loan approval models, with precise sensitivity scores for audit documentation.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A developer of a driver-assistance system documents, for a type-approval authority, how its traffic-sign classifier responds to visual concepts. The report gives significance-tested TCAV scores for the 'stop sign' class against concepts such as graffiti, snow cover and low sun glare, so the authority can see what the classifier's predictions are sensitive to."
         }
       ],
       "limitations": [
         {
-          "description": "Requires clearly defined concept examples and non-concept examples, which can be challenging to obtain for abstract or subjective concepts."
+          "description": "Requires clearly defined concept examples and non-concept examples, which can be hard to obtain for abstract or subjective concepts. If the examples differ from the random counter-examples in other ways, such as image source or lighting, the CAV mixes those differences in with the concept."
         },
         {
-          "description": "Assumes that meaningful concept directions exist as linear separable directions in the model's internal representation space, which may not hold for all concepts."
+          "description": "Assumes the concept is represented as a direction that a linear classifier can pick out at the chosen layer. If the concept is not linearly separable there, the CAV is unreliable, so check that the classifier separates the two sets well before reading any scores."
         },
         {
-          "description": "Results depend heavily on which network layer is examined, as different layers capture different levels of abstraction and concept representation."
+          "description": "Results depend heavily on which layer is examined, because layers capture different levels of abstraction. A concept can be invisible at one layer and strong at another, so a single-layer result should not be generalised."
         },
         {
-          "description": "Computational cost grows significantly with model size and number of concepts tested, though recent advances like FastCAV address this limitation."
+          "description": "The significance test trains hundreds of classifiers per concept and layer (the paper uses about 500), so cost multiplies with the number of concepts and layers tested. FastCAV, a 2025 preprint, reports speed-ups of up to 63.6 times."
         },
         {
-          "description": "Interpretation requires domain expertise to define meaningful concepts and understand the significance of sensitivity scores in practical contexts."
+          "description": "Scores are class-level and describe sensitivity, not cause. A TCAV score is the share of a class's inputs whose score rises along the concept direction, so it does not explain an individual decision, and a high score does not show that the concept causes the prediction."
         }
       ],
       "resources": [
@@ -1509,28 +1525,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's classification decisions are quantifiably linked to human-interpretable concepts rather than opaque internal representations",
-          "domain": "general",
+          "text": "The chest X-ray classifier's 'pneumonia' predictions are significantly sensitive to clinically recognised findings and not significantly sensitive to scanner type or patient positioning, at the layers tested.",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring system's candidate evaluations are demonstrably independent of concepts associated with protected characteristics",
-          "domain": "public sector",
+          "text": "The content-tagging classifier's TCAV scores for the ethnicity and gender concept sets are recorded for every output class at the tested layers, and the classes with significant sensitivity are listed for review.",
+          "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The diagnostic model's sensitivity to clinically relevant concepts is documented with quantitative influence scores",
-          "domain": "healthcare",
+          "text": "The traffic-sign classifier's sensitivity to graffiti, snow cover and glare concepts is documented with significance-tested TCAV scores for each sign class the approval authority has requested.",
+          "domain": "autonomous systems",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The credit assessment model's reliance on demographic-related concepts is measurable and within acceptable bounds",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The vision system's object recognition depends on semantically meaningful visual concepts aligned with domain expertise",
-          "domain": "autonomous systems",
+          "text": "The object recogniser's class predictions depend mainly on concepts that domain experts regard as meaningful for that class, such as shape and texture, rather than on background concepts.",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]

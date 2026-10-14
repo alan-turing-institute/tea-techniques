@@ -1,7 +1,7 @@
 {
   "slug": "shapley-additive-explanations",
   "name": "SHapley Additive exPlanations",
-  "description": "SHAP explains model predictions by quantifying how much each input feature contributes to the outcome. It assigns an importance score to every feature, indicating whether it pushes the prediction towards or away from the average. The method systematically evaluates how predictions change as features are included or excluded, drawing on game theory concepts to ensure a fair distribution of contributions.",
+  "description": "SHAP (SHapley Additive exPlanations) explains one prediction by sharing out the gap between that prediction and a baseline, usually the model's average output over a background dataset, among the input features. Each feature receives a signed score, where positive means it pushed the prediction above the baseline and negative means it pushed it below. The scores are Shapley values from game theory, meaning each is the feature's average effect over every order in which the features could be added, and together they add up exactly to the gap. Exact calculation is costly, so tools usually estimate the scores by sampling or use shortcuts for particular model types, such as a fast exact method for tree ensembles, and averaging the absolute scores over many predictions gives a global ranking of features. In a fairness use, the difference in average output between two groups is shared out feature by feature in the same way, showing which inputs account for the gap.",
   "assurance_goals": [
     "Explainability",
     "Fairness"
@@ -28,26 +28,29 @@
   ],
   "example_use_cases": [
     {
-      "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers."
     },
     {
-      "description": "Auditing a loan approval model by comparing SHAP values for applicants from different demographic groups, ensuring that protected characteristics like race or gender do not have an undue influence on credit decisions.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A lender's model validation team investigates why a loan approval model approves one applicant group less often than another. They compute SHAP values for every applicant, compare the group averages feature by feature, and see which inputs, such as postcode or credit history length, account for most of the gap, so they know what to scrutinise first."
     }
   ],
   "limitations": [
     {
-      "description": "Assumes feature independence, which can produce misleading explanations when features are highly correlated, as the model may attribute importance to features that are merely proxies for others."
+      "description": "Common estimators fill in a 'missing' feature by sampling its value independently of the others. With correlated features, such as income and postcode, the model is then evaluated on unrealistic combinations and credit can be split between correlated features in ways that mislead. Check feature correlations before reading individual scores."
     },
     {
-      "description": "Computationally expensive for models with many features or large datasets, as the number of required predictions grows exponentially with the number of features."
+      "description": "Exact values need the model evaluated on every subset of features, which grows exponentially with the number of features. Sampling estimators trade accuracy for speed, and explaining many predictions from a slow model, or a model with hundreds of features, can take hours. Tree ensembles have a much faster exact algorithm."
     },
     {
-      "description": "The choice of background dataset for generating explanations can significantly influence the results, requiring careful selection to ensure a representative baseline."
+      "description": "Scores are relative to a baseline set by the background dataset, and a different background gives different scores. Explaining an applicant against all customers says something different from explaining them against previously approved customers, so the choice must be made on purpose and reported."
     },
     {
-      "description": "Global explanations derived from averaging local SHAP values may obscure important heterogeneous effects where features impact subgroups of the population differently."
+      "description": "SHAP describes what the model has learned, not how the world works. A large contribution does not show that changing that feature would change the real outcome, so the scores should not be used to advise people on what to change."
+    },
+    {
+      "description": "Averaging absolute scores into a global ranking can hide features that matter a great deal for a small subgroup, or that push in opposite directions for different people. Inspect the spread of per-prediction scores, not only the mean."
     }
   ],
   "resources": [
@@ -135,19 +138,24 @@
   ],
   "sample_claims": [
     {
-      "text": "The model's predictions can be decomposed into quantified contributions from each input feature",
-      "domain": "general",
-      "assuranceGoal": "explainability"
-    },
-    {
-      "text": "The credit scoring system's decision rationale is expressed as the sum of individual feature impacts on the baseline prediction",
+      "text": "For each declined application, the features with the largest SHAP contributions to the refusal match the lender's documented underwriting criteria.",
       "domain": "finance",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The model's reliance on demographic attributes is quantifiable and bounded across all decision contexts",
+      "text": "Across the validation set, administrative fields such as ward code and admission day contribute negligibly to the readmission model's predictions compared with clinical measurements.",
+      "domain": "healthcare",
+      "assuranceGoal": "explainability"
+    },
+    {
+      "text": "The difference in approval rates between applicant groups on the benefits eligibility model is accounted for mainly by the documented eligibility criteria, and the share of the gap attributed to postcode and other proxy inputs is reported.",
       "domain": "public sector",
       "assuranceGoal": "fairness"
+    },
+    {
+      "text": "The explanation shown to each fraud analyst accounts for the whole gap between the transaction's risk score and the average score.",
+      "domain": "finance",
+      "assuranceGoal": "explainability"
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "slug": "permutation-importance",
   "name": "Permutation Importance",
-  "description": "Permutation Importance quantifies a feature's contribution to a model's performance by randomly shuffling its values and measuring the resulting drop in predictive accuracy. If shuffling a feature significantly degrades the model's performance, that feature is considered important. This model-agnostic technique helps identify which inputs are genuinely driving predictions, rather than just being correlated with the outcome.",
+  "description": "Permutation Importance measures how much a trained model relies on each input feature. For each feature, the values in a dataset are shuffled at random, which breaks the link between that feature and the outcome, and the model is scored again. The fall in score, for example in accuracy, is the feature's importance: a large fall means the model depends on the feature, and little or no fall means it does not. Repeating the shuffle several times shows how much the result varies. The method works with any model, but it shows what the model uses, not what causes the outcome in the world.",
   "assurance_goals": [
     "Explainability"
   ],
@@ -24,22 +24,33 @@
   ],
   "example_use_cases": [
     {
-      "description": "Assessing which patient characteristics (e.g., age, blood pressure, cholesterol) are most critical for a medical diagnosis model by observing the performance drop when each characteristic's values are randomly shuffled, ensuring the model relies on clinically relevant factors.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "Assessing which patient characteristics (e.g., age, blood pressure, cholesterol) matter most to a medical diagnosis model by shuffling each one in turn on held-out patients and recording the drop in performance, so a clinician can judge whether the model relies on clinically relevant factors."
+    },
+    {
+      "goal": "Explainability",
+      "description": "A bank's model-risk team shuffles each input to a card-fraud model in turn on held-out transactions, to check the model leans on transaction behaviour and not on a field that leaks the answer, such as a case-handling code recorded after fraud was confirmed."
+    },
+    {
+      "goal": "Explainability",
+      "description": "A flood-forecasting team shuffles each rainfall, river-level and soil-moisture input of a model trained on historic data, to check that forecasts depend on the physical drivers hydrologists expect and not on a calendar variable."
     }
   ],
   "limitations": [
     {
-      "description": "Can be misleading when features are highly correlated, as shuffling one feature might indirectly affect others, leading to an overestimation of its importance."
+      "description": "When features are strongly correlated, shuffling one leaves the model able to rely on its correlated partner, so both can show low importance even though the model uses them. Shuffling also creates feature combinations that do not occur in real data, which can distort the scores."
     },
     {
-      "description": "Computationally expensive for large datasets or complex models, as it requires re-evaluating the model many times for each feature."
+      "description": "Computationally expensive for large datasets or complex models. The model is scored once per feature per shuffle, so cost grows with the number of features, the number of repeats and the size of the evaluation data. No retraining is needed."
     },
     {
-      "description": "Does not account for interactions between features; it measures the marginal importance of a feature, assuming other features remain unchanged."
+      "description": "The score for a feature includes the effect of its interactions with other features and cannot separate them from its own effect. If two features interact, shuffling either one lowers the score, so importances need not add up to the model's total performance."
     },
     {
-      "description": "The choice of metric for evaluating performance drop (e.g., accuracy, F1-score) can influence the perceived importance of features."
+      "description": "The ranking can change with the scoring metric, particularly for imbalanced classification, where accuracy and F1-score can give different pictures of which features matter."
+    },
+    {
+      "description": "Scores computed on training data can reflect overfitting: a feature the model has memorised can look important even though it does not help on new data. Use held-out data, and repeat the shuffle to see how much the scores vary."
     }
   ],
   "resources": [
@@ -118,8 +129,13 @@
   ],
   "sample_claims": [
     {
-      "text": "The fraud detection system's performance degrades measurably when individual transaction characteristics are unavailable",
+      "text": "The fraud model's accuracy on held-out data falls sharply when transaction amount or merchant category is shuffled and barely changes when customer postcode is shuffled.",
       "domain": "finance",
+      "assuranceGoal": "explainability"
+    },
+    {
+      "text": "The diagnostic model's accuracy on held-out patients depends on established clinical risk factors and not on administrative fields such as hospital identifier.",
+      "domain": "healthcare",
       "assuranceGoal": "explainability"
     },
     {
@@ -128,7 +144,7 @@
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The recommendation system's ability to predict user preferences depends on behavioural patterns rather than demographic attributes",
+      "text": "The recommendation-model audit reports performance changes from shuffling behavioural and demographic inputs under a stated metric, without treating small drops as proof of feature independence.",
       "domain": "general",
       "assuranceGoal": "explainability"
     }

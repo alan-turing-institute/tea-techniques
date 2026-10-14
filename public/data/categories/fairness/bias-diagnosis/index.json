@@ -6,7 +6,7 @@
     {
       "slug": "shapley-additive-explanations",
       "name": "SHapley Additive exPlanations",
-      "description": "SHAP explains model predictions by quantifying how much each input feature contributes to the outcome. It assigns an importance score to every feature, indicating whether it pushes the prediction towards or away from the average. The method systematically evaluates how predictions change as features are included or excluded, drawing on game theory concepts to ensure a fair distribution of contributions.",
+      "description": "SHAP (SHapley Additive exPlanations) explains one prediction by sharing out the gap between that prediction and a baseline, usually the model's average output over a background dataset, among the input features. Each feature receives a signed score, where positive means it pushed the prediction above the baseline and negative means it pushed it below. The scores are Shapley values from game theory, meaning each is the feature's average effect over every order in which the features could be added, and together they add up exactly to the gap. Exact calculation is costly, so tools usually estimate the scores by sampling or use shortcuts for particular model types, such as a fast exact method for tree ensembles, and averaging the absolute scores over many predictions gives a global ranking of features. In a fairness use, the difference in average output between two groups is shared out feature by feature in the same way, showing which inputs account for the gap.",
       "assurance_goals": [
         "Explainability",
         "Fairness"
@@ -33,26 +33,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Analysing a customer churn prediction model to understand why a specific high-value customer was flagged as likely to leave, revealing that recent support ticket interactions and declining purchase frequency were the main drivers."
         },
         {
-          "description": "Auditing a loan approval model by comparing SHAP values for applicants from different demographic groups, ensuring that protected characteristics like race or gender do not have an undue influence on credit decisions.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A lender's model validation team investigates why a loan approval model approves one applicant group less often than another. They compute SHAP values for every applicant, compare the group averages feature by feature, and see which inputs, such as postcode or credit history length, account for most of the gap, so they know what to scrutinise first."
         }
       ],
       "limitations": [
         {
-          "description": "Assumes feature independence, which can produce misleading explanations when features are highly correlated, as the model may attribute importance to features that are merely proxies for others."
+          "description": "Common estimators fill in a 'missing' feature by sampling its value independently of the others. With correlated features, such as income and postcode, the model is then evaluated on unrealistic combinations and credit can be split between correlated features in ways that mislead. Check feature correlations before reading individual scores."
         },
         {
-          "description": "Computationally expensive for models with many features or large datasets, as the number of required predictions grows exponentially with the number of features."
+          "description": "Exact values need the model evaluated on every subset of features, which grows exponentially with the number of features. Sampling estimators trade accuracy for speed, and explaining many predictions from a slow model, or a model with hundreds of features, can take hours. Tree ensembles have a much faster exact algorithm."
         },
         {
-          "description": "The choice of background dataset for generating explanations can significantly influence the results, requiring careful selection to ensure a representative baseline."
+          "description": "Scores are relative to a baseline set by the background dataset, and a different background gives different scores. Explaining an applicant against all customers says something different from explaining them against previously approved customers, so the choice must be made on purpose and reported."
         },
         {
-          "description": "Global explanations derived from averaging local SHAP values may obscure important heterogeneous effects where features impact subgroups of the population differently."
+          "description": "SHAP describes what the model has learned, not how the world works. A large contribution does not show that changing that feature would change the real outcome, so the scores should not be used to advise people on what to change."
+        },
+        {
+          "description": "Averaging absolute scores into a global ranking can hide features that matter a great deal for a small subgroup, or that push in opposite directions for different people. Inspect the spread of per-prediction scores, not only the mean."
         }
       ],
       "resources": [
@@ -140,19 +143,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's predictions can be decomposed into quantified contributions from each input feature",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The credit scoring system's decision rationale is expressed as the sum of individual feature impacts on the baseline prediction",
+          "text": "For each declined application, the features with the largest SHAP contributions to the refusal match the lender's documented underwriting criteria.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's reliance on demographic attributes is quantifiable and bounded across all decision contexts",
+          "text": "Across the validation set, administrative fields such as ward code and admission day contribute negligibly to the readmission model's predictions compared with clinical measurements.",
+          "domain": "healthcare",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The difference in approval rates between applicant groups on the benefits eligibility model is accounted for mainly by the documented eligibility criteria, and the share of the gap attributed to postcode and other proxy inputs is reported.",
           "domain": "public sector",
           "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The explanation shown to each fraud analyst accounts for the whole gap between the transaction's risk score and the average score.",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
         }
       ]
     },
@@ -342,174 +350,6 @@
           "text": "The loan-screening bias review records the attribution ranks of specified protected-characteristic words in the reviewed statements, relative to documented reference inputs.",
           "domain": "finance",
           "assuranceGoal": "fairness"
-        }
-      ]
-    },
-    {
-      "slug": "sobol-indices",
-      "name": "Sobol Indices",
-      "description": "Sobol Indices quantify how much each input feature contributes to the total variance in a model's predictions through global sensitivity analysis. The technique calculates first-order indices (individual feature contributions) and total-order indices (including all interaction effects involving that feature). By systematically sampling the input space and decomposing output variance, Sobol Indices reveal which features drive model uncertainty and which interactions between features are most important for predictions.",
-      "assurance_goals": [
-        "Explainability",
-        "Fairness"
-      ],
-      "tags": [
-        "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/causal-analysis/interaction-effects",
-        "assurance-goal-category/explainability/attribution-methods/perturbation-based",
-        "assurance-goal-category/explainability/explains/feature-importance",
-        "assurance-goal-category/explainability/explains/causal-pathways",
-        "assurance-goal-category/explainability/property/completeness",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "data-requirements/no-special-requirements",
-        "data-type/tabular",
-        "evidence-type/quantitative-metric",
-        "expertise-needed/statistics",
-        "explanatory-scope/global",
-        "technique-type/algorithmic",
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/requirements/black-box",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Analysing a climate prediction model to determine which atmospheric parameters (temperature, humidity, pressure) contribute most to rainfall forecast uncertainty, helping meteorologists understand which measurements need the highest precision.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Evaluating a financial risk model to identify which economic indicators (interest rates, inflation, GDP growth) drive the most variability in portfolio value predictions, enabling better risk management strategies.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Analysing a credit scoring model to quantify how much prediction variance stems from zip code (a potential proxy for race), helping identify features that may cause disparate impact across demographic groups.",
-          "goal": "Fairness"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Computationally expensive, requiring thousands of model evaluations to achieve stable variance estimates, making it impractical for very slow models."
-        },
-        {
-          "description": "Assumes input features are independently distributed, which can lead to misleading results when features are correlated in real data."
-        },
-        {
-          "description": "Curse of dimensionality makes the technique increasingly difficult and expensive to apply as the number of input features grows beyond 10-20."
-        },
-        {
-          "description": "Requires defining appropriate probability distributions for input features, which may not accurately reflect real-world feature distributions."
-        }
-      ],
-      "resources": [
-        {
-          "title": "Sobol indices — UQpy v4.2.0 documentation",
-          "url": "https://uqpyproject.readthedocs.io/en/latest/sensitivity/sobol.html",
-          "source_type": "documentation",
-          "authors": [
-            "Uqpyproject Developers"
-          ],
-          "publication_date": "2017",
-          "citationKey": "uqpyprojectdevelopersSobolIndicesUQpy2017"
-        },
-        {
-          "title": "API — SALib documentation",
-          "url": "https://salib.readthedocs.io/en/latest/api.html",
-          "source_type": "documentation",
-          "citationKey": "APISALibDocumentation"
-        },
-        {
-          "title": "UQpy",
-          "url": "https://github.com/SURGroup/UQpy",
-          "source_type": "software_package",
-          "publication_date": "2017-12-01",
-          "citationKey": "surgroupUQpy2017",
-          "abstract": "UQpy (Uncertainty Quantification with python) is a general purpose Python toolbox for modeling uncertainty in physical and mathematical systems."
-        },
-        {
-          "title": "SALib",
-          "url": "https://github.com/SALib/SALib",
-          "source_type": "software_package",
-          "publication_date": "2013-05-30",
-          "citationKey": "salibSALib2013",
-          "abstract": "Sensitivity Analysis Library in Python. Contains Sobol, Morris, FAST, and other methods."
-        },
-        {
-          "title": "Global sensitivity indices for nonlinear mathematical models and their Monte Carlo estimates",
-          "url": "https://doi.org/10.1016/s0378-4754(00)00270-6",
-          "source_type": "technical_paper",
-          "authors": [
-            "I.M Sobol′"
-          ],
-          "publication_date": "2001-2",
-          "citationKey": "sobolGlobalSensitivityIndices2001"
-        },
-        {
-          "title": "Importance measures in global sensitivity analysis of nonlinear models",
-          "url": "https://doi.org/10.1016/0951-8320(96)00002-6",
-          "source_type": "technical_paper",
-          "authors": [
-            "Toshimitsu Homma",
-            "Andrea Saltelli"
-          ],
-          "publication_date": "1996-4",
-          "citationKey": "hommaImportanceMeasuresGlobal1996"
-        },
-        {
-          "title": "Basics — SALib's documentation",
-          "url": "https://salib.readthedocs.io/en/latest/user_guide/basics.html",
-          "source_type": "tutorial",
-          "authors": [
-            "Salib Developers"
-          ],
-          "publication_date": "2025",
-          "citationKey": "salibdevelopersBasicsSALibsDocumentation2025"
-        },
-        {
-          "title": "A novel feature selection method based on global sensitivity analysis with application in machine learning-based prediction model",
-          "url": "https://doi.org/10.1016/j.asoc.2019.105859",
-          "source_type": "application_paper",
-          "authors": [
-            "Pin Zhang"
-          ],
-          "publication_date": "2019-12",
-          "citationKey": "zhangNovelFeatureSelection2019",
-          "abstract": "Feature selection (FS) is vitally important for determining the optimum subsets of features with effective information and maximizing the model accuracy. This study proposes a novel FS method based on global sensitivity analysis (GSA) for effectively determining the most relevant feature subsets and improving prediction performance of machine learning (ML)based models. Feature ranking is determined based on the results obtained from three global sensitivity analysis (GSA) including Pearson, Sobol’ and PAWN. This novel GSA-based FS method is applied to engineering practice with the combination of ML algorithm random forest (RF) to predict tunnelling-induced settlement prediction model. Meanwhile, the feature extraction method principle component analysis (PCA) is also used to develop RF-based model for comparing the performance of proposed GSA-based FS method. The results indicate the novel GSA-based FS method effectively determines the significance of input variables. The prediction performance of RF-based model with the integration of GSA-based FS methods is enhanced dramatically, and obviously outperforms the model with the integration of PCA-based dimensionality reduction method."
-        }
-      ],
-      "complexity_rating": 4,
-      "computational_cost_rating": 5,
-      "related_techniques": [
-        "permutation-importance",
-        "shapley-additive-explanations",
-        "partial-dependence-plots",
-        "causal-discrimination-testing"
-      ],
-      "sample_claims": [
-        {
-          "text": "The flood prediction model's output uncertainty is quantifiably attributable to specific atmospheric measurements rather than distributed uniformly across all input features",
-          "domain": "environmental",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The financial risk model's variance decomposition reveals which economic indicators contribute most to prediction uncertainty through both direct effects and interactions with other variables",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The credit assessment system's sensitivity to zip code accounts for a quantifiable proportion of total prediction variance that can be compared against variance from financially relevant features",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The autonomous navigation system's steering decisions have identifiable sources of variability traceable to specific sensor inputs and their interactions",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The clinical outcome predictor's total uncertainty can be decomposed into contributions from individual patient characteristics and their joint effects",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
         }
       ]
     },
@@ -1369,7 +1209,7 @@
     {
       "slug": "concept-activation-vectors",
       "name": "Concept Activation Vectors",
-      "description": "Concept Activation Vectors (CAVs), also known as Testing with Concept Activation Vectors (TCAV), identify mathematical directions in neural network representation space that correspond to human-understandable concepts such as 'stripes', 'young', or 'medical equipment'. The technique works by finding linear directions that separate activations of concept examples from non-concept examples, then measuring how much these concept directions influence the model's predictions. This provides quantitative answers to questions like 'How much does the concept of youth affect this model's hiring decisions?' enabling systematic bias detection and model understanding.",
+      "description": "A concept activation vector (CAV) is a direction inside a neural network that stands for a human idea such as 'stripes'. The analyst supplies example inputs showing the concept and random counter-examples, and trains a simple linear classifier to separate the network's activations (the values a chosen layer produces) for the two sets. The CAV is the direction at right angles to that classifier's dividing boundary, pointing towards the concept examples. Testing with CAVs (TCAV) then reports, for one output class, the share of its inputs whose class score would rise if the activations moved in the concept's direction, and repeating this with many random counter-example sets and applying a significance test guards against a meaningless direction. Concept sets built from examples of a protected characteristic, such as gender or ethnicity, turn the test into a check of whether a class is sensitive to that characteristic, as the original paper demonstrates.",
       "assurance_goals": [
         "Explainability",
         "Fairness",
@@ -1403,33 +1243,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Auditing a medical imaging model to verify it focuses on diagnostic features (like 'tumour characteristics') rather than irrelevant concepts (like 'scanner type' or 'patient positioning') when classifying chest X-rays, ensuring clinical decisions rely on medically relevant information.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Auditing a medical imaging model to check whether its chest X-ray classifications are sensitive to diagnostic concepts (like 'tumour characteristics') or to irrelevant ones (like 'scanner type' or 'patient positioning'), so the clinical team can judge whether the model relies on medically relevant information."
         },
         {
-          "description": "Testing whether a hiring algorithm's resume screening decisions are influenced by concepts related to protected characteristics such as 'gender-associated names', 'prestigious universities', or 'employment gaps', enabling systematic bias detection and compliance verification.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A team auditing an image classifier used for content tagging builds concept sets from photographs of people of different ethnicities and genders, with random photographs as the comparison, and tests each output class for significant sensitivity to those concepts, as the original paper did. Classes with significant sensitivity to an ethnicity or gender concept are listed for retraining with balanced data; a low score is not taken as clearance."
         },
         {
-          "description": "Providing regulatory-compliant explanations for financial lending decisions by quantifying how concepts like 'debt-to-income ratio', 'employment stability', and 'credit history length' influence loan approval models, with precise sensitivity scores for audit documentation.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A developer of a driver-assistance system documents, for a type-approval authority, how its traffic-sign classifier responds to visual concepts. The report gives significance-tested TCAV scores for the 'stop sign' class against concepts such as graffiti, snow cover and low sun glare, so the authority can see what the classifier's predictions are sensitive to."
         }
       ],
       "limitations": [
         {
-          "description": "Requires clearly defined concept examples and non-concept examples, which can be challenging to obtain for abstract or subjective concepts."
+          "description": "Requires clearly defined concept examples and non-concept examples, which can be hard to obtain for abstract or subjective concepts. If the examples differ from the random counter-examples in other ways, such as image source or lighting, the CAV mixes those differences in with the concept."
         },
         {
-          "description": "Assumes that meaningful concept directions exist as linear separable directions in the model's internal representation space, which may not hold for all concepts."
+          "description": "Assumes the concept is represented as a direction that a linear classifier can pick out at the chosen layer. If the concept is not linearly separable there, the CAV is unreliable, so check that the classifier separates the two sets well before reading any scores."
         },
         {
-          "description": "Results depend heavily on which network layer is examined, as different layers capture different levels of abstraction and concept representation."
+          "description": "Results depend heavily on which layer is examined, because layers capture different levels of abstraction. A concept can be invisible at one layer and strong at another, so a single-layer result should not be generalised."
         },
         {
-          "description": "Computational cost grows significantly with model size and number of concepts tested, though recent advances like FastCAV address this limitation."
+          "description": "The significance test trains hundreds of classifiers per concept and layer (the paper uses about 500), so cost multiplies with the number of concepts and layers tested. FastCAV, a 2025 preprint, reports speed-ups of up to 63.6 times."
         },
         {
-          "description": "Interpretation requires domain expertise to define meaningful concepts and understand the significance of sensitivity scores in practical contexts."
+          "description": "Scores are class-level and describe sensitivity, not cause. A TCAV score is the share of a class's inputs whose score rises along the concept direction, so it does not explain an individual decision, and a high score does not show that the concept causes the prediction."
         }
       ],
       "resources": [
@@ -1536,32 +1376,27 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's classification decisions are quantifiably linked to human-interpretable concepts rather than opaque internal representations",
-          "domain": "general",
+          "text": "The chest X-ray classifier's 'pneumonia' predictions are significantly sensitive to clinically recognised findings and not significantly sensitive to scanner type or patient positioning, at the layers tested.",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring system's candidate evaluations are demonstrably independent of concepts associated with protected characteristics",
-          "domain": "public sector",
+          "text": "The content-tagging classifier's TCAV scores for the ethnicity and gender concept sets are recorded for every output class at the tested layers, and the classes with significant sensitivity are listed for review.",
+          "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The diagnostic model's sensitivity to clinically relevant concepts is documented with quantitative influence scores",
-          "domain": "healthcare",
+          "text": "The traffic-sign classifier's sensitivity to graffiti, snow cover and glare concepts is documented with significance-tested TCAV scores for each sign class the approval authority has requested.",
+          "domain": "autonomous systems",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The credit assessment model's reliance on demographic-related concepts is measurable and within acceptable bounds",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The vision system's object recognition depends on semantically meaningful visual concepts aligned with domain expertise",
-          "domain": "autonomous systems",
+          "text": "The object recogniser's class predictions depend mainly on concepts that domain experts regard as meaningful for that class, such as shape and texture, rather than on background concepts.",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]
     }
   ],
-  "count": 9
+  "count": 8
 }
