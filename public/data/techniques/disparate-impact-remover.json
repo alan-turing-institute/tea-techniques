@@ -1,7 +1,7 @@
 {
   "slug": "disparate-impact-remover",
   "name": "Disparate Impact Remover",
-  "description": "Disparate Impact Remover is a preprocessing technique that transforms feature values in a dataset to reduce statistical dependence between features and protected attributes (like race or gender). The method modifies non-protected features through mathematical transformations that preserve the utility of the data whilst reducing correlations that could lead to discriminatory outcomes. This approach specifically targets the '80% rule' disparate impact threshold by adjusting feature distributions to ensure more equitable treatment across demographic groups in downstream model predictions.",
+  "description": "Disparate Impact Remover is a pre-processing method that edits the numerical features of a dataset so that they reveal less about a protected attribute such as race or sex. For each feature it compares how the values are distributed within each protected group, then moves every value towards a shared distribution while keeping its rank within its own group, so people near the top of their group stay near the top. The user sets a repair level from 0 (no change) to 1 (each feature is distributed identically in every group). The aim is to avoid disparate impact, where one group's selection rate falls below 80 per cent of the most favoured group's rate. Stronger repair narrows that gap but costs predictive accuracy.",
   "assurance_goals": [
     "Fairness"
   ],
@@ -23,26 +23,29 @@
   ],
   "example_use_cases": [
     {
-      "description": "Transforming features in a credit scoring dataset where variables like 'years of employment' and 'education level' are correlated with race, applying mathematical transformations to reduce these correlations whilst preserving the predictive value for creditworthiness assessment.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A lender's data science team finds that income, length of employment and credit history length in its loan dataset differ systematically between applicants under and over 25. It repairs those three features at a level of 0.8, trains its scoring model on the repaired data, and checks the approval-rate ratio between the age groups against the 80 per cent threshold to decide whether a stronger repair is needed."
     },
     {
-      "description": "Preprocessing a recruitment dataset where features like 'previous job titles' and 'university attended' correlate with gender, modifying these features to ensure the '80% rule' is met whilst maintaining useful information for predicting job performance.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A fire service reviewing a promotion process finds that written and oral exam scores differ between ethnic groups, so a 70 per cent pass mark selects far fewer candidates from one group. It repairs both scores while keeping each candidate's rank within their own group, then checks whether the repaired scores still separate stronger candidates from weaker ones."
     }
   ],
   "limitations": [
     {
-      "description": "Feature transformations may reduce model accuracy by removing or distorting important predictive information during the debiasing process."
+      "description": "Repair costs predictive accuracy, and the cost varies sharply by dataset. In the original experiments a full repair cut a measure of classifier utility on the German credit data from about 72 per cent to about 50 per cent, close to chance, but the Adult income data lost only about two points. The repair level has to be chosen and justified."
     },
     {
-      "description": "Only addresses measured protected attributes and cannot eliminate bias that operates through unmeasured proxy variables."
+      "description": "It repairs numerical features only, and the AIF360 implementation takes one protected attribute at a time. Categorical features such as job title or postcode are left unchanged and can still carry the protected attribute, and repairing several attributes together means the user must define the joint groups."
     },
     {
-      "description": "Effectiveness depends on the specific transformation method chosen and may not generalise well to different datasets or domains."
+      "description": "Each feature is repaired separately, so every feature can look identical across groups while combinations of features still reveal the protected attribute. A model trained on several repaired features may therefore still show disparate impact, which is why the original paper pairs the repair with a test that tries to predict the protected attribute from all the features together."
     },
     {
-      "description": "May create artificial feature distributions that don't reflect real-world data patterns, potentially causing issues in model deployment."
+      "description": "The repair depends on each person's protected attribute and on the group distributions seen in the training data. AIF360 notes that new data can be transformed the same way only if those conditional distributions match, and each new record needs its protected attribute, which makes the method awkward for a live scoring service."
+    },
+    {
+      "description": "The target is the US 80 per cent rule, a comparison of group selection rates, and the paper notes that other legal frameworks may need a different formulation. The rule says nothing about how individuals are treated, and the paper points out that disparate impact is not itself unlawful where a business necessity can be shown."
     }
   ],
   "resources": [
@@ -144,17 +147,22 @@
   ],
   "sample_claims": [
     {
-      "text": "The model's input features exhibit reduced statistical dependence on protected demographic attributes",
-      "domain": "general",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The credit assessment system meets the 80% rule threshold for equitable treatment across demographic groups",
+      "text": "After repair at level 1.0, the income, employment length and credit history features in the lending dataset have the same distribution for applicants under and over 25.",
       "domain": "finance",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The lending model's feature transformations preserve creditworthiness information whilst reducing demographic correlations",
+      "text": "A classifier trained to predict applicants' age group from the repaired features performs no better than chance.",
+      "domain": "finance",
+      "assuranceGoal": "fairness"
+    },
+    {
+      "text": "Repairing the promotion exam scores kept each candidate's rank within their ethnic group and raised the ratio of group pass rates above the 80 per cent threshold.",
+      "domain": "public sector",
+      "assuranceGoal": "fairness"
+    },
+    {
+      "text": "The loss in predictive accuracy caused by the repair is documented and stays within the tolerance agreed with the credit risk team.",
       "domain": "finance",
       "assuranceGoal": "fairness"
     }

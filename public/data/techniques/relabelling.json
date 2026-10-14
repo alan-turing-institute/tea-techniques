@@ -1,10 +1,9 @@
 {
   "slug": "relabelling",
   "name": "Relabelling",
-  "description": "A preprocessing fairness technique that modifies class labels in training data to achieve equal positive outcome rates across protected groups. Also known as 'data massaging', this method identifies instances that contribute to discriminatory patterns and flips their labels (from positive to negative or vice versa) to balance the proportion of positive outcomes between demographic groups. The technique aims to remove historical bias from training data whilst preserving the overall class distribution, enabling standard classifiers to learn from discrimination-free datasets.",
+  "description": "Relabelling, also called data massaging, is a pre-processing method proposed by Kamiran and Calders. It changes some of the outcome labels in a training set so that a protected group and everyone else have the same rate of positive outcomes, such as being hired or approved. A ranking model first scores each example by how likely it is to be positive. The method then promotes the highest-scoring negative examples from the disadvantaged group to positive and demotes the lowest-scoring positive examples from the favoured group to negative, in equal numbers. Because the examples closest to the decision boundary change first and the numbers are equal, the overall share of positive labels stays the same and the number of changes is as small as it can be.",
   "assurance_goals": [
-    "Fairness",
-    "Transparency"
+    "Fairness"
   ],
   "tags": [
     "applicable-models/architecture/model-agnostic",
@@ -13,8 +12,6 @@
     "data-requirements/access-to-training-data",
     "assurance-goal-category/fairness",
     "assurance-goal-category/fairness/pre-processing",
-    "assurance-goal-category/transparency",
-    "assurance-goal-category/transparency/audit-trail",
     "data-requirements/labelled-data",
     "data-requirements/sensitive-attributes",
     "data-type/any",
@@ -27,29 +24,29 @@
   ],
   "example_use_cases": [
     {
-      "description": "Preprocessing historical hiring datasets by relabelling borderline cases to ensure equal hiring rates across gender and ethnicity groups, correcting for past discriminatory practices whilst maintaining overall qualification standards for fair recruitment model training.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A public-sector recruiter's ten years of shortlisting records show women shortlisted less often than men with comparable applications. Before training a screening model, the data team flips the labels of the rejected women a ranking model scores highest and the shortlisted men it scores lowest, in equal numbers, until shortlisting rates match and the overall shortlisting rate is unchanged."
     },
     {
-      "description": "Creating transparent credit scoring datasets by documenting which loan applications had labels modified to address historical lending discrimination, providing clear audit trails showing how training data bias was systematically corrected before model development.",
-      "goal": "Transparency"
+      "goal": "Fairness",
+      "description": "A building society finds that past loan decisions approved applicants from one ethnic minority far less often than others with similar finances, and suspects the gap reflects past discretion rather than risk. It flips borderline decisions in both directions, keeping the overall approval rate fixed, and trains its scoring model on the corrected labels while keeping the original labels in a separate file."
     }
   ],
   "limitations": [
     {
-      "description": "Altering training labels risks introducing new biases or artificial patterns that may not reflect genuine relationships in the data."
+      "description": "It assumes the whole gap in positive rates between groups is discrimination. The number of labels changed is set to bring the gap to zero, even where part of the gap has a legitimate explanation, and the original authors note that such constraints are often too strong."
     },
     {
-      "description": "Deciding which instances to relabel requires careful selection criteria and domain expertise to avoid inappropriate label changes."
+      "description": "It rewrites the record of what happened. The flipped labels no longer match the real decisions or outcomes, so it suits labels that record biased past decisions and is dangerous where labels are measured facts, such as a confirmed diagnosis or a repayment. The authors call the approach intrusive."
     },
     {
-      "description": "May reduce prediction accuracy if too many labels are changed, particularly when the modifications conflict with genuine patterns in the data."
+      "description": "Which records are flipped depends on a ranking model trained on the same biased data. A poor ranker flips the wrong people, and in the original experiments the discrimination and accuracy of the final classifier varied with the learner trained afterwards."
     },
     {
-      "description": "Requires access to ground truth or expert knowledge to determine whether original labels reflect genuine outcomes or discriminatory bias."
+      "description": "It handles one binary protected attribute and a binary outcome. Gender and ethnicity together, or a numeric attribute such as income, are not covered, so correcting one attribute can leave intersectional gaps."
     },
     {
-      "description": "Effectiveness depends on accurate identification of discriminatory instances, which can be challenging when bias patterns are subtle or complex."
+      "description": "Accuracy falls as discrimination falls, and the authors prove the trade-off cannot be avoided. Discrimination is removed from the training data, but a model trained on it can still show some on new data."
     }
   ],
   "resources": [
@@ -95,24 +92,19 @@
   ],
   "sample_claims": [
     {
-      "text": "The hiring system's training data has been corrected to achieve equal qualification acceptance rates across demographic groups through systematic label modification",
+      "text": "In the corrected training set the share of positive labels is the same for women and men, and the overall share of positive labels is unchanged from the original data.",
       "domain": "public sector",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The training dataset documents which diagnostic labels were modified to correct for historical treatment bias in underrepresented patient populations",
-      "domain": "healthcare",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The model was trained on corrected labels that remove discriminatory patterns from historical outcomes without altering the underlying feature distributions",
+      "text": "Only borderline cases, the examples nearest the ranking model's decision boundary, had their labels changed, in equal numbers in each direction, and no feature values were altered.",
       "domain": "general",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The preprocessing pipeline identifies and flips classification labels for borderline cases to balance positive outcome rates across protected groups before model training",
-      "domain": "general",
-      "assuranceGoal": "transparency"
+      "text": "The lending model trained on the corrected labels shows a smaller gap in approval rates between age groups on held-out data than a model trained on the original labels.",
+      "domain": "finance",
+      "assuranceGoal": "fairness"
     }
   ]
 }

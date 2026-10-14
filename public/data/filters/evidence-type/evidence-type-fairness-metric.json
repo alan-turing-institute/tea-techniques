@@ -494,7 +494,7 @@
     {
       "slug": "fairness-gan",
       "name": "Fairness GAN",
-      "description": "A data generation technique that employs Generative Adversarial Networks (GANs) to create fair synthetic datasets by learning to generate data representations that preserve utility whilst obfuscating protected attributes. Unlike traditional GANs, Fairness GANs incorporate fairness constraints into the training objective, ensuring that the generated data maintains statistical parity across demographic groups. The technique can be used for data augmentation to balance underrepresented groups or to create privacy-preserving synthetic datasets that remove demographic bias from training data.",
+      "description": "Fairness GAN is a pre-processing method that generates a synthetic training dataset in which decisions no longer track a protected attribute such as gender or skin tone. A generative adversarial network (GAN) is a pair of networks trained against each other, one producing fake examples and one trying to tell them from real ones. Here the generator is conditioned on the protected attribute and produces both an example and its decision label, such as hired or rejected (images in the original work, table rows in Xu et al.'s separate FairGAN). An extra network tries to predict the protected attribute from the generated output, and the generator is rewarded for defeating it, so favourable decisions become more similar across groups. The user can aim for demographic parity, meaning equal rates of favourable decisions, or for equality of opportunity, which applies the constraint only to favourable decisions.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -522,25 +522,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Generating balanced synthetic datasets for medical research by creating additional samples from underrepresented demographic groups, ensuring equal representation across ethnicity and gender whilst maintaining the statistical properties needed for robust model training.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A recruitment technology team holds interview-video stills labelled with past shortlisting decisions that favoured one gender. It trains a Fairness GAN to generate a synthetic image set whose shortlisting labels are similar for women and men, trains the screening model on that set, and compares shortlisting rates by gender on held-out real images before deployment."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A lender's data science team has ten years of loan decisions in which women were approved less often than men on similar incomes. It trains a tabular FairGAN-style generator to produce a synthetic dataset, confirms that the gap in approval rates in the synthetic data is close to zero, and trains its scoring model on that data, testing accuracy and approval rates on real held-out applications."
         }
       ],
       "limitations": [
         {
-          "description": "GAN training is notoriously difficult to stabilise, with potential for mode collapse or failure to converge, especially when additional fairness constraints are imposed."
+          "description": "GAN training is unstable and the fairness loss adds a further pull on the generator. The original authors used spectral normalisation, softened outcome values and added noise to keep training stable, and results still varied across datasets. Expect tuning effort and repeated runs."
         },
         {
-          "description": "Ensuring fairness in generated data may come at the cost of data utility, potentially reducing the quality or realism of synthetic samples."
+          "description": "Fairness and accuracy trade off, and the gain is uneven. In the original experiments a classifier trained on debiased CelebA data went from about 20 to about 29 per cent error. Demographic parity improved on three of four datasets but not on Quick, Draw!, and the demographic-parity version made equality of opportunity worse on the soccer data."
         },
         {
-          "description": "Requires large datasets to train both generator and discriminator networks effectively, limiting applicability in data-scarce domains."
+          "description": "It needs a lot of data. The authors had only 1,501 labelled soccer images, so they borrowed more than 200,000 unlabelled CelebA faces to help the generator, which is possible only when a large related set exists."
         },
         {
-          "description": "Evaluation complexity is high, as it requires assessing both the quality of generated data and the preservation of fairness properties across demographic groups."
+          "description": "The original method covers a narrow setting: image inputs, one binary protected attribute and a binary outcome, with demographic parity or equality of opportunity but not equalised odds. Continuous protected attributes and non-image data are left as future work, and tabular versions such as FairGAN are separate methods with their own evidence."
         },
         {
-          "description": "May inadvertently introduce new biases if the fairness constraints are not properly specified or if the training data itself contains subtle biases."
+          "description": "Fairness is judged by training a classifier on the synthetic data and testing it on real data, and image quality is judged mainly by inspecting average faces. The authors report that debiasing visibly changes images in stereotyped ways, such as male faces taking on features coded as feminine, so the synthetic data need checking for distortions that the classifier test would miss."
         }
       ],
       "resources": [
@@ -619,17 +623,17 @@
       ],
       "sample_claims": [
         {
-          "text": "The training dataset maintains balanced representation across demographic groups without compromising the statistical properties needed for model generalization",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The generated dataset exhibits statistical parity across protected attributes without relying on direct attribute removal",
+          "text": "In the synthetic training set generated for the screening model, the rate of favourable shortlisting decisions for women and men differs by less than the tolerance set in the project's fairness requirement.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The recommendation system's training data contains equitable representation of user demographics through controlled synthetic augmentation",
+          "text": "A credit scoring model trained on the synthetic loan data shows a smaller gap in approval rates between women and men, on held-out real applications, than a model trained on the original data.",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The synthetic data remain close enough to the original for the model's purpose: the accuracy cost of training on them, compared with the original data, was measured and judged acceptable.",
           "domain": "general",
           "assuranceGoal": "fairness"
         }

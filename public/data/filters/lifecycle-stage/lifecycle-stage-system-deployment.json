@@ -1781,7 +1781,7 @@
     {
       "slug": "threshold-optimiser",
       "name": "Threshold Optimiser",
-      "description": "Threshold Optimiser is a post-processing method, introduced by Hardt, Price and Srebro (2016), that makes an already-trained classifier's decisions meet a group fairness criterion without retraining it, most often equalised odds (equal true positive and false positive rates across groups) or equal opportunity (equal true positive rates only). Using a labelled validation set that records each person's group, it traces each group's ROC curve (the true and false positive rates obtained at every possible cut-off on the model's score) and chooses a separate cut-off for each group that maximises accuracy, or another chosen objective, subject to the criterion. When no single cut-off per group meets the criterion exactly, as is usual for equalised odds, each group's decision is randomised between two cut-offs with fixed probabilities. If the model returns only yes/no predictions rather than scores, the same method reduces to a small linear optimisation that sets, for each group and predicted label, the probability of flipping the prediction. The output is a group-aware decision rule that needs each person's group at prediction time; Fairlearn's ThresholdOptimizer implements the score-based form (and can also equalise selection rates), and AIF360's EqOddsPostprocessing implements the label-flipping form.",
+      "description": "Threshold Optimiser is a post-processing method, introduced by Hardt, Price and Srebro (2016), that adjusts a trained classifier's decisions to meet a group fairness criterion without retraining it, most often equalised odds (equal true positive and false positive rates in every group) or equal opportunity (equal true positive rates only). It uses a labelled validation set that records each person's group, and traces each group's ROC curve, which shows the true and false positive rates the model's score gives at every possible cut-off. It then chooses a separate cut-off for each group that keeps accuracy, or another chosen objective, as high as the criterion allows. Equalised odds usually cannot be met with one cut-off per group, so each group's decision is randomised between two cut-offs with fixed probabilities. The output is a rule that needs each person's group at prediction time, and if the model gives only yes/no predictions, a small linear optimisation sets the probability of flipping each prediction instead.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -1837,7 +1837,7 @@
           "description": "Cut-offs are estimated from a finite labelled sample in which group membership is known, and the original analysis sets sampling error aside. Small groups give unstable cut-offs, and rates equalised on the validation set drift when the population or the model's score distribution changes, so the cut-offs must be re-estimated and the equalised rates monitored after deployment."
         },
         {
-          "description": "Equalised odds generally conflicts with calibration within groups: Pleiss et al. (2017) show calibration is compatible with at most one equal-error-rate constraint, and Hardt et al. note that equalised odds may compromise other desirable properties of a score. A team that must show both equal error rates and calibrated risk for each group cannot obtain both from this method and may have to settle for equal opportunity alone."
+          "description": "Equalised odds generally conflicts with calibration within groups: Pleiss et al. (2017) show that when groups have different base rates and the predictor is imperfect, calibration is compatible with at most one equal-error-rate constraint. A team that must show both equal error rates and calibrated risk for each group cannot obtain both from this method, and relaxing to equal opportunity does not by itself keep the original score calibrated."
         }
       ],
       "resources": [
@@ -1941,7 +1941,7 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The fairness adjustment to the CV-scoring model was applied after training, leaving the trained model unchanged, and its cost in accuracy was measured and reported to the selection panel.",
+          "text": "On held-out candidates, the CV-scoring model's true positive rate, meaning the share of candidates who later perform well who are shortlisted, differs across groups by less than the agreed tolerance, with the accuracy cost of the adjustment reported to the selection panel.",
           "domain": "general",
           "assuranceGoal": "fairness"
         }
@@ -1950,11 +1950,9 @@
     {
       "slug": "reject-option-classification",
       "name": "Reject Option Classification",
-      "description": "A post-processing fairness technique that modifies predictions in regions of high uncertainty to favour disadvantaged groups and achieve fairness objectives. The method identifies a 'rejection region' where the model's confidence is low (typically near the decision boundary) and reassigns predictions within this region to benefit underrepresented groups. By leveraging model uncertainty, this approach can improve fairness metrics like demographic parity or equalised odds whilst minimising changes to confident predictions, thus preserving overall accuracy for cases where the model is certain.",
+      "description": "Reject Option Classification is a post-processing method, proposed by Kamiran and colleagues (2012), that changes some of a trained classifier's decisions to reduce unfair outcomes between groups, without retraining it. It defines a 'critical region' around the decision boundary, where the predicted probability is close to 50 per cent and the model is least sure. Inside that region it gives the favourable outcome to people from the disadvantaged group and the unfavourable outcome to people from the advantaged group, whatever the model predicted, and decisions outside it are left alone. The width of the region is searched on a labelled validation set, so that a chosen fairness measure, such as statistical parity difference or equal opportunity difference, falls within a set bound while accuracy stays as high as possible. The method needs each person's group at prediction time.",
       "assurance_goals": [
-        "Fairness",
-        "Reliability",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -1963,10 +1961,6 @@
         "applicable-models/requirements/probabilistic-output",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/post-processing",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/uncertainty-quantification",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
         "data-type/any",
@@ -1978,33 +1972,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Adjusting hiring algorithm predictions in the uncertainty region where candidate scores are close to the threshold, reassigning borderline cases to ensure equal selection rates across gender and ethnicity groups whilst maintaining decisions for clearly qualified or unqualified candidates.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A graduate recruiter's data team has a CV-scoring model whose scores near the shortlisting cut-off are the least certain. Using a labelled validation set, it searches for the narrowest band around that cut-off that brings the difference in shortlisting rates between men and women within five percentage points, and reports how many candidates' outcomes the band changes."
         },
         {
-          "description": "Improving reliability of loan approval systems by identifying applications where the model is uncertain and adjusting these edge cases to ensure consistent approval rates across demographic groups, reducing the risk of systematic discrimination in borderline creditworthiness assessments.",
-          "goal": "Reliability"
+          "goal": "Fairness",
+          "description": "A hospital data science team tests the method on an unplanned-readmission alert model to narrow the gap in missed-readmission rates between insurance groups. It adopts the change only if the gap falls below five percentage points while accuracy drops by under 10 per cent and alert volume changes by under 20 per cent, and drops the method if any limit is missed."
         },
         {
-          "description": "Creating transparent bail decision systems that clearly document which predictions fall within the rejection region and how adjustments are made, providing courts with explainable fairness interventions that show exactly when and why decisions were modified for equity.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A court service reviewing a pre-trial risk score applies the method with race as the group attribute, so that defendants whose scores sit close to the high-risk cut-off are not decided by small score differences that may reflect the model's bias. The service reports to its oversight body how many decisions the band changes, in which direction, and what it costs in accuracy."
         }
       ],
       "limitations": [
         {
-          "description": "Requires models that provide reliable uncertainty estimates or probability scores, limiting applicability to deterministic classifiers without confidence outputs."
+          "description": "Needs a model that outputs scores, because the critical region is defined on them, so a model that outputs only yes/no labels cannot be used. The scores need not be calibrated probabilities, but if they are poorly calibrated or bunched together, the wrong people fall inside the region."
         },
         {
-          "description": "Selection of the rejection region threshold is subjective and requires careful tuning to balance fairness improvements with accuracy preservation."
+          "description": "Inside the region the outcome is set by group membership, so the method needs each person's group at decision time and treats people differently by group. This may be unlawful or unacceptable in some settings, such as hiring or lending, and the group attribute must be available when decisions are made."
         },
         {
-          "description": "May reject too many instances if tuned conservatively, potentially affecting a large portion of predictions and reducing the model's practical utility."
+          "description": "A person from the advantaged group with a borderline score receives the unfavourable outcome, and one from the other group the favourable outcome, whatever their individual merit. A wider band closes more of the fairness gap but sets more decisions by group instead of by score, so accuracy falls as the band widens."
         },
         {
-          "description": "Cannot address bias in confident predictions outside the rejection region, limiting effectiveness when discrimination occurs in high-certainty cases."
+          "description": "Cannot address bias in confident predictions outside the region. The method assumes discrimination is concentrated near the decision boundary, so where a model is confidently wrong about one group, the adjustment leaves those decisions as they are."
         },
         {
-          "description": "Performance depends on the quality of uncertainty estimates, which may be poorly calibrated in some models, leading to inappropriate rejection regions."
+          "description": "The band is chosen by grid search on a labelled validation set against a fairness bound (the AIF360 default is plus or minus 0.05). A small or unrepresentative validation set gives an unreliable band, and if no setting meets the bound the search returns a fallback that may not be acceptable."
         }
       ],
       "resources": [
@@ -2097,29 +2091,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The hiring system's selection decisions in uncertain candidate evaluations are adjusted to ensure equal opportunity across demographic groups",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The credit assessment model's predictions in borderline creditworthiness cases achieve equitable approval rates without modifying high-confidence decisions",
+          "text": "On a held-out validation sample, the gap in approval rates between men and women is within the agreed bound after the critical-region adjustment, and the share of decisions the adjustment changed is reported.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The diagnostic system's uncertain classifications maintain consistent accuracy across patient populations through targeted fairness adjustments",
+          "text": "Every shortlisting decision outside the critical region is the unmodified model decision. Only borderline candidates have outcomes set by group, and the share of candidates affected is reported.",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "After adjustment, the readmission alert model's missed-readmission rates differ by less than five percentage points between insurance groups, with accuracy and alert volume inside the limits agreed with clinicians.",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "fairness"
         },
         {
-          "text": "The bail decision system documents which predictions fall within the uncertainty region and the rationale for fairness-motivated reassignments",
+          "text": "The pre-trial risk tool's equal opportunity difference between racial groups is inside the stated bound on held-out cases, with the number of changed decisions reported to the oversight body.",
           "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The autonomous vehicle's object classification remains reliable across lighting conditions through uncertainty-aware decision adjustments that compensate for perceptual limitations in edge cases",
-          "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "fairness"
         }
       ]
     },

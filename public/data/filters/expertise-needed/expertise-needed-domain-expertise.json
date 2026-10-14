@@ -2115,7 +2115,7 @@
     {
       "slug": "disparate-impact-remover",
       "name": "Disparate Impact Remover",
-      "description": "Disparate Impact Remover is a preprocessing technique that transforms feature values in a dataset to reduce statistical dependence between features and protected attributes (like race or gender). The method modifies non-protected features through mathematical transformations that preserve the utility of the data whilst reducing correlations that could lead to discriminatory outcomes. This approach specifically targets the '80% rule' disparate impact threshold by adjusting feature distributions to ensure more equitable treatment across demographic groups in downstream model predictions.",
+      "description": "Disparate Impact Remover is a pre-processing method that edits the numerical features of a dataset so that they reveal less about a protected attribute such as race or sex. For each feature it compares how the values are distributed within each protected group, then moves every value towards a shared distribution while keeping its rank within its own group, so people near the top of their group stay near the top. The user sets a repair level from 0 (no change) to 1 (each feature is distributed identically in every group). The aim is to avoid disparate impact, where one group's selection rate falls below 80 per cent of the most favoured group's rate. Stronger repair narrows that gap but costs predictive accuracy.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -2137,26 +2137,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Transforming features in a credit scoring dataset where variables like 'years of employment' and 'education level' are correlated with race, applying mathematical transformations to reduce these correlations whilst preserving the predictive value for creditworthiness assessment.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A lender's data science team finds that income, length of employment and credit history length in its loan dataset differ systematically between applicants under and over 25. It repairs those three features at a level of 0.8, trains its scoring model on the repaired data, and checks the approval-rate ratio between the age groups against the 80 per cent threshold to decide whether a stronger repair is needed."
         },
         {
-          "description": "Preprocessing a recruitment dataset where features like 'previous job titles' and 'university attended' correlate with gender, modifying these features to ensure the '80% rule' is met whilst maintaining useful information for predicting job performance.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A fire service reviewing a promotion process finds that written and oral exam scores differ between ethnic groups, so a 70 per cent pass mark selects far fewer candidates from one group. It repairs both scores while keeping each candidate's rank within their own group, then checks whether the repaired scores still separate stronger candidates from weaker ones."
         }
       ],
       "limitations": [
         {
-          "description": "Feature transformations may reduce model accuracy by removing or distorting important predictive information during the debiasing process."
+          "description": "Repair costs predictive accuracy, and the cost varies sharply by dataset. In the original experiments a full repair cut a measure of classifier utility on the German credit data from about 72 per cent to about 50 per cent, close to chance, but the Adult income data lost only about two points. The repair level has to be chosen and justified."
         },
         {
-          "description": "Only addresses measured protected attributes and cannot eliminate bias that operates through unmeasured proxy variables."
+          "description": "It repairs numerical features only, and the AIF360 implementation takes one protected attribute at a time. Categorical features such as job title or postcode are left unchanged and can still carry the protected attribute, and repairing several attributes together means the user must define the joint groups."
         },
         {
-          "description": "Effectiveness depends on the specific transformation method chosen and may not generalise well to different datasets or domains."
+          "description": "Each feature is repaired separately, so every feature can look identical across groups while combinations of features still reveal the protected attribute. A model trained on several repaired features may therefore still show disparate impact, which is why the original paper pairs the repair with a test that tries to predict the protected attribute from all the features together."
         },
         {
-          "description": "May create artificial feature distributions that don't reflect real-world data patterns, potentially causing issues in model deployment."
+          "description": "The repair depends on each person's protected attribute and on the group distributions seen in the training data. AIF360 notes that new data can be transformed the same way only if those conditional distributions match, and each new record needs its protected attribute, which makes the method awkward for a live scoring service."
+        },
+        {
+          "description": "The target is the US 80 per cent rule, a comparison of group selection rates, and the paper notes that other legal frameworks may need a different formulation. The rule says nothing about how individuals are treated, and the paper points out that disparate impact is not itself unlawful where a business necessity can be shown."
         }
       ],
       "resources": [
@@ -2258,17 +2261,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's input features exhibit reduced statistical dependence on protected demographic attributes",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The credit assessment system meets the 80% rule threshold for equitable treatment across demographic groups",
+          "text": "After repair at level 1.0, the income, employment length and credit history features in the lending dataset have the same distribution for applicants under and over 25.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The lending model's feature transformations preserve creditworthiness information whilst reducing demographic correlations",
+          "text": "A classifier trained to predict applicants' age group from the repaired features performs no better than chance.",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "Repairing the promotion exam scores kept each candidate's rank within their ethnic group and raised the ratio of group pass rates above the 80 per cent threshold.",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The loss in predictive accuracy caused by the repair is documented and stays within the tolerance agreed with the credit risk team.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         }
@@ -2277,10 +2285,9 @@
     {
       "slug": "relabelling",
       "name": "Relabelling",
-      "description": "A preprocessing fairness technique that modifies class labels in training data to achieve equal positive outcome rates across protected groups. Also known as 'data massaging', this method identifies instances that contribute to discriminatory patterns and flips their labels (from positive to negative or vice versa) to balance the proportion of positive outcomes between demographic groups. The technique aims to remove historical bias from training data whilst preserving the overall class distribution, enabling standard classifiers to learn from discrimination-free datasets.",
+      "description": "Relabelling, also called data massaging, is a pre-processing method proposed by Kamiran and Calders. It changes some of the outcome labels in a training set so that a protected group and everyone else have the same rate of positive outcomes, such as being hired or approved. A ranking model first scores each example by how likely it is to be positive. The method then promotes the highest-scoring negative examples from the disadvantaged group to positive and demotes the lowest-scoring positive examples from the favoured group to negative, in equal numbers. Because the examples closest to the decision boundary change first and the numbers are equal, the overall share of positive labels stays the same and the number of changes is as small as it can be.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -2289,8 +2296,6 @@
         "data-requirements/access-to-training-data",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
         "data-type/any",
@@ -2303,29 +2308,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Preprocessing historical hiring datasets by relabelling borderline cases to ensure equal hiring rates across gender and ethnicity groups, correcting for past discriminatory practices whilst maintaining overall qualification standards for fair recruitment model training.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A public-sector recruiter's ten years of shortlisting records show women shortlisted less often than men with comparable applications. Before training a screening model, the data team flips the labels of the rejected women a ranking model scores highest and the shortlisted men it scores lowest, in equal numbers, until shortlisting rates match and the overall shortlisting rate is unchanged."
         },
         {
-          "description": "Creating transparent credit scoring datasets by documenting which loan applications had labels modified to address historical lending discrimination, providing clear audit trails showing how training data bias was systematically corrected before model development.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A building society finds that past loan decisions approved applicants from one ethnic minority far less often than others with similar finances, and suspects the gap reflects past discretion rather than risk. It flips borderline decisions in both directions, keeping the overall approval rate fixed, and trains its scoring model on the corrected labels while keeping the original labels in a separate file."
         }
       ],
       "limitations": [
         {
-          "description": "Altering training labels risks introducing new biases or artificial patterns that may not reflect genuine relationships in the data."
+          "description": "It assumes the whole gap in positive rates between groups is discrimination. The number of labels changed is set to bring the gap to zero, even where part of the gap has a legitimate explanation, and the original authors note that such constraints are often too strong."
         },
         {
-          "description": "Deciding which instances to relabel requires careful selection criteria and domain expertise to avoid inappropriate label changes."
+          "description": "It rewrites the record of what happened. The flipped labels no longer match the real decisions or outcomes, so it suits labels that record biased past decisions and is dangerous where labels are measured facts, such as a confirmed diagnosis or a repayment. The authors call the approach intrusive."
         },
         {
-          "description": "May reduce prediction accuracy if too many labels are changed, particularly when the modifications conflict with genuine patterns in the data."
+          "description": "Which records are flipped depends on a ranking model trained on the same biased data. A poor ranker flips the wrong people, and in the original experiments the discrimination and accuracy of the final classifier varied with the learner trained afterwards."
         },
         {
-          "description": "Requires access to ground truth or expert knowledge to determine whether original labels reflect genuine outcomes or discriminatory bias."
+          "description": "It handles one binary protected attribute and a binary outcome. Gender and ethnicity together, or a numeric attribute such as income, are not covered, so correcting one attribute can leave intersectional gaps."
         },
         {
-          "description": "Effectiveness depends on accurate identification of discriminatory instances, which can be challenging when bias patterns are subtle or complex."
+          "description": "Accuracy falls as discrimination falls, and the authors prove the trade-off cannot be avoided. Discrimination is removed from the training data, but a model trained on it can still show some on new data."
         }
       ],
       "resources": [
@@ -2371,34 +2376,28 @@
       ],
       "sample_claims": [
         {
-          "text": "The hiring system's training data has been corrected to achieve equal qualification acceptance rates across demographic groups through systematic label modification",
+          "text": "In the corrected training set the share of positive labels is the same for women and men, and the overall share of positive labels is unchanged from the original data.",
           "domain": "public sector",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The training dataset documents which diagnostic labels were modified to correct for historical treatment bias in underrepresented patient populations",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The model was trained on corrected labels that remove discriminatory patterns from historical outcomes without altering the underlying feature distributions",
+          "text": "Only borderline cases, the examples nearest the ranking model's decision boundary, had their labels changed, in equal numbers in each direction, and no feature values were altered.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The preprocessing pipeline identifies and flips classification labels for borderline cases to balance positive outcome rates across protected groups before model training",
-          "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "The lending model trained on the corrected labels shows a smaller gap in approval rates between age groups on held-out data than a model trained on the original labels.",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         }
       ]
     },
     {
       "slug": "preferential-sampling",
       "name": "Preferential Sampling",
-      "description": "A preprocessing fairness technique developed by Kamiran and Calders that addresses dataset imbalances by re-sampling training data with preference for underrepresented groups to achieve discrimination-free classification. This method modifies the training distribution by prioritising borderline objects (instances near decision boundaries) from underrepresented groups for duplication whilst potentially removing instances from overrepresented groups. Unlike relabelling approaches, preferential sampling maintains original class labels whilst creating a more balanced dataset that prevents models from learning biased patterns due to skewed group representation.",
+      "description": "Preferential Sampling is a pre-processing method, proposed by Kamiran and Calders, that rebalances a training set so that a protected group and everyone else have the same rate of positive outcomes, such as being hired or approved. A ranking model first scores every example by how likely it is to have a positive label. The method then compares the size of each group-and-outcome combination with the size it would have if group and outcome were unrelated. It adds copies of positive examples from the disadvantaged group and negative examples from the favoured group, and removes negative examples from the disadvantaged group and positive examples from the favoured group, always starting with those closest to the decision boundary. Labels are never changed, so a standard classifier can learn from the rebalanced set.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -2407,8 +2406,6 @@
         "data-requirements/access-to-training-data",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
         "data-type/any",
@@ -2421,29 +2418,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Preprocessing hiring datasets by preferentially sampling candidates from underrepresented gender and ethnic groups, particularly focusing on borderline cases near decision boundaries, to ensure fair representation whilst maintaining original qualifications and labels for unbiased recruitment model training.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A graduate recruiter's historical shortlisting data shows women were shortlisted less often than men with similar scores. The team trains a ranking model, then copies the shortlisted women and rejected men closest to the decision boundary and removes the rejected women and shortlisted men closest to it, until the shortlisting rates match. No label is changed, and the production model is trained on the resampled set."
         },
         {
-          "description": "Creating transparent credit scoring datasets by documenting and adjusting the sampling process to ensure equal representation across demographic groups, providing clear evidence to regulators that training data imbalances have been addressed without altering original creditworthiness labels.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A bank training a loan-approval model on ten years of decisions finds that applicants under 25 were approved far less often than older applicants. Compliance wants the recorded decisions left untouched, so the model team resamples the training set until approval rates match across age groups and keeps the original labels as the record of what was decided."
         }
       ],
       "limitations": [
         {
-          "description": "Oversampling minority groups can cause overfitting to duplicated examples, particularly when borderline instances are repeatedly sampled, potentially reducing model generalisation."
+          "description": "Duplicating examples invites overfitting, and removing them discards information. The method copies the same borderline examples and drops others, so a model may memorise duplicates or lose cases it needed, which matters most when the training set is small or many changes are needed."
         },
         {
-          "description": "Undersampling majority groups may remove important examples that contain valuable information, potentially degrading overall model performance."
+          "description": "It assumes the whole gap in positive rates between groups is discrimination. It resamples until outcome and group are unrelated, even where part of the gap has a legitimate explanation such as differing experience, and the original authors note that this constraint is often too strong."
         },
         {
-          "description": "Does not address inherent algorithmic bias in the learning process itself, only correcting for representation imbalances in the training data."
+          "description": "The result depends on a ranking model learned from the same biased data. The ranker decides which examples count as borderline, so a weak or biased ranker copies and removes the wrong ones, and in the original experiments the method worked best with unstable learners such as decision trees."
         },
         {
-          "description": "Selection of borderline objects requires careful threshold tuning and may be sensitive to the choice of distance metrics or similarity measures used."
+          "description": "It handles one binary protected attribute and a binary outcome. Gender and ethnicity together are not covered, so resampling for one attribute can leave intersectional groups unbalanced, and the authors call multiple combined attributes a harder open problem."
         },
         {
-          "description": "May not address intersectional fairness issues when multiple protected attributes create complex group combinations that require nuanced sampling strategies."
+          "description": "Fairness is achieved on the training data, not guaranteed on new data. In the original Census Income experiment with decision trees, discrimination fell from about 16 to about 3 per cent, not to zero, and the protected attribute must be recorded for every training example."
         }
       ],
       "resources": [
@@ -2502,17 +2499,17 @@
       ],
       "sample_claims": [
         {
-          "text": "The training dataset achieves balanced representation across demographic groups without altering original qualification labels or outcome classifications",
+          "text": "In the resampled training set the rate of positive outcomes is the same for women and men, and no recorded label was changed.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The recruitment model's training data composition is documented showing which candidate groups were preferentially sampled to address historical representation imbalances",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
+          "text": "The resampled loan-decision training set shows no gap in approval rates between applicants under and over 25, measured on the training data before any model was fitted.",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         },
         {
-          "text": "The classification system's training data includes proportionate representation of borderline cases from all protected groups",
+          "text": "Only a small share of the training examples were duplicated or removed, and each was chosen because it lay close to the ranking model's decision boundary.",
           "domain": "general",
           "assuranceGoal": "fairness"
         }
@@ -2521,10 +2518,9 @@
     {
       "slug": "attribute-removal-fairness-through-unawareness",
       "name": "Attribute Removal (Fairness Through Unawareness)",
-      "description": "Attribute Removal (Fairness Through Unawareness) ensures fairness by completely excluding protected attributes such as race, gender, or age from the model's input features. While this approach prevents direct discrimination, it may not eliminate bias if other features are correlated with protected attributes (proxy discrimination). This technique represents the most basic fairness intervention but often needs to be combined with other approaches to address indirect bias through seemingly neutral features.",
+      "description": "Attribute removal, also called fairness through unawareness, trains and runs a model without the protected attributes, such as race, gender or age, among its inputs. This meets the unawareness criterion, under which an algorithm counts as fair so long as it does not explicitly use a protected attribute, and it rules out direct discrimination on those attributes. It does not make outcomes fair. Other features can act as proxies, meaning they correlate with a removed attribute and let the model reconstruct it, for example a postcode standing in for ethnicity. For that reason the technique is best seen as the simplest baseline, to be combined with methods that look at outcomes.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -2533,8 +2529,6 @@
         "data-requirements/access-to-training-data",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/sensitive-attributes",
         "data-type/tabular",
         "evidence-type/quantitative-metric",
@@ -2547,37 +2541,30 @@
       ],
       "example_use_cases": [
         {
-          "description": "Removing gender, race, and age attributes from hiring algorithms to prevent direct discrimination, whilst acknowledging that indirect bias may persist through correlated features like education institution or postal code.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A recruitment agency's data team builds a CV-ranking model for graduate roles and leaves gender, ethnicity and age out of its inputs, so that shortlisting cannot use them directly. It records that education institution and postcode may still carry some of that information and treats this as an open risk, to be handled with other methods."
         },
         {
-          "description": "Excluding protected demographic attributes from credit scoring models to comply with fair lending regulations, ensuring no explicit consideration of race, gender, or ethnicity in loan approval decisions.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A bank's credit-risk team removes sex and ethnicity from the inputs to a loan-approval model so that its decisions cannot use them directly, as its lending policy requires. It keeps the two fields in a separate monitoring table, so approval rates can still be compared across groups after launch."
         },
         {
-          "description": "Building medical diagnosis models that exclude patient race and ethnicity to prevent biased treatment recommendations, whilst ensuring clinical decisions are based solely on medical indicators and symptoms.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Creating transparent regulatory reporting systems that demonstrate compliance by explicitly documenting which protected attributes have been excluded from decision-making algorithms, providing clear audit trails for regulatory review.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A health-system analytics team builds a postpartum depression risk model from insurance claims and first tries leaving race out of the inputs. It then measures disparate impact between Black and White patients and compares the result with other bias-reduction methods on the same data, to decide whether removal is enough."
         }
       ],
       "limitations": [
         {
-          "description": "Proxy discrimination remains a major concern as seemingly neutral features (education, postal code, previous employment) may strongly correlate with protected attributes, perpetuating indirect bias."
+          "description": "Proxy features keep the removed attribute's influence in the model. Postcode, school or employment history can predict race, sex or age closely enough for the model to reproduce group differences without seeing the attribute. In a published comparison on Medicaid postpartum depression data, removing race left disparate impact at about 0.6 (1 is parity), less effective than the other methods compared."
         },
         {
-          "description": "Intersectional bias cannot be addressed through simple attribute removal, as complex interactions between multiple demographic characteristics may create compounding discrimination effects."
+          "description": "Proxies cannot be found by inspecting the feature list, because group membership can be spread across many features, and checking outcomes by group needs the very attributes that were removed. A team that deletes the column outright loses the ability to see whether the problem remains."
         },
         {
-          "description": "Legal and regulatory compliance may be insufficient, as many jurisdictions require demonstrating disparate impact absence rather than simply removing protected attributes from models."
+          "description": "Removal alone is weak compliance evidence. Regulators that test for disparate impact or indirect discrimination look at outcomes, not inputs, so a model that never saw the attribute can still fail the test."
         },
         {
-          "description": "Identifying all potential proxy variables is practically impossible, especially with high-dimensional data where subtle correlations with protected attributes may exist in unexpected features."
-        },
-        {
-          "description": "Performance degradation may occur if removed attributes contain legitimate predictive information, creating tension between fairness objectives and model accuracy requirements."
+          "description": "Removal can hurt the group it is meant to protect. Where the link between features and outcomes differs by group, dropping the attribute can raise error for the group concerned. Kusner et al. give a case where an 'unaware' predictor perpetuates unfairness, and Dwork et al. note that errors can come from ignoring group membership."
         }
       ],
       "resources": [
@@ -2647,19 +2634,14 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The recruitment algorithm documents which protected attributes have been excluded from candidate evaluation to ensure regulatory compliance",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic system bases treatment recommendations solely on clinical indicators without incorporating patient race or ethnicity",
+          "text": "The diagnostic risk model takes no race or ethnicity field as input, as confirmed from its documented feature list, and any remaining group differences in its outputs are assessed separately.",
           "domain": "healthcare",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "All decision-making processes are auditable to verify that legally protected characteristics are not used as input features",
+          "text": "The eligibility-scoring model used by the benefits agency has no input field for age, sex or ethnicity, as confirmed from its documented feature list.",
           "domain": "public sector",
-          "assuranceGoal": "transparency"
+          "assuranceGoal": "fairness"
         }
       ]
     },

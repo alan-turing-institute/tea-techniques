@@ -7750,7 +7750,7 @@
     {
       "slug": "fairness-gan",
       "name": "Fairness GAN",
-      "description": "A data generation technique that employs Generative Adversarial Networks (GANs) to create fair synthetic datasets by learning to generate data representations that preserve utility whilst obfuscating protected attributes. Unlike traditional GANs, Fairness GANs incorporate fairness constraints into the training objective, ensuring that the generated data maintains statistical parity across demographic groups. The technique can be used for data augmentation to balance underrepresented groups or to create privacy-preserving synthetic datasets that remove demographic bias from training data.",
+      "description": "Fairness GAN is a pre-processing method that generates a synthetic training dataset in which decisions no longer track a protected attribute such as gender or skin tone. A generative adversarial network (GAN) is a pair of networks trained against each other, one producing fake examples and one trying to tell them from real ones. Here the generator is conditioned on the protected attribute and produces both an example and its decision label, such as hired or rejected (images in the original work, table rows in Xu et al.'s separate FairGAN). An extra network tries to predict the protected attribute from the generated output, and the generator is rewarded for defeating it, so favourable decisions become more similar across groups. The user can aim for demographic parity, meaning equal rates of favourable decisions, or for equality of opportunity, which applies the constraint only to favourable decisions.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -7778,25 +7778,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Generating balanced synthetic datasets for medical research by creating additional samples from underrepresented demographic groups, ensuring equal representation across ethnicity and gender whilst maintaining the statistical properties needed for robust model training.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A recruitment technology team holds interview-video stills labelled with past shortlisting decisions that favoured one gender. It trains a Fairness GAN to generate a synthetic image set whose shortlisting labels are similar for women and men, trains the screening model on that set, and compares shortlisting rates by gender on held-out real images before deployment."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A lender's data science team has ten years of loan decisions in which women were approved less often than men on similar incomes. It trains a tabular FairGAN-style generator to produce a synthetic dataset, confirms that the gap in approval rates in the synthetic data is close to zero, and trains its scoring model on that data, testing accuracy and approval rates on real held-out applications."
         }
       ],
       "limitations": [
         {
-          "description": "GAN training is notoriously difficult to stabilise, with potential for mode collapse or failure to converge, especially when additional fairness constraints are imposed."
+          "description": "GAN training is unstable and the fairness loss adds a further pull on the generator. The original authors used spectral normalisation, softened outcome values and added noise to keep training stable, and results still varied across datasets. Expect tuning effort and repeated runs."
         },
         {
-          "description": "Ensuring fairness in generated data may come at the cost of data utility, potentially reducing the quality or realism of synthetic samples."
+          "description": "Fairness and accuracy trade off, and the gain is uneven. In the original experiments a classifier trained on debiased CelebA data went from about 20 to about 29 per cent error. Demographic parity improved on three of four datasets but not on Quick, Draw!, and the demographic-parity version made equality of opportunity worse on the soccer data."
         },
         {
-          "description": "Requires large datasets to train both generator and discriminator networks effectively, limiting applicability in data-scarce domains."
+          "description": "It needs a lot of data. The authors had only 1,501 labelled soccer images, so they borrowed more than 200,000 unlabelled CelebA faces to help the generator, which is possible only when a large related set exists."
         },
         {
-          "description": "Evaluation complexity is high, as it requires assessing both the quality of generated data and the preservation of fairness properties across demographic groups."
+          "description": "The original method covers a narrow setting: image inputs, one binary protected attribute and a binary outcome, with demographic parity or equality of opportunity but not equalised odds. Continuous protected attributes and non-image data are left as future work, and tabular versions such as FairGAN are separate methods with their own evidence."
         },
         {
-          "description": "May inadvertently introduce new biases if the fairness constraints are not properly specified or if the training data itself contains subtle biases."
+          "description": "Fairness is judged by training a classifier on the synthetic data and testing it on real data, and image quality is judged mainly by inspecting average faces. The authors report that debiasing visibly changes images in stereotyped ways, such as male faces taking on features coded as feminine, so the synthetic data need checking for distortions that the classifier test would miss."
         }
       ],
       "resources": [
@@ -7875,17 +7879,17 @@
       ],
       "sample_claims": [
         {
-          "text": "The training dataset maintains balanced representation across demographic groups without compromising the statistical properties needed for model generalization",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The generated dataset exhibits statistical parity across protected attributes without relying on direct attribute removal",
+          "text": "In the synthetic training set generated for the screening model, the rate of favourable shortlisting decisions for women and men differs by less than the tolerance set in the project's fairness requirement.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The recommendation system's training data contains equitable representation of user demographics through controlled synthetic augmentation",
+          "text": "A credit scoring model trained on the synthetic loan data shows a smaller gap in approval rates between women and men, on held-out real applications, than a model trained on the original data.",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The synthetic data remain close enough to the original for the model's purpose: the accuracy cost of training on them, compared with the original data, was measured and judged acceptable.",
           "domain": "general",
           "assuranceGoal": "fairness"
         }
@@ -7894,10 +7898,9 @@
     {
       "slug": "relabelling",
       "name": "Relabelling",
-      "description": "A preprocessing fairness technique that modifies class labels in training data to achieve equal positive outcome rates across protected groups. Also known as 'data massaging', this method identifies instances that contribute to discriminatory patterns and flips their labels (from positive to negative or vice versa) to balance the proportion of positive outcomes between demographic groups. The technique aims to remove historical bias from training data whilst preserving the overall class distribution, enabling standard classifiers to learn from discrimination-free datasets.",
+      "description": "Relabelling, also called data massaging, is a pre-processing method proposed by Kamiran and Calders. It changes some of the outcome labels in a training set so that a protected group and everyone else have the same rate of positive outcomes, such as being hired or approved. A ranking model first scores each example by how likely it is to be positive. The method then promotes the highest-scoring negative examples from the disadvantaged group to positive and demotes the lowest-scoring positive examples from the favoured group to negative, in equal numbers. Because the examples closest to the decision boundary change first and the numbers are equal, the overall share of positive labels stays the same and the number of changes is as small as it can be.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -7906,8 +7909,6 @@
         "data-requirements/access-to-training-data",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
         "data-type/any",
@@ -7920,29 +7921,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Preprocessing historical hiring datasets by relabelling borderline cases to ensure equal hiring rates across gender and ethnicity groups, correcting for past discriminatory practices whilst maintaining overall qualification standards for fair recruitment model training.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A public-sector recruiter's ten years of shortlisting records show women shortlisted less often than men with comparable applications. Before training a screening model, the data team flips the labels of the rejected women a ranking model scores highest and the shortlisted men it scores lowest, in equal numbers, until shortlisting rates match and the overall shortlisting rate is unchanged."
         },
         {
-          "description": "Creating transparent credit scoring datasets by documenting which loan applications had labels modified to address historical lending discrimination, providing clear audit trails showing how training data bias was systematically corrected before model development.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A building society finds that past loan decisions approved applicants from one ethnic minority far less often than others with similar finances, and suspects the gap reflects past discretion rather than risk. It flips borderline decisions in both directions, keeping the overall approval rate fixed, and trains its scoring model on the corrected labels while keeping the original labels in a separate file."
         }
       ],
       "limitations": [
         {
-          "description": "Altering training labels risks introducing new biases or artificial patterns that may not reflect genuine relationships in the data."
+          "description": "It assumes the whole gap in positive rates between groups is discrimination. The number of labels changed is set to bring the gap to zero, even where part of the gap has a legitimate explanation, and the original authors note that such constraints are often too strong."
         },
         {
-          "description": "Deciding which instances to relabel requires careful selection criteria and domain expertise to avoid inappropriate label changes."
+          "description": "It rewrites the record of what happened. The flipped labels no longer match the real decisions or outcomes, so it suits labels that record biased past decisions and is dangerous where labels are measured facts, such as a confirmed diagnosis or a repayment. The authors call the approach intrusive."
         },
         {
-          "description": "May reduce prediction accuracy if too many labels are changed, particularly when the modifications conflict with genuine patterns in the data."
+          "description": "Which records are flipped depends on a ranking model trained on the same biased data. A poor ranker flips the wrong people, and in the original experiments the discrimination and accuracy of the final classifier varied with the learner trained afterwards."
         },
         {
-          "description": "Requires access to ground truth or expert knowledge to determine whether original labels reflect genuine outcomes or discriminatory bias."
+          "description": "It handles one binary protected attribute and a binary outcome. Gender and ethnicity together, or a numeric attribute such as income, are not covered, so correcting one attribute can leave intersectional gaps."
         },
         {
-          "description": "Effectiveness depends on accurate identification of discriminatory instances, which can be challenging when bias patterns are subtle or complex."
+          "description": "Accuracy falls as discrimination falls, and the authors prove the trade-off cannot be avoided. Discrimination is removed from the training data, but a model trained on it can still show some on new data."
         }
       ],
       "resources": [
@@ -7988,34 +7989,28 @@
       ],
       "sample_claims": [
         {
-          "text": "The hiring system's training data has been corrected to achieve equal qualification acceptance rates across demographic groups through systematic label modification",
+          "text": "In the corrected training set the share of positive labels is the same for women and men, and the overall share of positive labels is unchanged from the original data.",
           "domain": "public sector",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The training dataset documents which diagnostic labels were modified to correct for historical treatment bias in underrepresented patient populations",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The model was trained on corrected labels that remove discriminatory patterns from historical outcomes without altering the underlying feature distributions",
+          "text": "Only borderline cases, the examples nearest the ranking model's decision boundary, had their labels changed, in equal numbers in each direction, and no feature values were altered.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The preprocessing pipeline identifies and flips classification labels for borderline cases to balance positive outcome rates across protected groups before model training",
-          "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "The lending model trained on the corrected labels shows a smaller gap in approval rates between age groups on held-out data than a model trained on the original labels.",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         }
       ]
     },
     {
       "slug": "preferential-sampling",
       "name": "Preferential Sampling",
-      "description": "A preprocessing fairness technique developed by Kamiran and Calders that addresses dataset imbalances by re-sampling training data with preference for underrepresented groups to achieve discrimination-free classification. This method modifies the training distribution by prioritising borderline objects (instances near decision boundaries) from underrepresented groups for duplication whilst potentially removing instances from overrepresented groups. Unlike relabelling approaches, preferential sampling maintains original class labels whilst creating a more balanced dataset that prevents models from learning biased patterns due to skewed group representation.",
+      "description": "Preferential Sampling is a pre-processing method, proposed by Kamiran and Calders, that rebalances a training set so that a protected group and everyone else have the same rate of positive outcomes, such as being hired or approved. A ranking model first scores every example by how likely it is to have a positive label. The method then compares the size of each group-and-outcome combination with the size it would have if group and outcome were unrelated. It adds copies of positive examples from the disadvantaged group and negative examples from the favoured group, and removes negative examples from the disadvantaged group and positive examples from the favoured group, always starting with those closest to the decision boundary. Labels are never changed, so a standard classifier can learn from the rebalanced set.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -8024,8 +8019,6 @@
         "data-requirements/access-to-training-data",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/pre-processing",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
         "data-type/any",
@@ -8038,29 +8031,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Preprocessing hiring datasets by preferentially sampling candidates from underrepresented gender and ethnic groups, particularly focusing on borderline cases near decision boundaries, to ensure fair representation whilst maintaining original qualifications and labels for unbiased recruitment model training.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A graduate recruiter's historical shortlisting data shows women were shortlisted less often than men with similar scores. The team trains a ranking model, then copies the shortlisted women and rejected men closest to the decision boundary and removes the rejected women and shortlisted men closest to it, until the shortlisting rates match. No label is changed, and the production model is trained on the resampled set."
         },
         {
-          "description": "Creating transparent credit scoring datasets by documenting and adjusting the sampling process to ensure equal representation across demographic groups, providing clear evidence to regulators that training data imbalances have been addressed without altering original creditworthiness labels.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A bank training a loan-approval model on ten years of decisions finds that applicants under 25 were approved far less often than older applicants. Compliance wants the recorded decisions left untouched, so the model team resamples the training set until approval rates match across age groups and keeps the original labels as the record of what was decided."
         }
       ],
       "limitations": [
         {
-          "description": "Oversampling minority groups can cause overfitting to duplicated examples, particularly when borderline instances are repeatedly sampled, potentially reducing model generalisation."
+          "description": "Duplicating examples invites overfitting, and removing them discards information. The method copies the same borderline examples and drops others, so a model may memorise duplicates or lose cases it needed, which matters most when the training set is small or many changes are needed."
         },
         {
-          "description": "Undersampling majority groups may remove important examples that contain valuable information, potentially degrading overall model performance."
+          "description": "It assumes the whole gap in positive rates between groups is discrimination. It resamples until outcome and group are unrelated, even where part of the gap has a legitimate explanation such as differing experience, and the original authors note that this constraint is often too strong."
         },
         {
-          "description": "Does not address inherent algorithmic bias in the learning process itself, only correcting for representation imbalances in the training data."
+          "description": "The result depends on a ranking model learned from the same biased data. The ranker decides which examples count as borderline, so a weak or biased ranker copies and removes the wrong ones, and in the original experiments the method worked best with unstable learners such as decision trees."
         },
         {
-          "description": "Selection of borderline objects requires careful threshold tuning and may be sensitive to the choice of distance metrics or similarity measures used."
+          "description": "It handles one binary protected attribute and a binary outcome. Gender and ethnicity together are not covered, so resampling for one attribute can leave intersectional groups unbalanced, and the authors call multiple combined attributes a harder open problem."
         },
         {
-          "description": "May not address intersectional fairness issues when multiple protected attributes create complex group combinations that require nuanced sampling strategies."
+          "description": "Fairness is achieved on the training data, not guaranteed on new data. In the original Census Income experiment with decision trees, discrimination fell from about 16 to about 3 per cent, not to zero, and the protected attribute must be recorded for every training example."
         }
       ],
       "resources": [
@@ -8119,17 +8112,17 @@
       ],
       "sample_claims": [
         {
-          "text": "The training dataset achieves balanced representation across demographic groups without altering original qualification labels or outcome classifications",
+          "text": "In the resampled training set the rate of positive outcomes is the same for women and men, and no recorded label was changed.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The recruitment model's training data composition is documented showing which candidate groups were preferentially sampled to address historical representation imbalances",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
+          "text": "The resampled loan-decision training set shows no gap in approval rates between applicants under and over 25, measured on the training data before any model was fitted.",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         },
         {
-          "text": "The classification system's training data includes proportionate representation of borderline cases from all protected groups",
+          "text": "Only a small share of the training examples were duplicated or removed, and each was chosen because it lay close to the ranking model's decision boundary.",
           "domain": "general",
           "assuranceGoal": "fairness"
         }
@@ -8484,24 +8477,18 @@
     {
       "slug": "multi-accuracy-boosting",
       "name": "Multi-Accuracy Boosting",
-      "description": "An in-processing fairness technique that employs boosting algorithms to improve accuracy uniformly across demographic groups by iteratively correcting errors where the model performs poorly for certain subgroups. The method uses a multi-calibration approach that trains weak learners to focus on prediction errors for underperforming groups, ensuring that no group experiences systematically worse accuracy. This iterative boosting process continues until accuracy parity is achieved across all groups whilst maintaining overall model performance.",
+      "description": "Multi-accuracy boosting is a post-processing method that corrects a trained classifier's systematic errors on subgroups of people, without retraining it. It needs only the classifier's predictions and a small labelled validation set. An auditor, usually a simple model such as a ridge regression or a shallow decision tree, learns to predict where the classifier's predictions are consistently too high or too low, which finds overlapping subgroups without anyone naming them in advance. Each round fits a small correction for the worst subgroup, as in boosting, and the loop stops when the auditor can find no subgroup whose average error exceeds a chosen tolerance. The result is multi-accuracy, meaning unbiased predictions on every subgroup the auditor can identify, which is not the same as equal accuracy across groups, and the audit itself reports where the original model failed.",
       "assurance_goals": [
-        "Fairness",
-        "Reliability",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/ensemble",
         "applicable-models/paradigm/discriminative",
         "applicable-models/paradigm/supervised",
         "data-requirements/access-to-training-data",
-        "applicable-models/requirements/white-box",
+        "applicable-models/requirements/black-box",
         "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/in-processing",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/performance-assessment",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
+        "assurance-goal-category/fairness/post-processing",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
         "data-type/any",
@@ -8514,33 +8501,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Training a medical diagnosis model that achieves equal accuracy across age, gender, and ethnicity groups by using boosting to specifically target prediction errors for underrepresented patient demographics, ensuring equitable healthcare outcomes for all populations.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A hospital buys a black-box diagnostic model it cannot retrain. Its data team holds a small labelled sample of local patients and runs the audit, which finds that predictions are systematically too low for older women. The team post-processes the model until no subgroup the auditor can find exceeds the agreed error tolerance, then checks that groups the model already served well did not get worse."
         },
         {
-          "description": "Building a robust fraud detection system that maintains consistent accuracy across different customer segments by iteratively correcting errors where the model performs poorly for specific demographic or geographic groups, ensuring reliable fraud prevention across all user types.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Developing a transparent hiring algorithm that provides clear evidence of equal performance across candidate demographics by using multi-accuracy boosting to systematically address group-specific prediction errors, enabling auditable fair recruitment processes.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A lender uses a vendor's credit-risk model, and its data holds no sensitive attributes. A risk analyst audits the model on a labelled sample of recent applications with a decision-tree auditor, which finds subgroups defined by ordinary features where the errors concentrate. The correction is applied until those subgroups' average error falls within tolerance."
         }
       ],
       "limitations": [
         {
-          "description": "Requires identifying and defining relevant subgroups or error regions, which may be challenging when group boundaries are unclear or overlapping."
+          "description": "The guarantee covers only subgroups the auditor can identify from the features. If a group's errors follow a pattern too complex for the auditor, or the features carry little trace of group membership, the audit will pass the model while that group is still poorly served."
         },
         {
-          "description": "Could increase model complexity significantly as the boosting process adds multiple weak learners, potentially affecting interpretability and computational efficiency."
+          "description": "Multi-accuracy bounds the average prediction error within each identified subgroup. It does not equalise error rates, so large gaps can remain. In the original paper's face-image test, error after correction was still 12.5% for dark-skinned women against 1.0% for light-skinned women."
         },
         {
-          "description": "May overfit to training data if very granular corrections are made, particularly when subgroups are small or the boosting process continues for too many iterations."
+          "description": "It needs a labelled validation sample that represents the population and is large enough for the groups of concern. The guarantee for a subgroup weakens as the subgroup's share of the sample shrinks, so rare groups are protected least."
         },
         {
-          "description": "Performance depends on the quality of subgroup identification, and may fail to achieve fairness if important demographic intersections are not properly captured."
+          "description": "Corrections are fitted on the small audit sample, so too many rounds or an over-flexible auditor will start fitting noise and can make performance worse on new data. The mcboost documentation says its calibration 'tends to overfit' and suggests a smaller step size or fewer iterations."
         },
         {
-          "description": "Convergence to equal accuracy across groups is not guaranteed, especially when there are fundamental differences in data distributions between groups."
+          "description": "The method corrects errors against the labels in the audit sample, so it cannot repair bias already built into those labels, such as past decisions recorded as outcomes. A fairer-looking score then still reproduces the earlier pattern."
         }
       ],
       "resources": [
@@ -8624,36 +8607,26 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical diagnosis system maintains equivalent prediction accuracy across patient age, gender, and ethnicity groups",
+          "text": "After post-processing, the diagnostic model's average prediction error on every patient subgroup the auditor can identify, including older women, is within the agreed tolerance on held-out data.",
           "domain": "healthcare",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The fraud detection model achieves consistent error rates across customer demographics without systematic underperformance for any group",
+          "text": "Post-processing did not raise the credit-risk model's error rate for any audited subgroup by more than the stated margin, so the correction did not trade one group's accuracy for another's.",
           "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The hiring algorithm demonstrates measurable accuracy parity across protected demographic categories with documented performance metrics for each group",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The environmental risk assessment model produces equally accurate predictions across geographic regions and socioeconomic communities",
-          "domain": "environmental",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The loan approval system maintains uniform prediction quality across applicant demographics without disproportionate errors for minority groups",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
+          "text": "The model passes a multi-accuracy audit at the stated tolerance, using a decision-tree auditor on a validation sample of the stated size, with no identifiable subgroup above the tolerance.",
+          "domain": "general",
+          "assuranceGoal": "fairness"
         }
       ]
     },
     {
       "slug": "threshold-optimiser",
       "name": "Threshold Optimiser",
-      "description": "Threshold Optimiser is a post-processing method, introduced by Hardt, Price and Srebro (2016), that makes an already-trained classifier's decisions meet a group fairness criterion without retraining it, most often equalised odds (equal true positive and false positive rates across groups) or equal opportunity (equal true positive rates only). Using a labelled validation set that records each person's group, it traces each group's ROC curve (the true and false positive rates obtained at every possible cut-off on the model's score) and chooses a separate cut-off for each group that maximises accuracy, or another chosen objective, subject to the criterion. When no single cut-off per group meets the criterion exactly, as is usual for equalised odds, each group's decision is randomised between two cut-offs with fixed probabilities. If the model returns only yes/no predictions rather than scores, the same method reduces to a small linear optimisation that sets, for each group and predicted label, the probability of flipping the prediction. The output is a group-aware decision rule that needs each person's group at prediction time; Fairlearn's ThresholdOptimizer implements the score-based form (and can also equalise selection rates), and AIF360's EqOddsPostprocessing implements the label-flipping form.",
+      "description": "Threshold Optimiser is a post-processing method, introduced by Hardt, Price and Srebro (2016), that adjusts a trained classifier's decisions to meet a group fairness criterion without retraining it, most often equalised odds (equal true positive and false positive rates in every group) or equal opportunity (equal true positive rates only). It uses a labelled validation set that records each person's group, and traces each group's ROC curve, which shows the true and false positive rates the model's score gives at every possible cut-off. It then chooses a separate cut-off for each group that keeps accuracy, or another chosen objective, as high as the criterion allows. Equalised odds usually cannot be met with one cut-off per group, so each group's decision is randomised between two cut-offs with fixed probabilities. The output is a rule that needs each person's group at prediction time, and if the model gives only yes/no predictions, a small linear optimisation sets the probability of flipping each prediction instead.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -8709,7 +8682,7 @@
           "description": "Cut-offs are estimated from a finite labelled sample in which group membership is known, and the original analysis sets sampling error aside. Small groups give unstable cut-offs, and rates equalised on the validation set drift when the population or the model's score distribution changes, so the cut-offs must be re-estimated and the equalised rates monitored after deployment."
         },
         {
-          "description": "Equalised odds generally conflicts with calibration within groups: Pleiss et al. (2017) show calibration is compatible with at most one equal-error-rate constraint, and Hardt et al. note that equalised odds may compromise other desirable properties of a score. A team that must show both equal error rates and calibrated risk for each group cannot obtain both from this method and may have to settle for equal opportunity alone."
+          "description": "Equalised odds generally conflicts with calibration within groups: Pleiss et al. (2017) show that when groups have different base rates and the predictor is imperfect, calibration is compatible with at most one equal-error-rate constraint. A team that must show both equal error rates and calibrated risk for each group cannot obtain both from this method, and relaxing to equal opportunity does not by itself keep the original score calibrated."
         }
       ],
       "resources": [
@@ -8813,7 +8786,7 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The fairness adjustment to the CV-scoring model was applied after training, leaving the trained model unchanged, and its cost in accuracy was measured and reported to the selection panel.",
+          "text": "On held-out candidates, the CV-scoring model's true positive rate, meaning the share of candidates who later perform well who are shortlisted, differs across groups by less than the agreed tolerance, with the accuracy cost of the adjustment reported to the selection panel.",
           "domain": "general",
           "assuranceGoal": "fairness"
         }
@@ -8822,11 +8795,9 @@
     {
       "slug": "reject-option-classification",
       "name": "Reject Option Classification",
-      "description": "A post-processing fairness technique that modifies predictions in regions of high uncertainty to favour disadvantaged groups and achieve fairness objectives. The method identifies a 'rejection region' where the model's confidence is low (typically near the decision boundary) and reassigns predictions within this region to benefit underrepresented groups. By leveraging model uncertainty, this approach can improve fairness metrics like demographic parity or equalised odds whilst minimising changes to confident predictions, thus preserving overall accuracy for cases where the model is certain.",
+      "description": "Reject Option Classification is a post-processing method, proposed by Kamiran and colleagues (2012), that changes some of a trained classifier's decisions to reduce unfair outcomes between groups, without retraining it. It defines a 'critical region' around the decision boundary, where the predicted probability is close to 50 per cent and the model is least sure. Inside that region it gives the favourable outcome to people from the disadvantaged group and the unfavourable outcome to people from the advantaged group, whatever the model predicted, and decisions outside it are left alone. The width of the region is searched on a labelled validation set, so that a chosen fairness measure, such as statistical parity difference or equal opportunity difference, falls within a set bound while accuracy stays as high as possible. The method needs each person's group at prediction time.",
       "assurance_goals": [
-        "Fairness",
-        "Reliability",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -8835,10 +8806,6 @@
         "applicable-models/requirements/probabilistic-output",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/post-processing",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/uncertainty-quantification",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/audit-trail",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
         "data-type/any",
@@ -8850,33 +8817,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Adjusting hiring algorithm predictions in the uncertainty region where candidate scores are close to the threshold, reassigning borderline cases to ensure equal selection rates across gender and ethnicity groups whilst maintaining decisions for clearly qualified or unqualified candidates.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A graduate recruiter's data team has a CV-scoring model whose scores near the shortlisting cut-off are the least certain. Using a labelled validation set, it searches for the narrowest band around that cut-off that brings the difference in shortlisting rates between men and women within five percentage points, and reports how many candidates' outcomes the band changes."
         },
         {
-          "description": "Improving reliability of loan approval systems by identifying applications where the model is uncertain and adjusting these edge cases to ensure consistent approval rates across demographic groups, reducing the risk of systematic discrimination in borderline creditworthiness assessments.",
-          "goal": "Reliability"
+          "goal": "Fairness",
+          "description": "A hospital data science team tests the method on an unplanned-readmission alert model to narrow the gap in missed-readmission rates between insurance groups. It adopts the change only if the gap falls below five percentage points while accuracy drops by under 10 per cent and alert volume changes by under 20 per cent, and drops the method if any limit is missed."
         },
         {
-          "description": "Creating transparent bail decision systems that clearly document which predictions fall within the rejection region and how adjustments are made, providing courts with explainable fairness interventions that show exactly when and why decisions were modified for equity.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A court service reviewing a pre-trial risk score applies the method with race as the group attribute, so that defendants whose scores sit close to the high-risk cut-off are not decided by small score differences that may reflect the model's bias. The service reports to its oversight body how many decisions the band changes, in which direction, and what it costs in accuracy."
         }
       ],
       "limitations": [
         {
-          "description": "Requires models that provide reliable uncertainty estimates or probability scores, limiting applicability to deterministic classifiers without confidence outputs."
+          "description": "Needs a model that outputs scores, because the critical region is defined on them, so a model that outputs only yes/no labels cannot be used. The scores need not be calibrated probabilities, but if they are poorly calibrated or bunched together, the wrong people fall inside the region."
         },
         {
-          "description": "Selection of the rejection region threshold is subjective and requires careful tuning to balance fairness improvements with accuracy preservation."
+          "description": "Inside the region the outcome is set by group membership, so the method needs each person's group at decision time and treats people differently by group. This may be unlawful or unacceptable in some settings, such as hiring or lending, and the group attribute must be available when decisions are made."
         },
         {
-          "description": "May reject too many instances if tuned conservatively, potentially affecting a large portion of predictions and reducing the model's practical utility."
+          "description": "A person from the advantaged group with a borderline score receives the unfavourable outcome, and one from the other group the favourable outcome, whatever their individual merit. A wider band closes more of the fairness gap but sets more decisions by group instead of by score, so accuracy falls as the band widens."
         },
         {
-          "description": "Cannot address bias in confident predictions outside the rejection region, limiting effectiveness when discrimination occurs in high-certainty cases."
+          "description": "Cannot address bias in confident predictions outside the region. The method assumes discrimination is concentrated near the decision boundary, so where a model is confidently wrong about one group, the adjustment leaves those decisions as they are."
         },
         {
-          "description": "Performance depends on the quality of uncertainty estimates, which may be poorly calibrated in some models, leading to inappropriate rejection regions."
+          "description": "The band is chosen by grid search on a labelled validation set against a fairness bound (the AIF360 default is plus or minus 0.05). A small or unrepresentative validation set gives an unreliable band, and if no setting meets the bound the search returns a fallback that may not be acceptable."
         }
       ],
       "resources": [
@@ -8969,29 +8936,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The hiring system's selection decisions in uncertain candidate evaluations are adjusted to ensure equal opportunity across demographic groups",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The credit assessment model's predictions in borderline creditworthiness cases achieve equitable approval rates without modifying high-confidence decisions",
+          "text": "On a held-out validation sample, the gap in approval rates between men and women is within the agreed bound after the critical-region adjustment, and the share of decisions the adjustment changed is reported.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The diagnostic system's uncertain classifications maintain consistent accuracy across patient populations through targeted fairness adjustments",
+          "text": "Every shortlisting decision outside the critical region is the unmodified model decision. Only borderline candidates have outcomes set by group, and the share of candidates affected is reported.",
+          "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "After adjustment, the readmission alert model's missed-readmission rates differ by less than five percentage points between insurance groups, with accuracy and alert volume inside the limits agreed with clinicians.",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "fairness"
         },
         {
-          "text": "The bail decision system documents which predictions fall within the uncertainty region and the rationale for fairness-motivated reassignments",
+          "text": "The pre-trial risk tool's equal opportunity difference between racial groups is inside the stated bound on held-out cases, with the number of changed decisions reported to the oversight body.",
           "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The autonomous vehicle's object classification remains reliable across lighting conditions through uncertainty-aware decision adjustments that compensate for perceptual limitations in edge cases",
-          "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "fairness"
         }
       ]
     },

@@ -1,10 +1,9 @@
 {
   "slug": "preferential-sampling",
   "name": "Preferential Sampling",
-  "description": "A preprocessing fairness technique developed by Kamiran and Calders that addresses dataset imbalances by re-sampling training data with preference for underrepresented groups to achieve discrimination-free classification. This method modifies the training distribution by prioritising borderline objects (instances near decision boundaries) from underrepresented groups for duplication whilst potentially removing instances from overrepresented groups. Unlike relabelling approaches, preferential sampling maintains original class labels whilst creating a more balanced dataset that prevents models from learning biased patterns due to skewed group representation.",
+  "description": "Preferential Sampling is a pre-processing method, proposed by Kamiran and Calders, that rebalances a training set so that a protected group and everyone else have the same rate of positive outcomes, such as being hired or approved. A ranking model first scores every example by how likely it is to have a positive label. The method then compares the size of each group-and-outcome combination with the size it would have if group and outcome were unrelated. It adds copies of positive examples from the disadvantaged group and negative examples from the favoured group, and removes negative examples from the disadvantaged group and positive examples from the favoured group, always starting with those closest to the decision boundary. Labels are never changed, so a standard classifier can learn from the rebalanced set.",
   "assurance_goals": [
-    "Fairness",
-    "Transparency"
+    "Fairness"
   ],
   "tags": [
     "applicable-models/architecture/model-agnostic",
@@ -13,8 +12,6 @@
     "data-requirements/access-to-training-data",
     "assurance-goal-category/fairness",
     "assurance-goal-category/fairness/pre-processing",
-    "assurance-goal-category/transparency",
-    "assurance-goal-category/transparency/audit-trail",
     "data-requirements/labelled-data",
     "data-requirements/sensitive-attributes",
     "data-type/any",
@@ -27,29 +24,29 @@
   ],
   "example_use_cases": [
     {
-      "description": "Preprocessing hiring datasets by preferentially sampling candidates from underrepresented gender and ethnic groups, particularly focusing on borderline cases near decision boundaries, to ensure fair representation whilst maintaining original qualifications and labels for unbiased recruitment model training.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A graduate recruiter's historical shortlisting data shows women were shortlisted less often than men with similar scores. The team trains a ranking model, then copies the shortlisted women and rejected men closest to the decision boundary and removes the rejected women and shortlisted men closest to it, until the shortlisting rates match. No label is changed, and the production model is trained on the resampled set."
     },
     {
-      "description": "Creating transparent credit scoring datasets by documenting and adjusting the sampling process to ensure equal representation across demographic groups, providing clear evidence to regulators that training data imbalances have been addressed without altering original creditworthiness labels.",
-      "goal": "Transparency"
+      "goal": "Fairness",
+      "description": "A bank training a loan-approval model on ten years of decisions finds that applicants under 25 were approved far less often than older applicants. Compliance wants the recorded decisions left untouched, so the model team resamples the training set until approval rates match across age groups and keeps the original labels as the record of what was decided."
     }
   ],
   "limitations": [
     {
-      "description": "Oversampling minority groups can cause overfitting to duplicated examples, particularly when borderline instances are repeatedly sampled, potentially reducing model generalisation."
+      "description": "Duplicating examples invites overfitting, and removing them discards information. The method copies the same borderline examples and drops others, so a model may memorise duplicates or lose cases it needed, which matters most when the training set is small or many changes are needed."
     },
     {
-      "description": "Undersampling majority groups may remove important examples that contain valuable information, potentially degrading overall model performance."
+      "description": "It assumes the whole gap in positive rates between groups is discrimination. It resamples until outcome and group are unrelated, even where part of the gap has a legitimate explanation such as differing experience, and the original authors note that this constraint is often too strong."
     },
     {
-      "description": "Does not address inherent algorithmic bias in the learning process itself, only correcting for representation imbalances in the training data."
+      "description": "The result depends on a ranking model learned from the same biased data. The ranker decides which examples count as borderline, so a weak or biased ranker copies and removes the wrong ones, and in the original experiments the method worked best with unstable learners such as decision trees."
     },
     {
-      "description": "Selection of borderline objects requires careful threshold tuning and may be sensitive to the choice of distance metrics or similarity measures used."
+      "description": "It handles one binary protected attribute and a binary outcome. Gender and ethnicity together are not covered, so resampling for one attribute can leave intersectional groups unbalanced, and the authors call multiple combined attributes a harder open problem."
     },
     {
-      "description": "May not address intersectional fairness issues when multiple protected attributes create complex group combinations that require nuanced sampling strategies."
+      "description": "Fairness is achieved on the training data, not guaranteed on new data. In the original Census Income experiment with decision trees, discrimination fell from about 16 to about 3 per cent, not to zero, and the protected attribute must be recorded for every training example."
     }
   ],
   "resources": [
@@ -108,17 +105,17 @@
   ],
   "sample_claims": [
     {
-      "text": "The training dataset achieves balanced representation across demographic groups without altering original qualification labels or outcome classifications",
+      "text": "In the resampled training set the rate of positive outcomes is the same for women and men, and no recorded label was changed.",
       "domain": "general",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The recruitment model's training data composition is documented showing which candidate groups were preferentially sampled to address historical representation imbalances",
-      "domain": "public sector",
-      "assuranceGoal": "transparency"
+      "text": "The resampled loan-decision training set shows no gap in approval rates between applicants under and over 25, measured on the training data before any model was fitted.",
+      "domain": "finance",
+      "assuranceGoal": "fairness"
     },
     {
-      "text": "The classification system's training data includes proportionate representation of borderline cases from all protected groups",
+      "text": "Only a small share of the training examples were duplicated or removed, and each was chosen because it lay close to the ranking model's decision boundary.",
       "domain": "general",
       "assuranceGoal": "fairness"
     }

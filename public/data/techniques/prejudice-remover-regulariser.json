@@ -1,7 +1,7 @@
 {
   "slug": "prejudice-remover-regulariser",
   "name": "Prejudice Remover Regulariser",
-  "description": "An in-processing fairness technique that adds a fairness penalty to machine learning models to reduce bias against protected groups. The method works by minimising 'mutual information' - essentially reducing how much the model's predictions reveal about sensitive attributes like race or gender. By adding this penalty term to the learning objective (typically in logistic regression), the technique ensures predictions become less dependent on protected features. This addresses not only direct discrimination but also indirect bias through correlated features. Practitioners can adjust a tuning parameter to balance between maintaining accuracy and removing prejudice from the model.",
+  "description": "The Prejudice Remover Regulariser, proposed by Kamishima and colleagues (2012), trains a classifier with an extra fairness penalty that discourages its predictions from carrying information about a sensitive attribute such as gender or race. The penalty approximates the 'mutual information' between the predicted label and the sensitive attribute, which measures how much knowing one tells you about the other. It is added to the usual training objective, so the model is pushed to fit the labels while keeping that dependence low. The authors built it into logistic regression and describe it as applicable to other classifiers that output probabilities. One parameter sets the penalty strength, so a practitioner can trade some accuracy for a smaller dependence on the sensitive attribute.",
   "assurance_goals": [
     "Fairness"
   ],
@@ -27,25 +27,33 @@
   ],
   "example_use_cases": [
     {
-      "description": "Training credit scoring models with prejudice remover regularisation to ensure loan approval decisions are not influenced by gender or ethnicity, minimising mutual information between predictions and protected attributes whilst maintaining accurate risk assessment.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A lender's modelling team retrains its logistic-regression credit-scoring model with the prejudice remover penalty, using applicant gender as the sensitive attribute. It tries several penalty strengths and records how far approval decisions still depend on gender and how much predictive accuracy is lost at each, so the credit committee can choose the strength it will accept."
+    },
+    {
+      "goal": "Fairness",
+      "description": "A health-system analytics team building a postpartum depression risk model on insurance claims trains it with the penalty, with race as the sensitive attribute. It compares disparate impact and equal opportunity difference with an unpenalised model on the same held-out data, to decide whether the penalised model is good enough or another bias-reduction method is needed."
+    },
+    {
+      "goal": "Fairness",
+      "description": "A university building a model to flag students for early support trains it with the penalty so that flags depend less on gender. The team reports to the student-support board how much accuracy the chosen strength costs, and how far the difference in flag rates between genders shrinks, before the model is used."
     }
   ],
   "limitations": [
     {
-      "description": "Requires careful tuning of the fairness penalty hyperparameter, where too high values severely degrade accuracy whilst too low values provide insufficient bias mitigation."
+      "description": "The penalty strength has to be tuned, and no setting is right in advance. In the original experiments on census income data, the strongest penalty tested cut the difference in positive-prediction rates between men and women from 0.19 to 0.01, but accuracy fell from about 85% to 77%. The choice is a judgement about how much accuracy to give up."
     },
     {
-      "description": "Primarily applicable to probabilistic discriminative models like logistic regression, limiting its use with other model architectures such as deep neural networks or tree-based methods."
+      "description": "The sensitive attribute is an input to the model at training and at prediction time, in the original method and in the AIF360 implementation. The technique cannot be used where the attribute is not collected or cannot be used when decisions are made."
     },
     {
-      "description": "Computational complexity increases with the calculation of mutual information between predictions and sensitive attributes, particularly for high-dimensional data."
+      "description": "The penalty measures only how much predictions depend on the sensitive attribute, not whether errors fall evenly across groups. Where groups really differ in outcome rates in the data, pushing the dependence down misclassifies some individuals to meet the target, and no equal-error-rate guarantee follows."
     },
     {
-      "description": "May not fully eliminate all forms of discrimination, particularly when complex interactions between multiple sensitive attributes create intersectional biases."
+      "description": "The original method and the AIF360 implementation cover logistic regression only. Using the penalty with a neural network or another model means deriving and implementing it yourself, and the optimisation was designed for the logistic form."
     },
     {
-      "description": "Effectiveness depends on accurate identification and inclusion of all sensitive attributes, potentially missing hidden biases from unobserved protected characteristics."
+      "description": "Reduced dependence is measured on the training sample. With little data, the model can depend on the sensitive attribute more on new cases than on the training data, which the original paper calls underestimation, so the dependence should be re-measured on held-out data."
     }
   ],
   "resources": [
@@ -143,13 +151,23 @@
   ],
   "sample_claims": [
     {
-      "text": "The model's loan approval predictions reveal minimal statistical information about applicants' protected demographic characteristics",
+      "text": "On held-out applications, the mutual information between the credit model's approval decisions and applicant gender is lower than for an otherwise identical unpenalised model, at a penalty strength chosen with its accuracy cost documented.",
       "domain": "finance",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The hiring system's candidate evaluations are statistically independent of gender and ethnicity identifiers",
+      "text": "The gap in shortlisting rates between men and women on held-out data is below the agreed tolerance, with the penalty strength and the accuracy given up at that setting reported.",
       "domain": "general",
+      "assuranceGoal": "fairness"
+    },
+    {
+      "text": "The postpartum depression risk model's disparate impact ratio between racial groups is closer to 1 than that of the unpenalised model on the same held-out data.",
+      "domain": "healthcare",
+      "assuranceGoal": "fairness"
+    },
+    {
+      "text": "The student-support flagging model's flag rates differ less between genders than those of the unpenalised baseline on held-out students, and the accuracy lost is reported to the student-support board.",
+      "domain": "education",
       "assuranceGoal": "fairness"
     }
   ]

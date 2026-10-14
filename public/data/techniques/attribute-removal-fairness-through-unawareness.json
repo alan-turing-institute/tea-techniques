@@ -1,10 +1,9 @@
 {
   "slug": "attribute-removal-fairness-through-unawareness",
   "name": "Attribute Removal (Fairness Through Unawareness)",
-  "description": "Attribute Removal (Fairness Through Unawareness) ensures fairness by completely excluding protected attributes such as race, gender, or age from the model's input features. While this approach prevents direct discrimination, it may not eliminate bias if other features are correlated with protected attributes (proxy discrimination). This technique represents the most basic fairness intervention but often needs to be combined with other approaches to address indirect bias through seemingly neutral features.",
+  "description": "Attribute removal, also called fairness through unawareness, trains and runs a model without the protected attributes, such as race, gender or age, among its inputs. This meets the unawareness criterion, under which an algorithm counts as fair so long as it does not explicitly use a protected attribute, and it rules out direct discrimination on those attributes. It does not make outcomes fair. Other features can act as proxies, meaning they correlate with a removed attribute and let the model reconstruct it, for example a postcode standing in for ethnicity. For that reason the technique is best seen as the simplest baseline, to be combined with methods that look at outcomes.",
   "assurance_goals": [
-    "Fairness",
-    "Transparency"
+    "Fairness"
   ],
   "tags": [
     "applicable-models/architecture/model-agnostic",
@@ -13,8 +12,6 @@
     "data-requirements/access-to-training-data",
     "assurance-goal-category/fairness",
     "assurance-goal-category/fairness/pre-processing",
-    "assurance-goal-category/transparency",
-    "assurance-goal-category/transparency/audit-trail",
     "data-requirements/sensitive-attributes",
     "data-type/tabular",
     "evidence-type/quantitative-metric",
@@ -27,37 +24,30 @@
   ],
   "example_use_cases": [
     {
-      "description": "Removing gender, race, and age attributes from hiring algorithms to prevent direct discrimination, whilst acknowledging that indirect bias may persist through correlated features like education institution or postal code.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A recruitment agency's data team builds a CV-ranking model for graduate roles and leaves gender, ethnicity and age out of its inputs, so that shortlisting cannot use them directly. It records that education institution and postcode may still carry some of that information and treats this as an open risk, to be handled with other methods."
     },
     {
-      "description": "Excluding protected demographic attributes from credit scoring models to comply with fair lending regulations, ensuring no explicit consideration of race, gender, or ethnicity in loan approval decisions.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A bank's credit-risk team removes sex and ethnicity from the inputs to a loan-approval model so that its decisions cannot use them directly, as its lending policy requires. It keeps the two fields in a separate monitoring table, so approval rates can still be compared across groups after launch."
     },
     {
-      "description": "Building medical diagnosis models that exclude patient race and ethnicity to prevent biased treatment recommendations, whilst ensuring clinical decisions are based solely on medical indicators and symptoms.",
-      "goal": "Fairness"
-    },
-    {
-      "description": "Creating transparent regulatory reporting systems that demonstrate compliance by explicitly documenting which protected attributes have been excluded from decision-making algorithms, providing clear audit trails for regulatory review.",
-      "goal": "Transparency"
+      "goal": "Fairness",
+      "description": "A health-system analytics team builds a postpartum depression risk model from insurance claims and first tries leaving race out of the inputs. It then measures disparate impact between Black and White patients and compares the result with other bias-reduction methods on the same data, to decide whether removal is enough."
     }
   ],
   "limitations": [
     {
-      "description": "Proxy discrimination remains a major concern as seemingly neutral features (education, postal code, previous employment) may strongly correlate with protected attributes, perpetuating indirect bias."
+      "description": "Proxy features keep the removed attribute's influence in the model. Postcode, school or employment history can predict race, sex or age closely enough for the model to reproduce group differences without seeing the attribute. In a published comparison on Medicaid postpartum depression data, removing race left disparate impact at about 0.6 (1 is parity), less effective than the other methods compared."
     },
     {
-      "description": "Intersectional bias cannot be addressed through simple attribute removal, as complex interactions between multiple demographic characteristics may create compounding discrimination effects."
+      "description": "Proxies cannot be found by inspecting the feature list, because group membership can be spread across many features, and checking outcomes by group needs the very attributes that were removed. A team that deletes the column outright loses the ability to see whether the problem remains."
     },
     {
-      "description": "Legal and regulatory compliance may be insufficient, as many jurisdictions require demonstrating disparate impact absence rather than simply removing protected attributes from models."
+      "description": "Removal alone is weak compliance evidence. Regulators that test for disparate impact or indirect discrimination look at outcomes, not inputs, so a model that never saw the attribute can still fail the test."
     },
     {
-      "description": "Identifying all potential proxy variables is practically impossible, especially with high-dimensional data where subtle correlations with protected attributes may exist in unexpected features."
-    },
-    {
-      "description": "Performance degradation may occur if removed attributes contain legitimate predictive information, creating tension between fairness objectives and model accuracy requirements."
+      "description": "Removal can hurt the group it is meant to protect. Where the link between features and outcomes differs by group, dropping the attribute can raise error for the group concerned. Kusner et al. give a case where an 'unaware' predictor perpetuates unfairness, and Dwork et al. note that errors can come from ignoring group membership."
     }
   ],
   "resources": [
@@ -127,19 +117,14 @@
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The recruitment algorithm documents which protected attributes have been excluded from candidate evaluation to ensure regulatory compliance",
-      "domain": "general",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The diagnostic system bases treatment recommendations solely on clinical indicators without incorporating patient race or ethnicity",
+      "text": "The diagnostic risk model takes no race or ethnicity field as input, as confirmed from its documented feature list, and any remaining group differences in its outputs are assessed separately.",
       "domain": "healthcare",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "All decision-making processes are auditable to verify that legally protected characteristics are not used as input features",
+      "text": "The eligibility-scoring model used by the benefits agency has no input field for age, sex or ethnicity, as confirmed from its documented feature list.",
       "domain": "public sector",
-      "assuranceGoal": "transparency"
+      "assuranceGoal": "fairness"
     }
   ]
 }

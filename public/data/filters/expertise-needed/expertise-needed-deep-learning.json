@@ -1419,7 +1419,7 @@
     {
       "slug": "fair-adversarial-networks",
       "name": "Fair Adversarial Networks",
-      "description": "Fair Adversarial Networks is a pre-processing method, proposed by Cevora (2020), that produces a de-biased copy of a dataset from which a protected characteristic such as race, sex or age can no longer be predicted, including through proxies such as postcode or occupation. It trains two neural networks against each other: an autoencoder (a network that learns to reproduce its input) rewrites each record while trying to keep it as close to the original as possible, and an adversary network tries to predict the protected characteristic from the rewritten records. The autoencoder's loss adds its reconstruction error to the adversary's predictive success, so over alternating rounds of training it learns to remove the information the adversary relies on while changing the data as little as it can. The output is the rewritten dataset, which any downstream analysis or model can use without modification, together with the evidence that a freshly trained adversary predicts the characteristic no better than always guessing the most common category.",
+      "description": "Fair Adversarial Networks is a pre-processing method, proposed by Cevora (2020), that rewrites a dataset so that a protected characteristic such as race, sex or age is hard to predict from it, including through proxies such as postcode or occupation. It trains two neural networks against each other. An autoencoder (a network that learns to reproduce its input) rewrites each record while staying as close to the original as it can, and an adversary network tries to predict the protected characteristic from the rewritten records. The autoencoder is penalised both for changing the data and for the adversary's success, so over alternating rounds of training it strips out the information the adversary relies on and changes little else. The output is the rewritten dataset, which any downstream analysis or model can use unchanged, and in the paper success means a freshly trained adversary does no better than always guessing the most common category.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -1441,27 +1441,27 @@
       ],
       "example_use_cases": [
         {
-          "description": "A probation service's analytics team wants to model reoffending from defendant records in which race is encoded indirectly, through charge descriptions and neighbourhood. It runs the records through a Fair Adversarial Network before modelling, confirms that a freshly trained classifier can no longer predict race from the transformed data better than chance, and then checks that predicted risk no longer differs by race among defendants with the same recorded outcome.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A probation service's analytics team wants to model reoffending from defendant records in which race is encoded indirectly, through charge descriptions and neighbourhood. It runs the records through a Fair Adversarial Network before modelling and confirms that a freshly trained classifier predicts race from the transformed data no better than always guessing the most common group."
         },
         {
-          "description": "An HR analytics team at a courier company building an absenteeism model removes information about employees' age group from its personnel records, including through proxies such as length of service and family circumstances, so that the standard modelling tools its analysts already use can run on the transformed data unchanged.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "An HR analytics team at a courier company building an absenteeism model removes information about employees' age group from its personnel records, including through proxies such as length of service and family circumstances, so that the standard modelling tools its analysts already use can run on the transformed data unchanged."
         },
         {
-          "description": "A local education authority allocating support funding with a model of school performance data de-biases the data with respect to each school's majority ethnic composition before modelling, and keeps the adversary's chance-level result and the reconstruction error with the funding model's documentation as evidence of what was removed and how much the data changed.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A local education authority allocating support funding with a model of school performance data de-biases the data with respect to each school's majority ethnic composition before modelling, and keeps the adversary's chance-level result and the reconstruction error with the funding model's documentation as evidence of what was removed and how much the data changed."
         }
       ],
       "limitations": [
         {
-          "description": "No public implementation exists. The paper withholds the parts that make training practical (an approximation of how well a fully trained adversary would do, a stabilising mechanism and regularisers) as its company's intellectual property, saying only that standard approaches can replicate the result on a one-off basis with heavy tuning, and the company's web tool is no longer online. Adopting the method means reimplementing it from the paper."
+          "description": "No public implementation is known. The paper withholds the parts that make training practical (an approximation of how well a fully trained adversary would do, a stabilising mechanism and regularisers) as its company's intellectual property, saying only that standard approaches can replicate the result on a one-off basis with heavy tuning, and the company's web tool is no longer online. Adopting the method means reimplementing it from the paper."
         },
         {
-          "description": "It removes every trace of the protected characteristic, including relationships that are legitimate or deliberately protective; the author notes it also removes positive discrimination. Where the characteristic carries legitimate information, such as sex in some clinical data, that information goes along with the bias, and the accuracy drops seen on the demonstration datasets cannot be split into bias removed and signal lost."
+          "description": "It removes every detectable relationship with the protected characteristic, including relationships that are legitimate or deliberately protective; the author notes it also removes positive discrimination. Where the characteristic carries legitimate information, such as sex in some clinical data, that information goes along with the bias, and the accuracy drops seen on the demonstration datasets cannot be split into bias removed and signal lost."
         },
         {
-          "description": "Success is judged against one adversary: in the paper, a single-hidden-layer network trained from three random starts. A more capable model may still recover the characteristic from the rewritten data, and the author states that residual discrimination is likely still present and was not analysed, so a chance-level adversary is weaker evidence than it appears."
+          "description": "Success is judged against one adversary: in the paper, a single-hidden-layer network trained from three random starts. A more capable model may still recover the characteristic, and the author states that residual discrimination is likely still present, so a chance-level adversary is weaker evidence than it appears. The paper reports no downstream accuracy or fairness results; the only application evidence is the same company's Rosa demonstration."
         },
         {
           "description": "Every variable in every record can be altered by the autoencoder, so the de-biased dataset no longer contains the original values. Individual records cannot be checked against source data, feature meanings drift, and any explanation of a downstream model refers to transformed features rather than to the applicant's actual postcode or income."
@@ -1509,12 +1509,12 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The personnel records used to train the absenteeism model carry no recoverable information about employees' age group, including through proxies such as length of service.",
+          "text": "The personnel records used to train the absenteeism model were rewritten so that a freshly trained classifier predicts employees' age group, including through proxies such as length of service, no better than always guessing the most common group.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The school funding model was trained on data de-biased with respect to majority ethnic composition, and its predictions no longer differ by that composition among schools with the same recorded performance.",
+          "text": "The school funding data stayed close to the original after de-biasing, with the reconstruction error recorded and judged acceptable by the analysts, while the adversary's accuracy at predicting majority ethnic composition fell to chance.",
           "domain": "public sector",
           "assuranceGoal": "fairness"
         }

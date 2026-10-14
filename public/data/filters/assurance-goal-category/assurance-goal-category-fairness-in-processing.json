@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/fairness/in-processing",
     "slug": "assurance-goal-category-fairness-in-processing",
-    "count": 7,
+    "count": 6,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -1823,7 +1823,7 @@
     {
       "slug": "prejudice-remover-regulariser",
       "name": "Prejudice Remover Regulariser",
-      "description": "An in-processing fairness technique that adds a fairness penalty to machine learning models to reduce bias against protected groups. The method works by minimising 'mutual information' - essentially reducing how much the model's predictions reveal about sensitive attributes like race or gender. By adding this penalty term to the learning objective (typically in logistic regression), the technique ensures predictions become less dependent on protected features. This addresses not only direct discrimination but also indirect bias through correlated features. Practitioners can adjust a tuning parameter to balance between maintaining accuracy and removing prejudice from the model.",
+      "description": "The Prejudice Remover Regulariser, proposed by Kamishima and colleagues (2012), trains a classifier with an extra fairness penalty that discourages its predictions from carrying information about a sensitive attribute such as gender or race. The penalty approximates the 'mutual information' between the predicted label and the sensitive attribute, which measures how much knowing one tells you about the other. It is added to the usual training objective, so the model is pushed to fit the labels while keeping that dependence low. The authors built it into logistic regression and describe it as applicable to other classifiers that output probabilities. One parameter sets the penalty strength, so a practitioner can trade some accuracy for a smaller dependence on the sensitive attribute.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -1849,25 +1849,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Training credit scoring models with prejudice remover regularisation to ensure loan approval decisions are not influenced by gender or ethnicity, minimising mutual information between predictions and protected attributes whilst maintaining accurate risk assessment.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A lender's modelling team retrains its logistic-regression credit-scoring model with the prejudice remover penalty, using applicant gender as the sensitive attribute. It tries several penalty strengths and records how far approval decisions still depend on gender and how much predictive accuracy is lost at each, so the credit committee can choose the strength it will accept."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A health-system analytics team building a postpartum depression risk model on insurance claims trains it with the penalty, with race as the sensitive attribute. It compares disparate impact and equal opportunity difference with an unpenalised model on the same held-out data, to decide whether the penalised model is good enough or another bias-reduction method is needed."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A university building a model to flag students for early support trains it with the penalty so that flags depend less on gender. The team reports to the student-support board how much accuracy the chosen strength costs, and how far the difference in flag rates between genders shrinks, before the model is used."
         }
       ],
       "limitations": [
         {
-          "description": "Requires careful tuning of the fairness penalty hyperparameter, where too high values severely degrade accuracy whilst too low values provide insufficient bias mitigation."
+          "description": "The penalty strength has to be tuned, and no setting is right in advance. In the original experiments on census income data, the strongest penalty tested cut the difference in positive-prediction rates between men and women from 0.19 to 0.01, but accuracy fell from about 85% to 77%. The choice is a judgement about how much accuracy to give up."
         },
         {
-          "description": "Primarily applicable to probabilistic discriminative models like logistic regression, limiting its use with other model architectures such as deep neural networks or tree-based methods."
+          "description": "The sensitive attribute is an input to the model at training and at prediction time, in the original method and in the AIF360 implementation. The technique cannot be used where the attribute is not collected or cannot be used when decisions are made."
         },
         {
-          "description": "Computational complexity increases with the calculation of mutual information between predictions and sensitive attributes, particularly for high-dimensional data."
+          "description": "The penalty measures only how much predictions depend on the sensitive attribute, not whether errors fall evenly across groups. Where groups really differ in outcome rates in the data, pushing the dependence down misclassifies some individuals to meet the target, and no equal-error-rate guarantee follows."
         },
         {
-          "description": "May not fully eliminate all forms of discrimination, particularly when complex interactions between multiple sensitive attributes create intersectional biases."
+          "description": "The original method and the AIF360 implementation cover logistic regression only. Using the penalty with a neural network or another model means deriving and implementing it yourself, and the optimisation was designed for the logistic form."
         },
         {
-          "description": "Effectiveness depends on accurate identification and inclusion of all sensitive attributes, potentially missing hidden biases from unobserved protected characteristics."
+          "description": "Reduced dependence is measured on the training sample. With little data, the model can depend on the sensitive attribute more on new cases than on the training data, which the original paper calls underestimation, so the dependence should be re-measured on held-out data."
         }
       ],
       "resources": [
@@ -1965,13 +1973,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's loan approval predictions reveal minimal statistical information about applicants' protected demographic characteristics",
+          "text": "On held-out applications, the mutual information between the credit model's approval decisions and applicant gender is lower than for an otherwise identical unpenalised model, at a penalty strength chosen with its accuracy cost documented.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The hiring system's candidate evaluations are statistically independent of gender and ethnicity identifiers",
+          "text": "The gap in shortlisting rates between men and women on held-out data is below the agreed tolerance, with the penalty strength and the accuracy given up at that setting reported.",
           "domain": "general",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The postpartum depression risk model's disparate impact ratio between racial groups is closer to 1 than that of the unpenalised model on the same held-out data.",
+          "domain": "healthcare",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The student-support flagging model's flag rates differ less between genders than those of the unpenalised baseline on held-out students, and the accuracy lost is reported to the student-support board.",
+          "domain": "education",
           "assuranceGoal": "fairness"
         }
       ]
@@ -2451,175 +2469,6 @@
       ]
     },
     {
-      "slug": "multi-accuracy-boosting",
-      "name": "Multi-Accuracy Boosting",
-      "description": "An in-processing fairness technique that employs boosting algorithms to improve accuracy uniformly across demographic groups by iteratively correcting errors where the model performs poorly for certain subgroups. The method uses a multi-calibration approach that trains weak learners to focus on prediction errors for underperforming groups, ensuring that no group experiences systematically worse accuracy. This iterative boosting process continues until accuracy parity is achieved across all groups whilst maintaining overall model performance.",
-      "assurance_goals": [
-        "Fairness",
-        "Reliability",
-        "Transparency"
-      ],
-      "tags": [
-        "applicable-models/architecture/ensemble",
-        "applicable-models/paradigm/discriminative",
-        "applicable-models/paradigm/supervised",
-        "data-requirements/access-to-training-data",
-        "applicable-models/requirements/white-box",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/in-processing",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/performance-assessment",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
-        "data-type/any",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-selection-and-training",
-        "technique-type/algorithmic",
-        "evidence-type/model-artefact"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Training a medical diagnosis model that achieves equal accuracy across age, gender, and ethnicity groups by using boosting to specifically target prediction errors for underrepresented patient demographics, ensuring equitable healthcare outcomes for all populations.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Building a robust fraud detection system that maintains consistent accuracy across different customer segments by iteratively correcting errors where the model performs poorly for specific demographic or geographic groups, ensuring reliable fraud prevention across all user types.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Developing a transparent hiring algorithm that provides clear evidence of equal performance across candidate demographics by using multi-accuracy boosting to systematically address group-specific prediction errors, enabling auditable fair recruitment processes.",
-          "goal": "Transparency"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Requires identifying and defining relevant subgroups or error regions, which may be challenging when group boundaries are unclear or overlapping."
-        },
-        {
-          "description": "Could increase model complexity significantly as the boosting process adds multiple weak learners, potentially affecting interpretability and computational efficiency."
-        },
-        {
-          "description": "May overfit to training data if very granular corrections are made, particularly when subgroups are small or the boosting process continues for too many iterations."
-        },
-        {
-          "description": "Performance depends on the quality of subgroup identification, and may fail to achieve fairness if important demographic intersections are not properly captured."
-        },
-        {
-          "description": "Convergence to equal accuracy across groups is not guaranteed, especially when there are fundamental differences in data distributions between groups."
-        }
-      ],
-      "resources": [
-        {
-          "title": "mcboost: Multi-Calibration Boosting for R (package documentation)",
-          "url": "https://mlr-org.github.io/mcboost/",
-          "source_type": "documentation",
-          "citationKey": "McboostMultiCalibrationBoosting",
-          "abstract": "Implements Multi-Calibration Boosting (2018) <https://proceedings.mlr.press/v80/hebert-johnson18a.html> and\n    Multi-Accuracy Boosting (2019) <arXiv:1805.12317> for the multi-calibration of a machine learning models prediction.\n    MCBoost' updates predictions for sub-groups in an iterative fashion in order to mitigate biases like poor calibration or large accuracy differences across subgroups.\n    Multi-Calibration works best in scenarios where the underlying data & labels are unbiased, but resulting models are.\n    This is often the case, e.g. when an algorithm fits a majority population while ignoring or under-fitting minority populations."
-        },
-        {
-          "title": "mcboost",
-          "url": "https://github.com/mlr-org/mcboost",
-          "source_type": "software_package",
-          "publication_date": "2020-12-28",
-          "citationKey": "mlr-orgMcboost2020",
-          "abstract": "Multi-Calibration & Multi-Accuracy Boosting for R"
-        },
-        {
-          "title": "MultiAccuracyBoost (authors' reference implementation)",
-          "url": "https://github.com/amiratag/MultiAccuracyBoost",
-          "source_type": "software_package",
-          "citationKey": "MultiAccuracyBoostAuthorsReference"
-        },
-        {
-          "title": "mcboost: Multi-Calibration Boosting for R",
-          "url": "https://doi.org/10.21105/joss.03453",
-          "source_type": "technical_paper",
-          "authors": [
-            "Bernd Bischl",
-            "Susanne Dandl",
-            "Christoph Kern",
-            "Michael P. Kim",
-            "Florian Pfisterer",
-            "Matthew Sun"
-          ],
-          "publication_date": "2021-08-24",
-          "citationKey": "bischlMcboostMultiCalibrationBoosting2021",
-          "abstract": "Given the increasing usage of automated prediction systems in the context of high-stakes decisions, a growing body of research focuses on methods for detecting and mitigating biases in algorithmic decision-making.One important framework to audit for and mitigate biases in predictions is that of Multi-Calibration, introduced by Hebert-Johnson et al. (2018).The underlying fairness notion, Multi-Calibration, promotes the idea of multi-group fairness and requires calibrated predictions not only for marginal populations, but also for subpopulations that may be defined by complex intersections of many attributes.A simpler variant of Multi-Calibration, referred to as Multi-Accuracy, requires unbiased predictions for large collections of subpopulations.Hebert-Johnson et al. (2018) proposed a boosting-style algorithm for learning multi-calibrated predictors.Kim et al. (2019) demonstrated how to turn this algorithm into a post-processing strategy to achieve multi-accuracy, demonstrating empirical effectiveness across various domains.This package provides a stable implementation of the multi-calibration algorithm, called MCBoost.In contrast to other Fair ML approaches, MC-Boost does not harm the overall utility of a prediction model, but rather aims at improving calibration and accuracy for large sets of subpopulations post-training.MCBoost comes with strong theoretical guarantees, which have been explored formally in Hebert-Johnson et al."
-        },
-        {
-          "title": "Multiaccuracy",
-          "url": "https://doi.org/10.1145/3306618.3314287",
-          "source_type": "technical_paper",
-          "authors": [
-            "Michael P. Kim",
-            "Amirata Ghorbani",
-            "James Zou"
-          ],
-          "publication_date": "2019-1-27",
-          "citationKey": "kimMultiaccuracy2019",
-          "abstract": "Prediction systems are successfully deployed in applications ranging from disease diagnosis, to predicting credit worthiness, to image recognition. Even when the overall accuracy is high, these systems may exhibit systematic biases that harm specific subpopulations; such biases may arise inadvertently due to underrepresentation in the data used to train a machine-learning model, or as the result of intentional malicious discrimination. We develop a rigorous framework of *multiaccuracy* auditing and post-processing to ensure accurate predictions across *identifiable subgroups*. Our algorithm, MULTIACCURACY-BOOST, works in any setting where we have black-box access to a predictor and a relatively small set of labeled data for auditing; importantly, this black-box framework allows for improved fairness and accountability of predictions, even when the predictor is minimally transparent. We prove that MULTIACCURACY-BOOST converges efficiently and show that if the initial model is accurate on an identifiable subgroup, then the post-processed model will be also. We experimentally demonstrate the effectiveness of the approach to improve the accuracy among minority subgroups in diverse applications (image classification, finance, population health). Interestingly, MULTIACCURACY-BOOST can improve subpopulation accuracy (e.g. for \"black women\") even when the sensitive features (e.g. \"race\", \"gender\") are not given to the algorithm explicitly."
-        },
-        {
-          "title": "Calibration for the (Computationally-Identifiable) Masses",
-          "url": "https://doi.org/10.48550/arXiv.1711.08513",
-          "source_type": "technical_paper",
-          "authors": [
-            "Úrsula Hébert-Johnson",
-            "Michael P. Kim",
-            "Omer Reingold",
-            "Guy N. Rothblum"
-          ],
-          "publication_date": "2018-03-16",
-          "citationKey": "hebert-johnsonCalibrationComputationallyIdentifiableMasses2018",
-          "abstract": "As algorithms increasingly inform and influence decisions made about individuals, it becomes increasingly important to address concerns that these algorithms might be discriminatory. The output of an algorithm can be discriminatory for many reasons, most notably: (1) the data used to train the algorithm might be biased (in various ways) to favor certain populations over others; (2) the analysis of this training data might inadvertently or maliciously introduce biases that are not borne out in the data. This work focuses on the latter concern. We develop and study multicalbration -- a new measure of algorithmic fairness that aims to mitigate concerns about discrimination that is introduced in the process of learning a predictor from data. Multicalibration guarantees accurate (calibrated) predictions for every subpopulation that can be identified within a specified class of computations. We think of the class as being quite rich; in particular, it can contain many overlapping subgroups of a protected group. We show that in many settings this strong notion of protection from discrimination is both attainable and aligned with the goal of obtaining accurate predictions. Along the way, we present new algorithms for learning a multicalibrated predictor, study the computational complexity of this task, and draw new connections to computational learning models such as agnostic learning."
-        },
-        {
-          "title": "MCBoost - Basics and Extensions (mcboost vignette)",
-          "url": "https://mlr-org.github.io/mcboost/articles/mcboost_basics_extensions.html",
-          "source_type": "tutorial",
-          "citationKey": "MCBoostBasicsExtensions",
-          "abstract": "mcboost"
-        }
-      ],
-      "complexity_rating": 5,
-      "computational_cost_rating": 4,
-      "related_techniques": [
-        "reweighing",
-        "adversarial-debiasing"
-      ],
-      "sample_claims": [
-        {
-          "text": "The medical diagnosis system maintains equivalent prediction accuracy across patient age, gender, and ethnicity groups",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The fraud detection model achieves consistent error rates across customer demographics without systematic underperformance for any group",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The hiring algorithm demonstrates measurable accuracy parity across protected demographic categories with documented performance metrics for each group",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The environmental risk assessment model produces equally accurate predictions across geographic regions and socioeconomic communities",
-          "domain": "environmental",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The loan approval system maintains uniform prediction quality across applicant demographics without disproportionate errors for minority groups",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        }
-      ]
-    },
-    {
       "slug": "fair-bayesian-optimisation",
       "name": "Fair Bayesian Optimisation",
       "description": "Fair Bayesian Optimisation (FairBO) tunes a model's hyperparameters, the settings fixed before training such as tree depth or regularisation strength, to find the most accurate model that also meets a fairness threshold chosen in advance, for example a difference in positive-prediction rates between two groups of at most 0.05. Because it only changes hyperparameters and retrains, it treats the model and its training pipeline as a black box, so it works with any model class and any group fairness metric, can enforce several metrics at once, and returns a model that need not use the protected attribute at prediction time (the attribute is still needed to measure fairness during the search). Each step trains a model with a candidate configuration and measures its validation accuracy and fairness, and two Gaussian processes (statistical models that predict a value together with its uncertainty) are fitted to the results of the configurations tried so far. The next configuration is the one with the highest expected improvement in accuracy weighted by the predicted probability of meeting the fairness constraint; until a fair configuration has been found, the search maximises that probability alone. The output is the best configuration that met the constraint, with its accuracy and fairness measurements.",
@@ -3079,5 +2928,5 @@
       ]
     }
   ],
-  "count": 19
+  "count": 18
 }
