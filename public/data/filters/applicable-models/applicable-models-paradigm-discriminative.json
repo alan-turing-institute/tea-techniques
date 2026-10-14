@@ -171,7 +171,7 @@
     {
       "slug": "out-of-distribution-detector-for-neural-networks",
       "name": "Out-of-Distribution Detector for Neural Networks",
-      "description": "ODIN (Out-of-Distribution Detector for Neural Networks) identifies when a neural network encounters inputs significantly different from its training distribution. It enhances detection by applying temperature scaling to soften the model's output distribution and adding small, carefully calibrated perturbations to the input that push in-distribution samples towards higher confidence predictions. By measuring the maximum softmax probability after these adjustments, ODIN can effectively distinguish between in-distribution and out-of-distribution inputs, flagging potentially unreliable predictions before they cause downstream errors.",
+      "description": "ODIN (Out-of-Distribution Detector for Neural Networks) flags inputs that look unlike the data a neural network classifier was trained on, and it works on an already trained network without retraining it. A classifier reports a confidence score, the highest probability it gives to any class, but that score is often high even for unfamiliar inputs. ODIN adjusts the score in two ways so that familiar and unfamiliar inputs separate better. It divides the classifier's raw output scores by a large constant, called the temperature, before turning them into probabilities, and it nudges the input slightly in the direction that raises the score, which lifts familiar inputs more than unfamiliar ones. An input whose adjusted score falls below a chosen threshold is flagged as out-of-distribution, so its prediction can be withheld or referred for review.",
       "assurance_goals": [
         "Reliability",
         "Safety"
@@ -187,7 +187,7 @@
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/monitoring",
         "data-requirements/no-special-requirements",
-        "data-type/any",
+        "data-type/image",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
         "expertise-needed/statistics",
@@ -199,26 +199,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Detecting anomalous medical images in diagnostic systems, where ODIN flags X-rays or scans containing rare pathologies or imaging artefacts not present in training data, preventing misdiagnosis and prompting specialist review.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A hospital screens each chest X-ray with ODIN before the diagnostic classifier's result is shown. Scans that are not chest X-rays, or that carry heavy artefacts, are flagged for human review instead of receiving a confident diagnosis, and the false positive rate is measured on a sample of such scans first."
         },
         {
-          "description": "Protecting autonomous vehicle perception systems by identifying novel road scenarios (e.g., unusual weather conditions, rare obstacle types) that fall outside the training distribution, triggering fallback safety mechanisms.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "An automated driving team scores each camera frame with ODIN and passes frames below the threshold to a fallback routine, such as slowing the vehicle and requesting remote assistance. The team measures how many unfamiliar frames, such as sensor faults or unusual scenes, are wrongly accepted before relying on the detector."
         }
       ],
       "limitations": [
         {
-          "description": "Requires careful tuning of temperature scaling and perturbation magnitude parameters, which may need adjustment for different types of out-of-distribution data."
+          "description": "Temperature and perturbation size are tuned on a validation set that includes out-of-distribution examples, so some representative unfamiliar data is needed before deployment. The paper found settings transferred reasonably between validation sets, but only on image benchmarks."
         },
         {
-          "description": "Performance degrades when out-of-distribution samples are very similar to training data, making near-distribution detection challenging."
+          "description": "Detection gets harder as unfamiliar inputs resemble the training data. In the original paper, at 95% acceptance of familiar images, the share of unfamiliar natural images wrongly accepted rose from at most about 11% with a 10-class training set to between 19% and 58% with a 100-class one, so performance must be measured on the deployment's own data."
         },
         {
-          "description": "Vulnerable to adversarial examples specifically crafted to evade detection by mimicking in-distribution characteristics."
+          "description": "Not designed to resist inputs deliberately crafted to look in-distribution, and the original paper does not evaluate adversarial evasion, so it gives no protection against a deliberate attacker."
         },
         {
-          "description": "Computational overhead from input preprocessing and perturbation generation can impact real-time inference applications."
+          "description": "Needs access to the network's gradients to compute the input perturbation, so it cannot be applied to a model that is reachable only through an API."
+        },
+        {
+          "description": "Each input needs at least one extra forward pass and one backward pass before the final scoring pass, which can matter for real-time or high-volume use."
         }
       ],
       "resources": [
@@ -283,24 +286,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The perception system detects when operating conditions fall outside its validated envelope",
+          "text": "Camera frames that fall outside the perception network's training distribution, such as those from a sensor fault, are flagged before the planner uses the network's output.",
           "domain": "autonomous systems",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The diagnostic model identifies medical images containing pathologies or imaging artifacts not represented in the training dataset",
+          "text": "Scans that are not of the type the diagnostic classifier was trained on are rejected by the out-of-distribution detector instead of receiving a confident diagnosis.",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The fraud detection system flags transactions exhibiting characteristics absent from historical attack patterns",
-          "domain": "finance",
-          "assuranceGoal": "safety"
+          "text": "The detector's threshold is set so that 95% of in-distribution validation inputs are accepted, and the share of out-of-distribution test inputs wrongly accepted at that threshold is reported.",
+          "domain": "general",
+          "assuranceGoal": "reliability"
         },
         {
-          "text": "The environmental monitoring model maintains prediction reliability across sensor configurations and atmospheric conditions encountered during deployment",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "Images of unfamiliar part types or from unfamiliar cameras are held for human inspection instead of passing through the automated quality-control classifier.",
+          "domain": "manufacturing",
+          "assuranceGoal": "safety"
         }
       ]
     },

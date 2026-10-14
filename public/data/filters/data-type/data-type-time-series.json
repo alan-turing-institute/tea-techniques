@@ -1801,7 +1801,7 @@
     {
       "slug": "monte-carlo-dropout",
       "name": "Monte Carlo Dropout",
-      "description": "Monte Carlo Dropout estimates prediction uncertainty by applying dropout (randomly setting neural network weights to zero) during inference rather than just training. It performs multiple forward passes through the network with different random dropout patterns and collects the resulting predictions to form a distribution. Low variance across predictions indicates epistemic certainty (the model is confident), while high variance suggests epistemic uncertainty (the model is unsure). This technique transforms any dropout-trained neural network into a Bayesian approximation for uncertainty quantification.",
+      "description": "Monte Carlo dropout estimates how uncertain a neural network is about each prediction. Dropout randomly switches off some of the network's units and is normally used only in training, but here it stays on at prediction time. Each forward pass (one run of an input through the network) therefore uses a different random pattern of units, and the input is run through typically tens to a hundred times. The average gives the prediction, and the spread across runs is read as epistemic uncertainty, meaning uncertainty from the model's limited knowledge rather than noise in the data. The method approximates Bayesian inference, but the spread is an estimate whose reliability should be checked against held-out errors.",
       "assurance_goals": [
         "Reliability"
       ],
@@ -1827,26 +1827,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Quantifying diagnostic uncertainty in medical imaging models by running 50+ Monte Carlo forward passes to detect when a chest X-ray classification is highly uncertain, prompting radiologist review for borderline cases.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "Quantifying diagnostic uncertainty in medical imaging models by running 50+ Monte Carlo forward passes to detect when a chest X-ray classification is highly uncertain, prompting radiologist review for borderline cases."
         },
         {
-          "description": "Estimating prediction confidence in autonomous vehicle perception systems, where high uncertainty in object detection (e.g., variance > 0.3 across MC samples) triggers more conservative driving behaviour or human handover.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "An autonomous-driving team replays recorded camera footage through its object detector with dropout left on, and finds the scenes (night rain, unusual vehicles) where detections vary most between passes. It uses them to decide what data to collect and which scenarios to add to simulation testing."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A grid operator's demand-forecasting network, trained with dropout, is run 100 times each morning. Days on which the forecasts spread beyond the planners' tolerance are sent for human review before reserve capacity is booked."
         }
       ],
       "limitations": [
         {
-          "description": "Only captures epistemic (model) uncertainty, not aleatoric (data) uncertainty, providing an incomplete picture of total prediction uncertainty."
+          "description": "The spread across passes reflects uncertainty about the model's parameters, not noise in the data that varies from input to input. An input in a very noisy region can still show a narrow spread, so a narrow spread does not mean the outcome is predictable."
         },
         {
-          "description": "Computationally expensive as it requires multiple forward passes (typically 50-100) for each prediction, significantly increasing inference time."
+          "description": "Each prediction needs many forward passes, typically 50 to 100, so inference costs that many times more compute, and too few passes make the spread itself unstable. The passes can run in parallel, which limits added delay but not total compute, so real-time or edge deployments with tight budgets may not afford it."
         },
         {
-          "description": "Results depend critically on dropout rate matching the training configuration, and poorly calibrated dropout can lead to misleading uncertainty estimates."
+          "description": "The network must have been trained with dropout, and the derivation assumes it sits before every weight layer. A model trained without dropout has to be retrained, so the technique is often unavailable for models already built or bought in."
         },
         {
-          "description": "Approximation quality varies with network architecture and dropout placement, with some configurations providing poor uncertainty calibration despite theoretical foundations."
+          "description": "The size of the spread depends on the dropout probability and weight decay, which the developer sets or tunes on validation data rather than learns from the data. The uncertainty scale is partly a design choice and needs checking against held-out errors."
+        },
+        {
+          "description": "The spread is an approximation, and its behaviour depends on the architecture. In the original paper's regression experiments, uncertainty kept growing away from the training data with ReLU activations but stayed bounded with TanH, so a narrow spread on unfamiliar inputs is not proof of familiarity."
         }
       ],
       "resources": [
@@ -1919,154 +1926,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous vehicle's object detection model quantifies prediction uncertainty without requiring multiple separately trained networks",
-          "domain": "autonomous systems",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The fraud detection system identifies transactions where the model lacks sufficient training data coverage through elevated prediction variance",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The environmental forecasting model's prediction distributions reveal when operating conditions lie outside the model's epistemic envelope",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
-        }
-      ]
-    },
-    {
-      "slug": "out-of-distribution-detector-for-neural-networks",
-      "name": "Out-of-Distribution Detector for Neural Networks",
-      "description": "ODIN (Out-of-Distribution Detector for Neural Networks) identifies when a neural network encounters inputs significantly different from its training distribution. It enhances detection by applying temperature scaling to soften the model's output distribution and adding small, carefully calibrated perturbations to the input that push in-distribution samples towards higher confidence predictions. By measuring the maximum softmax probability after these adjustments, ODIN can effectively distinguish between in-distribution and out-of-distribution inputs, flagging potentially unreliable predictions before they cause downstream errors.",
-      "assurance_goals": [
-        "Reliability",
-        "Safety"
-      ],
-      "tags": [
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/paradigm/discriminative",
-        "applicable-models/paradigm/supervised",
-        "applicable-models/requirements/probabilistic-output",
-        "applicable-models/requirements/white-box",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/shift-detection",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/monitoring",
-        "data-requirements/no-special-requirements",
-        "data-type/any",
-        "evidence-type/quantitative-metric",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/statistics",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation",
-        "lifecycle-stage/system-deployment",
-        "technique-type/algorithmic",
-        "lifecycle-stage/system-deployment/system-use-and-monitoring"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Detecting anomalous medical images in diagnostic systems, where ODIN flags X-rays or scans containing rare pathologies or imaging artefacts not present in training data, preventing misdiagnosis and prompting specialist review.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Protecting autonomous vehicle perception systems by identifying novel road scenarios (e.g., unusual weather conditions, rare obstacle types) that fall outside the training distribution, triggering fallback safety mechanisms.",
-          "goal": "Safety"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Requires careful tuning of temperature scaling and perturbation magnitude parameters, which may need adjustment for different types of out-of-distribution data."
-        },
-        {
-          "description": "Performance degrades when out-of-distribution samples are very similar to training data, making near-distribution detection challenging."
-        },
-        {
-          "description": "Vulnerable to adversarial examples specifically crafted to evade detection by mimicking in-distribution characteristics."
-        },
-        {
-          "description": "Computational overhead from input preprocessing and perturbation generation can impact real-time inference applications."
-        }
-      ],
-      "resources": [
-        {
-          "title": "ODIN - pytorch-ood",
-          "url": "https://pytorch-ood.readthedocs.io/en/latest/detectors/odin.html",
-          "source_type": "documentation",
-          "citationKey": "ODINPytorchood",
-          "abstract": "classification no segmentation"
-        },
-        {
-          "title": "odin",
-          "url": "https://github.com/facebookresearch/odin",
-          "source_type": "software_package",
-          "publication_date": "2018-02-10",
-          "citationKey": "Odin2018",
-          "abstract": "A simple and effective method for detecting out-of-distribution images in neural networks."
-        },
-        {
-          "title": "Enhancing The Reliability of Out-of-distribution Image Detection in Neural Networks",
-          "url": "http://arxiv.org/abs/1706.02690v5",
-          "source_type": "technical_paper",
-          "authors": [
-            "Shiyu Liang",
-            "Yixuan Li",
-            "R. Srikant"
-          ],
-          "publication_date": "2017-06-08",
-          "citationKey": "liangEnhancingReliabilityOutofdistribution2017",
-          "abstract": "We consider the problem of detecting out-of-distribution images in neural networks. We propose ODIN, a simple and effective method that does not require any change to a pre-trained neural network. Our method is based on the observation that using temperature scaling and adding small perturbations to the input can separate the softmax score distributions between in- and out-of-distribution images, allowing for more effective detection. We show in a series of experiments that ODIN is compatible with diverse network architectures and datasets. It consistently outperforms the baseline approach by a large margin, establishing a new state-of-the-art performance on this task. For example, ODIN reduces the false positive rate from the baseline 34.7% to 4.3% on the DenseNet (applied to CIFAR-10) when the true positive rate is 95%."
-        },
-        {
-          "title": "ODIN - CIFAR10 - pytorch-ood",
-          "url": "https://pytorch-ood.readthedocs.io/en/latest/auto_examples/benchmarks/interface/cifar10_odin.html",
-          "source_type": "tutorial",
-          "citationKey": "ODINCIFAR10Pytorchood",
-          "abstract": "Reproduces the ODIN benchmark for OOD detection, from the paper Enhancing the reliability of out-of-distribution image detection in neural networks. This produces a table with the following output:..."
-        },
-        {
-          "title": "Confidence-Based Out-of-Distribution Detection: A Comparative Study and Analysis",
-          "url": "https://doi.org/10.1007/978-3-030-87735-4_12",
-          "source_type": "application_paper",
-          "authors": [
-            "Christoph Berger",
-            "Magdalini Paschali",
-            "Ben Glocker",
-            "Konstantinos Kamnitsas"
-          ],
-          "publication_date": "2021",
-          "citationKey": "bergerConfidenceBasedOutofDistributionDetection2021",
-          "abstract": "Image classification models deployed in the real world may receive inputs outside the intended data distribution. For critical applications such as clinical decision making, it is important that a model can detect such out-of-distribution (OOD) inputs and express its uncertainty. In this work, we assess the capability of various state-of-the-art approaches for confidence-based OOD detection through a comparative study and in-depth analysis. First, we leverage a computer vision benchmark to reproduce and compare multiple OOD detection methods. We then evaluate their capabilities on the challenging task of disease classification using chest X-rays. Our study shows that high performance in a computer vision task does not directly translate to accuracy in a medical imaging task. We analyse factors that affect performance of the methods between the two tasks. Our results provide useful insights for developing the next generation of OOD detection methods."
-        }
-      ],
-      "complexity_rating": 4,
-      "computational_cost_rating": 3,
-      "acronym": "ODIN",
-      "related_techniques": [
-        "out-of-domain-detection",
-        "knowledge-boundary-probing",
-        "deep-ensembles",
-        "monte-carlo-dropout"
-      ],
-      "sample_claims": [
-        {
-          "text": "The perception system detects when operating conditions fall outside its validated envelope",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The diagnostic model identifies medical images containing pathologies or imaging artifacts not represented in the training dataset",
+          "text": "On held-out chest X-ray cases, the classifier's error rate among the 10% of cases with the highest Monte Carlo dropout uncertainty is at least double its error rate on the remaining cases.",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The fraud detection system flags transactions exhibiting characteristics absent from historical attack patterns",
+          "text": "The fraud model's Monte Carlo dropout variance is higher on transaction types held out of training than on types it was trained on, in a held-out check run before deployment.",
           "domain": "finance",
-          "assuranceGoal": "safety"
+          "assuranceGoal": "reliability"
         },
         {
-          "text": "The environmental monitoring model maintains prediction reliability across sensor configurations and atmospheric conditions encountered during deployment",
-          "domain": "environmental",
+          "text": "Object detections flagged as high-uncertainty by Monte Carlo dropout are missed or mislabelled more often than unflagged detections when recorded driving scenes are replayed offline.",
+          "domain": "autonomous systems",
           "assuranceGoal": "reliability"
         }
       ]
@@ -3845,7 +3716,7 @@
     {
       "slug": "deep-ensembles",
       "name": "Deep Ensembles",
-      "description": "Deep ensembles combine predictions from multiple neural networks trained independently with different random initializations to capture epistemic uncertainty (model uncertainty). By training several models on the same data with different starting points, the ensemble reveals how much the model's predictions depend on training randomness. The disagreement between ensemble members naturally indicates prediction uncertainty - when models agree, confidence is high; when they disagree, uncertainty is revealed. This approach provides more reliable uncertainty estimates, better out-of-distribution detection, and improved calibration compared to single models.",
+      "description": "Deep ensembles estimate how uncertain a neural network's predictions are by training several copies of the same network independently and comparing what they predict. Each copy starts from different random initial weights, sees the training data in a different random order, and is trained to output a full predictive distribution, such as a probability for each class or a predicted value with its spread, rather than a single answer. The ensemble's prediction is the average of its members. Where members agree the prediction is usually more reliable, though agreement alone is no guarantee, and where they disagree the model is showing uncertainty about which answer is right, known as epistemic or model uncertainty. In the original study, ensembles of about five networks were better calibrated than single networks, meaning their stated confidence matched how often they were right, and expressed higher uncertainty on inputs from classes absent from the training data.",
       "assurance_goals": [
         "Reliability",
         "Transparency"
@@ -3872,29 +3743,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Improving self-driving car safety by using multiple neural networks to detect obstacles, where disagreement between models signals uncertainty and triggers extra caution or human intervention, providing robust uncertainty quantification for critical decisions.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "An autonomous vehicle team runs five independently trained obstacle-detection networks on each camera frame. When the members' outputs disagree beyond a set level, the vehicle slows and requests remote assistance instead of acting on the averaged detection."
         },
         {
-          "description": "Communicating prediction confidence to medical professionals by showing the range of diagnoses from multiple trained models, enabling doctors to understand when the AI system is uncertain and requires additional human expertise or testing.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A research team estimating body composition from MRI scans trains an ensemble of regression networks that each predict a measurement and its uncertainty, and flags scans where the ensemble is highly uncertain for manual checking before the values enter a population study."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A bank's underwriters see the spread of an ensemble's predicted default probabilities alongside each credit score. Scores with a wide spread are labelled low-confidence and sent for manual review, so staff can see where the model is unsure."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive to train and deploy, requiring multiple complete neural networks which increases training time, memory usage, and inference costs proportionally to ensemble size."
+          "description": "Training and running M networks multiplies compute, memory and latency by roughly M. A five-member ensemble costs about five times a single model, which can rule it out for very large models or for real-time and edge deployment."
         },
         {
-          "description": "May still provide overconfident predictions for inputs far from the training distribution, as all ensemble members can be similarly confident about out-of-distribution examples."
+          "description": "Members trained on the same data share its blind spots. On inputs far from the training data they can agree on a confident wrong answer, so low disagreement is not evidence that an input is familiar."
         },
         {
-          "description": "Requires careful hyperparameter tuning for each ensemble member to ensure diversity, as identical hyperparameters may lead to similar models that reduce uncertainty estimation quality."
+          "description": "Applies only where the networks can be trained from scratch, with access to the training data and the compute for several full training runs. It cannot be added to an existing pretrained or third-party model."
         },
         {
-          "description": "Storage and deployment overhead increases linearly with ensemble size, making it challenging to deploy large ensembles in resource-constrained environments or real-time applications."
+          "description": "Disagreement among a small number of members is a noisy estimate, and members that end up too alike understate uncertainty. Calibration has to be checked on held-out data, not assumed from the ensemble."
         },
         {
-          "description": "Ensemble predictions may be difficult to interpret individually, as the final decision emerges from averaging multiple models rather than from a single explainable pathway."
+          "description": "Uncertainty depends on the training objective and what each member predicts. In regression, variance across member means alone omits the within-member variability included in the original probabilistic method."
         }
       ],
       "resources": [
@@ -3957,19 +3832,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous driving system's predictions are accompanied by confidence estimates that reflect genuine disagreement among multiple independent models",
-          "domain": "autonomous systems",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic model's uncertainty estimates reveal when different training conditions would yield substantially different predictions",
+          "text": "On held-out scans, the imaging model's ensemble uncertainty is higher for cases it gets wrong than for cases it gets right, so scans above the uncertainty threshold can be sent for manual review.",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The credit risk model's confidence bounds reflect variability in model structure rather than relying on a single trained configuration",
-          "domain": "finance",
+          "text": "The ensemble's predicted probabilities are calibrated on held-out data, so that predictions made with 90% confidence are correct about 90% of the time.",
+          "domain": "general",
           "assuranceGoal": "reliability"
+        },
+        {
+          "text": "When shown inputs from a class absent from the training data, the ensemble's disagreement is measurably higher than on in-distribution inputs, as tested on a held-out set of unseen-class examples.",
+          "domain": "general",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The driving system reports an uncertainty level with each detection, derived from disagreement between independently trained networks, and remote operators are alerted when it passes the documented limit.",
+          "domain": "autonomous systems",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "Each credit score shown to underwriters carries an uncertainty range from the ensemble, and scores with a wide range are labelled as low-confidence.",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
         }
       ]
     },
@@ -4104,19 +3989,16 @@
     {
       "slug": "jackknife-resampling",
       "name": "Jackknife Resampling",
-      "description": "Jackknife resampling (also called leave-one-out resampling) assesses model stability and uncertainty by systematically removing one data point at a time and retraining the model on the remaining data. Unlike bootstrapping which samples with replacement, jackknife creates n different models by excluding each of the n data points once. This systematic approach reveals how individual points influence results, provides robust estimates of prediction variance, and identifies unusually influential observations that may be outliers or leverage points affecting model reliability.",
+      "description": "Jackknife resampling, also called leave-one-out resampling, shows how much a result computed from a dataset depends on any single record. The result can be a model's coefficients, its predictions or a performance score; it is recomputed n times on a dataset of n records, leaving out a different record each time and refitting the model where the result depends on one. The spread of the recomputed results, after a standard rescaling, estimates the bias and variance of the original result, meaning how far it would move with a slightly different sample. Records whose removal moves the result most are flagged as influential, and may be outliers or data errors worth checking. The method assumes the records are independent and that no single record changes the result abruptly.",
       "assurance_goals": [
         "Reliability",
-        "Transparency",
-        "Fairness"
+        "Transparency"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/black-box",
         "data-requirements/access-to-training-data",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/uncertainty-quantification",
         "assurance-goal-category/transparency",
@@ -4131,33 +4013,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating how removing individual countries from a global climate model affects predictions, identifying which regions have outsized influence and providing robust uncertainty estimates for climate projections used in policy decisions.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A hospital data team fits a readmission-risk model on 600 patient records and refits it 600 times, leaving out one patient each time. The spread of the refitted coefficients shows which risk factors are stable enough to report, and the records whose removal shifts the fit most go back to clinicians to check for entry errors."
         },
         {
-          "description": "Providing transparent uncertainty estimates in medical risk prediction by showing how individual patient records influence model predictions, enabling clinicians to understand prediction stability and confidence intervals for treatment decisions.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A water utility's analysts estimate how rainfall drives reservoir inflow from 40 annual observations. Leaving out each year in turn gives a variance estimate for the fitted slope and shows whether a single flood year drives the result, before the figure goes into a planning document."
         },
         {
-          "description": "Ensuring fair model evaluation in hiring algorithms by systematically testing how removing candidates from different demographic groups affects model performance, revealing whether certain populations disproportionately influence the model's behaviour.",
-          "goal": "Fairness"
+          "goal": "Transparency",
+          "description": "A credit-risk team documents its scorecard's stability for model validators by refitting it with each of 800 sampled loan records left out. It reports the records whose removal changes any coefficient by more than a stated tolerance, so validators can see how much of the model rests on a few loans."
         }
       ],
       "limitations": [
         {
-          "description": "Extremely computationally intensive for large datasets, requiring training of n separate models for n data points, making it impractical for datasets with thousands or millions of observations."
+          "description": "Computationally heavy when the result needs a model refit, since n records mean n refits, which is impractical for datasets with thousands or millions of records or for costly training. Simple statistics that are cheap to recompute do not have this problem."
         },
         {
-          "description": "May underestimate uncertainty compared to bootstrapping or other resampling methods, as it provides only n different samples rather than a broader exploration of the data distribution."
+          "description": "Works only for statistics that change smoothly when one record is removed. For quantities that jump, such as the number of clusters in a mixture model, leave-one-out estimates are unreliable. Even for smooth statistics the variance estimate tends to run high, so intervals are conservative."
         },
         {
-          "description": "Assumes that removing single data points provides meaningful insights into model stability, which may not hold when multiple correlated observations drive model behaviour."
-        },
-        {
-          "description": "Can be sensitive to the choice of performance metric used for evaluation, as different metrics may show different patterns of sensitivity to individual data points."
+          "description": "Assumes the records are independent. With repeated or clustered measurements, such as several visits per patient or neighbouring regions, leaving out one record leaves its close relatives in the data, so the refits barely change and the spread understates the true uncertainty."
         },
         {
           "description": "Provides limited insight into model behaviour on truly novel data, as each jackknife sample is only minimally different from the full training set."
+        },
+        {
+          "description": "Measures how sensitive a result is to the sample in hand, not whether the model is right. A stable fit can still be systematically wrong, so a narrow spread across refits is no evidence of accuracy, or of performance on a different population."
         }
       ],
       "resources": [
@@ -4205,29 +4087,19 @@
       ],
       "sample_claims": [
         {
-          "text": "The environmental model's uncertainty estimates do not depend on assumptions about sampling distribution or resampling variability",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The clinical prediction model's performance stability is quantified by systematically examining the influence of each individual patient record",
+          "text": "The readmission model's coefficient estimates change by less than a stated tolerance when any single patient record is removed, so no individual record drives the reported risk factors.",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The credit risk model's predictions are traceable to specific historical loan records that most strongly influence assessment outcomes",
+          "text": "The jackknife standard error of the fitted rainfall-to-inflow slope is reported with the estimate, and the planning threshold lies more than two standard errors away from it.",
+          "domain": "environmental",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The scorecard's validation report lists the loan records whose removal most changes its coefficients, so reviewers can see how far the model depends on a handful of loans.",
           "domain": "finance",
           "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The hiring model's performance is not disproportionately dependent on individual candidates from particular demographic groups",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The public benefit allocation system identifies individual case records that exert unusual influence on eligibility determinations",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
         }
       ]
     },
@@ -4506,7 +4378,7 @@
     {
       "slug": "safety-envelope-testing",
       "name": "Safety Envelope Testing",
-      "description": "Safety envelope testing systematically evaluates AI system performance at the boundaries of its intended operational domain to identify potential failure modes before deployment. The technique involves defining the system's operational design domain (ODD), creating test scenarios that approach or exceed these boundaries, and measuring performance degradation as conditions become more challenging. By testing edge cases, environmental extremes, and boundary conditions, it reveals where the system transitions from safe to unsafe operation, enabling the establishment of clear operational limits and safety margins for deployment.",
+      "description": "Safety envelope testing checks how an AI system performs at and beyond the edges of the conditions it was designed for, so that failure modes are found before deployment. Testers first write down those conditions, called the operational design domain, such as the road types, weather, lighting and speeds a vehicle is built for. They then build scenarios that push each condition towards its limit and past it, and measure how performance degrades as conditions get harder, repeating runs where the system does not behave the same way twice. The results show where, within the conditions tested, the system moves from acceptable to unsafe behaviour. They support operating limits, safety margins and a point at which the system should hand over to a person or stop.",
       "assurance_goals": [
         "Safety",
         "Reliability"
@@ -4530,33 +4402,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing autonomous vehicle perception systems at the limits of weather conditions, lighting, and sensor coverage to establish safe operational boundaries and determine when human intervention is required.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Testing autonomous vehicle perception systems at the limits of weather conditions, lighting, and sensor coverage to establish safe operational boundaries and determine when human intervention is required."
         },
         {
-          "description": "Evaluating medical AI diagnostic systems with edge cases near decision boundaries to ensure reliable performance and identify when the system should defer to human specialists.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A radiology team tests a chest X-ray triage model on scans at the edge of its intended use, such as the poorest image quality and the oldest scanner models it was approved for, and records where sensitivity falls below the agreed floor, so that scans beyond that point are referred to a radiologist."
         },
         {
-          "description": "Assessing financial trading algorithms under extreme market conditions and volatility to prevent catastrophic losses and ensure system shutdown protocols activate appropriately.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A trading firm replays historical crash periods and synthetic shocks with volatility pushed beyond the range its trading model was developed on, to check that position limits and the automatic trading halt trigger before losses reach the agreed ceiling."
         }
       ],
       "limitations": [
         {
-          "description": "Requires comprehensive domain expertise to identify relevant boundary conditions and edge cases that could affect system safety."
+          "description": "Results are only as good as the operational design domain used. If the specification omits a condition the system meets in service, such as a road type or a market regime, the tests probe the wrong edge and a clean result gives false confidence."
         },
         {
-          "description": "May be computationally expensive and time-consuming, especially for complex systems with high-dimensional operational domains."
+          "description": "Coverage is incomplete by construction. Conditions interact across many dimensions, so the number of boundary combinations grows quickly, and failures that appear only when several factors reach their limits together can be missed."
         },
         {
-          "description": "Difficult to achieve complete coverage of all possible boundary conditions, potentially missing critical edge cases."
+          "description": "Performance of a learned system need not fall smoothly towards the boundary. Failures can sit inside the envelope, so good results at the edge do not show that the interior is safe."
         },
         {
-          "description": "Results may not generalise to novel scenarios that fall outside the tested boundary conditions."
+          "description": "Results describe one system version in one test setting, and a single pass proves little for a system that behaves differently on successive runs, which needs repeated trials. Retraining, new sensors or a gap between simulation and the real world can move the boundary, so the tests need repeating after each material change."
         },
         {
-          "description": "Establishing appropriate safety thresholds and performance criteria requires careful calibration based on domain-specific risk tolerance."
+          "description": "The technique shows where the system stops performing acceptably. It does not keep the system inside that envelope in service, which needs a separate runtime monitor or out-of-distribution detector."
         }
       ],
       "resources": [
@@ -4599,29 +4471,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous vehicle system recognizes when environmental conditions approach the limits of its validated operational envelope and initiates appropriate fallback behaviors",
+          "text": "The perception system has been tested at and beyond the limits of its operational design domain in weather, lighting and sensor-coverage conditions, and the point at which it hands control to a human driver is documented.",
           "domain": "autonomous systems",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The diagnostic system's performance degradation is characterized across the full range of patient presentation complexity, establishing clear thresholds for specialist referral",
+          "text": "The diagnostic model's sensitivity has been measured across graded levels of image quality and case complexity up to the edge of its intended use, and the level at which cases are referred to a specialist is set from those results.",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The forecasting model maintains quantified accuracy bounds under progressively extreme weather conditions up to documented operational limits",
+          "text": "The forecasting model's error has been measured under progressively more extreme weather inputs up to the documented operating limits, with the point at which accuracy falls below the agreed bound recorded.",
           "domain": "environmental",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The trading algorithm's decision quality is measured systematically across market volatility conditions, with defined cutoffs for automated trading suspension",
-          "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The quality control system's inspection reliability has been tested at the boundaries of lighting, part orientation, and surface condition variations expected in production",
-          "domain": "manufacturing",
+          "text": "The trading algorithm's automatic suspension has been shown to trigger in stress scenarios when volatility passes the documented limit, before position losses exceed the agreed ceiling.",
+          "domain": "finance",
           "assuranceGoal": "safety"
+        },
+        {
+          "text": "The inspection system's defect-detection rate has been tested at the edges of the lighting, part-orientation and surface-finish ranges expected in production, and the range in which it meets the required rate is documented.",
+          "domain": "manufacturing",
+          "assuranceGoal": "reliability"
         }
       ]
     },
@@ -5416,7 +5288,7 @@
     {
       "slug": "runtime-monitoring-and-circuit-breakers",
       "name": "Runtime Monitoring and Circuit Breakers",
-      "description": "Runtime monitoring and circuit breakers watch a deployed AI system's operational and model-level signals and automatically stop, limit or reroute calls to the model when those signals cross preset limits. The circuit breaker, a software resilience pattern, wraps calls to the model: while closed it passes requests through and counts failures in a rolling time window; when failures pass a threshold it opens, so further requests fail at once or receive a fallback such as a cached answer, a simpler model, a rule-based default or referral to a person; after a cooldown it half-opens and lets a few trial requests through, closing again only if they succeed. For a machine learning model, what counts as a failure is widened from errors and timeouts to model-level signals available at the moment of prediction, such as input drift scores, low prediction confidence, out-of-range outputs or limits on the actions the system may take, because true accuracy usually cannot be measured until outcomes arrive later. The output is a log of breaker state changes, the metrics that triggered them and the alerts raised, which shows when and why the system was restricted; the protection is only as good as the chosen thresholds and the fallback behind the breaker.",
+      "description": "Runtime monitoring and circuit breakers observe a deployed AI service and restrict model calls when configured signals breach specified limits. In the closed state, requests pass through and recent failures are counted, while an open breaker rejects requests or provides a configured fallback, such as a cached answer, a simpler model, a rule-based default or referral to a person. After a waiting period, the half-open state permits a few trial calls and closes again only if they succeed. Model-related triggers can include immediately available signals such as input-drift scores (how far incoming data has moved from the training data) or low prediction confidence, since accuracy usually needs later outcome labels. Logs record state changes and triggering signals, supporting review of why the service was restricted without guaranteeing that the fallback is safe.",
       "assurance_goals": [
         "General",
         "Reliability",
@@ -5442,37 +5314,41 @@
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/monitoring",
         "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results"
+        "assurance-goal-category/transparency/audit-trail"
       ],
       "example_use_cases": [
         {
-          "description": "Implementing circuit breakers in a medical AI system that automatically halt diagnosis recommendations if prediction confidence drops below 85%, error rates exceed 2%, or response times increase beyond acceptable limits, preventing potentially harmful misdiagnoses during system degradation.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A hospital's diagnostic-support service stops showing model suggestions to clinicians when the share of low-confidence predictions or the input drift score passes preset limits, for example after a scanner software update changes the images. A notice tells staff the standard workflow applies until engineers reset the breaker."
         },
         {
-          "description": "Deploying runtime monitoring for a recommendation engine that tracks recommendation diversity, click-through rates, and user engagement patterns, automatically switching to simpler algorithms when complex models show signs of performance degradation or unusual behaviour patterns.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "Deploying runtime monitoring for a recommendation engine that tracks recommendation diversity, click-through rates, and user engagement patterns, automatically switching to simpler algorithms when complex models show signs of performance degradation or unusual behaviour patterns."
         },
         {
-          "description": "Establishing transparent monitoring dashboards for a loan approval system that display real-time metrics on approval rates across demographic groups, processing times, and model confidence levels, enabling stakeholders to verify consistent and fair operation.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A bank's credit-scoring service records every breaker state change, the metric that triggered it and the fallback used in an audit log. Model risk reviewers read the log each month to see how often, when and why the model was restricted, and whether the thresholds need revisiting."
+        },
+        {
+          "goal": "General",
+          "description": "An airline's customer-service assistant is wrapped in a circuit breaker that counts timeouts, blocked outputs and refusals. When they pass a limit after a faulty release, traffic switches to a scripted menu and the on-call engineer is paged, so the faulty version is stopped quickly without waiting for a manual decision."
         }
       ],
       "limitations": [
         {
-          "description": "Threshold calibration requires extensive domain expertise and historical data analysis, as overly sensitive settings trigger excessive false alarms whilst conservative thresholds may miss genuine system failures."
+          "description": "Thresholds are hard to set. Too tight and the breaker trips on normal variation and withdraws a working service. Too loose and it stays closed through a real failure. Good settings need historical data from the live system, which is scarce at launch."
         },
         {
-          "description": "False positive alerts can unnecessarily disrupt service availability and user experience, potentially causing more harm than the issues they aim to prevent, especially in time-sensitive applications."
+          "description": "Model-level triggers are proxies for correctness. Drift scores and confidence can look normal while the model is confidently wrong, so a breaker that never trips is not evidence that predictions are right."
         },
         {
-          "description": "Sophisticated attacks or gradual performance degradation may operate within normal metric ranges, evading detection by staying below established thresholds whilst still causing cumulative damage."
+          "description": "Gradual degradation and slow attacks can stay inside the limits, because each reading is acceptable while the cumulative effect is harmful. Catching them needs separate trend analysis or delayed accuracy checks alongside the breaker."
         },
         {
-          "description": "Monitoring infrastructure introduces additional complexity and potential failure points, requiring robust implementation to avoid situations where the monitoring system itself becomes a source of system instability."
+          "description": "The breaker only moves the risk to the fallback. A cached answer, a simpler model or a human referral must itself be tested, and referral fails if reviewers cannot absorb a sudden diversion of traffic."
         },
         {
-          "description": "High-frequency monitoring and circuit breaker mechanisms can add computational overhead and latency to system operations, potentially impacting performance in resource-constrained environments."
+          "description": "Tripping has a cost. A false trip withdraws a working service from users who may depend on it in time-critical settings, and reopening after a fixed cooldown, or on a few easy trial requests, can restore traffic before the underlying fault is fixed."
         }
       ],
       "resources": [
@@ -5571,29 +5447,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic system automatically halts prediction generation when monitored accuracy metrics fall below operational safety thresholds",
+          "text": "The diagnostic-support service stops showing model suggestions to clinicians when the share of low-confidence predictions or the input drift score passes its preset limit, and the standard clinical workflow applies until the breaker is reset.",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The autonomous vehicle system engages protective failover mechanisms when sensor input quality or processing latency deviates from validated operational envelopes",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The fraud detection service maintains continuous operation by automatically throttling request rates when system response times exceed acceptable performance bounds",
+          "text": "The fraud-scoring service keeps answering requests during a model fault because the breaker diverts traffic to a rules-based fallback once the failure rate passes its threshold.",
           "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The forecasting model prevents cascading failures by automatically switching to fallback algorithms when prediction error rates or resource consumption patterns exceed established limits",
+          "text": "The forecasting service falls back to a simple baseline forecast when its inputs leave their historical ranges, so downstream users do not receive out-of-range forecasts.",
           "domain": "environmental",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system provides stakeholders with real-time visibility into operational health metrics and protective action triggering events",
+          "text": "Every breaker state change is recorded with its time, the metric that triggered it and the fallback used, and the log is available to system owners and auditors.",
           "domain": "general",
           "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The platform records when its configured runtime restrictions activate and when normal calls resume.",
+          "domain": "general",
+          "assuranceGoal": "general"
         }
       ]
     },
@@ -9088,189 +8964,6 @@
         {
           "text": "The financial model's training data is validated to exclude manipulated records designed to create exploitable prediction patterns",
           "domain": "finance",
-          "assuranceGoal": "safety"
-        }
-      ]
-    },
-    {
-      "slug": "knowledge-boundary-probing",
-      "name": "Knowledge Boundary Probing",
-      "description": "Knowledge boundary probing (sometimes called epistemic uncertainty quantification) systematically measures a language model's uncertainty about what it knows, partially knows, and doesn't know across different domains and topics. This technique uses probing datasets, confidence calibration analysis, and consistency testing to quantify epistemic uncertainty (uncertainty due to lack of knowledge) as distinct from aleatoric uncertainty (inherent data uncertainty). Uncertainty quantification enables appropriate deployment scoping, communicating model limitations, and identifying knowledge gaps requiring additional training or human oversight.",
-      "assurance_goals": [
-        "Transparency",
-        "Reliability",
-        "Safety"
-      ],
-      "tags": [
-        "applicable-models/architecture/model-agnostic",
-        "applicable-models/requirements/black-box",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/confidence-and-limits",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/uncertainty-quantification",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-identification",
-        "data-requirements/labelled-data",
-        "data-type/any",
-        "evidence-type/quantitative-metric",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/domain-expertise",
-        "expertise-needed/statistics",
-        "expertise-needed/evaluation-design",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-testing-and-validation",
-        "technique-type/algorithmic",
-        "technique-type/testing"
-      ],
-      "example_use_cases": [
-        {
-          "description": "Mapping a medical AI's knowledge boundaries to identify conditions it diagnoses reliably versus conditions requiring specialist referral, enabling safe deployment with appropriate scope limitations.",
-          "goal": "Safety"
-        },
-        {
-          "description": "Identifying knowledge gaps in a public policy analysis AI to ensure it provides reliable information about well-researched policy areas while disclaiming uncertainty about emerging policy domains or local contexts.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Transparently documenting model knowledge boundaries in user-facing applications, helping users understand when to trust AI outputs versus seek additional verification.",
-          "goal": "Transparency"
-        },
-        {
-          "description": "Quantifying uncertainty in an automated loan approval system to identify applications where the model's knowledge boundaries are exceeded (e.g., novel business types or unusual financial situations), triggering human expert review rather than automated rejection or approval.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Mapping knowledge boundaries in an educational AI tutor to distinguish between well-covered curriculum topics and emerging areas where the model lacks sufficient training data, ensuring students receive reliable guidance and appropriate referrals to human instructors.",
-          "goal": "Safety"
-        }
-      ],
-      "limitations": [
-        {
-          "description": "Comprehensive knowledge mapping across all possible domains and topics is infeasible, requiring prioritization of important knowledge areas."
-        },
-        {
-          "description": "Knowledge boundaries may be fuzzy rather than discrete, making it difficult to establish clear cutoffs between known and unknown."
-        },
-        {
-          "description": "Models may be confidently wrong in some areas, making calibration and confidence signals unreliable indicators of actual knowledge."
-        },
-        {
-          "description": "Knowledge boundaries shift as models are updated or fine-tuned, requiring continuous remapping to maintain accuracy."
-        },
-        {
-          "description": "Uncertainty quantification methods can add significant computational overhead (10-100x inference time for ensemble-based approaches), making real-time deployment challenging for latency-sensitive applications."
-        },
-        {
-          "description": "Interpreting uncertainty estimates requires statistical expertise and domain knowledge to set appropriate thresholds for triggering human review or system warnings."
-        }
-      ],
-      "resources": [
-        {
-          "title": "LM-Polygraph documentation",
-          "url": "https://lm-polygraph.readthedocs.io/en/latest/",
-          "source_type": "documentation",
-          "citationKey": "LMPolygraphDocumentation"
-        },
-        {
-          "title": "lm-polygraph",
-          "url": "https://github.com/IINemo/lm-polygraph",
-          "source_type": "software_package",
-          "publication_date": "2026-10-06T13:46:16Z",
-          "citationKey": "shelmanovLmpolygraph2026"
-        },
-        {
-          "title": "Benchmarking Knowledge Boundary for Large Language Models: A Different Perspective on Model Evaluation",
-          "url": "https://doi.org/10.18653/v1/2024.acl-long.124",
-          "source_type": "technical_paper",
-          "authors": [
-            "Xunjian Yin",
-            "Xu Zhang",
-            "Jie Ruan",
-            "Xiaojun Wan"
-          ],
-          "publication_date": "2024-02-18",
-          "citationKey": "yinBenchmarkingKnowledgeBoundary2024",
-          "abstract": "In recent years, substantial advancements have been made in the development of large language models, achieving remarkable performance across diverse tasks. To evaluate the knowledge ability of language models, previous studies have proposed lots of benchmarks based on question-answering pairs. We argue that it is not reliable and comprehensive to evaluate language models with a fixed question or limited paraphrases as the query, since language models are sensitive to prompt. Therefore, we introduce a novel concept named knowledge boundary to encompass both prompt-agnostic and prompt-sensitive knowledge within language models. Knowledge boundary avoids prompt sensitivity in language model evaluations, rendering them more dependable and robust. To explore the knowledge boundary for a given model, we propose projected gradient descent method with semantic constraints, a new algorithm designed to identify the optimal prompt for each piece of knowledge. Experiments demonstrate a superior performance of our algorithm in computing the knowledge boundary compared to existing methods. Furthermore, we evaluate the ability of multiple language models in several domains with knowledge boundary."
-        },
-        {
-          "title": "Do Large Language Models Know What They Don’t Know?",
-          "url": "https://doi.org/10.18653/v1/2023.findings-acl.551",
-          "source_type": "technical_paper",
-          "authors": [
-            "Zhangyue Yin",
-            "Qiushi Sun",
-            "Qipeng Guo",
-            "Jiawen Wu",
-            "Xipeng Qiu",
-            "Xuanjing Huang"
-          ],
-          "publication_date": "2023",
-          "citationKey": "yinLargeLanguageModels2023",
-          "abstract": "Large language models (LLMs) have a wealth of knowledge that allows them to excel in various Natural Language Processing (NLP) tasks.Current research focuses on enhancing their performance within their existing knowledge.Despite their vast knowledge, LLMs are still limited by the amount of information they can accommodate and comprehend.Therefore, the ability to understand their own limitations on the unknows, referred to as self-knowledge, is of paramount importance.This study aims to evaluate LLMs' self-knowledge by assessing their ability to identify unanswerable or unknowable questions.We introduce an automated methodology to detect uncertainty in the responses of these models, providing a novel measure of their self-knowledge.We further introduce a unique dataset, SelfAware, consisting of unanswerable questions from five diverse categories and their answerable counterparts.Our extensive analysis, involving 20 LLMs including GPT-3, InstructGPT, and LLaMA, discovering an intrinsic capacity for self-knowledge within these models.Moreover, we demonstrate that in-context learning and instruction tuning can further enhance this self-knowledge.Despite this promising insight, our findings also highlight a considerable gap between the capabilities of these models and human proficiency in recognizing the limits of their knowledge. \"True wisdom is knowing what you don't know.\" -Confucius"
-        },
-        {
-          "title": "Aleatoric and epistemic uncertainty in machine learning: an introduction to concepts and methods",
-          "url": "https://doi.org/10.1007/s10994-021-05946-3",
-          "source_type": "technical_paper",
-          "authors": [
-            "Eyke Hüllermeier",
-            "Willem Waegeman"
-          ],
-          "publication_date": "2021-3",
-          "citationKey": "hullermeierAleatoricEpistemicUncertainty2021",
-          "abstract": "The notion of uncertainty is of major importance in machine learning and constitutes a key element of machine learning methodology. In line with the statistical tradition, uncertainty has long been perceived as almost synonymous with standard probability and probabilistic predictions. Yet, due to the steadily increasing relevance of machine learning for practical applications and related issues such as safety requirements, new problems and challenges have recently been identified by machine learning scholars, and these problems may call for new methodological developments. In particular, this includes the importance of distinguishing between (at least) two different types of uncertainty, often referred to as aleatoric and epistemic . In this paper, we provide an introduction to the topic of uncertainty in machine learning as well as an overview of attempts so far at handling uncertainty in general and formalizing this distinction in particular."
-        },
-        {
-          "title": "Basic usage - LM-Polygraph documentation",
-          "url": "https://lm-polygraph.readthedocs.io/en/latest/usage.html",
-          "source_type": "tutorial",
-          "citationKey": "BasicUsageLMPolygraph"
-        },
-        {
-          "title": "Calibration of Self-Reported Confidence and Accuracy of Large Language Models in Medical Question Answering",
-          "url": "https://doi.org/10.1007/s10916-026-02430-0",
-          "source_type": "application_paper",
-          "authors": [
-            "Sebastian Daniel Boie",
-            "Florian Reis",
-            "Nicolas Frey",
-            "Elias Grünewald",
-            "Felix Balzer"
-          ],
-          "publication_date": "2026-6-26",
-          "citationKey": "boieCalibrationSelfReportedConfidence2026",
-          "abstract": "Objective: To evaluate the alignment between self-reported confidence of large language models (LLM) and their accuracy in answering medical multiple-choice questions. Materials and Methods: We prompted six LLMs (GPT-5, GPT-5-mini, GPT-5-nano, GPT-4o, Claude Sonnet 4.5, and Gemini 2.5) to answer MedMCQA items and report confidence scores. Based on 12,000 LLM responses, we calculated Expected Calibration Errors (ECE) by averaging absolute differences between observed accuracy and predicted confidence. Results: Mean ECE differed by model (Claude Sonnet 4.5 best: 0.06; Gpt-4o worst: 0.127) and varied across specialties (“Skin” best: 0.041; “Social & Preventive Medicine” worst: 0.141). Accuracy of examined LLMs showed analogous variation between specialties. Discussion: Our results demonstrate that high accuracy does not guarantee reliable uncertainty estimation. We identified substantial heterogeneity across medical specialties, where pooled metrics masked a threefold ECE increase between best- and worst-performing domains. Conclusion: We recommend incorporating calibration reporting into LLM evaluations, as larger models exhibit improved “self-knowledge”, but uneven overconfidence persists."
-        }
-      ],
-      "related_techniques": [
-        "bootstrapping",
-        "monte-carlo-dropout",
-        "deep-ensembles"
-      ],
-      "sample_claims": [
-        {
-          "text": "The diagnostic system's uncertainty estimates distinguish between lack of training data and inherent clinical variability",
-          "domain": "healthcare",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The credit assessment model identifies when applicant profiles fall outside its established knowledge boundaries",
-          "domain": "finance",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The autonomous vehicle's perception system detects when environmental conditions exceed its validated knowledge envelope",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The policy analysis tool communicates gaps in its domain knowledge separately from prediction variance",
-          "domain": "public sector",
-          "assuranceGoal": "reliability"
-        },
-        {
-          "text": "The flood forecasting model's uncertainty estimates reflect genuine epistemic gaps",
-          "domain": "environmental",
           "assuranceGoal": "safety"
         }
       ]
@@ -15347,5 +15040,5 @@
       ]
     }
   ],
-  "count": 96
+  "count": 94
 }

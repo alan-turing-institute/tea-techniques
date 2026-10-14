@@ -9,7 +9,7 @@
     {
       "slug": "out-of-distribution-detector-for-neural-networks",
       "name": "Out-of-Distribution Detector for Neural Networks",
-      "description": "ODIN (Out-of-Distribution Detector for Neural Networks) identifies when a neural network encounters inputs significantly different from its training distribution. It enhances detection by applying temperature scaling to soften the model's output distribution and adding small, carefully calibrated perturbations to the input that push in-distribution samples towards higher confidence predictions. By measuring the maximum softmax probability after these adjustments, ODIN can effectively distinguish between in-distribution and out-of-distribution inputs, flagging potentially unreliable predictions before they cause downstream errors.",
+      "description": "ODIN (Out-of-Distribution Detector for Neural Networks) flags inputs that look unlike the data a neural network classifier was trained on, and it works on an already trained network without retraining it. A classifier reports a confidence score, the highest probability it gives to any class, but that score is often high even for unfamiliar inputs. ODIN adjusts the score in two ways so that familiar and unfamiliar inputs separate better. It divides the classifier's raw output scores by a large constant, called the temperature, before turning them into probabilities, and it nudges the input slightly in the direction that raises the score, which lifts familiar inputs more than unfamiliar ones. An input whose adjusted score falls below a chosen threshold is flagged as out-of-distribution, so its prediction can be withheld or referred for review.",
       "assurance_goals": [
         "Reliability",
         "Safety"
@@ -25,7 +25,7 @@
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/monitoring",
         "data-requirements/no-special-requirements",
-        "data-type/any",
+        "data-type/image",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
         "expertise-needed/statistics",
@@ -37,26 +37,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Detecting anomalous medical images in diagnostic systems, where ODIN flags X-rays or scans containing rare pathologies or imaging artefacts not present in training data, preventing misdiagnosis and prompting specialist review.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A hospital screens each chest X-ray with ODIN before the diagnostic classifier's result is shown. Scans that are not chest X-rays, or that carry heavy artefacts, are flagged for human review instead of receiving a confident diagnosis, and the false positive rate is measured on a sample of such scans first."
         },
         {
-          "description": "Protecting autonomous vehicle perception systems by identifying novel road scenarios (e.g., unusual weather conditions, rare obstacle types) that fall outside the training distribution, triggering fallback safety mechanisms.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "An automated driving team scores each camera frame with ODIN and passes frames below the threshold to a fallback routine, such as slowing the vehicle and requesting remote assistance. The team measures how many unfamiliar frames, such as sensor faults or unusual scenes, are wrongly accepted before relying on the detector."
         }
       ],
       "limitations": [
         {
-          "description": "Requires careful tuning of temperature scaling and perturbation magnitude parameters, which may need adjustment for different types of out-of-distribution data."
+          "description": "Temperature and perturbation size are tuned on a validation set that includes out-of-distribution examples, so some representative unfamiliar data is needed before deployment. The paper found settings transferred reasonably between validation sets, but only on image benchmarks."
         },
         {
-          "description": "Performance degrades when out-of-distribution samples are very similar to training data, making near-distribution detection challenging."
+          "description": "Detection gets harder as unfamiliar inputs resemble the training data. In the original paper, at 95% acceptance of familiar images, the share of unfamiliar natural images wrongly accepted rose from at most about 11% with a 10-class training set to between 19% and 58% with a 100-class one, so performance must be measured on the deployment's own data."
         },
         {
-          "description": "Vulnerable to adversarial examples specifically crafted to evade detection by mimicking in-distribution characteristics."
+          "description": "Not designed to resist inputs deliberately crafted to look in-distribution, and the original paper does not evaluate adversarial evasion, so it gives no protection against a deliberate attacker."
         },
         {
-          "description": "Computational overhead from input preprocessing and perturbation generation can impact real-time inference applications."
+          "description": "Needs access to the network's gradients to compute the input perturbation, so it cannot be applied to a model that is reachable only through an API."
+        },
+        {
+          "description": "Each input needs at least one extra forward pass and one backward pass before the final scoring pass, which can matter for real-time or high-volume use."
         }
       ],
       "resources": [
@@ -121,24 +124,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The perception system detects when operating conditions fall outside its validated envelope",
+          "text": "Camera frames that fall outside the perception network's training distribution, such as those from a sensor fault, are flagged before the planner uses the network's output.",
           "domain": "autonomous systems",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The diagnostic model identifies medical images containing pathologies or imaging artifacts not represented in the training dataset",
+          "text": "Scans that are not of the type the diagnostic classifier was trained on are rejected by the out-of-distribution detector instead of receiving a confident diagnosis.",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The fraud detection system flags transactions exhibiting characteristics absent from historical attack patterns",
-          "domain": "finance",
-          "assuranceGoal": "safety"
+          "text": "The detector's threshold is set so that 95% of in-distribution validation inputs are accepted, and the share of out-of-distribution test inputs wrongly accepted at that threshold is reported.",
+          "domain": "general",
+          "assuranceGoal": "reliability"
         },
         {
-          "text": "The environmental monitoring model maintains prediction reliability across sensor configurations and atmospheric conditions encountered during deployment",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "Images of unfamiliar part types or from unfamiliar cameras are held for human inspection instead of passing through the automated quality-control classifier.",
+          "domain": "manufacturing",
+          "assuranceGoal": "safety"
         }
       ]
     },
@@ -933,7 +936,7 @@
     {
       "slug": "runtime-monitoring-and-circuit-breakers",
       "name": "Runtime Monitoring and Circuit Breakers",
-      "description": "Runtime monitoring and circuit breakers watch a deployed AI system's operational and model-level signals and automatically stop, limit or reroute calls to the model when those signals cross preset limits. The circuit breaker, a software resilience pattern, wraps calls to the model: while closed it passes requests through and counts failures in a rolling time window; when failures pass a threshold it opens, so further requests fail at once or receive a fallback such as a cached answer, a simpler model, a rule-based default or referral to a person; after a cooldown it half-opens and lets a few trial requests through, closing again only if they succeed. For a machine learning model, what counts as a failure is widened from errors and timeouts to model-level signals available at the moment of prediction, such as input drift scores, low prediction confidence, out-of-range outputs or limits on the actions the system may take, because true accuracy usually cannot be measured until outcomes arrive later. The output is a log of breaker state changes, the metrics that triggered them and the alerts raised, which shows when and why the system was restricted; the protection is only as good as the chosen thresholds and the fallback behind the breaker.",
+      "description": "Runtime monitoring and circuit breakers observe a deployed AI service and restrict model calls when configured signals breach specified limits. In the closed state, requests pass through and recent failures are counted, while an open breaker rejects requests or provides a configured fallback, such as a cached answer, a simpler model, a rule-based default or referral to a person. After a waiting period, the half-open state permits a few trial calls and closes again only if they succeed. Model-related triggers can include immediately available signals such as input-drift scores (how far incoming data has moved from the training data) or low prediction confidence, since accuracy usually needs later outcome labels. Logs record state changes and triggering signals, supporting review of why the service was restricted without guaranteeing that the fallback is safe.",
       "assurance_goals": [
         "General",
         "Reliability",
@@ -959,37 +962,41 @@
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/monitoring",
         "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results"
+        "assurance-goal-category/transparency/audit-trail"
       ],
       "example_use_cases": [
         {
-          "description": "Implementing circuit breakers in a medical AI system that automatically halt diagnosis recommendations if prediction confidence drops below 85%, error rates exceed 2%, or response times increase beyond acceptable limits, preventing potentially harmful misdiagnoses during system degradation.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A hospital's diagnostic-support service stops showing model suggestions to clinicians when the share of low-confidence predictions or the input drift score passes preset limits, for example after a scanner software update changes the images. A notice tells staff the standard workflow applies until engineers reset the breaker."
         },
         {
-          "description": "Deploying runtime monitoring for a recommendation engine that tracks recommendation diversity, click-through rates, and user engagement patterns, automatically switching to simpler algorithms when complex models show signs of performance degradation or unusual behaviour patterns.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "Deploying runtime monitoring for a recommendation engine that tracks recommendation diversity, click-through rates, and user engagement patterns, automatically switching to simpler algorithms when complex models show signs of performance degradation or unusual behaviour patterns."
         },
         {
-          "description": "Establishing transparent monitoring dashboards for a loan approval system that display real-time metrics on approval rates across demographic groups, processing times, and model confidence levels, enabling stakeholders to verify consistent and fair operation.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A bank's credit-scoring service records every breaker state change, the metric that triggered it and the fallback used in an audit log. Model risk reviewers read the log each month to see how often, when and why the model was restricted, and whether the thresholds need revisiting."
+        },
+        {
+          "goal": "General",
+          "description": "An airline's customer-service assistant is wrapped in a circuit breaker that counts timeouts, blocked outputs and refusals. When they pass a limit after a faulty release, traffic switches to a scripted menu and the on-call engineer is paged, so the faulty version is stopped quickly without waiting for a manual decision."
         }
       ],
       "limitations": [
         {
-          "description": "Threshold calibration requires extensive domain expertise and historical data analysis, as overly sensitive settings trigger excessive false alarms whilst conservative thresholds may miss genuine system failures."
+          "description": "Thresholds are hard to set. Too tight and the breaker trips on normal variation and withdraws a working service. Too loose and it stays closed through a real failure. Good settings need historical data from the live system, which is scarce at launch."
         },
         {
-          "description": "False positive alerts can unnecessarily disrupt service availability and user experience, potentially causing more harm than the issues they aim to prevent, especially in time-sensitive applications."
+          "description": "Model-level triggers are proxies for correctness. Drift scores and confidence can look normal while the model is confidently wrong, so a breaker that never trips is not evidence that predictions are right."
         },
         {
-          "description": "Sophisticated attacks or gradual performance degradation may operate within normal metric ranges, evading detection by staying below established thresholds whilst still causing cumulative damage."
+          "description": "Gradual degradation and slow attacks can stay inside the limits, because each reading is acceptable while the cumulative effect is harmful. Catching them needs separate trend analysis or delayed accuracy checks alongside the breaker."
         },
         {
-          "description": "Monitoring infrastructure introduces additional complexity and potential failure points, requiring robust implementation to avoid situations where the monitoring system itself becomes a source of system instability."
+          "description": "The breaker only moves the risk to the fallback. A cached answer, a simpler model or a human referral must itself be tested, and referral fails if reviewers cannot absorb a sudden diversion of traffic."
         },
         {
-          "description": "High-frequency monitoring and circuit breaker mechanisms can add computational overhead and latency to system operations, potentially impacting performance in resource-constrained environments."
+          "description": "Tripping has a cost. A false trip withdraws a working service from users who may depend on it in time-critical settings, and reopening after a fixed cooldown, or on a few easy trial requests, can restore traffic before the underlying fault is fixed."
         }
       ],
       "resources": [
@@ -1088,29 +1095,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic system automatically halts prediction generation when monitored accuracy metrics fall below operational safety thresholds",
+          "text": "The diagnostic-support service stops showing model suggestions to clinicians when the share of low-confidence predictions or the input drift score passes its preset limit, and the standard clinical workflow applies until the breaker is reset.",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The autonomous vehicle system engages protective failover mechanisms when sensor input quality or processing latency deviates from validated operational envelopes",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The fraud detection service maintains continuous operation by automatically throttling request rates when system response times exceed acceptable performance bounds",
+          "text": "The fraud-scoring service keeps answering requests during a model fault because the breaker diverts traffic to a rules-based fallback once the failure rate passes its threshold.",
           "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The forecasting model prevents cascading failures by automatically switching to fallback algorithms when prediction error rates or resource consumption patterns exceed established limits",
+          "text": "The forecasting service falls back to a simple baseline forecast when its inputs leave their historical ranges, so downstream users do not receive out-of-range forecasts.",
           "domain": "environmental",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system provides stakeholders with real-time visibility into operational health metrics and protective action triggering events",
+          "text": "Every breaker state change is recorded with its time, the metric that triggered it and the fallback used, and the log is available to system owners and auditors.",
           "domain": "general",
           "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The platform records when its configured runtime restrictions activate and when normal calls resume.",
+          "domain": "general",
+          "assuranceGoal": "general"
         }
       ]
     },
@@ -1964,7 +1971,7 @@
     {
       "slug": "out-of-domain-detection",
       "name": "Out-of-Domain Detection",
-      "description": "Out-of-domain (OOD) detection identifies user inputs that fall outside an AI system's intended domain or capabilities, enabling graceful handling rather than generating unreliable responses. This technique trains classifiers or uses embedding-based methods to recognise when queries require knowledge or capabilities the system doesn't possess. OOD detection enables systems to explicitly decline, redirect, or request clarification rather than hallucinating answers or applying inappropriate reasoning to unfamiliar domains.",
+      "description": "Out-of-domain detection checks whether a user's query falls inside the topics and tasks a conversational AI system is meant to handle. Scope is defined by examples, such as an assistant's supported intents (the actions it can recognise), and a detector then scores how closely each new query resembles them. Typical detectors set a minimum confidence on an intent classifier, add an explicit out-of-scope class trained on examples of unsupported queries, or measure how far a query's embedding, a numerical summary of its meaning, lies from the in-scope examples. A query judged out of scope can be declined, handed to a person or another service, or answered with a request to rephrase, instead of receiving an unreliable or invented answer. The detector tests resemblance to the defined scope, not what the system actually knows, so it needs evaluating on realistic out-of-scope queries.",
       "assurance_goals": [
         "Reliability",
         "Safety",
@@ -1995,44 +2002,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Enabling a medical chatbot specialized in diabetes management to recognize and deflect questions about unrelated conditions, avoiding potentially dangerous medical advice outside its training domain.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Enabling a medical chatbot specialised in diabetes management to recognise and deflect questions about unrelated conditions, avoiding potentially dangerous medical advice outside its training domain."
         },
         {
-          "description": "Ensuring an educational AI tutor for high school mathematics reliably identifies advanced university-level questions and redirects students to appropriate resources rather than attempting explanations beyond its scope.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "Ensuring an educational AI tutor for high school mathematics reliably identifies advanced university-level questions and redirects students to appropriate resources rather than attempting explanations beyond its scope."
         },
         {
-          "description": "Transparently communicating system limitations by explicitly informing users when queries exceed the AI's scope rather than silently providing low-quality responses.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "An insurer's claims-intake assistant is built for routine motor and household claims. Messages about unfamiliar claim types, such as large flood events or commercial losses, are detected and routed to a specialist adjuster instead of being handled with irrelevant questions."
         },
         {
-          "description": "Protecting an insurance claims processing system trained on standard claims from making unreliable decisions on unusual or complex cases (e.g., natural disasters, emerging fraud patterns) by detecting and routing them to specialist adjusters.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Ensuring an autonomous vehicle's perception system detects when it encounters road conditions, weather patterns, or infrastructure types outside its training distribution (e.g., unmapped construction zones, unusual signage), triggering increased caution or human intervention.",
-          "goal": "Safety"
+          "goal": "Transparency",
+          "description": "A council's resident-services chatbot covers bin collections, parking permits and council tax. When a resident asks about something it does not cover, such as a planning dispute, it says so, names the service that can help and logs the query, and the log shows the council which topics residents ask about that the chatbot cannot answer."
         }
       ],
       "limitations": [
         {
-          "description": "Defining precise scope boundaries can be challenging, especially for general-purpose systems or domains with fuzzy edges."
+          "description": "Scope has to be defined before it can be detected, and general-purpose assistants or fuzzy domains have no clean edge. A narrow definition refuses legitimate queries, and a loose one lets unsupported queries through."
         },
         {
-          "description": "May produce false positives that reject legitimate queries at the boundary of the system's capabilities, degrading user experience."
+          "description": "Detection is weakest on queries that resemble in-scope ones. In the 2019 benchmark that introduced the task, no intent classifier caught more than about two-thirds of out-of-scope queries even when trained on examples of them, so recall should be measured on realistic out-of-scope queries before the detector is relied on."
         },
         {
-          "description": "Users may rephrase out-of-scope queries to bypass detection, requiring robust handling of paraphrases and edge cases."
+          "description": "The threshold trades wrongly refusing valid queries against wrongly answering unsupported ones. The two errors rarely cost the same, and queries near the boundary will still land on both sides."
         },
         {
-          "description": "Difficult to maintain accurate scope detection as systems are updated and capabilities expand or shift over time."
+          "description": "Users can rephrase or disguise an unsupported request so that it resembles in-scope wording. A detector tested only on plain phrasings overstates how well it holds up against paraphrase."
         },
         {
-          "description": "Establishing reliable domain boundaries requires substantial labeled data from both in-domain and out-of-domain examples, which can be expensive to collect and annotate systematically."
-        },
-        {
-          "description": "Real-time OOD detection adds inference latency (typically 10-50ms per query depending on method), which may impact user experience in time-sensitive applications."
+          "description": "Scope changes as capabilities are added or retired, so the detector and its out-of-scope test set need refreshing, or it will refuse newly supported queries and accept newly unsupported ones. Building realistic out-of-scope examples is costly because annotators need expert knowledge of the in-scope intents."
         }
       ],
       "resources": [
@@ -2095,29 +2095,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical chatbot declines to answer queries about conditions outside its specialized scope rather than generating potentially harmful advice",
+          "text": "The diabetes-support chatbot declines questions about conditions outside its remit and directs the user to a clinician, instead of offering advice it was not designed to give.",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The autonomous system recognizes when it encounters environmental conditions that exceed its validated operating envelope",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The educational assistant consistently identifies when questions require expertise beyond its subject area and directs users to appropriate resources",
-          "domain": "general",
+          "text": "The tutoring assistant identifies questions above its curriculum level, at a recall measured on a realistic test set, and refers them to a teacher or other resource instead of attempting an answer.",
+          "domain": "education",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system explicitly communicates scope limitations when presented with queries at the boundary of its competence",
+          "text": "On a held-out set of realistic out-of-scope messages, the claims assistant routes at least the agreed share to a specialist adjuster while wrongly refusing no more than the agreed share of in-scope claims.",
+          "domain": "finance",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "Users of the resident-services chatbot are told when a question is outside what it covers, and the service owner reviews the log of unanswered topics each month.",
           "domain": "general",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The financial advisory system detects complex or unusual market scenarios outside its training scope and escalates to human analysts",
+          "text": "Messages to the bank's payments assistant that fall outside its card and payment scope, such as requests for investment advice, are not answered by it and are handed to a person.",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "safety"
         }
       ]
     },

@@ -617,10 +617,9 @@
     {
       "slug": "quantile-regression",
       "name": "Quantile Regression",
-      "description": "Quantile regression estimates specific percentiles (quantiles) of the target variable rather than just predicting the average outcome. For example, instead of predicting 'average house price = £300,000', it can predict 'there's a 10% chance the price will be below £250,000, 50% chance below £300,000, and 90% chance below £380,000'. This technique reveals how input features affect different parts of the outcome distribution - perhaps property size strongly influences luxury homes (90th percentile) but barely affects budget properties (10th percentile). By capturing the full conditional distribution, quantile regression provides rich uncertainty information and enables robust prediction intervals.",
+      "description": "Quantile regression predicts chosen percentiles of an outcome, such as the 10th, 50th and 90th, rather than only its average. In the classical method a separate model is fitted for each percentile, using a loss that penalises under-prediction and over-prediction unequally. For example, instead of predicting an average house price of £300,000, it can predict that a house of a given size and location has a 10% chance of selling below £250,000 and a 90% chance of selling below £380,000. Comparing the fitted percentiles shows how features affect different parts of the outcome, such as size mattering more for expensive homes than for cheap ones. A low and a high percentile together give a prediction interval (a range expected to contain a new outcome) without assuming the errors are normally distributed, though how often the interval actually contains new outcomes must be checked on held-out data.",
       "assurance_goals": [
-        "Reliability",
-        "Fairness"
+        "Reliability"
       ],
       "tags": [
         "applicable-models/architecture/linear-models/regression",
@@ -629,8 +628,6 @@
         "applicable-models/paradigm/parametric",
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/white-box",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/uncertainty-quantification",
         "data-requirements/labelled-data",
@@ -643,29 +640,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Predicting patient recovery times after surgery by estimating multiple quantiles (e.g., 25th, 50th, 75th percentiles), enabling doctors to communicate realistic timeframes: 'Most patients recover within 2-4 weeks, but some may take up to 8 weeks', providing robust uncertainty estimates for treatment planning.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "Predicting patient recovery times after surgery by fitting the 10th, 50th and 90th percentiles, so clinicians can say 'most patients recover within 2 to 4 weeks, but one in ten takes longer than 8' when planning follow-up care and bed use."
         },
         {
-          "description": "Ensuring equitable loan amount predictions across demographic groups by verifying that the spread of predicted loan amounts (difference between 90th and 10th percentiles) is consistent across protected groups, preventing discriminatory practices in lending ranges.",
-          "goal": "Fairness"
+          "goal": "Reliability",
+          "description": "A grid operator extends its wind power forecast with 10th and 90th percentile forecasts, fitted on past forecast errors and weather conditions, and sizes reserve capacity to the 90th percentile of the next-day shortfall rather than to an average error."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A flood-forecasting agency fits high percentiles of river level on rainfall and soil moisture, giving an upper bound that does not assume symmetric errors, and uses it to decide when to issue warnings for extreme events."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally intensive when fitting multiple quantiles simultaneously, especially for large datasets or complex models, as each quantile requires separate optimization."
+          "description": "Cost grows with the number of quantile levels fitted when, as in the classical method, each level is a separate optimisation, which adds up on large datasets or with complex models."
         },
         {
           "description": "May produce crossing quantiles without proper constraints, where predicted 90th percentile values are lower than 50th percentile values, creating logically inconsistent and unusable prediction intervals."
         },
         {
-          "description": "Sensitive to outliers and heavy-tailed distributions, particularly in extreme quantiles (e.g., 5th or 95th percentiles), which can lead to unstable and unreliable estimates."
+          "description": "Extreme quantiles (for example the 5th or 95th) rest on few observations and, with heavy-tailed outcomes, are noisy and unstable. With small datasets they cannot be estimated reliably, because too few points lie in the tails."
         },
         {
-          "description": "Requires careful selection of quantile levels and may need domain expertise to interpret results meaningfully, as different quantiles may reveal conflicting patterns in feature relationships."
+          "description": "Gives no guarantee that an interval built from two quantiles contains the stated share of new outcomes. Coverage can fall short if the model form is wrong or the data shift, so check it on held-out data before relying on it."
         },
         {
-          "description": "Less effective with small datasets where extreme quantiles cannot be reliably estimated due to insufficient data points in the tails of the distribution."
+          "description": "In its classical form each conditional quantile is assumed to be linear in the features. If the true relationship is curved or has interactions, the fitted quantiles are biased, and flexible models that avoid this lose the readable coefficients."
         }
       ],
       "resources": [
@@ -724,18 +725,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The flood forecasting model provides distinct uncertainty bounds for extreme and typical rainfall scenarios without assuming symmetric error distributions",
+          "text": "The flood forecasting model estimates the specified lower and upper conditional quantiles of river level without imposing a symmetric error distribution, and how often observed levels fall inside them has been checked on held-out events.",
           "domain": "environmental",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The model's uncertainty estimates span consistently across protected groups when predicting both low-risk and high-risk outcomes",
-          "domain": "general",
-          "assuranceGoal": "fairness"
+          "text": "The 90th percentile recovery-time forecast exceeds the observed recovery time for at least 90% of patients in the held-out audit sample, so the quoted longest timeframe is not systematically too short.",
+          "domain": "healthcare",
+          "assuranceGoal": "reliability"
         },
         {
-          "text": "The patient recovery time predictions distinguish between typical cases and outlier cases without relying on normally distributed residuals",
-          "domain": "healthcare",
+          "text": "The wind power forecast's 10th to 90th percentile band contains observed output about 80% of the time on out-of-sample data, in each of the low, medium and high wind-speed ranges.",
+          "domain": "energy",
           "assuranceGoal": "reliability"
         }
       ]
@@ -4787,23 +4788,20 @@
     {
       "slug": "knowledge-boundary-probing",
       "name": "Knowledge Boundary Probing",
-      "description": "Knowledge boundary probing (sometimes called epistemic uncertainty quantification) systematically measures a language model's uncertainty about what it knows, partially knows, and doesn't know across different domains and topics. This technique uses probing datasets, confidence calibration analysis, and consistency testing to quantify epistemic uncertainty (uncertainty due to lack of knowledge) as distinct from aleatoric uncertainty (inherent data uncertainty). Uncertainty quantification enables appropriate deployment scoping, communicating model limitations, and identifying knowledge gaps requiring additional training or human oversight.",
+      "description": "Knowledge boundary probing maps what a language model can and cannot reliably answer. A probe set is built from questions across the topics the system will face, including some with known answers and some that cannot be answered. Each question is asked in several phrasings, because a model may answer one wording correctly and fail on another. Responses are scored for correctness, for whether the model signals doubt when it should, and for whether its stated or computed confidence tracks whether it is right. The result is a topic-by-topic map of what the model knows, knows only under some phrasings, and does not know, which informs where to deploy it, what to tell users about its limits, and where to add training data or human review.",
       "assurance_goals": [
         "Transparency",
-        "Reliability",
-        "Safety"
+        "Reliability"
       ],
       "tags": [
-        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
         "applicable-models/requirements/black-box",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/confidence-and-limits",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/uncertainty-quantification",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-identification",
         "data-requirements/labelled-data",
-        "data-type/any",
+        "data-type/text",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
         "expertise-needed/domain-expertise",
@@ -4816,44 +4814,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Mapping a medical AI's knowledge boundaries to identify conditions it diagnoses reliably versus conditions requiring specialist referral, enabling safe deployment with appropriate scope limitations.",
-          "goal": "Safety"
+          "goal": "Reliability",
+          "description": "A government analytics team using an LLM to summarise policy evidence probes it on well-researched areas and on recent or local policy it cannot have seen in training. Accuracy drops on the second group, so the team adds a retrieval step for those topics before the tool is used in briefings."
         },
         {
-          "description": "Identifying knowledge gaps in a public policy analysis AI to ensure it provides reliable information about well-researched policy areas while disclaiming uncertainty about emerging policy domains or local contexts.",
-          "goal": "Reliability"
+          "goal": "Transparency",
+          "description": "A bank adds a per-topic table of probe results (accurate on card fees, weak on mortgage rules) to the model documentation for its customer-service chatbot. The app uses the table to tell customers when to check with an adviser."
         },
         {
-          "description": "Transparently documenting model knowledge boundaries in user-facing applications, helping users understand when to trust AI outputs versus seek additional verification.",
-          "goal": "Transparency"
-        },
-        {
-          "description": "Quantifying uncertainty in an automated loan approval system to identify applications where the model's knowledge boundaries are exceeded (e.g., novel business types or unusual financial situations), triggering human expert review rather than automated rejection or approval.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Mapping knowledge boundaries in an educational AI tutor to distinguish between well-covered curriculum topics and emerging areas where the model lacks sufficient training data, ensuring students receive reliable guidance and appropriate referrals to human instructors.",
-          "goal": "Safety"
+          "goal": "Reliability",
+          "description": "A school-software vendor checks an LLM maths tutor against each curriculum unit, asking every question in several wordings. Units where correctness changes with the wording are marked for teacher review instead of being shown to students unsupervised."
         }
       ],
       "limitations": [
         {
-          "description": "Comprehensive knowledge mapping across all possible domains and topics is infeasible, requiring prioritization of important knowledge areas."
+          "description": "The probe set samples a finite number of topics and question types. A clean result on those says little about topics the set omits, so the map is only as broad as the probes, and mapping every domain is infeasible."
         },
         {
-          "description": "Knowledge boundaries may be fuzzy rather than discrete, making it difficult to establish clear cutoffs between known and unknown."
+          "description": "Whether a model 'knows' something depends on how the question is worded. A single phrasing can understate or overstate what the model knows, so each question needs several phrasings, and the boundary is fuzzy rather than a clean line."
         },
         {
-          "description": "Models may be confidently wrong in some areas, making calibration and confidence signals unreliable indicators of actual knowledge."
+          "description": "Models can be confidently wrong, and can hedge on things they know, so stated or computed confidence is only a rough guide to knowledge. Calibration also varies by topic, so one overall score can hide weak areas."
         },
         {
-          "description": "Knowledge boundaries shift as models are updated or fine-tuned, requiring continuous remapping to maintain accuracy."
+          "description": "Scoring needs labelled questions and a way to detect hedging. Deciding which questions are truly unanswerable takes human judgement, and detectors built on one model's uncertainty phrases may miss how other models express doubt."
         },
         {
-          "description": "Uncertainty quantification methods can add significant computational overhead (10-100x inference time for ensemble-based approaches), making real-time deployment challenging for latency-sensitive applications."
-        },
-        {
-          "description": "Interpreting uncertainty estimates requires statistical expertise and domain knowledge to set appropriate thresholds for triggering human review or system warnings."
+          "description": "The map holds for one model version. Fine-tuning, a model update or added retrieval shifts the boundary, so the probes must be rerun after each change to keep the map accurate."
         }
       ],
       "resources": [
@@ -4941,36 +4928,31 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic system's uncertainty estimates distinguish between lack of training data and inherent clinical variability",
+          "text": "The clinical question-answering assistant's expected calibration error stays below a stated limit in every specialty in the probe set, not only in aggregate.",
           "domain": "healthcare",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The credit assessment model identifies when applicant profiles fall outside its established knowledge boundaries",
-          "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The autonomous vehicle's perception system detects when environmental conditions exceed its validated knowledge envelope",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
+          "text": "The customer-service assistant's documentation lists each topic with its probe results and names the topics where it is known to answer unreliably.",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
         },
         {
-          "text": "The policy analysis tool communicates gaps in its domain knowledge separately from prediction variance",
+          "text": "The policy-summarisation assistant's accuracy on developments after its training cut-off is measured and reported separately from its accuracy on established topics.",
           "domain": "public sector",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The flood forecasting model's uncertainty estimates reflect genuine epistemic gaps",
-          "domain": "environmental",
-          "assuranceGoal": "safety"
+          "text": "The maths tutor gives the same correct answer to at least 90% of paraphrases of each curriculum question it is cleared to answer.",
+          "domain": "education",
+          "assuranceGoal": "reliability"
         }
       ]
     },
     {
       "slug": "out-of-domain-detection",
       "name": "Out-of-Domain Detection",
-      "description": "Out-of-domain (OOD) detection identifies user inputs that fall outside an AI system's intended domain or capabilities, enabling graceful handling rather than generating unreliable responses. This technique trains classifiers or uses embedding-based methods to recognise when queries require knowledge or capabilities the system doesn't possess. OOD detection enables systems to explicitly decline, redirect, or request clarification rather than hallucinating answers or applying inappropriate reasoning to unfamiliar domains.",
+      "description": "Out-of-domain detection checks whether a user's query falls inside the topics and tasks a conversational AI system is meant to handle. Scope is defined by examples, such as an assistant's supported intents (the actions it can recognise), and a detector then scores how closely each new query resembles them. Typical detectors set a minimum confidence on an intent classifier, add an explicit out-of-scope class trained on examples of unsupported queries, or measure how far a query's embedding, a numerical summary of its meaning, lies from the in-scope examples. A query judged out of scope can be declined, handed to a person or another service, or answered with a request to rephrase, instead of receiving an unreliable or invented answer. The detector tests resemblance to the defined scope, not what the system actually knows, so it needs evaluating on realistic out-of-scope queries.",
       "assurance_goals": [
         "Reliability",
         "Safety",
@@ -5001,44 +4983,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Enabling a medical chatbot specialized in diabetes management to recognize and deflect questions about unrelated conditions, avoiding potentially dangerous medical advice outside its training domain.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Enabling a medical chatbot specialised in diabetes management to recognise and deflect questions about unrelated conditions, avoiding potentially dangerous medical advice outside its training domain."
         },
         {
-          "description": "Ensuring an educational AI tutor for high school mathematics reliably identifies advanced university-level questions and redirects students to appropriate resources rather than attempting explanations beyond its scope.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "Ensuring an educational AI tutor for high school mathematics reliably identifies advanced university-level questions and redirects students to appropriate resources rather than attempting explanations beyond its scope."
         },
         {
-          "description": "Transparently communicating system limitations by explicitly informing users when queries exceed the AI's scope rather than silently providing low-quality responses.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "An insurer's claims-intake assistant is built for routine motor and household claims. Messages about unfamiliar claim types, such as large flood events or commercial losses, are detected and routed to a specialist adjuster instead of being handled with irrelevant questions."
         },
         {
-          "description": "Protecting an insurance claims processing system trained on standard claims from making unreliable decisions on unusual or complex cases (e.g., natural disasters, emerging fraud patterns) by detecting and routing them to specialist adjusters.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Ensuring an autonomous vehicle's perception system detects when it encounters road conditions, weather patterns, or infrastructure types outside its training distribution (e.g., unmapped construction zones, unusual signage), triggering increased caution or human intervention.",
-          "goal": "Safety"
+          "goal": "Transparency",
+          "description": "A council's resident-services chatbot covers bin collections, parking permits and council tax. When a resident asks about something it does not cover, such as a planning dispute, it says so, names the service that can help and logs the query, and the log shows the council which topics residents ask about that the chatbot cannot answer."
         }
       ],
       "limitations": [
         {
-          "description": "Defining precise scope boundaries can be challenging, especially for general-purpose systems or domains with fuzzy edges."
+          "description": "Scope has to be defined before it can be detected, and general-purpose assistants or fuzzy domains have no clean edge. A narrow definition refuses legitimate queries, and a loose one lets unsupported queries through."
         },
         {
-          "description": "May produce false positives that reject legitimate queries at the boundary of the system's capabilities, degrading user experience."
+          "description": "Detection is weakest on queries that resemble in-scope ones. In the 2019 benchmark that introduced the task, no intent classifier caught more than about two-thirds of out-of-scope queries even when trained on examples of them, so recall should be measured on realistic out-of-scope queries before the detector is relied on."
         },
         {
-          "description": "Users may rephrase out-of-scope queries to bypass detection, requiring robust handling of paraphrases and edge cases."
+          "description": "The threshold trades wrongly refusing valid queries against wrongly answering unsupported ones. The two errors rarely cost the same, and queries near the boundary will still land on both sides."
         },
         {
-          "description": "Difficult to maintain accurate scope detection as systems are updated and capabilities expand or shift over time."
+          "description": "Users can rephrase or disguise an unsupported request so that it resembles in-scope wording. A detector tested only on plain phrasings overstates how well it holds up against paraphrase."
         },
         {
-          "description": "Establishing reliable domain boundaries requires substantial labeled data from both in-domain and out-of-domain examples, which can be expensive to collect and annotate systematically."
-        },
-        {
-          "description": "Real-time OOD detection adds inference latency (typically 10-50ms per query depending on method), which may impact user experience in time-sensitive applications."
+          "description": "Scope changes as capabilities are added or retired, so the detector and its out-of-scope test set need refreshing, or it will refuse newly supported queries and accept newly unsupported ones. Building realistic out-of-scope examples is costly because annotators need expert knowledge of the in-scope intents."
         }
       ],
       "resources": [
@@ -5101,29 +5076,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical chatbot declines to answer queries about conditions outside its specialized scope rather than generating potentially harmful advice",
+          "text": "The diabetes-support chatbot declines questions about conditions outside its remit and directs the user to a clinician, instead of offering advice it was not designed to give.",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The autonomous system recognizes when it encounters environmental conditions that exceed its validated operating envelope",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The educational assistant consistently identifies when questions require expertise beyond its subject area and directs users to appropriate resources",
-          "domain": "general",
+          "text": "The tutoring assistant identifies questions above its curriculum level, at a recall measured on a realistic test set, and refers them to a teacher or other resource instead of attempting an answer.",
+          "domain": "education",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system explicitly communicates scope limitations when presented with queries at the boundary of its competence",
+          "text": "On a held-out set of realistic out-of-scope messages, the claims assistant routes at least the agreed share to a specialist adjuster while wrongly refusing no more than the agreed share of in-scope claims.",
+          "domain": "finance",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "Users of the resident-services chatbot are told when a question is outside what it covers, and the service owner reviews the log of unanswered topics each month.",
           "domain": "general",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The financial advisory system detects complex or unusual market scenarios outside its training scope and escalates to human analysts",
+          "text": "Messages to the bank's payments assistant that fall outside its card and payment scope, such as requests for investment advice, are not answered by it and are handed to a person.",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "safety"
         }
       ]
     },

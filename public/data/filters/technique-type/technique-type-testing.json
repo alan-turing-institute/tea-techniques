@@ -606,7 +606,7 @@
     {
       "slug": "safety-envelope-testing",
       "name": "Safety Envelope Testing",
-      "description": "Safety envelope testing systematically evaluates AI system performance at the boundaries of its intended operational domain to identify potential failure modes before deployment. The technique involves defining the system's operational design domain (ODD), creating test scenarios that approach or exceed these boundaries, and measuring performance degradation as conditions become more challenging. By testing edge cases, environmental extremes, and boundary conditions, it reveals where the system transitions from safe to unsafe operation, enabling the establishment of clear operational limits and safety margins for deployment.",
+      "description": "Safety envelope testing checks how an AI system performs at and beyond the edges of the conditions it was designed for, so that failure modes are found before deployment. Testers first write down those conditions, called the operational design domain, such as the road types, weather, lighting and speeds a vehicle is built for. They then build scenarios that push each condition towards its limit and past it, and measure how performance degrades as conditions get harder, repeating runs where the system does not behave the same way twice. The results show where, within the conditions tested, the system moves from acceptable to unsafe behaviour. They support operating limits, safety margins and a point at which the system should hand over to a person or stop.",
       "assurance_goals": [
         "Safety",
         "Reliability"
@@ -630,33 +630,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing autonomous vehicle perception systems at the limits of weather conditions, lighting, and sensor coverage to establish safe operational boundaries and determine when human intervention is required.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Testing autonomous vehicle perception systems at the limits of weather conditions, lighting, and sensor coverage to establish safe operational boundaries and determine when human intervention is required."
         },
         {
-          "description": "Evaluating medical AI diagnostic systems with edge cases near decision boundaries to ensure reliable performance and identify when the system should defer to human specialists.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A radiology team tests a chest X-ray triage model on scans at the edge of its intended use, such as the poorest image quality and the oldest scanner models it was approved for, and records where sensitivity falls below the agreed floor, so that scans beyond that point are referred to a radiologist."
         },
         {
-          "description": "Assessing financial trading algorithms under extreme market conditions and volatility to prevent catastrophic losses and ensure system shutdown protocols activate appropriately.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "A trading firm replays historical crash periods and synthetic shocks with volatility pushed beyond the range its trading model was developed on, to check that position limits and the automatic trading halt trigger before losses reach the agreed ceiling."
         }
       ],
       "limitations": [
         {
-          "description": "Requires comprehensive domain expertise to identify relevant boundary conditions and edge cases that could affect system safety."
+          "description": "Results are only as good as the operational design domain used. If the specification omits a condition the system meets in service, such as a road type or a market regime, the tests probe the wrong edge and a clean result gives false confidence."
         },
         {
-          "description": "May be computationally expensive and time-consuming, especially for complex systems with high-dimensional operational domains."
+          "description": "Coverage is incomplete by construction. Conditions interact across many dimensions, so the number of boundary combinations grows quickly, and failures that appear only when several factors reach their limits together can be missed."
         },
         {
-          "description": "Difficult to achieve complete coverage of all possible boundary conditions, potentially missing critical edge cases."
+          "description": "Performance of a learned system need not fall smoothly towards the boundary. Failures can sit inside the envelope, so good results at the edge do not show that the interior is safe."
         },
         {
-          "description": "Results may not generalise to novel scenarios that fall outside the tested boundary conditions."
+          "description": "Results describe one system version in one test setting, and a single pass proves little for a system that behaves differently on successive runs, which needs repeated trials. Retraining, new sensors or a gap between simulation and the real world can move the boundary, so the tests need repeating after each material change."
         },
         {
-          "description": "Establishing appropriate safety thresholds and performance criteria requires careful calibration based on domain-specific risk tolerance."
+          "description": "The technique shows where the system stops performing acceptably. It does not keep the system inside that envelope in service, which needs a separate runtime monitor or out-of-distribution detector."
         }
       ],
       "resources": [
@@ -699,29 +699,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous vehicle system recognizes when environmental conditions approach the limits of its validated operational envelope and initiates appropriate fallback behaviors",
+          "text": "The perception system has been tested at and beyond the limits of its operational design domain in weather, lighting and sensor-coverage conditions, and the point at which it hands control to a human driver is documented.",
           "domain": "autonomous systems",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The diagnostic system's performance degradation is characterized across the full range of patient presentation complexity, establishing clear thresholds for specialist referral",
+          "text": "The diagnostic model's sensitivity has been measured across graded levels of image quality and case complexity up to the edge of its intended use, and the level at which cases are referred to a specialist is set from those results.",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The forecasting model maintains quantified accuracy bounds under progressively extreme weather conditions up to documented operational limits",
+          "text": "The forecasting model's error has been measured under progressively more extreme weather inputs up to the documented operating limits, with the point at which accuracy falls below the agreed bound recorded.",
           "domain": "environmental",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The trading algorithm's decision quality is measured systematically across market volatility conditions, with defined cutoffs for automated trading suspension",
-          "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The quality control system's inspection reliability has been tested at the boundaries of lighting, part orientation, and surface condition variations expected in production",
-          "domain": "manufacturing",
+          "text": "The trading algorithm's automatic suspension has been shown to trigger in stress scenarios when volatility passes the documented limit, before position losses exceed the agreed ceiling.",
+          "domain": "finance",
           "assuranceGoal": "safety"
+        },
+        {
+          "text": "The inspection system's defect-detection rate has been tested at the edges of the lighting, part-orientation and surface-finish ranges expected in production, and the range in which it meets the required rate is documented.",
+          "domain": "manufacturing",
+          "assuranceGoal": "reliability"
         }
       ]
     },
@@ -2589,23 +2589,20 @@
     {
       "slug": "knowledge-boundary-probing",
       "name": "Knowledge Boundary Probing",
-      "description": "Knowledge boundary probing (sometimes called epistemic uncertainty quantification) systematically measures a language model's uncertainty about what it knows, partially knows, and doesn't know across different domains and topics. This technique uses probing datasets, confidence calibration analysis, and consistency testing to quantify epistemic uncertainty (uncertainty due to lack of knowledge) as distinct from aleatoric uncertainty (inherent data uncertainty). Uncertainty quantification enables appropriate deployment scoping, communicating model limitations, and identifying knowledge gaps requiring additional training or human oversight.",
+      "description": "Knowledge boundary probing maps what a language model can and cannot reliably answer. A probe set is built from questions across the topics the system will face, including some with known answers and some that cannot be answered. Each question is asked in several phrasings, because a model may answer one wording correctly and fail on another. Responses are scored for correctness, for whether the model signals doubt when it should, and for whether its stated or computed confidence tracks whether it is right. The result is a topic-by-topic map of what the model knows, knows only under some phrasings, and does not know, which informs where to deploy it, what to tell users about its limits, and where to add training data or human review.",
       "assurance_goals": [
         "Transparency",
-        "Reliability",
-        "Safety"
+        "Reliability"
       ],
       "tags": [
-        "applicable-models/architecture/model-agnostic",
+        "applicable-models/architecture/neural-networks/transformer/llm",
         "applicable-models/requirements/black-box",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/confidence-and-limits",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/uncertainty-quantification",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-identification",
         "data-requirements/labelled-data",
-        "data-type/any",
+        "data-type/text",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
         "expertise-needed/domain-expertise",
@@ -2618,44 +2615,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Mapping a medical AI's knowledge boundaries to identify conditions it diagnoses reliably versus conditions requiring specialist referral, enabling safe deployment with appropriate scope limitations.",
-          "goal": "Safety"
+          "goal": "Reliability",
+          "description": "A government analytics team using an LLM to summarise policy evidence probes it on well-researched areas and on recent or local policy it cannot have seen in training. Accuracy drops on the second group, so the team adds a retrieval step for those topics before the tool is used in briefings."
         },
         {
-          "description": "Identifying knowledge gaps in a public policy analysis AI to ensure it provides reliable information about well-researched policy areas while disclaiming uncertainty about emerging policy domains or local contexts.",
-          "goal": "Reliability"
+          "goal": "Transparency",
+          "description": "A bank adds a per-topic table of probe results (accurate on card fees, weak on mortgage rules) to the model documentation for its customer-service chatbot. The app uses the table to tell customers when to check with an adviser."
         },
         {
-          "description": "Transparently documenting model knowledge boundaries in user-facing applications, helping users understand when to trust AI outputs versus seek additional verification.",
-          "goal": "Transparency"
-        },
-        {
-          "description": "Quantifying uncertainty in an automated loan approval system to identify applications where the model's knowledge boundaries are exceeded (e.g., novel business types or unusual financial situations), triggering human expert review rather than automated rejection or approval.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Mapping knowledge boundaries in an educational AI tutor to distinguish between well-covered curriculum topics and emerging areas where the model lacks sufficient training data, ensuring students receive reliable guidance and appropriate referrals to human instructors.",
-          "goal": "Safety"
+          "goal": "Reliability",
+          "description": "A school-software vendor checks an LLM maths tutor against each curriculum unit, asking every question in several wordings. Units where correctness changes with the wording are marked for teacher review instead of being shown to students unsupervised."
         }
       ],
       "limitations": [
         {
-          "description": "Comprehensive knowledge mapping across all possible domains and topics is infeasible, requiring prioritization of important knowledge areas."
+          "description": "The probe set samples a finite number of topics and question types. A clean result on those says little about topics the set omits, so the map is only as broad as the probes, and mapping every domain is infeasible."
         },
         {
-          "description": "Knowledge boundaries may be fuzzy rather than discrete, making it difficult to establish clear cutoffs between known and unknown."
+          "description": "Whether a model 'knows' something depends on how the question is worded. A single phrasing can understate or overstate what the model knows, so each question needs several phrasings, and the boundary is fuzzy rather than a clean line."
         },
         {
-          "description": "Models may be confidently wrong in some areas, making calibration and confidence signals unreliable indicators of actual knowledge."
+          "description": "Models can be confidently wrong, and can hedge on things they know, so stated or computed confidence is only a rough guide to knowledge. Calibration also varies by topic, so one overall score can hide weak areas."
         },
         {
-          "description": "Knowledge boundaries shift as models are updated or fine-tuned, requiring continuous remapping to maintain accuracy."
+          "description": "Scoring needs labelled questions and a way to detect hedging. Deciding which questions are truly unanswerable takes human judgement, and detectors built on one model's uncertainty phrases may miss how other models express doubt."
         },
         {
-          "description": "Uncertainty quantification methods can add significant computational overhead (10-100x inference time for ensemble-based approaches), making real-time deployment challenging for latency-sensitive applications."
-        },
-        {
-          "description": "Interpreting uncertainty estimates requires statistical expertise and domain knowledge to set appropriate thresholds for triggering human review or system warnings."
+          "description": "The map holds for one model version. Fine-tuning, a model update or added retrieval shifts the boundary, so the probes must be rerun after each change to keep the map accurate."
         }
       ],
       "resources": [
@@ -2743,29 +2729,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic system's uncertainty estimates distinguish between lack of training data and inherent clinical variability",
+          "text": "The clinical question-answering assistant's expected calibration error stays below a stated limit in every specialty in the probe set, not only in aggregate.",
           "domain": "healthcare",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The credit assessment model identifies when applicant profiles fall outside its established knowledge boundaries",
-          "domain": "finance",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The autonomous vehicle's perception system detects when environmental conditions exceed its validated knowledge envelope",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
+          "text": "The customer-service assistant's documentation lists each topic with its probe results and names the topics where it is known to answer unreliably.",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
         },
         {
-          "text": "The policy analysis tool communicates gaps in its domain knowledge separately from prediction variance",
+          "text": "The policy-summarisation assistant's accuracy on developments after its training cut-off is measured and reported separately from its accuracy on established topics.",
           "domain": "public sector",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The flood forecasting model's uncertainty estimates reflect genuine epistemic gaps",
-          "domain": "environmental",
-          "assuranceGoal": "safety"
+          "text": "The maths tutor gives the same correct answer to at least 90% of paraphrases of each curriculum question it is cleared to answer.",
+          "domain": "education",
+          "assuranceGoal": "reliability"
         }
       ]
     },

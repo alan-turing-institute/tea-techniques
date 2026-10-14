@@ -1,19 +1,16 @@
 {
   "slug": "jackknife-resampling",
   "name": "Jackknife Resampling",
-  "description": "Jackknife resampling (also called leave-one-out resampling) assesses model stability and uncertainty by systematically removing one data point at a time and retraining the model on the remaining data. Unlike bootstrapping which samples with replacement, jackknife creates n different models by excluding each of the n data points once. This systematic approach reveals how individual points influence results, provides robust estimates of prediction variance, and identifies unusually influential observations that may be outliers or leverage points affecting model reliability.",
+  "description": "Jackknife resampling, also called leave-one-out resampling, shows how much a result computed from a dataset depends on any single record. The result can be a model's coefficients, its predictions or a performance score; it is recomputed n times on a dataset of n records, leaving out a different record each time and refitting the model where the result depends on one. The spread of the recomputed results, after a standard rescaling, estimates the bias and variance of the original result, meaning how far it would move with a slightly different sample. Records whose removal moves the result most are flagged as influential, and may be outliers or data errors worth checking. The method assumes the records are independent and that no single record changes the result abruptly.",
   "assurance_goals": [
     "Reliability",
-    "Transparency",
-    "Fairness"
+    "Transparency"
   ],
   "tags": [
     "applicable-models/architecture/model-agnostic",
     "applicable-models/paradigm/supervised",
     "applicable-models/requirements/black-box",
     "data-requirements/access-to-training-data",
-    "assurance-goal-category/fairness",
-    "assurance-goal-category/fairness/performance-by-group",
     "assurance-goal-category/reliability",
     "assurance-goal-category/reliability/uncertainty-quantification",
     "assurance-goal-category/transparency",
@@ -28,33 +25,33 @@
   ],
   "example_use_cases": [
     {
-      "description": "Evaluating how removing individual countries from a global climate model affects predictions, identifying which regions have outsized influence and providing robust uncertainty estimates for climate projections used in policy decisions.",
-      "goal": "Reliability"
+      "goal": "Reliability",
+      "description": "A hospital data team fits a readmission-risk model on 600 patient records and refits it 600 times, leaving out one patient each time. The spread of the refitted coefficients shows which risk factors are stable enough to report, and the records whose removal shifts the fit most go back to clinicians to check for entry errors."
     },
     {
-      "description": "Providing transparent uncertainty estimates in medical risk prediction by showing how individual patient records influence model predictions, enabling clinicians to understand prediction stability and confidence intervals for treatment decisions.",
-      "goal": "Transparency"
+      "goal": "Reliability",
+      "description": "A water utility's analysts estimate how rainfall drives reservoir inflow from 40 annual observations. Leaving out each year in turn gives a variance estimate for the fitted slope and shows whether a single flood year drives the result, before the figure goes into a planning document."
     },
     {
-      "description": "Ensuring fair model evaluation in hiring algorithms by systematically testing how removing candidates from different demographic groups affects model performance, revealing whether certain populations disproportionately influence the model's behaviour.",
-      "goal": "Fairness"
+      "goal": "Transparency",
+      "description": "A credit-risk team documents its scorecard's stability for model validators by refitting it with each of 800 sampled loan records left out. It reports the records whose removal changes any coefficient by more than a stated tolerance, so validators can see how much of the model rests on a few loans."
     }
   ],
   "limitations": [
     {
-      "description": "Extremely computationally intensive for large datasets, requiring training of n separate models for n data points, making it impractical for datasets with thousands or millions of observations."
+      "description": "Computationally heavy when the result needs a model refit, since n records mean n refits, which is impractical for datasets with thousands or millions of records or for costly training. Simple statistics that are cheap to recompute do not have this problem."
     },
     {
-      "description": "May underestimate uncertainty compared to bootstrapping or other resampling methods, as it provides only n different samples rather than a broader exploration of the data distribution."
+      "description": "Works only for statistics that change smoothly when one record is removed. For quantities that jump, such as the number of clusters in a mixture model, leave-one-out estimates are unreliable. Even for smooth statistics the variance estimate tends to run high, so intervals are conservative."
     },
     {
-      "description": "Assumes that removing single data points provides meaningful insights into model stability, which may not hold when multiple correlated observations drive model behaviour."
-    },
-    {
-      "description": "Can be sensitive to the choice of performance metric used for evaluation, as different metrics may show different patterns of sensitivity to individual data points."
+      "description": "Assumes the records are independent. With repeated or clustered measurements, such as several visits per patient or neighbouring regions, leaving out one record leaves its close relatives in the data, so the refits barely change and the spread understates the true uncertainty."
     },
     {
       "description": "Provides limited insight into model behaviour on truly novel data, as each jackknife sample is only minimally different from the full training set."
+    },
+    {
+      "description": "Measures how sensitive a result is to the sample in hand, not whether the model is right. A stable fit can still be systematically wrong, so a narrow spread across refits is no evidence of accuracy, or of performance on a different population."
     }
   ],
   "resources": [
@@ -102,29 +99,19 @@
   ],
   "sample_claims": [
     {
-      "text": "The environmental model's uncertainty estimates do not depend on assumptions about sampling distribution or resampling variability",
-      "domain": "environmental",
-      "assuranceGoal": "reliability"
-    },
-    {
-      "text": "The clinical prediction model's performance stability is quantified by systematically examining the influence of each individual patient record",
+      "text": "The readmission model's coefficient estimates change by less than a stated tolerance when any single patient record is removed, so no individual record drives the reported risk factors.",
       "domain": "healthcare",
       "assuranceGoal": "reliability"
     },
     {
-      "text": "The credit risk model's predictions are traceable to specific historical loan records that most strongly influence assessment outcomes",
+      "text": "The jackknife standard error of the fitted rainfall-to-inflow slope is reported with the estimate, and the planning threshold lies more than two standard errors away from it.",
+      "domain": "environmental",
+      "assuranceGoal": "reliability"
+    },
+    {
+      "text": "The scorecard's validation report lists the loan records whose removal most changes its coefficients, so reviewers can see how far the model depends on a handful of loans.",
       "domain": "finance",
       "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The hiring model's performance is not disproportionately dependent on individual candidates from particular demographic groups",
-      "domain": "general",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The public benefit allocation system identifies individual case records that exert unusual influence on eligibility determinations",
-      "domain": "public sector",
-      "assuranceGoal": "fairness"
     }
   ]
 }

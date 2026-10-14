@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/architecture/neural-networks/transformer/llm",
     "slug": "applicable-models-architecture-neural-networks-transformer-llm",
-    "count": 18,
+    "count": 19,
     "category": "applicable-models"
   },
   "techniques": [
@@ -1408,9 +1408,173 @@
       ]
     },
     {
+      "slug": "knowledge-boundary-probing",
+      "name": "Knowledge Boundary Probing",
+      "description": "Knowledge boundary probing maps what a language model can and cannot reliably answer. A probe set is built from questions across the topics the system will face, including some with known answers and some that cannot be answered. Each question is asked in several phrasings, because a model may answer one wording correctly and fail on another. Responses are scored for correctness, for whether the model signals doubt when it should, and for whether its stated or computed confidence tracks whether it is right. The result is a topic-by-topic map of what the model knows, knows only under some phrasings, and does not know, which informs where to deploy it, what to tell users about its limits, and where to add training data or human review.",
+      "assurance_goals": [
+        "Transparency",
+        "Reliability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/confidence-and-limits",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/uncertainty-quantification",
+        "data-requirements/labelled-data",
+        "data-type/text",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/statistics",
+        "expertise-needed/evaluation-design",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Reliability",
+          "description": "A government analytics team using an LLM to summarise policy evidence probes it on well-researched areas and on recent or local policy it cannot have seen in training. Accuracy drops on the second group, so the team adds a retrieval step for those topics before the tool is used in briefings."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A bank adds a per-topic table of probe results (accurate on card fees, weak on mortgage rules) to the model documentation for its customer-service chatbot. The app uses the table to tell customers when to check with an adviser."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A school-software vendor checks an LLM maths tutor against each curriculum unit, asking every question in several wordings. Units where correctness changes with the wording are marked for teacher review instead of being shown to students unsupervised."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "The probe set samples a finite number of topics and question types. A clean result on those says little about topics the set omits, so the map is only as broad as the probes, and mapping every domain is infeasible."
+        },
+        {
+          "description": "Whether a model 'knows' something depends on how the question is worded. A single phrasing can understate or overstate what the model knows, so each question needs several phrasings, and the boundary is fuzzy rather than a clean line."
+        },
+        {
+          "description": "Models can be confidently wrong, and can hedge on things they know, so stated or computed confidence is only a rough guide to knowledge. Calibration also varies by topic, so one overall score can hide weak areas."
+        },
+        {
+          "description": "Scoring needs labelled questions and a way to detect hedging. Deciding which questions are truly unanswerable takes human judgement, and detectors built on one model's uncertainty phrases may miss how other models express doubt."
+        },
+        {
+          "description": "The map holds for one model version. Fine-tuning, a model update or added retrieval shifts the boundary, so the probes must be rerun after each change to keep the map accurate."
+        }
+      ],
+      "resources": [
+        {
+          "title": "LM-Polygraph documentation",
+          "url": "https://lm-polygraph.readthedocs.io/en/latest/",
+          "source_type": "documentation",
+          "citationKey": "LMPolygraphDocumentation"
+        },
+        {
+          "title": "lm-polygraph",
+          "url": "https://github.com/IINemo/lm-polygraph",
+          "source_type": "software_package",
+          "publication_date": "2026-10-06T13:46:16Z",
+          "citationKey": "shelmanovLmpolygraph2026"
+        },
+        {
+          "title": "Benchmarking Knowledge Boundary for Large Language Models: A Different Perspective on Model Evaluation",
+          "url": "https://doi.org/10.18653/v1/2024.acl-long.124",
+          "source_type": "technical_paper",
+          "authors": [
+            "Xunjian Yin",
+            "Xu Zhang",
+            "Jie Ruan",
+            "Xiaojun Wan"
+          ],
+          "publication_date": "2024-02-18",
+          "citationKey": "yinBenchmarkingKnowledgeBoundary2024",
+          "abstract": "In recent years, substantial advancements have been made in the development of large language models, achieving remarkable performance across diverse tasks. To evaluate the knowledge ability of language models, previous studies have proposed lots of benchmarks based on question-answering pairs. We argue that it is not reliable and comprehensive to evaluate language models with a fixed question or limited paraphrases as the query, since language models are sensitive to prompt. Therefore, we introduce a novel concept named knowledge boundary to encompass both prompt-agnostic and prompt-sensitive knowledge within language models. Knowledge boundary avoids prompt sensitivity in language model evaluations, rendering them more dependable and robust. To explore the knowledge boundary for a given model, we propose projected gradient descent method with semantic constraints, a new algorithm designed to identify the optimal prompt for each piece of knowledge. Experiments demonstrate a superior performance of our algorithm in computing the knowledge boundary compared to existing methods. Furthermore, we evaluate the ability of multiple language models in several domains with knowledge boundary."
+        },
+        {
+          "title": "Do Large Language Models Know What They Don’t Know?",
+          "url": "https://doi.org/10.18653/v1/2023.findings-acl.551",
+          "source_type": "technical_paper",
+          "authors": [
+            "Zhangyue Yin",
+            "Qiushi Sun",
+            "Qipeng Guo",
+            "Jiawen Wu",
+            "Xipeng Qiu",
+            "Xuanjing Huang"
+          ],
+          "publication_date": "2023",
+          "citationKey": "yinLargeLanguageModels2023",
+          "abstract": "Large language models (LLMs) have a wealth of knowledge that allows them to excel in various Natural Language Processing (NLP) tasks.Current research focuses on enhancing their performance within their existing knowledge.Despite their vast knowledge, LLMs are still limited by the amount of information they can accommodate and comprehend.Therefore, the ability to understand their own limitations on the unknows, referred to as self-knowledge, is of paramount importance.This study aims to evaluate LLMs' self-knowledge by assessing their ability to identify unanswerable or unknowable questions.We introduce an automated methodology to detect uncertainty in the responses of these models, providing a novel measure of their self-knowledge.We further introduce a unique dataset, SelfAware, consisting of unanswerable questions from five diverse categories and their answerable counterparts.Our extensive analysis, involving 20 LLMs including GPT-3, InstructGPT, and LLaMA, discovering an intrinsic capacity for self-knowledge within these models.Moreover, we demonstrate that in-context learning and instruction tuning can further enhance this self-knowledge.Despite this promising insight, our findings also highlight a considerable gap between the capabilities of these models and human proficiency in recognizing the limits of their knowledge. \"True wisdom is knowing what you don't know.\" -Confucius"
+        },
+        {
+          "title": "Aleatoric and epistemic uncertainty in machine learning: an introduction to concepts and methods",
+          "url": "https://doi.org/10.1007/s10994-021-05946-3",
+          "source_type": "technical_paper",
+          "authors": [
+            "Eyke Hüllermeier",
+            "Willem Waegeman"
+          ],
+          "publication_date": "2021-3",
+          "citationKey": "hullermeierAleatoricEpistemicUncertainty2021",
+          "abstract": "The notion of uncertainty is of major importance in machine learning and constitutes a key element of machine learning methodology. In line with the statistical tradition, uncertainty has long been perceived as almost synonymous with standard probability and probabilistic predictions. Yet, due to the steadily increasing relevance of machine learning for practical applications and related issues such as safety requirements, new problems and challenges have recently been identified by machine learning scholars, and these problems may call for new methodological developments. In particular, this includes the importance of distinguishing between (at least) two different types of uncertainty, often referred to as aleatoric and epistemic . In this paper, we provide an introduction to the topic of uncertainty in machine learning as well as an overview of attempts so far at handling uncertainty in general and formalizing this distinction in particular."
+        },
+        {
+          "title": "Basic usage - LM-Polygraph documentation",
+          "url": "https://lm-polygraph.readthedocs.io/en/latest/usage.html",
+          "source_type": "tutorial",
+          "citationKey": "BasicUsageLMPolygraph"
+        },
+        {
+          "title": "Calibration of Self-Reported Confidence and Accuracy of Large Language Models in Medical Question Answering",
+          "url": "https://doi.org/10.1007/s10916-026-02430-0",
+          "source_type": "application_paper",
+          "authors": [
+            "Sebastian Daniel Boie",
+            "Florian Reis",
+            "Nicolas Frey",
+            "Elias Grünewald",
+            "Felix Balzer"
+          ],
+          "publication_date": "2026-6-26",
+          "citationKey": "boieCalibrationSelfReportedConfidence2026",
+          "abstract": "Objective: To evaluate the alignment between self-reported confidence of large language models (LLM) and their accuracy in answering medical multiple-choice questions. Materials and Methods: We prompted six LLMs (GPT-5, GPT-5-mini, GPT-5-nano, GPT-4o, Claude Sonnet 4.5, and Gemini 2.5) to answer MedMCQA items and report confidence scores. Based on 12,000 LLM responses, we calculated Expected Calibration Errors (ECE) by averaging absolute differences between observed accuracy and predicted confidence. Results: Mean ECE differed by model (Claude Sonnet 4.5 best: 0.06; Gpt-4o worst: 0.127) and varied across specialties (“Skin” best: 0.041; “Social & Preventive Medicine” worst: 0.141). Accuracy of examined LLMs showed analogous variation between specialties. Discussion: Our results demonstrate that high accuracy does not guarantee reliable uncertainty estimation. We identified substantial heterogeneity across medical specialties, where pooled metrics masked a threefold ECE increase between best- and worst-performing domains. Conclusion: We recommend incorporating calibration reporting into LLM evaluations, as larger models exhibit improved “self-knowledge”, but uneven overconfidence persists."
+        }
+      ],
+      "related_techniques": [
+        "bootstrapping",
+        "monte-carlo-dropout",
+        "deep-ensembles"
+      ],
+      "sample_claims": [
+        {
+          "text": "The clinical question-answering assistant's expected calibration error stays below a stated limit in every specialty in the probe set, not only in aggregate.",
+          "domain": "healthcare",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The customer-service assistant's documentation lists each topic with its probe results and names the topics where it is known to answer unreliably.",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The policy-summarisation assistant's accuracy on developments after its training cut-off is measured and reported separately from its accuracy on established topics.",
+          "domain": "public sector",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The maths tutor gives the same correct answer to at least 90% of paraphrases of each curriculum question it is cleared to answer.",
+          "domain": "education",
+          "assuranceGoal": "reliability"
+        }
+      ]
+    },
+    {
       "slug": "out-of-domain-detection",
       "name": "Out-of-Domain Detection",
-      "description": "Out-of-domain (OOD) detection identifies user inputs that fall outside an AI system's intended domain or capabilities, enabling graceful handling rather than generating unreliable responses. This technique trains classifiers or uses embedding-based methods to recognise when queries require knowledge or capabilities the system doesn't possess. OOD detection enables systems to explicitly decline, redirect, or request clarification rather than hallucinating answers or applying inappropriate reasoning to unfamiliar domains.",
+      "description": "Out-of-domain detection checks whether a user's query falls inside the topics and tasks a conversational AI system is meant to handle. Scope is defined by examples, such as an assistant's supported intents (the actions it can recognise), and a detector then scores how closely each new query resembles them. Typical detectors set a minimum confidence on an intent classifier, add an explicit out-of-scope class trained on examples of unsupported queries, or measure how far a query's embedding, a numerical summary of its meaning, lies from the in-scope examples. A query judged out of scope can be declined, handed to a person or another service, or answered with a request to rephrase, instead of receiving an unreliable or invented answer. The detector tests resemblance to the defined scope, not what the system actually knows, so it needs evaluating on realistic out-of-scope queries.",
       "assurance_goals": [
         "Reliability",
         "Safety",
@@ -1441,44 +1605,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Enabling a medical chatbot specialized in diabetes management to recognize and deflect questions about unrelated conditions, avoiding potentially dangerous medical advice outside its training domain.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Enabling a medical chatbot specialised in diabetes management to recognise and deflect questions about unrelated conditions, avoiding potentially dangerous medical advice outside its training domain."
         },
         {
-          "description": "Ensuring an educational AI tutor for high school mathematics reliably identifies advanced university-level questions and redirects students to appropriate resources rather than attempting explanations beyond its scope.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "Ensuring an educational AI tutor for high school mathematics reliably identifies advanced university-level questions and redirects students to appropriate resources rather than attempting explanations beyond its scope."
         },
         {
-          "description": "Transparently communicating system limitations by explicitly informing users when queries exceed the AI's scope rather than silently providing low-quality responses.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "An insurer's claims-intake assistant is built for routine motor and household claims. Messages about unfamiliar claim types, such as large flood events or commercial losses, are detected and routed to a specialist adjuster instead of being handled with irrelevant questions."
         },
         {
-          "description": "Protecting an insurance claims processing system trained on standard claims from making unreliable decisions on unusual or complex cases (e.g., natural disasters, emerging fraud patterns) by detecting and routing them to specialist adjusters.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Ensuring an autonomous vehicle's perception system detects when it encounters road conditions, weather patterns, or infrastructure types outside its training distribution (e.g., unmapped construction zones, unusual signage), triggering increased caution or human intervention.",
-          "goal": "Safety"
+          "goal": "Transparency",
+          "description": "A council's resident-services chatbot covers bin collections, parking permits and council tax. When a resident asks about something it does not cover, such as a planning dispute, it says so, names the service that can help and logs the query, and the log shows the council which topics residents ask about that the chatbot cannot answer."
         }
       ],
       "limitations": [
         {
-          "description": "Defining precise scope boundaries can be challenging, especially for general-purpose systems or domains with fuzzy edges."
+          "description": "Scope has to be defined before it can be detected, and general-purpose assistants or fuzzy domains have no clean edge. A narrow definition refuses legitimate queries, and a loose one lets unsupported queries through."
         },
         {
-          "description": "May produce false positives that reject legitimate queries at the boundary of the system's capabilities, degrading user experience."
+          "description": "Detection is weakest on queries that resemble in-scope ones. In the 2019 benchmark that introduced the task, no intent classifier caught more than about two-thirds of out-of-scope queries even when trained on examples of them, so recall should be measured on realistic out-of-scope queries before the detector is relied on."
         },
         {
-          "description": "Users may rephrase out-of-scope queries to bypass detection, requiring robust handling of paraphrases and edge cases."
+          "description": "The threshold trades wrongly refusing valid queries against wrongly answering unsupported ones. The two errors rarely cost the same, and queries near the boundary will still land on both sides."
         },
         {
-          "description": "Difficult to maintain accurate scope detection as systems are updated and capabilities expand or shift over time."
+          "description": "Users can rephrase or disguise an unsupported request so that it resembles in-scope wording. A detector tested only on plain phrasings overstates how well it holds up against paraphrase."
         },
         {
-          "description": "Establishing reliable domain boundaries requires substantial labeled data from both in-domain and out-of-domain examples, which can be expensive to collect and annotate systematically."
-        },
-        {
-          "description": "Real-time OOD detection adds inference latency (typically 10-50ms per query depending on method), which may impact user experience in time-sensitive applications."
+          "description": "Scope changes as capabilities are added or retired, so the detector and its out-of-scope test set need refreshing, or it will refuse newly supported queries and accept newly unsupported ones. Building realistic out-of-scope examples is costly because annotators need expert knowledge of the in-scope intents."
         }
       ],
       "resources": [
@@ -1541,29 +1698,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical chatbot declines to answer queries about conditions outside its specialized scope rather than generating potentially harmful advice",
+          "text": "The diabetes-support chatbot declines questions about conditions outside its remit and directs the user to a clinician, instead of offering advice it was not designed to give.",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The autonomous system recognizes when it encounters environmental conditions that exceed its validated operating envelope",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The educational assistant consistently identifies when questions require expertise beyond its subject area and directs users to appropriate resources",
-          "domain": "general",
+          "text": "The tutoring assistant identifies questions above its curriculum level, at a recall measured on a realistic test set, and refers them to a teacher or other resource instead of attempting an answer.",
+          "domain": "education",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system explicitly communicates scope limitations when presented with queries at the boundary of its competence",
+          "text": "On a held-out set of realistic out-of-scope messages, the claims assistant routes at least the agreed share to a specialist adjuster while wrongly refusing no more than the agreed share of in-scope claims.",
+          "domain": "finance",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "Users of the resident-services chatbot are told when a question is outside what it covers, and the service owner reviews the log of unanswered topics each month.",
           "domain": "general",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The financial advisory system detects complex or unusual market scenarios outside its training scope and escalates to human analysts",
+          "text": "Messages to the bank's payments assistant that fall outside its card and payment scope, such as requests for investment advice, are not answered by it and are handed to a person.",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "safety"
         }
       ]
     },
@@ -3091,5 +3248,5 @@
       ]
     }
   ],
-  "count": 18
+  "count": 19
 }

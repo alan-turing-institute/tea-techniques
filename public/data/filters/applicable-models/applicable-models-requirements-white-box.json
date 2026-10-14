@@ -1437,7 +1437,7 @@
     {
       "slug": "out-of-distribution-detector-for-neural-networks",
       "name": "Out-of-Distribution Detector for Neural Networks",
-      "description": "ODIN (Out-of-Distribution Detector for Neural Networks) identifies when a neural network encounters inputs significantly different from its training distribution. It enhances detection by applying temperature scaling to soften the model's output distribution and adding small, carefully calibrated perturbations to the input that push in-distribution samples towards higher confidence predictions. By measuring the maximum softmax probability after these adjustments, ODIN can effectively distinguish between in-distribution and out-of-distribution inputs, flagging potentially unreliable predictions before they cause downstream errors.",
+      "description": "ODIN (Out-of-Distribution Detector for Neural Networks) flags inputs that look unlike the data a neural network classifier was trained on, and it works on an already trained network without retraining it. A classifier reports a confidence score, the highest probability it gives to any class, but that score is often high even for unfamiliar inputs. ODIN adjusts the score in two ways so that familiar and unfamiliar inputs separate better. It divides the classifier's raw output scores by a large constant, called the temperature, before turning them into probabilities, and it nudges the input slightly in the direction that raises the score, which lifts familiar inputs more than unfamiliar ones. An input whose adjusted score falls below a chosen threshold is flagged as out-of-distribution, so its prediction can be withheld or referred for review.",
       "assurance_goals": [
         "Reliability",
         "Safety"
@@ -1453,7 +1453,7 @@
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/monitoring",
         "data-requirements/no-special-requirements",
-        "data-type/any",
+        "data-type/image",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
         "expertise-needed/statistics",
@@ -1465,26 +1465,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Detecting anomalous medical images in diagnostic systems, where ODIN flags X-rays or scans containing rare pathologies or imaging artefacts not present in training data, preventing misdiagnosis and prompting specialist review.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "A hospital screens each chest X-ray with ODIN before the diagnostic classifier's result is shown. Scans that are not chest X-rays, or that carry heavy artefacts, are flagged for human review instead of receiving a confident diagnosis, and the false positive rate is measured on a sample of such scans first."
         },
         {
-          "description": "Protecting autonomous vehicle perception systems by identifying novel road scenarios (e.g., unusual weather conditions, rare obstacle types) that fall outside the training distribution, triggering fallback safety mechanisms.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "An automated driving team scores each camera frame with ODIN and passes frames below the threshold to a fallback routine, such as slowing the vehicle and requesting remote assistance. The team measures how many unfamiliar frames, such as sensor faults or unusual scenes, are wrongly accepted before relying on the detector."
         }
       ],
       "limitations": [
         {
-          "description": "Requires careful tuning of temperature scaling and perturbation magnitude parameters, which may need adjustment for different types of out-of-distribution data."
+          "description": "Temperature and perturbation size are tuned on a validation set that includes out-of-distribution examples, so some representative unfamiliar data is needed before deployment. The paper found settings transferred reasonably between validation sets, but only on image benchmarks."
         },
         {
-          "description": "Performance degrades when out-of-distribution samples are very similar to training data, making near-distribution detection challenging."
+          "description": "Detection gets harder as unfamiliar inputs resemble the training data. In the original paper, at 95% acceptance of familiar images, the share of unfamiliar natural images wrongly accepted rose from at most about 11% with a 10-class training set to between 19% and 58% with a 100-class one, so performance must be measured on the deployment's own data."
         },
         {
-          "description": "Vulnerable to adversarial examples specifically crafted to evade detection by mimicking in-distribution characteristics."
+          "description": "Not designed to resist inputs deliberately crafted to look in-distribution, and the original paper does not evaluate adversarial evasion, so it gives no protection against a deliberate attacker."
         },
         {
-          "description": "Computational overhead from input preprocessing and perturbation generation can impact real-time inference applications."
+          "description": "Needs access to the network's gradients to compute the input perturbation, so it cannot be applied to a model that is reachable only through an API."
+        },
+        {
+          "description": "Each input needs at least one extra forward pass and one backward pass before the final scoring pass, which can matter for real-time or high-volume use."
         }
       ],
       "resources": [
@@ -1549,24 +1552,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The perception system detects when operating conditions fall outside its validated envelope",
+          "text": "Camera frames that fall outside the perception network's training distribution, such as those from a sensor fault, are flagged before the planner uses the network's output.",
           "domain": "autonomous systems",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The diagnostic model identifies medical images containing pathologies or imaging artifacts not represented in the training dataset",
+          "text": "Scans that are not of the type the diagnostic classifier was trained on are rejected by the out-of-distribution detector instead of receiving a confident diagnosis.",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The fraud detection system flags transactions exhibiting characteristics absent from historical attack patterns",
-          "domain": "finance",
-          "assuranceGoal": "safety"
+          "text": "The detector's threshold is set so that 95% of in-distribution validation inputs are accepted, and the share of out-of-distribution test inputs wrongly accepted at that threshold is reported.",
+          "domain": "general",
+          "assuranceGoal": "reliability"
         },
         {
-          "text": "The environmental monitoring model maintains prediction reliability across sensor configurations and atmospheric conditions encountered during deployment",
-          "domain": "environmental",
-          "assuranceGoal": "reliability"
+          "text": "Images of unfamiliar part types or from unfamiliar cameras are held for human inspection instead of passing through the automated quality-control classifier.",
+          "domain": "manufacturing",
+          "assuranceGoal": "safety"
         }
       ]
     },
@@ -2414,10 +2417,9 @@
     {
       "slug": "quantile-regression",
       "name": "Quantile Regression",
-      "description": "Quantile regression estimates specific percentiles (quantiles) of the target variable rather than just predicting the average outcome. For example, instead of predicting 'average house price = £300,000', it can predict 'there's a 10% chance the price will be below £250,000, 50% chance below £300,000, and 90% chance below £380,000'. This technique reveals how input features affect different parts of the outcome distribution - perhaps property size strongly influences luxury homes (90th percentile) but barely affects budget properties (10th percentile). By capturing the full conditional distribution, quantile regression provides rich uncertainty information and enables robust prediction intervals.",
+      "description": "Quantile regression predicts chosen percentiles of an outcome, such as the 10th, 50th and 90th, rather than only its average. In the classical method a separate model is fitted for each percentile, using a loss that penalises under-prediction and over-prediction unequally. For example, instead of predicting an average house price of £300,000, it can predict that a house of a given size and location has a 10% chance of selling below £250,000 and a 90% chance of selling below £380,000. Comparing the fitted percentiles shows how features affect different parts of the outcome, such as size mattering more for expensive homes than for cheap ones. A low and a high percentile together give a prediction interval (a range expected to contain a new outcome) without assuming the errors are normally distributed, though how often the interval actually contains new outcomes must be checked on held-out data.",
       "assurance_goals": [
-        "Reliability",
-        "Fairness"
+        "Reliability"
       ],
       "tags": [
         "applicable-models/architecture/linear-models/regression",
@@ -2426,8 +2428,6 @@
         "applicable-models/paradigm/parametric",
         "applicable-models/paradigm/supervised",
         "applicable-models/requirements/white-box",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/performance-by-group",
         "assurance-goal-category/reliability",
         "assurance-goal-category/reliability/uncertainty-quantification",
         "data-requirements/labelled-data",
@@ -2440,29 +2440,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Predicting patient recovery times after surgery by estimating multiple quantiles (e.g., 25th, 50th, 75th percentiles), enabling doctors to communicate realistic timeframes: 'Most patients recover within 2-4 weeks, but some may take up to 8 weeks', providing robust uncertainty estimates for treatment planning.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "Predicting patient recovery times after surgery by fitting the 10th, 50th and 90th percentiles, so clinicians can say 'most patients recover within 2 to 4 weeks, but one in ten takes longer than 8' when planning follow-up care and bed use."
         },
         {
-          "description": "Ensuring equitable loan amount predictions across demographic groups by verifying that the spread of predicted loan amounts (difference between 90th and 10th percentiles) is consistent across protected groups, preventing discriminatory practices in lending ranges.",
-          "goal": "Fairness"
+          "goal": "Reliability",
+          "description": "A grid operator extends its wind power forecast with 10th and 90th percentile forecasts, fitted on past forecast errors and weather conditions, and sizes reserve capacity to the 90th percentile of the next-day shortfall rather than to an average error."
+        },
+        {
+          "goal": "Reliability",
+          "description": "A flood-forecasting agency fits high percentiles of river level on rainfall and soil moisture, giving an upper bound that does not assume symmetric errors, and uses it to decide when to issue warnings for extreme events."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally intensive when fitting multiple quantiles simultaneously, especially for large datasets or complex models, as each quantile requires separate optimization."
+          "description": "Cost grows with the number of quantile levels fitted when, as in the classical method, each level is a separate optimisation, which adds up on large datasets or with complex models."
         },
         {
           "description": "May produce crossing quantiles without proper constraints, where predicted 90th percentile values are lower than 50th percentile values, creating logically inconsistent and unusable prediction intervals."
         },
         {
-          "description": "Sensitive to outliers and heavy-tailed distributions, particularly in extreme quantiles (e.g., 5th or 95th percentiles), which can lead to unstable and unreliable estimates."
+          "description": "Extreme quantiles (for example the 5th or 95th) rest on few observations and, with heavy-tailed outcomes, are noisy and unstable. With small datasets they cannot be estimated reliably, because too few points lie in the tails."
         },
         {
-          "description": "Requires careful selection of quantile levels and may need domain expertise to interpret results meaningfully, as different quantiles may reveal conflicting patterns in feature relationships."
+          "description": "Gives no guarantee that an interval built from two quantiles contains the stated share of new outcomes. Coverage can fall short if the model form is wrong or the data shift, so check it on held-out data before relying on it."
         },
         {
-          "description": "Less effective with small datasets where extreme quantiles cannot be reliably estimated due to insufficient data points in the tails of the distribution."
+          "description": "In its classical form each conditional quantile is assumed to be linear in the features. If the true relationship is curved or has interactions, the fitted quantiles are biased, and flexible models that avoid this lose the readable coefficients."
         }
       ],
       "resources": [
@@ -2521,18 +2525,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The flood forecasting model provides distinct uncertainty bounds for extreme and typical rainfall scenarios without assuming symmetric error distributions",
+          "text": "The flood forecasting model estimates the specified lower and upper conditional quantiles of river level without imposing a symmetric error distribution, and how often observed levels fall inside them has been checked on held-out events.",
           "domain": "environmental",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The model's uncertainty estimates span consistently across protected groups when predicting both low-risk and high-risk outcomes",
-          "domain": "general",
-          "assuranceGoal": "fairness"
+          "text": "The 90th percentile recovery-time forecast exceeds the observed recovery time for at least 90% of patients in the held-out audit sample, so the quoted longest timeframe is not systematically too short.",
+          "domain": "healthcare",
+          "assuranceGoal": "reliability"
         },
         {
-          "text": "The patient recovery time predictions distinguish between typical cases and outlier cases without relying on normally distributed residuals",
-          "domain": "healthcare",
+          "text": "The wind power forecast's 10th to 90th percentile band contains observed output about 80% of the time on out-of-sample data, in each of the low, medium and high wind-speed ranges.",
+          "domain": "energy",
           "assuranceGoal": "reliability"
         }
       ]
@@ -2666,7 +2670,7 @@
     {
       "slug": "deep-ensembles",
       "name": "Deep Ensembles",
-      "description": "Deep ensembles combine predictions from multiple neural networks trained independently with different random initializations to capture epistemic uncertainty (model uncertainty). By training several models on the same data with different starting points, the ensemble reveals how much the model's predictions depend on training randomness. The disagreement between ensemble members naturally indicates prediction uncertainty - when models agree, confidence is high; when they disagree, uncertainty is revealed. This approach provides more reliable uncertainty estimates, better out-of-distribution detection, and improved calibration compared to single models.",
+      "description": "Deep ensembles estimate how uncertain a neural network's predictions are by training several copies of the same network independently and comparing what they predict. Each copy starts from different random initial weights, sees the training data in a different random order, and is trained to output a full predictive distribution, such as a probability for each class or a predicted value with its spread, rather than a single answer. The ensemble's prediction is the average of its members. Where members agree the prediction is usually more reliable, though agreement alone is no guarantee, and where they disagree the model is showing uncertainty about which answer is right, known as epistemic or model uncertainty. In the original study, ensembles of about five networks were better calibrated than single networks, meaning their stated confidence matched how often they were right, and expressed higher uncertainty on inputs from classes absent from the training data.",
       "assurance_goals": [
         "Reliability",
         "Transparency"
@@ -2693,29 +2697,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Improving self-driving car safety by using multiple neural networks to detect obstacles, where disagreement between models signals uncertainty and triggers extra caution or human intervention, providing robust uncertainty quantification for critical decisions.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "An autonomous vehicle team runs five independently trained obstacle-detection networks on each camera frame. When the members' outputs disagree beyond a set level, the vehicle slows and requests remote assistance instead of acting on the averaged detection."
         },
         {
-          "description": "Communicating prediction confidence to medical professionals by showing the range of diagnoses from multiple trained models, enabling doctors to understand when the AI system is uncertain and requires additional human expertise or testing.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "A research team estimating body composition from MRI scans trains an ensemble of regression networks that each predict a measurement and its uncertainty, and flags scans where the ensemble is highly uncertain for manual checking before the values enter a population study."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A bank's underwriters see the spread of an ensemble's predicted default probabilities alongside each credit score. Scores with a wide spread are labelled low-confidence and sent for manual review, so staff can see where the model is unsure."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally expensive to train and deploy, requiring multiple complete neural networks which increases training time, memory usage, and inference costs proportionally to ensemble size."
+          "description": "Training and running M networks multiplies compute, memory and latency by roughly M. A five-member ensemble costs about five times a single model, which can rule it out for very large models or for real-time and edge deployment."
         },
         {
-          "description": "May still provide overconfident predictions for inputs far from the training distribution, as all ensemble members can be similarly confident about out-of-distribution examples."
+          "description": "Members trained on the same data share its blind spots. On inputs far from the training data they can agree on a confident wrong answer, so low disagreement is not evidence that an input is familiar."
         },
         {
-          "description": "Requires careful hyperparameter tuning for each ensemble member to ensure diversity, as identical hyperparameters may lead to similar models that reduce uncertainty estimation quality."
+          "description": "Applies only where the networks can be trained from scratch, with access to the training data and the compute for several full training runs. It cannot be added to an existing pretrained or third-party model."
         },
         {
-          "description": "Storage and deployment overhead increases linearly with ensemble size, making it challenging to deploy large ensembles in resource-constrained environments or real-time applications."
+          "description": "Disagreement among a small number of members is a noisy estimate, and members that end up too alike understate uncertainty. Calibration has to be checked on held-out data, not assumed from the ensemble."
         },
         {
-          "description": "Ensemble predictions may be difficult to interpret individually, as the final decision emerges from averaging multiple models rather than from a single explainable pathway."
+          "description": "Uncertainty depends on the training objective and what each member predicts. In regression, variance across member means alone omits the within-member variability included in the original probabilistic method."
         }
       ],
       "resources": [
@@ -2778,19 +2786,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The autonomous driving system's predictions are accompanied by confidence estimates that reflect genuine disagreement among multiple independent models",
-          "domain": "autonomous systems",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic model's uncertainty estimates reveal when different training conditions would yield substantially different predictions",
+          "text": "On held-out scans, the imaging model's ensemble uncertainty is higher for cases it gets wrong than for cases it gets right, so scans above the uncertainty threshold can be sent for manual review.",
           "domain": "healthcare",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The credit risk model's confidence bounds reflect variability in model structure rather than relying on a single trained configuration",
-          "domain": "finance",
+          "text": "The ensemble's predicted probabilities are calibrated on held-out data, so that predictions made with 90% confidence are correct about 90% of the time.",
+          "domain": "general",
           "assuranceGoal": "reliability"
+        },
+        {
+          "text": "When shown inputs from a class absent from the training data, the ensemble's disagreement is measurably higher than on in-distribution inputs, as tested on a held-out set of unseen-class examples.",
+          "domain": "general",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The driving system reports an uncertainty level with each detection, derived from disagreement between independently trained networks, and remote operators are alerted when it passes the documented limit.",
+          "domain": "autonomous systems",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "Each credit score shown to underwriters carries an uncertainty range from the ensemble, and scores with a wide range are labelled as low-confidence.",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
         }
       ]
     },

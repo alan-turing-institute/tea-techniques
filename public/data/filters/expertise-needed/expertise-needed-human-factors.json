@@ -499,7 +499,7 @@
     {
       "slug": "out-of-domain-detection",
       "name": "Out-of-Domain Detection",
-      "description": "Out-of-domain (OOD) detection identifies user inputs that fall outside an AI system's intended domain or capabilities, enabling graceful handling rather than generating unreliable responses. This technique trains classifiers or uses embedding-based methods to recognise when queries require knowledge or capabilities the system doesn't possess. OOD detection enables systems to explicitly decline, redirect, or request clarification rather than hallucinating answers or applying inappropriate reasoning to unfamiliar domains.",
+      "description": "Out-of-domain detection checks whether a user's query falls inside the topics and tasks a conversational AI system is meant to handle. Scope is defined by examples, such as an assistant's supported intents (the actions it can recognise), and a detector then scores how closely each new query resembles them. Typical detectors set a minimum confidence on an intent classifier, add an explicit out-of-scope class trained on examples of unsupported queries, or measure how far a query's embedding, a numerical summary of its meaning, lies from the in-scope examples. A query judged out of scope can be declined, handed to a person or another service, or answered with a request to rephrase, instead of receiving an unreliable or invented answer. The detector tests resemblance to the defined scope, not what the system actually knows, so it needs evaluating on realistic out-of-scope queries.",
       "assurance_goals": [
         "Reliability",
         "Safety",
@@ -530,44 +530,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Enabling a medical chatbot specialized in diabetes management to recognize and deflect questions about unrelated conditions, avoiding potentially dangerous medical advice outside its training domain.",
-          "goal": "Safety"
+          "goal": "Safety",
+          "description": "Enabling a medical chatbot specialised in diabetes management to recognise and deflect questions about unrelated conditions, avoiding potentially dangerous medical advice outside its training domain."
         },
         {
-          "description": "Ensuring an educational AI tutor for high school mathematics reliably identifies advanced university-level questions and redirects students to appropriate resources rather than attempting explanations beyond its scope.",
-          "goal": "Reliability"
+          "goal": "Reliability",
+          "description": "Ensuring an educational AI tutor for high school mathematics reliably identifies advanced university-level questions and redirects students to appropriate resources rather than attempting explanations beyond its scope."
         },
         {
-          "description": "Transparently communicating system limitations by explicitly informing users when queries exceed the AI's scope rather than silently providing low-quality responses.",
-          "goal": "Transparency"
+          "goal": "Reliability",
+          "description": "An insurer's claims-intake assistant is built for routine motor and household claims. Messages about unfamiliar claim types, such as large flood events or commercial losses, are detected and routed to a specialist adjuster instead of being handled with irrelevant questions."
         },
         {
-          "description": "Protecting an insurance claims processing system trained on standard claims from making unreliable decisions on unusual or complex cases (e.g., natural disasters, emerging fraud patterns) by detecting and routing them to specialist adjusters.",
-          "goal": "Reliability"
-        },
-        {
-          "description": "Ensuring an autonomous vehicle's perception system detects when it encounters road conditions, weather patterns, or infrastructure types outside its training distribution (e.g., unmapped construction zones, unusual signage), triggering increased caution or human intervention.",
-          "goal": "Safety"
+          "goal": "Transparency",
+          "description": "A council's resident-services chatbot covers bin collections, parking permits and council tax. When a resident asks about something it does not cover, such as a planning dispute, it says so, names the service that can help and logs the query, and the log shows the council which topics residents ask about that the chatbot cannot answer."
         }
       ],
       "limitations": [
         {
-          "description": "Defining precise scope boundaries can be challenging, especially for general-purpose systems or domains with fuzzy edges."
+          "description": "Scope has to be defined before it can be detected, and general-purpose assistants or fuzzy domains have no clean edge. A narrow definition refuses legitimate queries, and a loose one lets unsupported queries through."
         },
         {
-          "description": "May produce false positives that reject legitimate queries at the boundary of the system's capabilities, degrading user experience."
+          "description": "Detection is weakest on queries that resemble in-scope ones. In the 2019 benchmark that introduced the task, no intent classifier caught more than about two-thirds of out-of-scope queries even when trained on examples of them, so recall should be measured on realistic out-of-scope queries before the detector is relied on."
         },
         {
-          "description": "Users may rephrase out-of-scope queries to bypass detection, requiring robust handling of paraphrases and edge cases."
+          "description": "The threshold trades wrongly refusing valid queries against wrongly answering unsupported ones. The two errors rarely cost the same, and queries near the boundary will still land on both sides."
         },
         {
-          "description": "Difficult to maintain accurate scope detection as systems are updated and capabilities expand or shift over time."
+          "description": "Users can rephrase or disguise an unsupported request so that it resembles in-scope wording. A detector tested only on plain phrasings overstates how well it holds up against paraphrase."
         },
         {
-          "description": "Establishing reliable domain boundaries requires substantial labeled data from both in-domain and out-of-domain examples, which can be expensive to collect and annotate systematically."
-        },
-        {
-          "description": "Real-time OOD detection adds inference latency (typically 10-50ms per query depending on method), which may impact user experience in time-sensitive applications."
+          "description": "Scope changes as capabilities are added or retired, so the detector and its out-of-scope test set need refreshing, or it will refuse newly supported queries and accept newly unsupported ones. Building realistic out-of-scope examples is costly because annotators need expert knowledge of the in-scope intents."
         }
       ],
       "resources": [
@@ -630,29 +623,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical chatbot declines to answer queries about conditions outside its specialized scope rather than generating potentially harmful advice",
+          "text": "The diabetes-support chatbot declines questions about conditions outside its remit and directs the user to a clinician, instead of offering advice it was not designed to give.",
           "domain": "healthcare",
           "assuranceGoal": "safety"
         },
         {
-          "text": "The autonomous system recognizes when it encounters environmental conditions that exceed its validated operating envelope",
-          "domain": "autonomous systems",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The educational assistant consistently identifies when questions require expertise beyond its subject area and directs users to appropriate resources",
-          "domain": "general",
+          "text": "The tutoring assistant identifies questions above its curriculum level, at a recall measured on a realistic test set, and refers them to a teacher or other resource instead of attempting an answer.",
+          "domain": "education",
           "assuranceGoal": "reliability"
         },
         {
-          "text": "The system explicitly communicates scope limitations when presented with queries at the boundary of its competence",
+          "text": "On a held-out set of realistic out-of-scope messages, the claims assistant routes at least the agreed share to a specialist adjuster while wrongly refusing no more than the agreed share of in-scope claims.",
+          "domain": "finance",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "Users of the resident-services chatbot are told when a question is outside what it covers, and the service owner reviews the log of unanswered topics each month.",
           "domain": "general",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The financial advisory system detects complex or unusual market scenarios outside its training scope and escalates to human analysts",
+          "text": "Messages to the bank's payments assistant that fall outside its card and payment scope, such as requests for investment advice, are not answered by it and are handed to a person.",
           "domain": "finance",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "safety"
         }
       ]
     },

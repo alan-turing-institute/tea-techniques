@@ -1,7 +1,7 @@
 {
   "slug": "deep-ensembles",
   "name": "Deep Ensembles",
-  "description": "Deep ensembles combine predictions from multiple neural networks trained independently with different random initializations to capture epistemic uncertainty (model uncertainty). By training several models on the same data with different starting points, the ensemble reveals how much the model's predictions depend on training randomness. The disagreement between ensemble members naturally indicates prediction uncertainty - when models agree, confidence is high; when they disagree, uncertainty is revealed. This approach provides more reliable uncertainty estimates, better out-of-distribution detection, and improved calibration compared to single models.",
+  "description": "Deep ensembles estimate how uncertain a neural network's predictions are by training several copies of the same network independently and comparing what they predict. Each copy starts from different random initial weights, sees the training data in a different random order, and is trained to output a full predictive distribution, such as a probability for each class or a predicted value with its spread, rather than a single answer. The ensemble's prediction is the average of its members. Where members agree the prediction is usually more reliable, though agreement alone is no guarantee, and where they disagree the model is showing uncertainty about which answer is right, known as epistemic or model uncertainty. In the original study, ensembles of about five networks were better calibrated than single networks, meaning their stated confidence matched how often they were right, and expressed higher uncertainty on inputs from classes absent from the training data.",
   "assurance_goals": [
     "Reliability",
     "Transparency"
@@ -28,29 +28,33 @@
   ],
   "example_use_cases": [
     {
-      "description": "Improving self-driving car safety by using multiple neural networks to detect obstacles, where disagreement between models signals uncertainty and triggers extra caution or human intervention, providing robust uncertainty quantification for critical decisions.",
-      "goal": "Reliability"
+      "goal": "Reliability",
+      "description": "An autonomous vehicle team runs five independently trained obstacle-detection networks on each camera frame. When the members' outputs disagree beyond a set level, the vehicle slows and requests remote assistance instead of acting on the averaged detection."
     },
     {
-      "description": "Communicating prediction confidence to medical professionals by showing the range of diagnoses from multiple trained models, enabling doctors to understand when the AI system is uncertain and requires additional human expertise or testing.",
-      "goal": "Transparency"
+      "goal": "Reliability",
+      "description": "A research team estimating body composition from MRI scans trains an ensemble of regression networks that each predict a measurement and its uncertainty, and flags scans where the ensemble is highly uncertain for manual checking before the values enter a population study."
+    },
+    {
+      "goal": "Transparency",
+      "description": "A bank's underwriters see the spread of an ensemble's predicted default probabilities alongside each credit score. Scores with a wide spread are labelled low-confidence and sent for manual review, so staff can see where the model is unsure."
     }
   ],
   "limitations": [
     {
-      "description": "Computationally expensive to train and deploy, requiring multiple complete neural networks which increases training time, memory usage, and inference costs proportionally to ensemble size."
+      "description": "Training and running M networks multiplies compute, memory and latency by roughly M. A five-member ensemble costs about five times a single model, which can rule it out for very large models or for real-time and edge deployment."
     },
     {
-      "description": "May still provide overconfident predictions for inputs far from the training distribution, as all ensemble members can be similarly confident about out-of-distribution examples."
+      "description": "Members trained on the same data share its blind spots. On inputs far from the training data they can agree on a confident wrong answer, so low disagreement is not evidence that an input is familiar."
     },
     {
-      "description": "Requires careful hyperparameter tuning for each ensemble member to ensure diversity, as identical hyperparameters may lead to similar models that reduce uncertainty estimation quality."
+      "description": "Applies only where the networks can be trained from scratch, with access to the training data and the compute for several full training runs. It cannot be added to an existing pretrained or third-party model."
     },
     {
-      "description": "Storage and deployment overhead increases linearly with ensemble size, making it challenging to deploy large ensembles in resource-constrained environments or real-time applications."
+      "description": "Disagreement among a small number of members is a noisy estimate, and members that end up too alike understate uncertainty. Calibration has to be checked on held-out data, not assumed from the ensemble."
     },
     {
-      "description": "Ensemble predictions may be difficult to interpret individually, as the final decision emerges from averaging multiple models rather than from a single explainable pathway."
+      "description": "Uncertainty depends on the training objective and what each member predicts. In regression, variance across member means alone omits the within-member variability included in the original probabilistic method."
     }
   ],
   "resources": [
@@ -113,19 +117,29 @@
   ],
   "sample_claims": [
     {
-      "text": "The autonomous driving system's predictions are accompanied by confidence estimates that reflect genuine disagreement among multiple independent models",
-      "domain": "autonomous systems",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The diagnostic model's uncertainty estimates reveal when different training conditions would yield substantially different predictions",
+      "text": "On held-out scans, the imaging model's ensemble uncertainty is higher for cases it gets wrong than for cases it gets right, so scans above the uncertainty threshold can be sent for manual review.",
       "domain": "healthcare",
       "assuranceGoal": "reliability"
     },
     {
-      "text": "The credit risk model's confidence bounds reflect variability in model structure rather than relying on a single trained configuration",
-      "domain": "finance",
+      "text": "The ensemble's predicted probabilities are calibrated on held-out data, so that predictions made with 90% confidence are correct about 90% of the time.",
+      "domain": "general",
       "assuranceGoal": "reliability"
+    },
+    {
+      "text": "When shown inputs from a class absent from the training data, the ensemble's disagreement is measurably higher than on in-distribution inputs, as tested on a held-out set of unseen-class examples.",
+      "domain": "general",
+      "assuranceGoal": "reliability"
+    },
+    {
+      "text": "The driving system reports an uncertainty level with each detection, derived from disagreement between independently trained networks, and remote operators are alerted when it passes the documented limit.",
+      "domain": "autonomous systems",
+      "assuranceGoal": "transparency"
+    },
+    {
+      "text": "Each credit score shown to underwriters carries an uncertainty range from the ensemble, and scores with a wide range are labelled as low-confidence.",
+      "domain": "finance",
+      "assuranceGoal": "transparency"
     }
   ]
 }

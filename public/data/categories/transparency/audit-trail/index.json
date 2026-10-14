@@ -200,6 +200,194 @@
       ]
     },
     {
+      "slug": "runtime-monitoring-and-circuit-breakers",
+      "name": "Runtime Monitoring and Circuit Breakers",
+      "description": "Runtime monitoring and circuit breakers observe a deployed AI service and restrict model calls when configured signals breach specified limits. In the closed state, requests pass through and recent failures are counted, while an open breaker rejects requests or provides a configured fallback, such as a cached answer, a simpler model, a rule-based default or referral to a person. After a waiting period, the half-open state permits a few trial calls and closes again only if they succeed. Model-related triggers can include immediately available signals such as input-drift scores (how far incoming data has moved from the training data) or low prediction confidence, since accuracy usually needs later outcome labels. Logs record state changes and triggering signals, supporting review of why the service was restricted without guaranteeing that the fallback is safe.",
+      "assurance_goals": [
+        "General",
+        "Reliability",
+        "Safety",
+        "Transparency"
+      ],
+      "tags": [
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/requirements/black-box",
+        "data-requirements/no-special-requirements",
+        "data-type/any",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/safety-engineering",
+        "expertise-needed/software-engineering",
+        "lifecycle-stage/system-deployment",
+        "lifecycle-stage/system-deployment/system-use-and-monitoring",
+        "technique-type/algorithmic",
+        "assurance-goal-category/general",
+        "assurance-goal-category/general/runtime-safeguards",
+        "assurance-goal-category/reliability",
+        "assurance-goal-category/reliability/shift-detection",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/monitoring",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/audit-trail"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Safety",
+          "description": "A hospital's diagnostic-support service stops showing model suggestions to clinicians when the share of low-confidence predictions or the input drift score passes preset limits, for example after a scanner software update changes the images. A notice tells staff the standard workflow applies until engineers reset the breaker."
+        },
+        {
+          "goal": "Reliability",
+          "description": "Deploying runtime monitoring for a recommendation engine that tracks recommendation diversity, click-through rates, and user engagement patterns, automatically switching to simpler algorithms when complex models show signs of performance degradation or unusual behaviour patterns."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A bank's credit-scoring service records every breaker state change, the metric that triggered it and the fallback used in an audit log. Model risk reviewers read the log each month to see how often, when and why the model was restricted, and whether the thresholds need revisiting."
+        },
+        {
+          "goal": "General",
+          "description": "An airline's customer-service assistant is wrapped in a circuit breaker that counts timeouts, blocked outputs and refusals. When they pass a limit after a faulty release, traffic switches to a scripted menu and the on-call engineer is paged, so the faulty version is stopped quickly without waiting for a manual decision."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Thresholds are hard to set. Too tight and the breaker trips on normal variation and withdraws a working service. Too loose and it stays closed through a real failure. Good settings need historical data from the live system, which is scarce at launch."
+        },
+        {
+          "description": "Model-level triggers are proxies for correctness. Drift scores and confidence can look normal while the model is confidently wrong, so a breaker that never trips is not evidence that predictions are right."
+        },
+        {
+          "description": "Gradual degradation and slow attacks can stay inside the limits, because each reading is acceptable while the cumulative effect is harmful. Catching them needs separate trend analysis or delayed accuracy checks alongside the breaker."
+        },
+        {
+          "description": "The breaker only moves the risk to the fallback. A cached answer, a simpler model or a human referral must itself be tested, and referral fails if reviewers cannot absorb a sudden diversion of traffic."
+        },
+        {
+          "description": "Tripping has a cost. A false trip withdraws a working service from users who may depend on it in time-critical settings, and reopening after a fixed cooldown, or on a few easy trial requests, can restore traffic before the underlying fault is fixed."
+        }
+      ],
+      "resources": [
+        {
+          "title": "Circuit Breaker pattern — Azure Architecture Center",
+          "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker",
+          "source_type": "documentation",
+          "authors": [
+            "claytonsiemens77"
+          ],
+          "citationKey": "claytonsiemens77CircuitBreakerPattern",
+          "abstract": "Learn how to handle faults that might take varying amounts of time to fix when applications connect to a remote service or resource."
+        },
+        {
+          "title": "pybreaker: Python implementation of the Circuit Breaker pattern",
+          "url": "https://github.com/danielfm/pybreaker",
+          "source_type": "software_package",
+          "publication_date": "2026-10-06T18:45:18Z",
+          "citationKey": "martinsPybreakerPythonImplementation2026",
+          "abstract": "Python implementation of the Circuit Breaker pattern."
+        },
+        {
+          "title": "Evidently: open-source ML and LLM observability framework",
+          "url": "https://github.com/evidentlyai/evidently",
+          "source_type": "software_package",
+          "publication_date": "2026-10-09T04:16:51Z",
+          "citationKey": "EvidentlyOpensourceML2026",
+          "abstract": "Evidently is ​​an open-source ML and LLM observability framework. Evaluate, test, and monitor any AI-powered system or data pipeline. From tabular data to Gen AI. 100+ metrics."
+        },
+        {
+          "title": "Release It! Design and Deploy Production-Ready Software",
+          "url": "https://pragprog.com/titles/mnee2/release-it-second-edition/",
+          "source_type": "technical_paper",
+          "authors": [
+            "Michael Nygard"
+          ],
+          "publication_date": "2018-01",
+          "citationKey": "ReleaseItDesign",
+          "abstract": "Design your application for maximum uptime, performance, and return on investment in the face of the harsh realities of the real world."
+        },
+        {
+          "title": "Hidden Technical Debt in Machine Learning Systems",
+          "url": "https://proceedings.neurips.cc/paper/2015/hash/86df7dcfd896fcaf2674f757a2463eba-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "D. Sculley",
+            "Gary Holt",
+            "Daniel Golovin",
+            "Eugene Davydov",
+            "Todd Phillips",
+            "Dietmar Ebner",
+            "Vinay Chaudhary",
+            "Michael Young",
+            "Jean-François Crespo",
+            "Dan Dennison"
+          ],
+          "publication_date": "2015",
+          "citationKey": "sculleyHiddenTechnicalDebt2015",
+          "abstract": "Machine learning offers a fantastically powerful toolkit for building useful complexprediction systems quickly. This paper argues it is dangerous to think ofthese quick wins as coming for free. Using the software engineering frameworkof technical debt, we find it is common to incur massive ongoing maintenancecosts in real-world ML systems. We explore several ML-specific risk factors toaccount for in system design. These include boundary erosion, entanglement,hidden feedback loops, undeclared consumers, data dependencies, configurationissues, changes in the external world, and a variety of system-level anti-patterns."
+        },
+        {
+          "title": "CircuitBreaker — Martin Fowler",
+          "url": "https://martinfowler.com/bliki/CircuitBreaker.html",
+          "source_type": "tutorial",
+          "authors": [
+            "Martin Fowler"
+          ],
+          "citationKey": "fowlerCircuitBreakerMartinFowler",
+          "abstract": "You use software circuit breakers on connections to remote services. These breakers trip when the supplier becomes unresponsive, once tripped the breaker no longer calls the supplier until reset."
+        },
+        {
+          "title": "Amazon SageMaker Model Monitor: A System for Real-Time Insights into Deployed Machine Learning Models",
+          "url": "https://doi.org/10.1145/3534678.3539145",
+          "source_type": "application_paper",
+          "authors": [
+            "David Nigenda",
+            "Zohar Karnin",
+            "Muhammad Bilal Zafar",
+            "Raghu Ramesha",
+            "Alan Tan",
+            "Michele Donini",
+            "Krishnaram Kenthapadi"
+          ],
+          "publication_date": "2022-8-14",
+          "citationKey": "nigendaAmazonSageMakerModel2022",
+          "abstract": "With the increasing adoption of machine learning (ML) models and systems in high-stakes settings across different industries, guaranteeing a model's performance after deployment has become crucial. Monitoring models in production is a critical aspect of ensuring their continued performance and reliability. We present Amazon SageMaker Model Monitor, a fully managed service that continuously monitors the quality of machine learning models hosted on Amazon SageMaker. Our system automatically detects data, concept, bias, and feature attribution drift in models in real-time and provides alerts so that model owners can take corrective actions and thereby maintain high quality models. We describe the key requirements obtained from customers, system design and architecture, and methodology for detecting different types of drift. Further, we provide quantitative evaluations followed by use cases, insights, and lessons learned from more than two years of production deployment."
+        }
+      ],
+      "complexity_rating": 3,
+      "computational_cost_rating": 2,
+      "related_techniques": [
+        "out-of-distribution-detector-for-neural-networks",
+        "confidence-thresholding",
+        "human-in-the-loop-safeguards",
+        "api-usage-pattern-monitoring"
+      ],
+      "sample_claims": [
+        {
+          "text": "The diagnostic-support service stops showing model suggestions to clinicians when the share of low-confidence predictions or the input drift score passes its preset limit, and the standard clinical workflow applies until the breaker is reset.",
+          "domain": "healthcare",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "The fraud-scoring service keeps answering requests during a model fault because the breaker diverts traffic to a rules-based fallback once the failure rate passes its threshold.",
+          "domain": "finance",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "The forecasting service falls back to a simple baseline forecast when its inputs leave their historical ranges, so downstream users do not receive out-of-range forecasts.",
+          "domain": "environmental",
+          "assuranceGoal": "reliability"
+        },
+        {
+          "text": "Every breaker state change is recorded with its time, the metric that triggered it and the fallback used, and the log is available to system owners and auditors.",
+          "domain": "general",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The platform records when its configured runtime restrictions activate and when normal calls resume.",
+          "domain": "general",
+          "assuranceGoal": "general"
+        }
+      ]
+    },
+    {
       "slug": "mlflow-experiment-tracking",
       "name": "MLflow Experiment Tracking",
       "description": "MLflow is an open-source platform that tracks machine learning experiments by automatically logging parameters, metrics, models, and artifacts throughout the ML lifecycle. It provides a centralised repository for comparing different experimental runs, reproducing results, and managing model versions. Teams can track hyperparameters, evaluation metrics, model files, and execution environment details, creating a comprehensive audit trail that supports collaboration, reproducibility, and regulatory compliance across the entire machine learning development process.",
@@ -1531,5 +1719,5 @@
       ]
     }
   ],
-  "count": 10
+  "count": 11
 }
