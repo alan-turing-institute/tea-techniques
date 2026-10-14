@@ -1,10 +1,9 @@
 {
   "slug": "gradient-saliency",
   "name": "Gradient Saliency",
-  "description": "Gradient saliency (also known as vanilla gradient saliency) produces visual explanations for image classification models by computing the gradient of the model's output with respect to input pixels. The resulting heatmap highlights pixels where small changes would most significantly affect the prediction. Originally proposed by Simonyan et al. (2013), this is the simplest gradient-based attribution method and serves as a baseline for more sophisticated approaches such as Integrated Gradients and Grad-CAM.",
+  "description": "Gradient saliency (also called vanilla gradient saliency) is the simplest gradient-based explanation for image classifiers, showing which pixels the score for a chosen class is most sensitive to. It takes the gradient of the class score (the network's output for that class before it becomes a probability) with respect to every input pixel, in one backward pass. The gradient says how much the score would change if that pixel changed slightly. The method keeps the size of each gradient and, for colour images, the largest across the colour channels, then shows one value per pixel as a heatmap. Because the sign is dropped, the map shows sensitivity but not whether a pixel supports or counts against the class.",
   "assurance_goals": [
-    "Explainability",
-    "Fairness"
+    "Explainability"
   ],
   "tags": [
     "applicable-models/architecture/neural-networks",
@@ -16,8 +15,6 @@
     "assurance-goal-category/explainability/property/comprehensibility",
     "assurance-goal-category/explainability/property/efficiency",
     "assurance-goal-category/explainability/visualization-methods/activation-maps",
-    "assurance-goal-category/fairness",
-    "assurance-goal-category/fairness/bias-diagnosis",
     "applicable-models/requirements/model-internals",
     "data-type/image",
     "evidence-type/visualisation",
@@ -32,30 +29,26 @@
   ],
   "example_use_cases": [
     {
-      "description": "Analysing X-ray images in a pneumonia detection model to verify that the algorithm focuses on lung regions showing inflammatory patterns rather than irrelevant areas like medical equipment or patient positioning markers.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A hospital imaging team validating a pneumonia detection model on chest X-rays computes gradient saliency for a sample of confirmed cases and checks whether the most sensitive pixels lie over the lungs rather than over tubes, monitoring leads or position markers. They use the result to decide whether the model is ready for a clinical pilot or needs retraining on cleaner images."
     },
     {
-      "description": "Examining skin lesion classification models to ensure the algorithm identifies diagnostic features (irregular borders, colour variation) rather than artifacts like rulers, hair, or skin markings that shouldn't influence medical decisions.",
-      "goal": "Explainability"
-    },
-    {
-      "description": "Auditing a dermatology AI system to verify it focuses on medical symptoms rather than skin colour when diagnosing conditions, ensuring equitable treatment across racial groups by revealing inappropriate attention to demographic features.",
-      "goal": "Fairness"
+      "goal": "Explainability",
+      "description": "An agricultural technology company testing a plant disease classifier on leaf photographs taken in the field computes gradient saliency for the images it misclassifies. It checks whether the sensitive pixels sit on the diseased leaf area or on soil, trays and hands in the frame, and decides whether to collect photographs with more varied backgrounds."
     }
   ],
   "limitations": [
     {
-      "description": "Saliency maps are often noisy and can change dramatically with small input perturbations, making them unstable."
+      "description": "Maps are noisy and can change sharply for tiny changes to the image, so one map is weak evidence. A study of upper-limb X-ray classifiers found that plain-gradient maps were less accurate at locating abnormalities, and less repeatable, than radiologists' markings (Venkatesh et al., 2024). Look at many images and more than one trained model before drawing a conclusion about the model."
     },
     {
-      "description": "Highlighted regions may not correspond to semantically meaningful or human-understandable features."
+      "description": "The gradient is local. Where the model's output has flattened, for example once a feature is already strongly present, the gradient is near zero, so a pixel the model relies on can get almost no score. Sundararajan et al. (2017) show this with a one-ReLU example, which is why methods such as Integrated Gradients measure the change from a baseline instead."
     },
     {
-      "description": "Only indicates local gradient information, not causal importance or actual decision-making logic."
+      "description": "Because only the size of each gradient is kept, the map cannot say whether a pixel supports or counts against the chosen class. Evidence that argues against the prediction looks the same as evidence for it, so a map cannot show that a pixel was used in the way a reviewer assumes."
     },
     {
-      "description": "May highlight irrelevant pixels that happen to have high gradients due to model artifacts rather than meaningful patterns."
+      "description": "A high score means the output is sensitive to a small change in that pixel, not that the model relied on it or that removing it would change the decision. Pixel-level scores are scattered and often capture only the most discriminative part of an object (Simonyan et al., 2013), so they rarely outline a whole lesion or object a reviewer can name."
     }
   ],
   "resources": [
@@ -128,29 +121,19 @@
   ],
   "sample_claims": [
     {
-      "text": "The medical imaging system's diagnostic predictions are attributable to specific pixel-level regions within the anatomical structures under examination",
+      "text": "For the pneumonia model's confirmed cases in the validation sample, gradient saliency places the most sensitive pixels over the lung fields and not over tubes, leads or position markers, in at least the proportion of cases the acceptance criteria set",
       "domain": "healthcare",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The autonomous vehicle's object detection decisions focus on fine-grained visual features rather than irrelevant background elements or environmental artifacts",
-      "domain": "autonomous systems",
-      "assuranceGoal": "explainability"
-    },
-    {
-      "text": "The facial recognition system's identity predictions do not rely disproportionately on demographic-indicating facial features across different population groups",
-      "domain": "general",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The agricultural disease classifier's predictions are traceable to individual pixels showing visible pathological symptoms rather than contextual farm equipment or environmental conditions",
+      "text": "The plant disease classifier's gradient saliency maps for its misclassified field photographs show sensitivity concentrated on the leaf area and not on soil, trays or hands in the frame",
       "domain": "environmental",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The dermatology screening tool's risk assessments identify fine-scale visual patterns in lesion characteristics independent of skin tone variations",
-      "domain": "healthcare",
-      "assuranceGoal": "fairness"
+      "text": "Gradient saliency maps used as evidence for this classifier were repeated on models retrained with different random seeds, and the sensitive regions agree across runs above the stated threshold",
+      "domain": "general",
+      "assuranceGoal": "explainability"
     }
   ]
 }

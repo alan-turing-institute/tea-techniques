@@ -1,7 +1,7 @@
 {
   "slug": "contextual-decomposition",
   "name": "Contextual Decomposition",
-  "description": "Contextual Decomposition explains LSTM and RNN predictions by decomposing the final hidden state into contributions from individual inputs and their interactions. Unlike simpler attribution methods, it separates the direct contribution of specific words or phrases from the contextual effects of surrounding words. This is particularly useful for understanding how sequential models process language, as it can identify whether a word's influence comes from its individual meaning or from its interaction with nearby words in the sequence.",
+  "description": "Contextual Decomposition explains why an LSTM, a neural network that reads text one word at a time, made a particular prediction. The user picks a word or phrase, and the method splits the network's output score into two parts: the part due to that phrase alone, and the part due to everything else, including how the phrase interacts with the words around it. Comparing a phrase's score with the scores of its parts reveals effects that word-by-word methods miss, such as a negation reversing the sentiment of the word that follows it. The split is tracked through the LSTM's internal gates, so the model itself is not changed or retrained. The output is a numerical score for each phrase examined.",
   "assurance_goals": [
     "Explainability",
     "Transparency"
@@ -30,30 +30,33 @@
   ],
   "example_use_cases": [
     {
-      "description": "Analysing why an LSTM-based spam filter flagged an email by decomposing contributions from individual words ('free', 'urgent') versus their contextual interactions ('free trial' together).",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "Analysing why an LSTM-based spam filter flagged an email by decomposing contributions from individual words ('free', 'urgent') versus their contextual interactions ('free trial' together)."
     },
     {
-      "description": "Understanding how a medical text classifier diagnoses conditions from clinical notes by separating direct symptom mentions from contextual medical reasoning patterns.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A hospital analytics team checks an LSTM that flags clinical notes mentioning possible pneumonia. Contextual decomposition shows whether negated findings such as 'no evidence of pneumonia' push the score down, as intended, or whether the model reacts to the word 'pneumonia' alone, which tells the team if it needs retraining on negated examples before use."
     },
     {
-      "description": "Providing transparent explanations for automated content moderation decisions by showing which words and phrase interactions contributed to toxicity detection.",
-      "goal": "Transparency"
+      "goal": "Transparency",
+      "description": "A platform's trust-and-safety team handles an appeal against an LSTM toxicity classifier's removal of a post. The reviewing moderator is shown the phrases with the highest contextual decomposition scores, including whether a negation such as 'not stupid' was read correctly, so the moderator can judge whether the removal rested on the post's actual meaning."
     }
   ],
   "limitations": [
     {
-      "description": "Primarily designed for LSTM and simple RNN architectures, not suitable for modern transformers or attention-based models."
+      "description": "Developed for LSTMs, whose gates the method uses to separate a phrase's own effect from its interactions. The source does not cover plain recurrent networks, transformers or attention models, so teams using those cannot apply the published method as it stands."
     },
     {
-      "description": "Not widely implemented in standard machine learning libraries, often requiring custom implementation."
+      "description": "Needs internal states, gate parameters and classifier weights. Output labels or probabilities alone do not reveal the phrase-related and remaining-input components."
     },
     {
-      "description": "Computational overhead increases significantly with sequence length and model depth."
+      "description": "The user must choose each phrase to examine, and the published method handles contiguous phrases. The number of possible phrases grows quickly with text length, so scanning a whole document for interactions is costly and easy to leave incomplete."
     },
     {
-      "description": "May not scale well to very complex models or capture all types of feature interactions in deep networks."
+      "description": "The split relies on linearising the gate and activation functions and averaging over orderings of the terms. Interaction scores are therefore approximate, and the source validates them only on sentiment tasks (Stanford Sentiment Treebank, Yelp), so scores on other tasks need checking independently."
+    },
+    {
+      "description": "Components combine additively in hidden states and class scores before the probability transformation. They should not be read as independent probabilities or as the exact effect of deleting a phrase."
     }
   ],
   "resources": [
@@ -118,29 +121,24 @@
   ],
   "sample_claims": [
     {
-      "text": "The clinical text classifier's predictions are attributable to specific medical terms independent of their surrounding context",
+      "text": "In the clinical-note classifier, negated findings such as 'no evidence of pneumonia' lower the score for that condition, as the contextual decomposition of the full phrase shows.",
       "domain": "healthcare",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The sentiment analysis model's outputs distinguish between individual word meanings and their contextual interactions within phrases",
-      "domain": "finance",
-      "assuranceGoal": "explainability"
-    },
-    {
-      "text": "The content moderation system's decisions are explainable through phrase-level contribution analysis showing how word combinations influence toxicity detection",
+      "text": "Each removal decision of the toxicity classifier that is sent to appeal can be traced to named words or phrases whose contextual decomposition scores account for most of the output score.",
       "domain": "general",
       "assuranceGoal": "transparency"
     },
     {
-      "text": "The document classification system's reasoning process separates direct keyword importance from sequential dependencies in the text",
-      "domain": "public sector",
+      "text": "In the news-sentiment model used for credit monitoring, the contribution of a sentiment word changes sign when a negation or contrast precedes it, and contextual decomposition separates the word's own effect from its context.",
+      "domain": "finance",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The natural language command interpreter provides transparent decomposition of how individual words and their contextual relationships drive action selection",
-      "domain": "autonomous systems",
-      "assuranceGoal": "transparency"
+      "text": "For the audited support tickets, the routing model's decision is not driven by any single trigger word: phrase-level contextual decomposition scores account for more of the output than the strongest single-word score.",
+      "domain": "public sector",
+      "assuranceGoal": "explainability"
     }
   ]
 }

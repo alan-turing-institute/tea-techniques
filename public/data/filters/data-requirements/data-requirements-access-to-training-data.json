@@ -177,10 +177,9 @@
     {
       "slug": "influence-functions",
       "name": "Influence Functions",
-      "description": "Influence functions quantify how much each training example influenced a model's predictions by computing the change in prediction that would occur if that training example were removed and the model retrained. Using calculus and the implicit function theorem, they approximate this 'leave-one-out' effect without actually retraining the model by computing gradients and Hessian information. This mathematical approach reveals which specific training examples were most responsible for pushing the model toward or away from particular predictions, enabling practitioners to trace problematic outputs back to their root causes in the training data.",
+      "description": "Influence functions estimate which training examples most affected a model's prediction on a particular test example. For each training example, they estimate how much the model's loss on the test example would change if that example counted slightly more or slightly less, which approximates removing it and retraining without actually doing so. The estimate combines the gradient of the loss at the test and training points with the Hessian (the matrix of second derivatives, which describes the curvature of the training loss). The output ranks training examples as helpful or harmful for that prediction, so a reviewer can inspect the top few for mislabelled or unrepresentative cases. The theory assumes a smooth, convex loss, so for deep networks the ranking is approximate, pointing to examples worth inspecting rather than proving why the model erred.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -198,8 +197,6 @@
         "assurance-goal-category/explainability/instance-based/influence-analysis",
         "assurance-goal-category/explainability/property/causality",
         "assurance-goal-category/explainability/property/fidelity",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
@@ -210,30 +207,26 @@
       ],
       "example_use_cases": [
         {
-          "description": "Investigating why a medical diagnosis model misclassified a patient by identifying which specific training cases most influenced the incorrect prediction, revealing potential mislabelled examples or problematic patterns in the training data.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital analytics team finds that its readmission model misclassifies many children. For a misclassified child, influence functions single out a handful of paediatric training records with far more influence than any others, showing that the training data holds very few children. The team collects more paediatric data before deciding whether the model can be used on that group."
         },
         {
-          "description": "Analysing a spam detection system that falsely flagged legitimate emails by tracing the prediction back to influential training examples, discovering that certain training emails contained misleading patterns that caused the model to overfit.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a loan approval model for discriminatory patterns by identifying which training examples most influenced rejections of minority applicants, revealing whether biased historical decisions are driving current unfair outcomes.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "An email-security team asks why its spam filter blocked a legitimate supplier invoice. It lists the training emails with the most influence on that decision, finds near-duplicate phishing messages with a similar layout, and decides whether to relabel, remove or down-weight them before retraining the filter."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally intensive, requiring Hessian matrix computations that become intractable for very large models with millions of parameters."
+          "description": "Exact influence needs the inverse of the Hessian, which is out of reach for networks with millions of parameters. Implementations approximate it with Hessian-vector products or block-diagonal and low-rank forms, which still costs extra passes over the training data for every prediction explained and adds error. Plan to explain a sample of decisions, not all of them."
         },
         {
-          "description": "Requires access to the complete training dataset and training process, making it impossible to apply to pre-trained models without access to original training data."
+          "description": "Needs the full training set, the loss function and parameters at or near a minimum of the training loss. A model delivered as an API or a finished file, or trained on data the assessor cannot see, cannot be examined. For models that are early-stopped or not trained to a minimum, the paper adds a damping term to the Hessian, one more setting that can change the ranking."
         },
         {
-          "description": "Accuracy degrades for highly non-convex models where the linear approximation underlying influence functions breaks down."
+          "description": "The derivation assumes a convex, twice-differentiable loss. On a non-convex CNN the paper still found a 0.86 correlation with actual retraining, but a larger study found estimates often erroneous for deeper networks and dependent on architecture, weight decay and the test point (Basu et al., 2020). Check the estimates against real retraining on a few examples before relying on them."
         },
         {
-          "description": "Results can be sensitive to hyperparameter choices and may not generalise well across different model architectures or training procedures."
+          "description": "Losses with kinks, such as the hinge loss of a support vector machine, break the method. In the paper, influence computed on the unsmoothed hinge loss considerably overestimated the effect of removal, and a smooth approximation of the loss was needed. Check that the loss is smooth for the model in hand, or smooth it for the calculation."
         }
       ],
       "resources": [
@@ -302,23 +295,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are traceable to specific patient cases in the training data",
+          "text": "The training records most influential for the readmission model's errors on paediatric patients have been identified with influence functions and reviewed by a clinical data steward",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit model's decisions on individual applications are attributable to identifiable historical loan records",
+          "text": "No training record among the ten most influential for any audited declined application is a known data-entry or labelling error",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The welfare eligibility system's rejections can be traced to specific training cases to identify discriminatory patterns",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The perception system's object classification decisions are traceable to specific labeled examples from the training corpus",
-          "domain": "autonomous systems",
+          "text": "For each false positive in the spam filter's audit sample, the ten most influential training emails were reviewed and the cause of the error, mislabelled or unrepresentative training data, was recorded",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]

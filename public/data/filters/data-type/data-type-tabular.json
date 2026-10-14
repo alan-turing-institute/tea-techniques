@@ -298,7 +298,7 @@
     {
       "slug": "mean-decrease-impurity",
       "name": "Mean Decrease Impurity",
-      "description": "Mean Decrease Impurity (MDI) quantifies a feature's importance in tree-based models (e.g., Random Forests, Gradient Boosting Machines) by measuring the total reduction in impurity (e.g., Gini impurity, entropy) across all splits where the feature is used. Features that lead to larger, more consistent reductions in impurity are considered more important, indicating their effectiveness in creating homogeneous child nodes and improving predictive accuracy. This makes MDI a computationally efficient method for feature selection and model validation in tree-based ensembles.",
+      "description": "Mean Decrease Impurity (MDI) scores how much each feature contributes to a tree-based model, such as a random forest, by looking at how the model's decision trees split the training data. Each split sends cases into two groups, and a good split makes each group more uniform in its outcome, which is a drop in impurity, measured with a score such as Gini impurity. For each feature, MDI adds up the drops from every split that uses it, weights each by the share of training cases reaching that split, and averages over all trees. The scores are usually scaled to sum to one, so they show relative importance. Because they come from the training data, they describe how the model was built, not how well each feature predicts on new data.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -322,26 +322,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Determining the most influential genetic markers in a decision tree model predicting disease susceptibility, by identifying which markers consistently lead to the purest splits between healthy and diseased patient groups.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Determining the most influential genetic markers in a decision tree model predicting disease susceptibility, by identifying which markers consistently lead to the purest splits between healthy and diseased patient groups."
         },
         {
-          "description": "Assessing the key factors driving customer purchasing decisions in an e-commerce random forest model, revealing which product attributes or customer demographics are most effective in segmenting buyers.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A model-validation team reviews a gradient-boosted loan-default model and ranks its inputs by MDI before sign-off. They investigate any identifier-like or many-valued field, such as customer ID or postcode, that ranks near the top, because MDI favours such fields and they may reflect overfitting rather than real predictive signal."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An environmental analytics team fits a random forest to forecast air quality and uses MDI to choose which weather stations' readings to drop from a simpler model. They then confirm on held-out data that accuracy holds, because MDI alone reflects the training data."
         }
       ],
       "limitations": [
         {
-          "description": "MDI is inherently biased towards features with more unique values or those that allow for more splits, potentially overestimating their true importance."
+          "description": "MDI favours features with many distinct values, because more possible split points give more chances of a good split by chance. Strobl and colleagues found that uninformative continuous or many-category variables were preferred over informative ones when predictors differed in type or number of categories."
         },
         {
-          "description": "It is only applicable to tree-based models and cannot be directly used with other model architectures."
+          "description": "Scores are calculated from the training data, so a feature can rank high because the model fitted noise in it. A high score does not show that the feature helps predictions on unseen data, and scikit-learn recommends permutation importance on held-out data as the alternative."
         },
         {
-          "description": "The importance scores can be unstable, varying significantly with small changes in the training data or model parameters."
+          "description": "MDI gives only a non-negative score for each feature. It does not show whether higher values of a feature raise or lower the prediction, so it cannot support a claim about the direction of a feature's effect."
         },
         {
-          "description": "MDI does not account for feature interactions, meaning it might not accurately reflect the importance of features that are only relevant when combined with others."
+          "description": "Scores vary from tree to tree, and the scikit-learn example plots this spread as error bars. A forest with few trees, or a small training set, can therefore give a ranking that shifts when the model is refitted."
+        },
+        {
+          "description": "Correlated predictors compete for splits. One can mask another's importance, and changing the fitted ensemble or candidate-feature settings can change their relative ranks."
         }
       ],
       "resources": [
@@ -419,12 +426,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's feature importance ranking reflects which patient characteristics most consistently separate clinical outcomes across decision boundaries",
+          "text": "The five features with the highest mean decrease in impurity in the readmission-risk forest are the clinical risk factors that the clinical team documented as expected drivers.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The environmental forecast model's predictions prioritize meteorological variables that create homogeneous regional clusters",
+          "text": "No identifier-like or many-valued field, such as customer ID or postcode, ranks in the top ten by mean decrease in impurity in the loan-default model.",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The mean-decrease-impurity ranking of the delivery-time forest is stable across 20 refits on bootstrap samples of the training data, with the same top five features each time.",
+          "domain": "transport",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Three meteorological variables account for over half of the total importance in the air-quality forecasting forest, and the model documentation names them.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         }
@@ -433,7 +450,7 @@
     {
       "slug": "coefficient-magnitudes-in-linear-models",
       "name": "Coefficient Magnitudes (in Linear Models)",
-      "description": "Coefficient Magnitudes assess feature influence in linear models by examining the absolute values of their coefficients. Features with larger absolute coefficients are considered to have a stronger impact on the prediction, while the sign of the coefficient indicates the direction of that influence (positive or negative). This technique provides a straightforward and transparent way to understand the direct linear relationship between each input feature and the model's output.",
+      "description": "Coefficient Magnitudes explains a linear model by reading its fitted coefficients. Each coefficient shows how much the prediction changes when its feature rises by one unit while every other feature stays fixed, and its sign gives the direction. Because a coefficient's size depends on the units of its feature, the features are first put on a common scale, for example by standardising them or by multiplying each coefficient by its feature's standard deviation. The features with the largest scaled coefficients are then read as having the strongest influence on the model's predictions. This gives a global view of the model without needing a separate explanation method.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -462,26 +479,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Interpreting which features influence housing price predictions in linear regression, such as identifying that 'number of bedrooms' has a larger positive impact than 'distance to city centre' based on coefficient magnitudes.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "An estate agency's data team standardises the inputs of a linear house-price model, then ranks the absolute coefficients to show valuers which property attributes move the estimate most. Valuers check that the signs match their experience, for example that more floor area raises the price, before the model guides asking prices."
         },
         {
-          "description": "Explaining the factors contributing to customer lifetime value (CLV) in a linear model, showing how 'average monthly spend' has a strong positive coefficient, making the model transparent for business stakeholders.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A lender's model-risk team documents a linear credit-scoring model for its regulator by publishing the standardised coefficient of every input. The reviewer can read off the direction and relative weight of each input without a separate explanation tool, and can query any input that carries more weight than policy allows."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A public health analyst fits a logistic regression to predict emergency readmission and reports standardised coefficients to clinicians, who see which patient characteristics push the predicted risk up or down. The analyst refits on resamples first, to check that the large coefficients keep their sign."
         }
       ],
       "limitations": [
         {
-          "description": "Only valid for linear relationships; it cannot capture complex non-linear patterns or interactions between features."
+          "description": "Raw magnitudes have output-per-input units and cannot be ranked across differently scaled variables. Express comparable input changes explicitly; changing metres to centimetres makes the corresponding coefficient smaller for the same predictions."
         },
         {
-          "description": "Highly sensitive to feature scaling; features with larger numerical ranges can appear more important even if their true impact is smaller."
+          "description": "Coefficients concern the encoded model inputs while other inputs are held fixed. If the model includes transformed variables or interactions, inspecting one coefficient does not give the whole effect of changing an original variable."
         },
         {
-          "description": "Can be misleading in the presence of multicollinearity, where correlated features may split importance or have unstable coefficients."
+          "description": "Correlated predictors can have unstable or shared coefficients even when predictions change little. Scaling does not remove this problem, and regularisation can change which correlated feature receives a large weight."
         },
         {
-          "description": "Does not imply causation; a strong correlation (large coefficient) does not necessarily mean a causal relationship."
+          "description": "Each coefficient is conditional on the other features in the model. A feature can have a negative coefficient while rising with the outcome on its own, so a coefficient read in isolation can mislead about the feature's plain relationship to the outcome."
+        },
+        {
+          "description": "A coefficient is a conditional association in the fitted model, not a causal effect. Its magnitude alone also does not give a particular applicant's contribution, which depends on that applicant's feature values."
         }
       ],
       "resources": [
@@ -555,27 +579,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's feature influences are quantifiable through direct examination of their linear coefficients",
-          "domain": "general",
+          "text": "Before coefficient sizes were used to rank influence in the valuation model, inputs were put on a common scale and strongly correlated input pairs were merged or reduced to one, so the ranking is not a product of units or collinearity.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The housing price estimator's reliance on specific property attributes is transparent to regulators through standardized coefficient magnitudes",
+          "text": "The credit-scoring model is a linear model whose standardised coefficients are published in its documentation, so a reviewer can trace each score to its inputs without a separate explanation method.",
           "domain": "finance",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The clinical risk model's predictive contributions from patient characteristics are directly interpretable from the regression parameters",
+          "text": "The direction of every input's coefficient in the readmission-risk model agrees with clinical expectation, and none of the five largest standardised coefficients changes sign across 100 bootstrap refits.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The system's feature importance rankings remain consistent when input variables are appropriately scaled",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The crop yield prediction model's dependence on environmental factors is directly measurable through their coefficient values",
+          "text": "Rainfall and soil nitrogen have the largest standardised coefficients in the crop-yield model, and their confidence intervals exclude zero.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         }
@@ -584,7 +603,7 @@
     {
       "slug": "integrated-gradients",
       "name": "Integrated Gradients",
-      "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
+      "description": "Integrated Gradients assigns input features scores for a prediction relative to a chosen reference input, called the baseline. It evaluates gradients, rates of output change, at points along a straight path from that reference to the actual input. Each feature's average gradient is multiplied by its change from the reference, and the resulting scores sum approximately to the output difference when enough numerical steps are used. For text, the path runs through continuous token representations rather than discrete word identifiers, and scores can be combined into highlighted words. In a protected-term variant, the reviewer fixes before the run a list of words or columns that name or record a protected characteristic, and reads the scores those inputs receive: a large score shows that the output rests partly on the characteristic, but a small score does not show that the model ignores it.",
       "assurance_goals": [
         "Explainability",
         "Fairness"
@@ -617,20 +636,20 @@
       ],
       "example_use_cases": [
         {
-          "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading."
         },
         {
-          "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question."
         },
         {
-          "description": "A trust-and-safety team investigating false positives in a toxic-content classifier aggregates token attributions over wrongly flagged posts to see whether identity terms, such as the name of a religion or a sexual orientation, rather than abusive language drive the score, and adds counter-examples to the training data where they do.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A trust-and-safety team reviewing the posts its toxic-content classifier wrongly flagged fixes, before the run, a list of identity terms (names of religions, ethnicities and sexual orientations, chosen because the policy forbids penalising them) and computes Integrated Gradients against an all-padding baseline. Where a listed term ranks among the five most attributed tokens of a wrongly flagged post, the team adds counter-examples to the training data; a low score is not taken as clearance."
         },
         {
-          "description": "A lender's model-risk team runs Integrated Gradients over a classifier that reads the free-text statements in loan applications, ranking the most highly attributed words across a sample of declined applications to check whether words that reveal a protected characteristic, or stand in for one, carry weight in the decision.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A lender's model-risk team audits a classifier that reads the free-text statements in loan applications. Before the run it lists the words that state a protected characteristic, such as a religion, a pregnancy or a disability, and computes Integrated Gradients against a documented reference statement for a sample of declined applications. Any listed word among the ten most attributed is reported for a swap test; the absence of such words does not show the model ignores them."
         }
       ],
       "limitations": [
@@ -754,17 +773,17 @@
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
+          "text": "The question-answering audit records token attributions for the documented reference and uses low content-word scores to select questions for separate perturbation tests.",
           "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+          "text": "None of the identity terms on the fixed list ranks among the five most attributed tokens, against the all-padding baseline, for the moderation classifier's decisions on the non-abusive posts in the audit set",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+          "text": "The loan-screening bias review records the attribution ranks of specified protected-characteristic words in the reviewed statements, relative to documented reference inputs.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         }
@@ -773,7 +792,7 @@
     {
       "slug": "deeplift",
       "name": "DeepLIFT",
-      "description": "DeepLIFT (Deep Learning Important FeaTures) explains neural network predictions by decomposing the difference between the actual output and a reference output back to individual input features. It compares each neuron's activation to a reference activation (typically from a baseline input like all zeros or the dataset mean) and propagates these differences backwards through the network using chain rule modifications. Unlike gradient-based methods, DeepLIFT satisfies the sensitivity property (zero input gets zero attribution) and provides more stable attributions by using discrete differences rather than gradients.",
+      "description": "DeepLIFT (Deep Learning Important FeaTures) explains a single prediction of a neural network by dividing the difference between the model's output and its output on a reference input among the input features. The reference is a neutral input chosen for the problem, such as an all-zero image or a blurred copy of the input. The method measures how far each neuron's activation is from its value on the reference, then passes those differences backwards through the layers in one pass, applying a rule for each layer type. A plain gradient (the rate of change of the output with respect to an input) is zero where the output has levelled off, but DeepLIFT can still assign credit there. The scores add up to the output difference and mean something only relative to the reference chosen.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -803,30 +822,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Identifying which genomic sequences contribute to a neural network's prediction of protein binding sites, helping biologists understand regulatory mechanisms by comparing to neutral DNA baselines.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A genomics group training a neural network to predict where a regulatory protein binds DNA computes DeepLIFT scores for each predicted binding region against a reference sequence with background base frequencies. They read off which short stretches of bases carry the score, compare them with known binding motifs, and decide whether the model has learned real regulatory sequence before using it to prioritise experiments."
         },
         {
-          "description": "Debugging a deep learning image classifier that misclassifies medical scans by attributing the decision to specific image regions, revealing if the model focuses on irrelevant artifacts rather than pathological features.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital imaging team is investigating a chest X-ray classifier that flags healthy patients as abnormal. For the false positives it computes DeepLIFT scores against a blurred copy of each image and checks whether the weight sits on the image border, where scanner labels are printed, rather than on lung tissue. It then decides whether to mask the labels and retrain."
         },
         {
-          "description": "Providing transparent explanations for automated loan approval decisions by showing which financial features (relative to typical applicant profiles) most influenced the neural network's recommendation.",
-          "goal": "Transparency"
+          "goal": "Explainability",
+          "description": "A regional geohazard agency uses a neural network to rate landslide susceptibility from terrain, rainfall and land-cover layers. For a slope the model rates as high risk, DeepLIFT scores show which input layers drove the rating, and the agency compares them with the field investigation report before using the map for planning."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A lender's credit team sends each declined applicant a short statement of the factors that most lowered their score. For its neural network scorer it computes DeepLIFT scores against a documented reference applicant, the median approved applicant, and the statement lists the factors with the largest negative scores, which are the ones that pulled this score below the reference."
         }
       ],
       "limitations": [
         {
-          "description": "Requires careful selection of reference baseline, as different choices can lead to substantially different attribution scores."
+          "description": "Every score is relative to a reference input, and the choice changes the picture. In the original paper an all-zero reference on CIFAR-10 images highlighted hard-to-interpret background pixels, while a blurred copy of the image highlighted object outlines. State the reference used and repeat the analysis with at least one alternative before drawing conclusions."
         },
         {
-          "description": "Implementation complexity varies significantly across different neural network architectures and layer types."
+          "description": "The Captum implementation supports only the Rescale rule, which can give all the credit to one of two inputs that jointly drive the output. In the paper's min(i1, i2) example Rescale scores only the smaller input, while the RevealCancel rule shares the credit. Where inputs interact, the scores can hide a dependency that a more complete rule would show."
         },
         {
-          "description": "May produce unintuitive results when the chosen reference is not representative of the decision boundary."
+          "description": "Propagation rules must support the network operations. Captum implements the Rescale rule and a limited set of nonlinearities; inaccessible operations in built-in recurrent modules can prevent attribution unless a supported implementation is used."
         },
         {
-          "description": "Limited to feedforward networks and specific layer types, not suitable for all modern architectures like transformers."
+          "description": "Two networks that compute exactly the same function can receive different DeepLIFT scores, because differences between a neuron and its reference do not obey the chain rule that gradients obey (Sundararajan et al., 2017, App. B). The scores therefore describe how the model is built as well as what it computes, which matters when comparing a model with a re-implemented or compressed version of it."
+        },
+        {
+          "description": "Feature contributions account for a particular output difference, not a causal effect in the world or a guaranteed change after deleting that feature. Correlated genomic bases or financial variables make that distinction important."
         }
       ],
       "resources": [
@@ -906,36 +932,31 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical imaging model's diagnostic predictions are attributable to specific anatomical features relative to typical baseline scans",
+          "text": "The binding-site model's highest-scoring regions in the validation sequences coincide with known binding motifs, as shown by DeepLIFT scores against a reference sequence with background base frequencies",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The chest X-ray classifier's DeepLIFT scores on its false-positive cases fall on lung tissue and not on image borders or printed labels, using a blurred copy of each image as the reference",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The lending system's decision factors are traceable to deviations from representative applicant profiles",
+          "text": "For the audited landslide cases, the input layers with the largest DeepLIFT scores match the causes named in the field investigation reports",
+          "domain": "environmental",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Each declined credit application is accompanied by its largest DeepLIFT scores against the documented reference applicant, and the reported approximation error of those scores is below a stated tolerance",
           "domain": "finance",
           "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The perception system's object classifications are explained by feature differences from neutral reference inputs",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's individual predictions are accompanied by feature-level attributions measured against defined baseline conditions",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The recommendation system's outputs are interpretable through comparison with typical user interaction patterns",
-          "domain": "general",
-          "assuranceGoal": "explainability"
         }
       ]
     },
     {
       "slug": "layer-wise-relevance-propagation",
       "name": "Layer-wise Relevance Propagation",
-      "description": "Layer-wise Relevance Propagation (LRP) explains neural network predictions by working backwards through the network to show how much each input feature contributed to the final decision. It follows a simple conservation rule: the total contribution scores always add up to the original prediction. Starting from the output, LRP distributes 'relevance' backwards through each layer using different rules depending on the layer type. This creates a detailed breakdown showing which input features helped or hindered the prediction, making it easier to understand why the network made a particular decision.",
+      "description": "Layer-wise Relevance Propagation (LRP) explains a neural network's prediction by working backwards from the output to the inputs. It treats the prediction score as a quantity called relevance, then passes that relevance back through each layer in proportion to how much each neuron contributed in the forward pass. The rules for this redistribution are chosen to keep the total relevance roughly constant from layer to layer, so the input scores add up to the prediction apart from small amounts absorbed by bias terms and stabilisers. Different rules can be used for different types of layer. The result is a relevance score for each input, such as a pixel or a feature, with positive values for inputs that supported the prediction and negative values for inputs that counted against it.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -968,30 +989,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Identifying which pixels in chest X-rays contribute to pneumonia detection, helping radiologists verify AI diagnoses by highlighting anatomical regions the model considers relevant.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Identifying which pixels in chest X-rays contribute to pneumonia detection, helping radiologists verify AI diagnoses by highlighting anatomical regions the model considers relevant."
         },
         {
-          "description": "Debugging a neural network's misclassification of handwritten digits by tracing relevance through layers to identify which input pixels caused the error and which network layers amplified it.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A perception team investigating a misclassified traffic-sign image draws the relevance map for the wrong class. The map shows the relevance sitting on a sticker and the background rather than on the sign itself, which tells the team to add training images with such clutter before the model is retested."
         },
         {
-          "description": "Providing transparent explanations for automated credit scoring decisions by showing which financial features received positive or negative relevance scores, enabling clear regulatory reporting.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A bank's model-risk reviewers receive LRP relevance scores for a sample of declined applications scored by a neural network. They check that the inputs with the most relevance for the decline output are affordability measures and not proxy fields such as postcode, and file the scores with the decision record for audit."
         }
       ],
       "limitations": [
         {
-          "description": "Requires different propagation rules for each layer type, making implementation complex for new architectures."
+          "description": "Each layer type needs its own propagation rule, and a new layer type has none until someone derives one, so adapting LRP to a new architecture takes expertise and testing."
         },
         {
-          "description": "Can produce negative relevance scores which may be difficult to interpret intuitively."
+          "description": "Rule selection (LRP-ε, LRP-γ and others) changes the resulting maps, so two analysts can produce different explanations of the same prediction, and choosing among them takes expertise."
         },
         {
-          "description": "Rule selection (LRP-ε, LRP-γ, etc.) significantly affects results and requires domain expertise."
+          "description": "Heatmaps are hard to validate. The original paper judges them by eye and with a pixel-flipping test, and notes that quality beyond visual assessment is an open question, so a plausible-looking map does not prove the model relies on the highlighted inputs."
         },
         {
-          "description": "Limited to feedforward networks and may not work well with modern architectures like transformers without substantial modifications."
+          "description": "Standard rules do not cover attention layers. Extensions for transformers, such as AttnLRP in the LXT library, exist but are recent and specific to certain architectures, so users of transformers or large language models must adopt them and confirm they match their model."
+        },
+        {
+          "description": "Bias handling and epsilon stabilisation can absorb or inject relevance, so input scores do not always sum exactly to the selected output. A report should document the accounting residual before claiming conservation."
         }
       ],
       "resources": [
@@ -1101,28 +1125,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are decomposable into quantified contributions from individual imaging features throughout the network's processing pathway",
+          "text": "On the audited sample of chest X-rays, the relevance for the pneumonia output lies mainly inside the lung fields and not on laterality markers, text or image borders.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit assessment system's decisions are traceable to specific financial indicators with their positive and negative relevance scores documented for regulatory review",
+          "text": "For every audited credit decision, the relevance scores for the decline output are stored with the decision record, and they sum to the model's score within the stated tolerance.",
           "domain": "finance",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The visual perception system's classification errors can be traced backwards through network layers to identify which input regions and intermediate representations contributed to the misclassification",
-          "domain": "autonomous systems",
+          "text": "In the reviewed true positives of the defect-detection network, most of the relevance falls on the defect itself and not on the background texture that differs between production lines.",
+          "domain": "manufacturing",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The quality inspection model documents how each pixel in defect images propagates through the neural network to influence the final classification outcome",
-          "domain": "manufacturing",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The environmental monitoring system's predictions are explainable through feature-level contribution scores that sum to the total prediction value",
-          "domain": "environmental",
+          "text": "Where the perception model misclassifies a traffic sign in the test set, the relevance map shows whether the evidence for the wrong class came from the sign or from its surroundings, and each case is recorded.",
+          "domain": "autonomous systems",
           "assuranceGoal": "explainability"
         }
       ]
@@ -1130,7 +1149,7 @@
     {
       "slug": "taylor-decomposition",
       "name": "Taylor Decomposition",
-      "description": "Taylor Decomposition is a mathematical technique that explains neural network predictions by computing first-order and higher-order derivatives of the network's output with respect to input features. It decomposes the prediction into relevance scores that indicate how much each input feature and feature interaction contributes to the final decision. The method uses Layer-wise Relevance Propagation (LRP) principles to trace prediction contributions backwards through the network layers, providing precise mathematical attributions for each input element.",
+      "description": "Taylor Decomposition explains one prediction of a neural network by splitting its output score into a contribution from each input, such as each pixel. It starts from a reference input, called a root point, that is close to the real input but for which the network's score is zero. Each input's contribution is the slope of the score with respect to that input at the root point, multiplied by how far the input sits from the root, and terms that involve several inputs at once are left out. Finding a good root point is slow for large networks, so the deep variant applies the same idea to one neuron at a time and passes the contributions backwards through the layers, which gives rules close to those of Layer-wise Relevance Propagation. The result is a relevance score for every input that can be drawn as a heatmap.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -1158,26 +1177,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing which pixels in an image contribute most to a convolutional neural network's classification decision, showing both positive and negative relevance scores for different regions of the input image.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A quality team uses a convolutional network to flag defective printed circuit boards. For each flagged board they draw the deep Taylor heatmap and check that the highlighted pixels sit on the defect and not on a board label, the edge or the background, before they trust the flags enough to stop manual inspection."
         },
         {
-          "description": "Understanding how different word embeddings in a sentiment analysis model contribute to the final sentiment score, revealing which terms drive positive vs negative predictions.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital's model-validation group audits a ReLU network that classifies chest X-rays. For a sample of positive cases, deep Taylor relevance shows whether the evidence for the finding lies inside the lungs or on markers, text or borders added by the imaging equipment, before the group signs the model off for a pilot."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A bank's data science team has a ReLU network that scores small-business loan applications from tabular inputs. For a declined application, deep Taylor relevance lists which inputs supplied most of the score, so a reviewer can see whether the decision rests on repayment history and income or on a field such as postcode."
         }
       ],
       "limitations": [
         {
-          "description": "Mathematically complex requiring deep understanding of calculus and neural network architectures."
+          "description": "The explanation depends on the choice of root point, and different reference inputs give different attributions. Finding the nearest root needs an iterative optimisation that is slow for large networks and may not converge, which is why the source applies the deep variant to large image networks."
         },
         {
-          "description": "Computationally intensive as it requires computing gradients and higher-order derivatives through the entire network."
+          "description": "Plain Taylor decomposition uses only first-order terms, so joint effects of several inputs stay unattributed and the scores need not add up to the prediction. In the source's tests the nearest-root version lost a large share of the relevance, so its heatmaps can leave much of the prediction unexplained."
         },
         {
-          "description": "Approximations used in practice may introduce errors that affect attribution accuracy."
+          "description": "The deep variant's guarantees, scores that add up to the prediction and are never negative, are proved for ReLU-style layers with zero or negative biases, and iNNvestigate documents support for ReLU networks only. Other activations, positive biases or normalisation layers need workarounds that the proofs do not cover."
         },
         {
-          "description": "Limited tooling availability compared to other explainability methods, with most implementations being research-focused rather than production-ready."
+          "description": "Heatmaps explain one input at a time and are hard to validate. The source judges them by eye and by checking that relevance is conserved on MNIST digits and ImageNet photos, so a plausible-looking map does not prove that the model relies on the highlighted inputs."
+        },
+        {
+          "description": "Requires access to internal layer operations and supported redistribution rules. A prediction-only service cannot supply this layer-wise decomposition, and an image-derived rule should not be assumed valid for arbitrary text or attention models."
         }
       ],
       "resources": [
@@ -1241,23 +1267,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic imaging model's classification attributions decompose mathematically into first-order feature contributions and higher-order interaction effects",
+          "text": "For each audited decision, the deep Taylor relevance scores of the inputs sum to the network's output score within the agreed tolerance, so little of the prediction is left unattributed.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "On the audited sample of chest X-rays, the deep Taylor relevance for the positive finding lies mainly inside the lung fields and not on markers, text or image borders.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit risk model's predictions trace through network layers with precise mathematical relevance scores for each input element",
+          "text": "In the reviewed true positives of the defect classifier, the highest-relevance pixels fall on the defect itself, so its flags do not depend on board labels or background texture.",
+          "domain": "manufacturing",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The inputs given most relevance for declined applications in the credit network are affordability and repayment measures, not postcode or other fields that stand in for protected characteristics.",
           "domain": "finance",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The object detection system's recognition decisions are attributable to specific pixel regions through backward propagation of derivative-based relevance",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's feature attributions quantify both individual input contributions and their multiplicative interactions through higher-order terms",
-          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]
@@ -2843,10 +2869,9 @@
     {
       "slug": "influence-functions",
       "name": "Influence Functions",
-      "description": "Influence functions quantify how much each training example influenced a model's predictions by computing the change in prediction that would occur if that training example were removed and the model retrained. Using calculus and the implicit function theorem, they approximate this 'leave-one-out' effect without actually retraining the model by computing gradients and Hessian information. This mathematical approach reveals which specific training examples were most responsible for pushing the model toward or away from particular predictions, enabling practitioners to trace problematic outputs back to their root causes in the training data.",
+      "description": "Influence functions estimate which training examples most affected a model's prediction on a particular test example. For each training example, they estimate how much the model's loss on the test example would change if that example counted slightly more or slightly less, which approximates removing it and retraining without actually doing so. The estimate combines the gradient of the loss at the test and training points with the Hessian (the matrix of second derivatives, which describes the curvature of the training loss). The output ranks training examples as helpful or harmful for that prediction, so a reviewer can inspect the top few for mislabelled or unrepresentative cases. The theory assumes a smooth, convex loss, so for deep networks the ranking is approximate, pointing to examples worth inspecting rather than proving why the model erred.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -2864,8 +2889,6 @@
         "assurance-goal-category/explainability/instance-based/influence-analysis",
         "assurance-goal-category/explainability/property/causality",
         "assurance-goal-category/explainability/property/fidelity",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
@@ -2876,30 +2899,26 @@
       ],
       "example_use_cases": [
         {
-          "description": "Investigating why a medical diagnosis model misclassified a patient by identifying which specific training cases most influenced the incorrect prediction, revealing potential mislabelled examples or problematic patterns in the training data.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital analytics team finds that its readmission model misclassifies many children. For a misclassified child, influence functions single out a handful of paediatric training records with far more influence than any others, showing that the training data holds very few children. The team collects more paediatric data before deciding whether the model can be used on that group."
         },
         {
-          "description": "Analysing a spam detection system that falsely flagged legitimate emails by tracing the prediction back to influential training examples, discovering that certain training emails contained misleading patterns that caused the model to overfit.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a loan approval model for discriminatory patterns by identifying which training examples most influenced rejections of minority applicants, revealing whether biased historical decisions are driving current unfair outcomes.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "An email-security team asks why its spam filter blocked a legitimate supplier invoice. It lists the training emails with the most influence on that decision, finds near-duplicate phishing messages with a similar layout, and decides whether to relabel, remove or down-weight them before retraining the filter."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally intensive, requiring Hessian matrix computations that become intractable for very large models with millions of parameters."
+          "description": "Exact influence needs the inverse of the Hessian, which is out of reach for networks with millions of parameters. Implementations approximate it with Hessian-vector products or block-diagonal and low-rank forms, which still costs extra passes over the training data for every prediction explained and adds error. Plan to explain a sample of decisions, not all of them."
         },
         {
-          "description": "Requires access to the complete training dataset and training process, making it impossible to apply to pre-trained models without access to original training data."
+          "description": "Needs the full training set, the loss function and parameters at or near a minimum of the training loss. A model delivered as an API or a finished file, or trained on data the assessor cannot see, cannot be examined. For models that are early-stopped or not trained to a minimum, the paper adds a damping term to the Hessian, one more setting that can change the ranking."
         },
         {
-          "description": "Accuracy degrades for highly non-convex models where the linear approximation underlying influence functions breaks down."
+          "description": "The derivation assumes a convex, twice-differentiable loss. On a non-convex CNN the paper still found a 0.86 correlation with actual retraining, but a larger study found estimates often erroneous for deeper networks and dependent on architecture, weight decay and the test point (Basu et al., 2020). Check the estimates against real retraining on a few examples before relying on them."
         },
         {
-          "description": "Results can be sensitive to hyperparameter choices and may not generalise well across different model architectures or training procedures."
+          "description": "Losses with kinks, such as the hinge loss of a support vector machine, break the method. In the paper, influence computed on the unsmoothed hinge loss considerably overestimated the effect of removal, and a smooth approximation of the loss was needed. Check that the loss is smooth for the model in hand, or smooth it for the calculation."
         }
       ],
       "resources": [
@@ -2968,23 +2987,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are traceable to specific patient cases in the training data",
+          "text": "The training records most influential for the readmission model's errors on paediatric patients have been identified with influence functions and reviewed by a clinical data steward",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit model's decisions on individual applications are attributable to identifiable historical loan records",
+          "text": "No training record among the ten most influential for any audited declined application is a known data-entry or labelling error",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The welfare eligibility system's rejections can be traced to specific training cases to identify discriminatory patterns",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The perception system's object classification decisions are traceable to specific labeled examples from the training corpus",
-          "domain": "autonomous systems",
+          "text": "For each false positive in the spam filter's audit sample, the ten most influential training emails were reviewed and the cause of the error, mislabelled or unrepresentative training data, was recorded",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]

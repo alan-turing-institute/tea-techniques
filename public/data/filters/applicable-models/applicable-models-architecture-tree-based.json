@@ -9,7 +9,7 @@
     {
       "slug": "mean-decrease-impurity",
       "name": "Mean Decrease Impurity",
-      "description": "Mean Decrease Impurity (MDI) quantifies a feature's importance in tree-based models (e.g., Random Forests, Gradient Boosting Machines) by measuring the total reduction in impurity (e.g., Gini impurity, entropy) across all splits where the feature is used. Features that lead to larger, more consistent reductions in impurity are considered more important, indicating their effectiveness in creating homogeneous child nodes and improving predictive accuracy. This makes MDI a computationally efficient method for feature selection and model validation in tree-based ensembles.",
+      "description": "Mean Decrease Impurity (MDI) scores how much each feature contributes to a tree-based model, such as a random forest, by looking at how the model's decision trees split the training data. Each split sends cases into two groups, and a good split makes each group more uniform in its outcome, which is a drop in impurity, measured with a score such as Gini impurity. For each feature, MDI adds up the drops from every split that uses it, weights each by the share of training cases reaching that split, and averages over all trees. The scores are usually scaled to sum to one, so they show relative importance. Because they come from the training data, they describe how the model was built, not how well each feature predicts on new data.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -33,26 +33,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Determining the most influential genetic markers in a decision tree model predicting disease susceptibility, by identifying which markers consistently lead to the purest splits between healthy and diseased patient groups.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Determining the most influential genetic markers in a decision tree model predicting disease susceptibility, by identifying which markers consistently lead to the purest splits between healthy and diseased patient groups."
         },
         {
-          "description": "Assessing the key factors driving customer purchasing decisions in an e-commerce random forest model, revealing which product attributes or customer demographics are most effective in segmenting buyers.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A model-validation team reviews a gradient-boosted loan-default model and ranks its inputs by MDI before sign-off. They investigate any identifier-like or many-valued field, such as customer ID or postcode, that ranks near the top, because MDI favours such fields and they may reflect overfitting rather than real predictive signal."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An environmental analytics team fits a random forest to forecast air quality and uses MDI to choose which weather stations' readings to drop from a simpler model. They then confirm on held-out data that accuracy holds, because MDI alone reflects the training data."
         }
       ],
       "limitations": [
         {
-          "description": "MDI is inherently biased towards features with more unique values or those that allow for more splits, potentially overestimating their true importance."
+          "description": "MDI favours features with many distinct values, because more possible split points give more chances of a good split by chance. Strobl and colleagues found that uninformative continuous or many-category variables were preferred over informative ones when predictors differed in type or number of categories."
         },
         {
-          "description": "It is only applicable to tree-based models and cannot be directly used with other model architectures."
+          "description": "Scores are calculated from the training data, so a feature can rank high because the model fitted noise in it. A high score does not show that the feature helps predictions on unseen data, and scikit-learn recommends permutation importance on held-out data as the alternative."
         },
         {
-          "description": "The importance scores can be unstable, varying significantly with small changes in the training data or model parameters."
+          "description": "MDI gives only a non-negative score for each feature. It does not show whether higher values of a feature raise or lower the prediction, so it cannot support a claim about the direction of a feature's effect."
         },
         {
-          "description": "MDI does not account for feature interactions, meaning it might not accurately reflect the importance of features that are only relevant when combined with others."
+          "description": "Scores vary from tree to tree, and the scikit-learn example plots this spread as error bars. A forest with few trees, or a small training set, can therefore give a ranking that shifts when the model is refitted."
+        },
+        {
+          "description": "Correlated predictors compete for splits. One can mask another's importance, and changing the fitted ensemble or candidate-feature settings can change their relative ranks."
         }
       ],
       "resources": [
@@ -130,12 +137,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's feature importance ranking reflects which patient characteristics most consistently separate clinical outcomes across decision boundaries",
+          "text": "The five features with the highest mean decrease in impurity in the readmission-risk forest are the clinical risk factors that the clinical team documented as expected drivers.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The environmental forecast model's predictions prioritize meteorological variables that create homogeneous regional clusters",
+          "text": "No identifier-like or many-valued field, such as customer ID or postcode, ranks in the top ten by mean decrease in impurity in the loan-default model.",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The mean-decrease-impurity ranking of the delivery-time forest is stable across 20 refits on bootstrap samples of the training data, with the same top five features each time.",
+          "domain": "transport",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Three meteorological variables account for over half of the total importance in the air-quality forecasting forest, and the model documentation names them.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         }

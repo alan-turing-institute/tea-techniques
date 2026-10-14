@@ -1,7 +1,7 @@
 {
   "slug": "layer-wise-relevance-propagation",
   "name": "Layer-wise Relevance Propagation",
-  "description": "Layer-wise Relevance Propagation (LRP) explains neural network predictions by working backwards through the network to show how much each input feature contributed to the final decision. It follows a simple conservation rule: the total contribution scores always add up to the original prediction. Starting from the output, LRP distributes 'relevance' backwards through each layer using different rules depending on the layer type. This creates a detailed breakdown showing which input features helped or hindered the prediction, making it easier to understand why the network made a particular decision.",
+  "description": "Layer-wise Relevance Propagation (LRP) explains a neural network's prediction by working backwards from the output to the inputs. It treats the prediction score as a quantity called relevance, then passes that relevance back through each layer in proportion to how much each neuron contributed in the forward pass. The rules for this redistribution are chosen to keep the total relevance roughly constant from layer to layer, so the input scores add up to the prediction apart from small amounts absorbed by bias terms and stabilisers. Different rules can be used for different types of layer. The result is a relevance score for each input, such as a pixel or a feature, with positive values for inputs that supported the prediction and negative values for inputs that counted against it.",
   "assurance_goals": [
     "Explainability",
     "Transparency"
@@ -34,30 +34,33 @@
   ],
   "example_use_cases": [
     {
-      "description": "Identifying which pixels in chest X-rays contribute to pneumonia detection, helping radiologists verify AI diagnoses by highlighting anatomical regions the model considers relevant.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "Identifying which pixels in chest X-rays contribute to pneumonia detection, helping radiologists verify AI diagnoses by highlighting anatomical regions the model considers relevant."
     },
     {
-      "description": "Debugging a neural network's misclassification of handwritten digits by tracing relevance through layers to identify which input pixels caused the error and which network layers amplified it.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A perception team investigating a misclassified traffic-sign image draws the relevance map for the wrong class. The map shows the relevance sitting on a sticker and the background rather than on the sign itself, which tells the team to add training images with such clutter before the model is retested."
     },
     {
-      "description": "Providing transparent explanations for automated credit scoring decisions by showing which financial features received positive or negative relevance scores, enabling clear regulatory reporting.",
-      "goal": "Transparency"
+      "goal": "Transparency",
+      "description": "A bank's model-risk reviewers receive LRP relevance scores for a sample of declined applications scored by a neural network. They check that the inputs with the most relevance for the decline output are affordability measures and not proxy fields such as postcode, and file the scores with the decision record for audit."
     }
   ],
   "limitations": [
     {
-      "description": "Requires different propagation rules for each layer type, making implementation complex for new architectures."
+      "description": "Each layer type needs its own propagation rule, and a new layer type has none until someone derives one, so adapting LRP to a new architecture takes expertise and testing."
     },
     {
-      "description": "Can produce negative relevance scores which may be difficult to interpret intuitively."
+      "description": "Rule selection (LRP-ε, LRP-γ and others) changes the resulting maps, so two analysts can produce different explanations of the same prediction, and choosing among them takes expertise."
     },
     {
-      "description": "Rule selection (LRP-ε, LRP-γ, etc.) significantly affects results and requires domain expertise."
+      "description": "Heatmaps are hard to validate. The original paper judges them by eye and with a pixel-flipping test, and notes that quality beyond visual assessment is an open question, so a plausible-looking map does not prove the model relies on the highlighted inputs."
     },
     {
-      "description": "Limited to feedforward networks and may not work well with modern architectures like transformers without substantial modifications."
+      "description": "Standard rules do not cover attention layers. Extensions for transformers, such as AttnLRP in the LXT library, exist but are recent and specific to certain architectures, so users of transformers or large language models must adopt them and confirm they match their model."
+    },
+    {
+      "description": "Bias handling and epsilon stabilisation can absorb or inject relevance, so input scores do not always sum exactly to the selected output. A report should document the accounting residual before claiming conservation."
     }
   ],
   "resources": [
@@ -167,28 +170,23 @@
   ],
   "sample_claims": [
     {
-      "text": "The diagnostic model's predictions are decomposable into quantified contributions from individual imaging features throughout the network's processing pathway",
+      "text": "On the audited sample of chest X-rays, the relevance for the pneumonia output lies mainly inside the lung fields and not on laterality markers, text or image borders.",
       "domain": "healthcare",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The credit assessment system's decisions are traceable to specific financial indicators with their positive and negative relevance scores documented for regulatory review",
+      "text": "For every audited credit decision, the relevance scores for the decline output are stored with the decision record, and they sum to the model's score within the stated tolerance.",
       "domain": "finance",
       "assuranceGoal": "transparency"
     },
     {
-      "text": "The visual perception system's classification errors can be traced backwards through network layers to identify which input regions and intermediate representations contributed to the misclassification",
-      "domain": "autonomous systems",
+      "text": "In the reviewed true positives of the defect-detection network, most of the relevance falls on the defect itself and not on the background texture that differs between production lines.",
+      "domain": "manufacturing",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The quality inspection model documents how each pixel in defect images propagates through the neural network to influence the final classification outcome",
-      "domain": "manufacturing",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The environmental monitoring system's predictions are explainable through feature-level contribution scores that sum to the total prediction value",
-      "domain": "environmental",
+      "text": "Where the perception model misclassifies a traffic sign in the test set, the relevance map shows whether the evidence for the wrong class came from the sign or from its surroundings, and each case is recorded.",
+      "domain": "autonomous systems",
       "assuranceGoal": "explainability"
     }
   ]

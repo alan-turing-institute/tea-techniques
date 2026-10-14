@@ -1,7 +1,7 @@
 {
   "slug": "integrated-gradients",
   "name": "Integrated Gradients",
-  "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
+  "description": "Integrated Gradients assigns input features scores for a prediction relative to a chosen reference input, called the baseline. It evaluates gradients, rates of output change, at points along a straight path from that reference to the actual input. Each feature's average gradient is multiplied by its change from the reference, and the resulting scores sum approximately to the output difference when enough numerical steps are used. For text, the path runs through continuous token representations rather than discrete word identifiers, and scores can be combined into highlighted words. In a protected-term variant, the reviewer fixes before the run a list of words or columns that name or record a protected characteristic, and reads the scores those inputs receive: a large score shows that the output rests partly on the characteristic, but a small score does not show that the model ignores it.",
   "assurance_goals": [
     "Explainability",
     "Fairness"
@@ -34,20 +34,20 @@
   ],
   "example_use_cases": [
     {
-      "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading."
     },
     {
-      "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question."
     },
     {
-      "description": "A trust-and-safety team investigating false positives in a toxic-content classifier aggregates token attributions over wrongly flagged posts to see whether identity terms, such as the name of a religion or a sexual orientation, rather than abusive language drive the score, and adds counter-examples to the training data where they do.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A trust-and-safety team reviewing the posts its toxic-content classifier wrongly flagged fixes, before the run, a list of identity terms (names of religions, ethnicities and sexual orientations, chosen because the policy forbids penalising them) and computes Integrated Gradients against an all-padding baseline. Where a listed term ranks among the five most attributed tokens of a wrongly flagged post, the team adds counter-examples to the training data; a low score is not taken as clearance."
     },
     {
-      "description": "A lender's model-risk team runs Integrated Gradients over a classifier that reads the free-text statements in loan applications, ranking the most highly attributed words across a sample of declined applications to check whether words that reveal a protected characteristic, or stand in for one, carry weight in the decision.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A lender's model-risk team audits a classifier that reads the free-text statements in loan applications. Before the run it lists the words that state a protected characteristic, such as a religion, a pregnancy or a disability, and computes Integrated Gradients against a documented reference statement for a sample of declined applications. Any listed word among the ten most attributed is reported for a swap test; the absence of such words does not show the model ignores them."
     }
   ],
   "limitations": [
@@ -171,17 +171,17 @@
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
+      "text": "The question-answering audit records token attributions for the documented reference and uses low content-word scores to select questions for separate perturbation tests.",
       "domain": "general",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+      "text": "None of the identity terms on the fixed list ranks among the five most attributed tokens, against the all-padding baseline, for the moderation classifier's decisions on the non-abusive posts in the audit set",
       "domain": "general",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+      "text": "The loan-screening bias review records the attribution ranks of specified protected-characteristic words in the reviewed statements, relative to documented reference inputs.",
       "domain": "finance",
       "assuranceGoal": "fairness"
     }

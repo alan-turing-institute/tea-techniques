@@ -9,7 +9,7 @@
     {
       "slug": "deeplift",
       "name": "DeepLIFT",
-      "description": "DeepLIFT (Deep Learning Important FeaTures) explains neural network predictions by decomposing the difference between the actual output and a reference output back to individual input features. It compares each neuron's activation to a reference activation (typically from a baseline input like all zeros or the dataset mean) and propagates these differences backwards through the network using chain rule modifications. Unlike gradient-based methods, DeepLIFT satisfies the sensitivity property (zero input gets zero attribution) and provides more stable attributions by using discrete differences rather than gradients.",
+      "description": "DeepLIFT (Deep Learning Important FeaTures) explains a single prediction of a neural network by dividing the difference between the model's output and its output on a reference input among the input features. The reference is a neutral input chosen for the problem, such as an all-zero image or a blurred copy of the input. The method measures how far each neuron's activation is from its value on the reference, then passes those differences backwards through the layers in one pass, applying a rule for each layer type. A plain gradient (the rate of change of the output with respect to an input) is zero where the output has levelled off, but DeepLIFT can still assign credit there. The scores add up to the output difference and mean something only relative to the reference chosen.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -39,30 +39,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Identifying which genomic sequences contribute to a neural network's prediction of protein binding sites, helping biologists understand regulatory mechanisms by comparing to neutral DNA baselines.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A genomics group training a neural network to predict where a regulatory protein binds DNA computes DeepLIFT scores for each predicted binding region against a reference sequence with background base frequencies. They read off which short stretches of bases carry the score, compare them with known binding motifs, and decide whether the model has learned real regulatory sequence before using it to prioritise experiments."
         },
         {
-          "description": "Debugging a deep learning image classifier that misclassifies medical scans by attributing the decision to specific image regions, revealing if the model focuses on irrelevant artifacts rather than pathological features.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital imaging team is investigating a chest X-ray classifier that flags healthy patients as abnormal. For the false positives it computes DeepLIFT scores against a blurred copy of each image and checks whether the weight sits on the image border, where scanner labels are printed, rather than on lung tissue. It then decides whether to mask the labels and retrain."
         },
         {
-          "description": "Providing transparent explanations for automated loan approval decisions by showing which financial features (relative to typical applicant profiles) most influenced the neural network's recommendation.",
-          "goal": "Transparency"
+          "goal": "Explainability",
+          "description": "A regional geohazard agency uses a neural network to rate landslide susceptibility from terrain, rainfall and land-cover layers. For a slope the model rates as high risk, DeepLIFT scores show which input layers drove the rating, and the agency compares them with the field investigation report before using the map for planning."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A lender's credit team sends each declined applicant a short statement of the factors that most lowered their score. For its neural network scorer it computes DeepLIFT scores against a documented reference applicant, the median approved applicant, and the statement lists the factors with the largest negative scores, which are the ones that pulled this score below the reference."
         }
       ],
       "limitations": [
         {
-          "description": "Requires careful selection of reference baseline, as different choices can lead to substantially different attribution scores."
+          "description": "Every score is relative to a reference input, and the choice changes the picture. In the original paper an all-zero reference on CIFAR-10 images highlighted hard-to-interpret background pixels, while a blurred copy of the image highlighted object outlines. State the reference used and repeat the analysis with at least one alternative before drawing conclusions."
         },
         {
-          "description": "Implementation complexity varies significantly across different neural network architectures and layer types."
+          "description": "The Captum implementation supports only the Rescale rule, which can give all the credit to one of two inputs that jointly drive the output. In the paper's min(i1, i2) example Rescale scores only the smaller input, while the RevealCancel rule shares the credit. Where inputs interact, the scores can hide a dependency that a more complete rule would show."
         },
         {
-          "description": "May produce unintuitive results when the chosen reference is not representative of the decision boundary."
+          "description": "Propagation rules must support the network operations. Captum implements the Rescale rule and a limited set of nonlinearities; inaccessible operations in built-in recurrent modules can prevent attribution unless a supported implementation is used."
         },
         {
-          "description": "Limited to feedforward networks and specific layer types, not suitable for all modern architectures like transformers."
+          "description": "Two networks that compute exactly the same function can receive different DeepLIFT scores, because differences between a neuron and its reference do not obey the chain rule that gradients obey (Sundararajan et al., 2017, App. B). The scores therefore describe how the model is built as well as what it computes, which matters when comparing a model with a re-implemented or compressed version of it."
+        },
+        {
+          "description": "Feature contributions account for a particular output difference, not a causal effect in the world or a guaranteed change after deleting that feature. Correlated genomic bases or financial variables make that distinction important."
         }
       ],
       "resources": [
@@ -142,36 +149,31 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical imaging model's diagnostic predictions are attributable to specific anatomical features relative to typical baseline scans",
+          "text": "The binding-site model's highest-scoring regions in the validation sequences coincide with known binding motifs, as shown by DeepLIFT scores against a reference sequence with background base frequencies",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The chest X-ray classifier's DeepLIFT scores on its false-positive cases fall on lung tissue and not on image borders or printed labels, using a blurred copy of each image as the reference",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The lending system's decision factors are traceable to deviations from representative applicant profiles",
+          "text": "For the audited landslide cases, the input layers with the largest DeepLIFT scores match the causes named in the field investigation reports",
+          "domain": "environmental",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Each declined credit application is accompanied by its largest DeepLIFT scores against the documented reference applicant, and the reported approximation error of those scores is below a stated tolerance",
           "domain": "finance",
           "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The perception system's object classifications are explained by feature differences from neutral reference inputs",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's individual predictions are accompanied by feature-level attributions measured against defined baseline conditions",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The recommendation system's outputs are interpretable through comparison with typical user interaction patterns",
-          "domain": "general",
-          "assuranceGoal": "explainability"
         }
       ]
     },
     {
       "slug": "layer-wise-relevance-propagation",
       "name": "Layer-wise Relevance Propagation",
-      "description": "Layer-wise Relevance Propagation (LRP) explains neural network predictions by working backwards through the network to show how much each input feature contributed to the final decision. It follows a simple conservation rule: the total contribution scores always add up to the original prediction. Starting from the output, LRP distributes 'relevance' backwards through each layer using different rules depending on the layer type. This creates a detailed breakdown showing which input features helped or hindered the prediction, making it easier to understand why the network made a particular decision.",
+      "description": "Layer-wise Relevance Propagation (LRP) explains a neural network's prediction by working backwards from the output to the inputs. It treats the prediction score as a quantity called relevance, then passes that relevance back through each layer in proportion to how much each neuron contributed in the forward pass. The rules for this redistribution are chosen to keep the total relevance roughly constant from layer to layer, so the input scores add up to the prediction apart from small amounts absorbed by bias terms and stabilisers. Different rules can be used for different types of layer. The result is a relevance score for each input, such as a pixel or a feature, with positive values for inputs that supported the prediction and negative values for inputs that counted against it.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -204,30 +206,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Identifying which pixels in chest X-rays contribute to pneumonia detection, helping radiologists verify AI diagnoses by highlighting anatomical regions the model considers relevant.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Identifying which pixels in chest X-rays contribute to pneumonia detection, helping radiologists verify AI diagnoses by highlighting anatomical regions the model considers relevant."
         },
         {
-          "description": "Debugging a neural network's misclassification of handwritten digits by tracing relevance through layers to identify which input pixels caused the error and which network layers amplified it.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A perception team investigating a misclassified traffic-sign image draws the relevance map for the wrong class. The map shows the relevance sitting on a sticker and the background rather than on the sign itself, which tells the team to add training images with such clutter before the model is retested."
         },
         {
-          "description": "Providing transparent explanations for automated credit scoring decisions by showing which financial features received positive or negative relevance scores, enabling clear regulatory reporting.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A bank's model-risk reviewers receive LRP relevance scores for a sample of declined applications scored by a neural network. They check that the inputs with the most relevance for the decline output are affordability measures and not proxy fields such as postcode, and file the scores with the decision record for audit."
         }
       ],
       "limitations": [
         {
-          "description": "Requires different propagation rules for each layer type, making implementation complex for new architectures."
+          "description": "Each layer type needs its own propagation rule, and a new layer type has none until someone derives one, so adapting LRP to a new architecture takes expertise and testing."
         },
         {
-          "description": "Can produce negative relevance scores which may be difficult to interpret intuitively."
+          "description": "Rule selection (LRP-ε, LRP-γ and others) changes the resulting maps, so two analysts can produce different explanations of the same prediction, and choosing among them takes expertise."
         },
         {
-          "description": "Rule selection (LRP-ε, LRP-γ, etc.) significantly affects results and requires domain expertise."
+          "description": "Heatmaps are hard to validate. The original paper judges them by eye and with a pixel-flipping test, and notes that quality beyond visual assessment is an open question, so a plausible-looking map does not prove the model relies on the highlighted inputs."
         },
         {
-          "description": "Limited to feedforward networks and may not work well with modern architectures like transformers without substantial modifications."
+          "description": "Standard rules do not cover attention layers. Extensions for transformers, such as AttnLRP in the LXT library, exist but are recent and specific to certain architectures, so users of transformers or large language models must adopt them and confirm they match their model."
+        },
+        {
+          "description": "Bias handling and epsilon stabilisation can absorb or inject relevance, so input scores do not always sum exactly to the selected output. A report should document the accounting residual before claiming conservation."
         }
       ],
       "resources": [
@@ -337,28 +342,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are decomposable into quantified contributions from individual imaging features throughout the network's processing pathway",
+          "text": "On the audited sample of chest X-rays, the relevance for the pneumonia output lies mainly inside the lung fields and not on laterality markers, text or image borders.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit assessment system's decisions are traceable to specific financial indicators with their positive and negative relevance scores documented for regulatory review",
+          "text": "For every audited credit decision, the relevance scores for the decline output are stored with the decision record, and they sum to the model's score within the stated tolerance.",
           "domain": "finance",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The visual perception system's classification errors can be traced backwards through network layers to identify which input regions and intermediate representations contributed to the misclassification",
-          "domain": "autonomous systems",
+          "text": "In the reviewed true positives of the defect-detection network, most of the relevance falls on the defect itself and not on the background texture that differs between production lines.",
+          "domain": "manufacturing",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The quality inspection model documents how each pixel in defect images propagates through the neural network to influence the final classification outcome",
-          "domain": "manufacturing",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The environmental monitoring system's predictions are explainable through feature-level contribution scores that sum to the total prediction value",
-          "domain": "environmental",
+          "text": "Where the perception model misclassifies a traffic sign in the test set, the relevance map shows whether the evidence for the wrong class came from the sign or from its surroundings, and each case is recorded.",
+          "domain": "autonomous systems",
           "assuranceGoal": "explainability"
         }
       ]
@@ -366,7 +366,7 @@
     {
       "slug": "contextual-decomposition",
       "name": "Contextual Decomposition",
-      "description": "Contextual Decomposition explains LSTM and RNN predictions by decomposing the final hidden state into contributions from individual inputs and their interactions. Unlike simpler attribution methods, it separates the direct contribution of specific words or phrases from the contextual effects of surrounding words. This is particularly useful for understanding how sequential models process language, as it can identify whether a word's influence comes from its individual meaning or from its interaction with nearby words in the sequence.",
+      "description": "Contextual Decomposition explains why an LSTM, a neural network that reads text one word at a time, made a particular prediction. The user picks a word or phrase, and the method splits the network's output score into two parts: the part due to that phrase alone, and the part due to everything else, including how the phrase interacts with the words around it. Comparing a phrase's score with the scores of its parts reveals effects that word-by-word methods miss, such as a negation reversing the sentiment of the word that follows it. The split is tracked through the LSTM's internal gates, so the model itself is not changed or retrained. The output is a numerical score for each phrase examined.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -395,30 +395,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing why an LSTM-based spam filter flagged an email by decomposing contributions from individual words ('free', 'urgent') versus their contextual interactions ('free trial' together).",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Analysing why an LSTM-based spam filter flagged an email by decomposing contributions from individual words ('free', 'urgent') versus their contextual interactions ('free trial' together)."
         },
         {
-          "description": "Understanding how a medical text classifier diagnoses conditions from clinical notes by separating direct symptom mentions from contextual medical reasoning patterns.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital analytics team checks an LSTM that flags clinical notes mentioning possible pneumonia. Contextual decomposition shows whether negated findings such as 'no evidence of pneumonia' push the score down, as intended, or whether the model reacts to the word 'pneumonia' alone, which tells the team if it needs retraining on negated examples before use."
         },
         {
-          "description": "Providing transparent explanations for automated content moderation decisions by showing which words and phrase interactions contributed to toxicity detection.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A platform's trust-and-safety team handles an appeal against an LSTM toxicity classifier's removal of a post. The reviewing moderator is shown the phrases with the highest contextual decomposition scores, including whether a negation such as 'not stupid' was read correctly, so the moderator can judge whether the removal rested on the post's actual meaning."
         }
       ],
       "limitations": [
         {
-          "description": "Primarily designed for LSTM and simple RNN architectures, not suitable for modern transformers or attention-based models."
+          "description": "Developed for LSTMs, whose gates the method uses to separate a phrase's own effect from its interactions. The source does not cover plain recurrent networks, transformers or attention models, so teams using those cannot apply the published method as it stands."
         },
         {
-          "description": "Not widely implemented in standard machine learning libraries, often requiring custom implementation."
+          "description": "Needs internal states, gate parameters and classifier weights. Output labels or probabilities alone do not reveal the phrase-related and remaining-input components."
         },
         {
-          "description": "Computational overhead increases significantly with sequence length and model depth."
+          "description": "The user must choose each phrase to examine, and the published method handles contiguous phrases. The number of possible phrases grows quickly with text length, so scanning a whole document for interactions is costly and easy to leave incomplete."
         },
         {
-          "description": "May not scale well to very complex models or capture all types of feature interactions in deep networks."
+          "description": "The split relies on linearising the gate and activation functions and averaging over orderings of the terms. Interaction scores are therefore approximate, and the source validates them only on sentiment tasks (Stanford Sentiment Treebank, Yelp), so scores on other tasks need checking independently."
+        },
+        {
+          "description": "Components combine additively in hidden states and class scores before the probability transformation. They should not be read as independent probabilities or as the exact effect of deleting a phrase."
         }
       ],
       "resources": [
@@ -483,36 +486,31 @@
       ],
       "sample_claims": [
         {
-          "text": "The clinical text classifier's predictions are attributable to specific medical terms independent of their surrounding context",
+          "text": "In the clinical-note classifier, negated findings such as 'no evidence of pneumonia' lower the score for that condition, as the contextual decomposition of the full phrase shows.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The sentiment analysis model's outputs distinguish between individual word meanings and their contextual interactions within phrases",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The content moderation system's decisions are explainable through phrase-level contribution analysis showing how word combinations influence toxicity detection",
+          "text": "Each removal decision of the toxicity classifier that is sent to appeal can be traced to named words or phrases whose contextual decomposition scores account for most of the output score.",
           "domain": "general",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The document classification system's reasoning process separates direct keyword importance from sequential dependencies in the text",
-          "domain": "public sector",
+          "text": "In the news-sentiment model used for credit monitoring, the contribution of a sentiment word changes sign when a negation or contrast precedes it, and contextual decomposition separates the word's own effect from its context.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The natural language command interpreter provides transparent decomposition of how individual words and their contextual relationships drive action selection",
-          "domain": "autonomous systems",
-          "assuranceGoal": "transparency"
+          "text": "For the audited support tickets, the routing model's decision is not driven by any single trigger word: phrase-level contextual decomposition scores account for more of the output than the strongest single-word score.",
+          "domain": "public sector",
+          "assuranceGoal": "explainability"
         }
       ]
     },
     {
       "slug": "taylor-decomposition",
       "name": "Taylor Decomposition",
-      "description": "Taylor Decomposition is a mathematical technique that explains neural network predictions by computing first-order and higher-order derivatives of the network's output with respect to input features. It decomposes the prediction into relevance scores that indicate how much each input feature and feature interaction contributes to the final decision. The method uses Layer-wise Relevance Propagation (LRP) principles to trace prediction contributions backwards through the network layers, providing precise mathematical attributions for each input element.",
+      "description": "Taylor Decomposition explains one prediction of a neural network by splitting its output score into a contribution from each input, such as each pixel. It starts from a reference input, called a root point, that is close to the real input but for which the network's score is zero. Each input's contribution is the slope of the score with respect to that input at the root point, multiplied by how far the input sits from the root, and terms that involve several inputs at once are left out. Finding a good root point is slow for large networks, so the deep variant applies the same idea to one neuron at a time and passes the contributions backwards through the layers, which gives rules close to those of Layer-wise Relevance Propagation. The result is a relevance score for every input that can be drawn as a heatmap.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -540,26 +538,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing which pixels in an image contribute most to a convolutional neural network's classification decision, showing both positive and negative relevance scores for different regions of the input image.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A quality team uses a convolutional network to flag defective printed circuit boards. For each flagged board they draw the deep Taylor heatmap and check that the highlighted pixels sit on the defect and not on a board label, the edge or the background, before they trust the flags enough to stop manual inspection."
         },
         {
-          "description": "Understanding how different word embeddings in a sentiment analysis model contribute to the final sentiment score, revealing which terms drive positive vs negative predictions.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital's model-validation group audits a ReLU network that classifies chest X-rays. For a sample of positive cases, deep Taylor relevance shows whether the evidence for the finding lies inside the lungs or on markers, text or borders added by the imaging equipment, before the group signs the model off for a pilot."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A bank's data science team has a ReLU network that scores small-business loan applications from tabular inputs. For a declined application, deep Taylor relevance lists which inputs supplied most of the score, so a reviewer can see whether the decision rests on repayment history and income or on a field such as postcode."
         }
       ],
       "limitations": [
         {
-          "description": "Mathematically complex requiring deep understanding of calculus and neural network architectures."
+          "description": "The explanation depends on the choice of root point, and different reference inputs give different attributions. Finding the nearest root needs an iterative optimisation that is slow for large networks and may not converge, which is why the source applies the deep variant to large image networks."
         },
         {
-          "description": "Computationally intensive as it requires computing gradients and higher-order derivatives through the entire network."
+          "description": "Plain Taylor decomposition uses only first-order terms, so joint effects of several inputs stay unattributed and the scores need not add up to the prediction. In the source's tests the nearest-root version lost a large share of the relevance, so its heatmaps can leave much of the prediction unexplained."
         },
         {
-          "description": "Approximations used in practice may introduce errors that affect attribution accuracy."
+          "description": "The deep variant's guarantees, scores that add up to the prediction and are never negative, are proved for ReLU-style layers with zero or negative biases, and iNNvestigate documents support for ReLU networks only. Other activations, positive biases or normalisation layers need workarounds that the proofs do not cover."
         },
         {
-          "description": "Limited tooling availability compared to other explainability methods, with most implementations being research-focused rather than production-ready."
+          "description": "Heatmaps explain one input at a time and are hard to validate. The source judges them by eye and by checking that relevance is conserved on MNIST digits and ImageNet photos, so a plausible-looking map does not prove that the model relies on the highlighted inputs."
+        },
+        {
+          "description": "Requires access to internal layer operations and supported redistribution rules. A prediction-only service cannot supply this layer-wise decomposition, and an image-derived rule should not be assumed valid for arbitrary text or attention models."
         }
       ],
       "resources": [
@@ -623,23 +628,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic imaging model's classification attributions decompose mathematically into first-order feature contributions and higher-order interaction effects",
+          "text": "For each audited decision, the deep Taylor relevance scores of the inputs sum to the network's output score within the agreed tolerance, so little of the prediction is left unattributed.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "On the audited sample of chest X-rays, the deep Taylor relevance for the positive finding lies mainly inside the lung fields and not on markers, text or image borders.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit risk model's predictions trace through network layers with precise mathematical relevance scores for each input element",
+          "text": "In the reviewed true positives of the defect classifier, the highest-relevance pixels fall on the defect itself, so its flags do not depend on board labels or background texture.",
+          "domain": "manufacturing",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The inputs given most relevance for declined applications in the credit network are affordability and repayment measures, not postcode or other fields that stand in for protected characteristics.",
           "domain": "finance",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The object detection system's recognition decisions are attributable to specific pixel regions through backward propagation of derivative-based relevance",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's feature attributions quantify both individual input contributions and their multiplicative interactions through higher-order terms",
-          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]

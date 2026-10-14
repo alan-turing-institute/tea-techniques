@@ -1,7 +1,7 @@
 {
   "slug": "deeplift",
   "name": "DeepLIFT",
-  "description": "DeepLIFT (Deep Learning Important FeaTures) explains neural network predictions by decomposing the difference between the actual output and a reference output back to individual input features. It compares each neuron's activation to a reference activation (typically from a baseline input like all zeros or the dataset mean) and propagates these differences backwards through the network using chain rule modifications. Unlike gradient-based methods, DeepLIFT satisfies the sensitivity property (zero input gets zero attribution) and provides more stable attributions by using discrete differences rather than gradients.",
+  "description": "DeepLIFT (Deep Learning Important FeaTures) explains a single prediction of a neural network by dividing the difference between the model's output and its output on a reference input among the input features. The reference is a neutral input chosen for the problem, such as an all-zero image or a blurred copy of the input. The method measures how far each neuron's activation is from its value on the reference, then passes those differences backwards through the layers in one pass, applying a rule for each layer type. A plain gradient (the rate of change of the output with respect to an input) is zero where the output has levelled off, but DeepLIFT can still assign credit there. The scores add up to the output difference and mean something only relative to the reference chosen.",
   "assurance_goals": [
     "Explainability",
     "Transparency"
@@ -31,30 +31,37 @@
   ],
   "example_use_cases": [
     {
-      "description": "Identifying which genomic sequences contribute to a neural network's prediction of protein binding sites, helping biologists understand regulatory mechanisms by comparing to neutral DNA baselines.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A genomics group training a neural network to predict where a regulatory protein binds DNA computes DeepLIFT scores for each predicted binding region against a reference sequence with background base frequencies. They read off which short stretches of bases carry the score, compare them with known binding motifs, and decide whether the model has learned real regulatory sequence before using it to prioritise experiments."
     },
     {
-      "description": "Debugging a deep learning image classifier that misclassifies medical scans by attributing the decision to specific image regions, revealing if the model focuses on irrelevant artifacts rather than pathological features.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A hospital imaging team is investigating a chest X-ray classifier that flags healthy patients as abnormal. For the false positives it computes DeepLIFT scores against a blurred copy of each image and checks whether the weight sits on the image border, where scanner labels are printed, rather than on lung tissue. It then decides whether to mask the labels and retrain."
     },
     {
-      "description": "Providing transparent explanations for automated loan approval decisions by showing which financial features (relative to typical applicant profiles) most influenced the neural network's recommendation.",
-      "goal": "Transparency"
+      "goal": "Explainability",
+      "description": "A regional geohazard agency uses a neural network to rate landslide susceptibility from terrain, rainfall and land-cover layers. For a slope the model rates as high risk, DeepLIFT scores show which input layers drove the rating, and the agency compares them with the field investigation report before using the map for planning."
+    },
+    {
+      "goal": "Transparency",
+      "description": "A lender's credit team sends each declined applicant a short statement of the factors that most lowered their score. For its neural network scorer it computes DeepLIFT scores against a documented reference applicant, the median approved applicant, and the statement lists the factors with the largest negative scores, which are the ones that pulled this score below the reference."
     }
   ],
   "limitations": [
     {
-      "description": "Requires careful selection of reference baseline, as different choices can lead to substantially different attribution scores."
+      "description": "Every score is relative to a reference input, and the choice changes the picture. In the original paper an all-zero reference on CIFAR-10 images highlighted hard-to-interpret background pixels, while a blurred copy of the image highlighted object outlines. State the reference used and repeat the analysis with at least one alternative before drawing conclusions."
     },
     {
-      "description": "Implementation complexity varies significantly across different neural network architectures and layer types."
+      "description": "The Captum implementation supports only the Rescale rule, which can give all the credit to one of two inputs that jointly drive the output. In the paper's min(i1, i2) example Rescale scores only the smaller input, while the RevealCancel rule shares the credit. Where inputs interact, the scores can hide a dependency that a more complete rule would show."
     },
     {
-      "description": "May produce unintuitive results when the chosen reference is not representative of the decision boundary."
+      "description": "Propagation rules must support the network operations. Captum implements the Rescale rule and a limited set of nonlinearities; inaccessible operations in built-in recurrent modules can prevent attribution unless a supported implementation is used."
     },
     {
-      "description": "Limited to feedforward networks and specific layer types, not suitable for all modern architectures like transformers."
+      "description": "Two networks that compute exactly the same function can receive different DeepLIFT scores, because differences between a neuron and its reference do not obey the chain rule that gradients obey (Sundararajan et al., 2017, App. B). The scores therefore describe how the model is built as well as what it computes, which matters when comparing a model with a re-implemented or compressed version of it."
+    },
+    {
+      "description": "Feature contributions account for a particular output difference, not a causal effect in the world or a guaranteed change after deleting that feature. Correlated genomic bases or financial variables make that distinction important."
     }
   ],
   "resources": [
@@ -134,29 +141,24 @@
   ],
   "sample_claims": [
     {
-      "text": "The medical imaging model's diagnostic predictions are attributable to specific anatomical features relative to typical baseline scans",
+      "text": "The binding-site model's highest-scoring regions in the validation sequences coincide with known binding motifs, as shown by DeepLIFT scores against a reference sequence with background base frequencies",
+      "domain": "general",
+      "assuranceGoal": "explainability"
+    },
+    {
+      "text": "The chest X-ray classifier's DeepLIFT scores on its false-positive cases fall on lung tissue and not on image borders or printed labels, using a blurred copy of each image as the reference",
       "domain": "healthcare",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The lending system's decision factors are traceable to deviations from representative applicant profiles",
+      "text": "For the audited landslide cases, the input layers with the largest DeepLIFT scores match the causes named in the field investigation reports",
+      "domain": "environmental",
+      "assuranceGoal": "explainability"
+    },
+    {
+      "text": "Each declined credit application is accompanied by its largest DeepLIFT scores against the documented reference applicant, and the reported approximation error of those scores is below a stated tolerance",
       "domain": "finance",
       "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The perception system's object classifications are explained by feature differences from neutral reference inputs",
-      "domain": "autonomous systems",
-      "assuranceGoal": "explainability"
-    },
-    {
-      "text": "The model's individual predictions are accompanied by feature-level attributions measured against defined baseline conditions",
-      "domain": "general",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The recommendation system's outputs are interpretable through comparison with typical user interaction patterns",
-      "domain": "general",
-      "assuranceGoal": "explainability"
     }
   ]
 }

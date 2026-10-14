@@ -9,7 +9,7 @@
     {
       "slug": "integrated-gradients",
       "name": "Integrated Gradients",
-      "description": "Integrated Gradients explains a single prediction of a differentiable model, such as a neural network, by giving each input feature a score for how much it moved the output away from a chosen reference input called the baseline. It applies to any input the model treats as continuous: image pixels, table columns, or, for language models, the vector representation (embedding) of each token, since the token identifiers themselves cannot be interpolated. The method builds a series of inputs along a straight line from the baseline (for example a black image, an all-zero embedding or a sequence of padding tokens) to the actual input, computes the model's gradient at each step, and multiplies each feature's average gradient by that feature's difference from the baseline. The scores satisfy completeness: they sum to the difference between the model's output on the input and on the baseline, which also gives a check that enough steps were used. The output is one score per pixel, feature or token, usually shown as a heatmap or highlighted text, and it means something only relative to the baseline chosen.",
+      "description": "Integrated Gradients assigns input features scores for a prediction relative to a chosen reference input, called the baseline. It evaluates gradients, rates of output change, at points along a straight path from that reference to the actual input. Each feature's average gradient is multiplied by its change from the reference, and the resulting scores sum approximately to the output difference when enough numerical steps are used. For text, the path runs through continuous token representations rather than discrete word identifiers, and scores can be combined into highlighted words. In a protected-term variant, the reviewer fixes before the run a list of words or columns that name or record a protected characteristic, and reads the scores those inputs receive: a large score shows that the output rests partly on the characteristic, but a small score does not show that the model ignores it.",
       "assurance_goals": [
         "Explainability",
         "Fairness"
@@ -42,20 +42,20 @@
       ],
       "example_use_cases": [
         {
-          "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "An eye-screening programme evaluating a diabetic retinopathy grading model shows graders an Integrated Gradients heatmap beside each prediction, so they can see whether the regions driving a referral are lesions such as haemorrhages rather than camera artefacts, and uses the review to decide whether the model may assist grading."
         },
         {
-          "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A team building a question-answering assistant over an organisation's policy documents attributes each answer to the question's tokens and flags questions where the content words receive almost no attribution; those questions become test cases in which the content words are changed, to show whether the assistant actually reads the question."
         },
         {
-          "description": "A trust-and-safety team investigating false positives in a toxic-content classifier aggregates token attributions over wrongly flagged posts to see whether identity terms, such as the name of a religion or a sexual orientation, rather than abusive language drive the score, and adds counter-examples to the training data where they do.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A trust-and-safety team reviewing the posts its toxic-content classifier wrongly flagged fixes, before the run, a list of identity terms (names of religions, ethnicities and sexual orientations, chosen because the policy forbids penalising them) and computes Integrated Gradients against an all-padding baseline. Where a listed term ranks among the five most attributed tokens of a wrongly flagged post, the team adds counter-examples to the training data; a low score is not taken as clearance."
         },
         {
-          "description": "A lender's model-risk team runs Integrated Gradients over a classifier that reads the free-text statements in loan applications, ranking the most highly attributed words across a sample of declined applications to check whether words that reveal a protected characteristic, or stand in for one, carry weight in the decision.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A lender's model-risk team audits a classifier that reads the free-text statements in loan applications. Before the run it lists the words that state a protected characteristic, such as a religion, a pregnancy or a disability, and computes Integrated Gradients against a documented reference statement for a sample of declined applications. Any listed word among the ten most attributed is reported for a swap test; the absence of such words does not show the model ignores them."
         }
       ],
       "limitations": [
@@ -179,17 +179,17 @@
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The question-answering assistant's answers depend on the content words of each question in the test set, not only on generic words",
+          "text": "The question-answering audit records token attributions for the documented reference and uses low content-word scores to select questions for separate perturbation tests.",
           "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "Identity terms do not rank among the most highly attributed tokens for the moderation classifier's decisions on non-abusive posts in the audit set",
+          "text": "None of the identity terms on the fixed list ranks among the five most attributed tokens, against the all-padding baseline, for the moderation classifier's decisions on the non-abusive posts in the audit set",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The loan-screening model's decisions on free-text application statements do not rely on words that reveal a protected characteristic",
+          "text": "The loan-screening bias review records the attribution ranks of specified protected-characteristic words in the reviewed statements, relative to documented reference inputs.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         }
@@ -198,7 +198,7 @@
     {
       "slug": "taylor-decomposition",
       "name": "Taylor Decomposition",
-      "description": "Taylor Decomposition is a mathematical technique that explains neural network predictions by computing first-order and higher-order derivatives of the network's output with respect to input features. It decomposes the prediction into relevance scores that indicate how much each input feature and feature interaction contributes to the final decision. The method uses Layer-wise Relevance Propagation (LRP) principles to trace prediction contributions backwards through the network layers, providing precise mathematical attributions for each input element.",
+      "description": "Taylor Decomposition explains one prediction of a neural network by splitting its output score into a contribution from each input, such as each pixel. It starts from a reference input, called a root point, that is close to the real input but for which the network's score is zero. Each input's contribution is the slope of the score with respect to that input at the root point, multiplied by how far the input sits from the root, and terms that involve several inputs at once are left out. Finding a good root point is slow for large networks, so the deep variant applies the same idea to one neuron at a time and passes the contributions backwards through the layers, which gives rules close to those of Layer-wise Relevance Propagation. The result is a relevance score for every input that can be drawn as a heatmap.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -226,26 +226,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing which pixels in an image contribute most to a convolutional neural network's classification decision, showing both positive and negative relevance scores for different regions of the input image.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A quality team uses a convolutional network to flag defective printed circuit boards. For each flagged board they draw the deep Taylor heatmap and check that the highlighted pixels sit on the defect and not on a board label, the edge or the background, before they trust the flags enough to stop manual inspection."
         },
         {
-          "description": "Understanding how different word embeddings in a sentiment analysis model contribute to the final sentiment score, revealing which terms drive positive vs negative predictions.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital's model-validation group audits a ReLU network that classifies chest X-rays. For a sample of positive cases, deep Taylor relevance shows whether the evidence for the finding lies inside the lungs or on markers, text or borders added by the imaging equipment, before the group signs the model off for a pilot."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A bank's data science team has a ReLU network that scores small-business loan applications from tabular inputs. For a declined application, deep Taylor relevance lists which inputs supplied most of the score, so a reviewer can see whether the decision rests on repayment history and income or on a field such as postcode."
         }
       ],
       "limitations": [
         {
-          "description": "Mathematically complex requiring deep understanding of calculus and neural network architectures."
+          "description": "The explanation depends on the choice of root point, and different reference inputs give different attributions. Finding the nearest root needs an iterative optimisation that is slow for large networks and may not converge, which is why the source applies the deep variant to large image networks."
         },
         {
-          "description": "Computationally intensive as it requires computing gradients and higher-order derivatives through the entire network."
+          "description": "Plain Taylor decomposition uses only first-order terms, so joint effects of several inputs stay unattributed and the scores need not add up to the prediction. In the source's tests the nearest-root version lost a large share of the relevance, so its heatmaps can leave much of the prediction unexplained."
         },
         {
-          "description": "Approximations used in practice may introduce errors that affect attribution accuracy."
+          "description": "The deep variant's guarantees, scores that add up to the prediction and are never negative, are proved for ReLU-style layers with zero or negative biases, and iNNvestigate documents support for ReLU networks only. Other activations, positive biases or normalisation layers need workarounds that the proofs do not cover."
         },
         {
-          "description": "Limited tooling availability compared to other explainability methods, with most implementations being research-focused rather than production-ready."
+          "description": "Heatmaps explain one input at a time and are hard to validate. The source judges them by eye and by checking that relevance is conserved on MNIST digits and ImageNet photos, so a plausible-looking map does not prove that the model relies on the highlighted inputs."
+        },
+        {
+          "description": "Requires access to internal layer operations and supported redistribution rules. A prediction-only service cannot supply this layer-wise decomposition, and an image-derived rule should not be assumed valid for arbitrary text or attention models."
         }
       ],
       "resources": [
@@ -309,23 +316,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic imaging model's classification attributions decompose mathematically into first-order feature contributions and higher-order interaction effects",
+          "text": "For each audited decision, the deep Taylor relevance scores of the inputs sum to the network's output score within the agreed tolerance, so little of the prediction is left unattributed.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "On the audited sample of chest X-rays, the deep Taylor relevance for the positive finding lies mainly inside the lung fields and not on markers, text or image borders.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit risk model's predictions trace through network layers with precise mathematical relevance scores for each input element",
+          "text": "In the reviewed true positives of the defect classifier, the highest-relevance pixels fall on the defect itself, so its flags do not depend on board labels or background texture.",
+          "domain": "manufacturing",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The inputs given most relevance for declined applications in the credit network are affordability and repayment measures, not postcode or other fields that stand in for protected characteristics.",
           "domain": "finance",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The object detection system's recognition decisions are attributable to specific pixel regions through backward propagation of derivative-based relevance",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The model's feature attributions quantify both individual input contributions and their multiplicative interactions through higher-order terms",
-          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]
@@ -333,10 +340,9 @@
     {
       "slug": "gradient-saliency",
       "name": "Gradient Saliency",
-      "description": "Gradient saliency (also known as vanilla gradient saliency) produces visual explanations for image classification models by computing the gradient of the model's output with respect to input pixels. The resulting heatmap highlights pixels where small changes would most significantly affect the prediction. Originally proposed by Simonyan et al. (2013), this is the simplest gradient-based attribution method and serves as a baseline for more sophisticated approaches such as Integrated Gradients and Grad-CAM.",
+      "description": "Gradient saliency (also called vanilla gradient saliency) is the simplest gradient-based explanation for image classifiers, showing which pixels the score for a chosen class is most sensitive to. It takes the gradient of the class score (the network's output for that class before it becomes a probability) with respect to every input pixel, in one backward pass. The gradient says how much the score would change if that pixel changed slightly. The method keeps the size of each gradient and, for colour images, the largest across the colour channels, then shows one value per pixel as a heatmap. Because the sign is dropped, the map shows sensitivity but not whether a pixel supports or counts against the class.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -348,8 +354,6 @@
         "assurance-goal-category/explainability/property/comprehensibility",
         "assurance-goal-category/explainability/property/efficiency",
         "assurance-goal-category/explainability/visualization-methods/activation-maps",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "applicable-models/requirements/model-internals",
         "data-type/image",
         "evidence-type/visualisation",
@@ -364,30 +368,26 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing X-ray images in a pneumonia detection model to verify that the algorithm focuses on lung regions showing inflammatory patterns rather than irrelevant areas like medical equipment or patient positioning markers.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital imaging team validating a pneumonia detection model on chest X-rays computes gradient saliency for a sample of confirmed cases and checks whether the most sensitive pixels lie over the lungs rather than over tubes, monitoring leads or position markers. They use the result to decide whether the model is ready for a clinical pilot or needs retraining on cleaner images."
         },
         {
-          "description": "Examining skin lesion classification models to ensure the algorithm identifies diagnostic features (irregular borders, colour variation) rather than artifacts like rulers, hair, or skin markings that shouldn't influence medical decisions.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a dermatology AI system to verify it focuses on medical symptoms rather than skin colour when diagnosing conditions, ensuring equitable treatment across racial groups by revealing inappropriate attention to demographic features.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "An agricultural technology company testing a plant disease classifier on leaf photographs taken in the field computes gradient saliency for the images it misclassifies. It checks whether the sensitive pixels sit on the diseased leaf area or on soil, trays and hands in the frame, and decides whether to collect photographs with more varied backgrounds."
         }
       ],
       "limitations": [
         {
-          "description": "Saliency maps are often noisy and can change dramatically with small input perturbations, making them unstable."
+          "description": "Maps are noisy and can change sharply for tiny changes to the image, so one map is weak evidence. A study of upper-limb X-ray classifiers found that plain-gradient maps were less accurate at locating abnormalities, and less repeatable, than radiologists' markings (Venkatesh et al., 2024). Look at many images and more than one trained model before drawing a conclusion about the model."
         },
         {
-          "description": "Highlighted regions may not correspond to semantically meaningful or human-understandable features."
+          "description": "The gradient is local. Where the model's output has flattened, for example once a feature is already strongly present, the gradient is near zero, so a pixel the model relies on can get almost no score. Sundararajan et al. (2017) show this with a one-ReLU example, which is why methods such as Integrated Gradients measure the change from a baseline instead."
         },
         {
-          "description": "Only indicates local gradient information, not causal importance or actual decision-making logic."
+          "description": "Because only the size of each gradient is kept, the map cannot say whether a pixel supports or counts against the chosen class. Evidence that argues against the prediction looks the same as evidence for it, so a map cannot show that a pixel was used in the way a reviewer assumes."
         },
         {
-          "description": "May highlight irrelevant pixels that happen to have high gradients due to model artifacts rather than meaningful patterns."
+          "description": "A high score means the output is sensitive to a small change in that pixel, not that the model relied on it or that removing it would change the decision. Pixel-level scores are scattered and often capture only the most discriminative part of an object (Simonyan et al., 2013), so they rarely outline a whole lesion or object a reviewer can name."
         }
       ],
       "resources": [
@@ -460,39 +460,28 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical imaging system's diagnostic predictions are attributable to specific pixel-level regions within the anatomical structures under examination",
+          "text": "For the pneumonia model's confirmed cases in the validation sample, gradient saliency places the most sensitive pixels over the lung fields and not over tubes, leads or position markers, in at least the proportion of cases the acceptance criteria set",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The autonomous vehicle's object detection decisions focus on fine-grained visual features rather than irrelevant background elements or environmental artifacts",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The facial recognition system's identity predictions do not rely disproportionately on demographic-indicating facial features across different population groups",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The agricultural disease classifier's predictions are traceable to individual pixels showing visible pathological symptoms rather than contextual farm equipment or environmental conditions",
+          "text": "The plant disease classifier's gradient saliency maps for its misclassified field photographs show sensitivity concentrated on the leaf area and not on soil, trays or hands in the frame",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The dermatology screening tool's risk assessments identify fine-scale visual patterns in lesion characteristics independent of skin tone variations",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
+          "text": "Gradient saliency maps used as evidence for this classifier were repeated on models retrained with different random seeds, and the sensitive regions agree across runs above the stated threshold",
+          "domain": "general",
+          "assuranceGoal": "explainability"
         }
       ]
     },
     {
       "slug": "gradient-weighted-class-activation-mapping",
       "name": "Gradient-weighted Class Activation Mapping",
-      "description": "Grad-CAM creates visual heatmaps showing which regions of an image a convolutional neural network focuses on when making a specific classification. Unlike pixel-level techniques, Grad-CAM produces coarser region-based explanations by using gradients from the predicted class to weight the CNN's final feature maps, then projecting these weighted activations back to create an overlay on the original image. This provides intuitive visual explanations of where the model is 'looking' for evidence of different classes.",
+      "description": "Grad-CAM (Gradient-weighted Class Activation Mapping) draws a heatmap over an image showing which regions most raise a convolutional neural network's score for a chosen class. The last convolutional layer produces a stack of feature maps, each a coarse grid recording where one learned pattern appears. Grad-CAM takes the gradient of the class score with respect to each map (how much the score changes as that map's values change), averages it to give the map a weight, and adds the weighted maps together. It keeps only the positive values, so the result marks regions that count in favour of the class, then enlarges the grid to the image's size and lays it over the image. The output is coarse, showing broad regions rather than pixels, and any class can be chosen, including one the model did not predict.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/convolutional",
@@ -507,8 +496,6 @@
         "assurance-goal-category/explainability/property/efficiency",
         "assurance-goal-category/explainability/property/sparsity",
         "assurance-goal-category/explainability/visualization-methods/activation-maps",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "applicable-models/requirements/model-internals",
         "data-type/image",
         "evidence-type/visualisation",
@@ -523,30 +510,26 @@
       ],
       "example_use_cases": [
         {
-          "description": "Validating that a melanoma detection model focuses on the actual skin lesion rather than surrounding healthy skin, medical equipment, or artifacts when making cancer/benign classifications.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A dermatology AI team validating a melanoma classifier overlays Grad-CAM on dermoscopy images and compares the highlighted region with the lesion outline drawn by a clinician. Cases where the heat falls on a ruler, hair or skin markings are collected, and the team decides whether the training images need cleaning before the model goes to clinical evaluation."
         },
         {
-          "description": "Debugging an autonomous vehicle's traffic sign recognition system by visualising whether the model correctly focuses on the sign itself rather than background objects, shadows, or irrelevant visual elements.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a medical imaging system for racial bias by examining whether diagnostic predictions inappropriately focus on skin tone regions rather than actual pathological features, ensuring equitable healthcare AI deployment.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "A team developing the traffic sign recogniser for a driver assistance system overlays Grad-CAM on the test images it misclassifies. When the heat sits on the background or a shadow rather than on the sign, they add training images with similar backgrounds and lighting, then recheck the overlays before the release decision."
         }
       ],
       "limitations": [
         {
-          "description": "Requires access to the CNN's internal feature maps and gradients, limiting use to white-box scenarios."
+          "description": "Needs the network's gradients and its last convolutional feature maps, so it cannot be run on a model reached only through an API, or on architectures without convolutional layers. The user must also choose which layer to use, and the paper reports that maps become progressively worse for earlier layers (Selvaraju et al., Sec 3)."
         },
         {
-          "description": "Resolution is constrained by the final convolutional layer's feature map size, producing coarser localisation than pixel-level methods."
+          "description": "The map has the resolution of the last convolutional layer (14 by 14 for VGG-16 and AlexNet), then is enlarged to the image. Small or irregular findings, such as a few-millimetre lesion or a thin sign pole, fall inside one or two cells, so the overlay cannot show whether the model attended to the finding or to its surroundings."
         },
         {
-          "description": "Only applicable to CNN architectures with clearly defined convolutional layers, not suitable for other neural network types."
+          "description": "In a chest X-ray benchmark Grad-CAM generally located pathologies better than six other saliency methods but worse than radiologists, with the largest gap for small, complex-shaped findings, and it located them better when the model was confident (Saporta et al., 2022). The overlays are least reliable for the uncertain, hard cases where a reviewer most wants an explanation."
         },
         {
-          "description": "May highlight regions that correlate with the class but aren't causally important for the model's decision-making process."
+          "description": "A bright region means features there raise the class score under a local linear approximation, not that the model relied on them. In the paper's own check, Grad-CAM's ranking of image patches agreed only moderately with occlusion, which masks patches and re-scores the image (rank correlation 0.254, Sec 5.3). The ReLU also hides regions that count against the class."
         }
       ],
       "resources": [
@@ -653,28 +636,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are grounded in visually identifiable image regions that align with clinical features",
+          "text": "For the melanoma classifier's validation images, the Grad-CAM region for the predicted class overlaps the clinician-drawn lesion outline in at least the proportion of cases set in the acceptance criteria",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The perception system's object classifications are traceable to specific spatial regions within the visual field",
+          "text": "For the traffic sign recogniser's misclassified test images, the Grad-CAM region falls on the sign face and not the background in all but a reported fraction of cases, and each remaining case has been reviewed",
           "domain": "autonomous systems",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The medical imaging system's predictions do not disproportionately weight irrelevant visual characteristics across patient groups",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The environmental monitoring system's land cover classifications are anchored to interpretable spatial patterns in satellite imagery",
+          "text": "The land-cover classifier's Grad-CAM region for each class in the labelled satellite tiles falls on the matching surface type and not on shadows or neighbouring land",
           "domain": "environmental",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The vision model's decision-making process reveals which image regions contribute most strongly to each class prediction",
-          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]
@@ -682,10 +655,9 @@
     {
       "slug": "influence-functions",
       "name": "Influence Functions",
-      "description": "Influence functions quantify how much each training example influenced a model's predictions by computing the change in prediction that would occur if that training example were removed and the model retrained. Using calculus and the implicit function theorem, they approximate this 'leave-one-out' effect without actually retraining the model by computing gradients and Hessian information. This mathematical approach reveals which specific training examples were most responsible for pushing the model toward or away from particular predictions, enabling practitioners to trace problematic outputs back to their root causes in the training data.",
+      "description": "Influence functions estimate which training examples most affected a model's prediction on a particular test example. For each training example, they estimate how much the model's loss on the test example would change if that example counted slightly more or slightly less, which approximates removing it and retraining without actually doing so. The estimate combines the gradient of the loss at the test and training points with the Hessian (the matrix of second derivatives, which describes the curvature of the training loss). The output ranks training examples as helpful or harmful for that prediction, so a reviewer can inspect the top few for mislabelled or unrepresentative cases. The theory assumes a smooth, convex loss, so for deep networks the ranking is approximate, pointing to examples worth inspecting rather than proving why the model erred.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/linear-models",
@@ -703,8 +675,6 @@
         "assurance-goal-category/explainability/instance-based/influence-analysis",
         "assurance-goal-category/explainability/property/causality",
         "assurance-goal-category/explainability/property/fidelity",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "data-type/any",
         "evidence-type/quantitative-metric",
         "expertise-needed/ml-engineering",
@@ -715,30 +685,26 @@
       ],
       "example_use_cases": [
         {
-          "description": "Investigating why a medical diagnosis model misclassified a patient by identifying which specific training cases most influenced the incorrect prediction, revealing potential mislabelled examples or problematic patterns in the training data.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital analytics team finds that its readmission model misclassifies many children. For a misclassified child, influence functions single out a handful of paediatric training records with far more influence than any others, showing that the training data holds very few children. The team collects more paediatric data before deciding whether the model can be used on that group."
         },
         {
-          "description": "Analysing a spam detection system that falsely flagged legitimate emails by tracing the prediction back to influential training examples, discovering that certain training emails contained misleading patterns that caused the model to overfit.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a loan approval model for discriminatory patterns by identifying which training examples most influenced rejections of minority applicants, revealing whether biased historical decisions are driving current unfair outcomes.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "An email-security team asks why its spam filter blocked a legitimate supplier invoice. It lists the training emails with the most influence on that decision, finds near-duplicate phishing messages with a similar layout, and decides whether to relabel, remove or down-weight them before retraining the filter."
         }
       ],
       "limitations": [
         {
-          "description": "Computationally intensive, requiring Hessian matrix computations that become intractable for very large models with millions of parameters."
+          "description": "Exact influence needs the inverse of the Hessian, which is out of reach for networks with millions of parameters. Implementations approximate it with Hessian-vector products or block-diagonal and low-rank forms, which still costs extra passes over the training data for every prediction explained and adds error. Plan to explain a sample of decisions, not all of them."
         },
         {
-          "description": "Requires access to the complete training dataset and training process, making it impossible to apply to pre-trained models without access to original training data."
+          "description": "Needs the full training set, the loss function and parameters at or near a minimum of the training loss. A model delivered as an API or a finished file, or trained on data the assessor cannot see, cannot be examined. For models that are early-stopped or not trained to a minimum, the paper adds a damping term to the Hessian, one more setting that can change the ranking."
         },
         {
-          "description": "Accuracy degrades for highly non-convex models where the linear approximation underlying influence functions breaks down."
+          "description": "The derivation assumes a convex, twice-differentiable loss. On a non-convex CNN the paper still found a 0.86 correlation with actual retraining, but a larger study found estimates often erroneous for deeper networks and dependent on architecture, weight decay and the test point (Basu et al., 2020). Check the estimates against real retraining on a few examples before relying on them."
         },
         {
-          "description": "Results can be sensitive to hyperparameter choices and may not generalise well across different model architectures or training procedures."
+          "description": "Losses with kinks, such as the hinge loss of a support vector machine, break the method. In the paper, influence computed on the unsmoothed hinge loss considerably overestimated the effect of removal, and a smooth approximation of the loss was needed. Check that the loss is smooth for the model in hand, or smooth it for the calculation."
         }
       ],
       "resources": [
@@ -807,23 +773,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are traceable to specific patient cases in the training data",
+          "text": "The training records most influential for the readmission model's errors on paediatric patients have been identified with influence functions and reviewed by a clinical data steward",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit model's decisions on individual applications are attributable to identifiable historical loan records",
+          "text": "No training record among the ten most influential for any audited declined application is a known data-entry or labelling error",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The welfare eligibility system's rejections can be traced to specific training cases to identify discriminatory patterns",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The perception system's object classification decisions are traceable to specific labeled examples from the training corpus",
-          "domain": "autonomous systems",
+          "text": "For each false positive in the spam filter's audit sample, the ten most influential training emails were reviewed and the cause of the error, mislabelled or unrepresentative training data, was recorded",
+          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]

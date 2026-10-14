@@ -9,7 +9,7 @@
     {
       "slug": "mean-decrease-impurity",
       "name": "Mean Decrease Impurity",
-      "description": "Mean Decrease Impurity (MDI) quantifies a feature's importance in tree-based models (e.g., Random Forests, Gradient Boosting Machines) by measuring the total reduction in impurity (e.g., Gini impurity, entropy) across all splits where the feature is used. Features that lead to larger, more consistent reductions in impurity are considered more important, indicating their effectiveness in creating homogeneous child nodes and improving predictive accuracy. This makes MDI a computationally efficient method for feature selection and model validation in tree-based ensembles.",
+      "description": "Mean Decrease Impurity (MDI) scores how much each feature contributes to a tree-based model, such as a random forest, by looking at how the model's decision trees split the training data. Each split sends cases into two groups, and a good split makes each group more uniform in its outcome, which is a drop in impurity, measured with a score such as Gini impurity. For each feature, MDI adds up the drops from every split that uses it, weights each by the share of training cases reaching that split, and averages over all trees. The scores are usually scaled to sum to one, so they show relative importance. Because they come from the training data, they describe how the model was built, not how well each feature predicts on new data.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -33,26 +33,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Determining the most influential genetic markers in a decision tree model predicting disease susceptibility, by identifying which markers consistently lead to the purest splits between healthy and diseased patient groups.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "Determining the most influential genetic markers in a decision tree model predicting disease susceptibility, by identifying which markers consistently lead to the purest splits between healthy and diseased patient groups."
         },
         {
-          "description": "Assessing the key factors driving customer purchasing decisions in an e-commerce random forest model, revealing which product attributes or customer demographics are most effective in segmenting buyers.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A model-validation team reviews a gradient-boosted loan-default model and ranks its inputs by MDI before sign-off. They investigate any identifier-like or many-valued field, such as customer ID or postcode, that ranks near the top, because MDI favours such fields and they may reflect overfitting rather than real predictive signal."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An environmental analytics team fits a random forest to forecast air quality and uses MDI to choose which weather stations' readings to drop from a simpler model. They then confirm on held-out data that accuracy holds, because MDI alone reflects the training data."
         }
       ],
       "limitations": [
         {
-          "description": "MDI is inherently biased towards features with more unique values or those that allow for more splits, potentially overestimating their true importance."
+          "description": "MDI favours features with many distinct values, because more possible split points give more chances of a good split by chance. Strobl and colleagues found that uninformative continuous or many-category variables were preferred over informative ones when predictors differed in type or number of categories."
         },
         {
-          "description": "It is only applicable to tree-based models and cannot be directly used with other model architectures."
+          "description": "Scores are calculated from the training data, so a feature can rank high because the model fitted noise in it. A high score does not show that the feature helps predictions on unseen data, and scikit-learn recommends permutation importance on held-out data as the alternative."
         },
         {
-          "description": "The importance scores can be unstable, varying significantly with small changes in the training data or model parameters."
+          "description": "MDI gives only a non-negative score for each feature. It does not show whether higher values of a feature raise or lower the prediction, so it cannot support a claim about the direction of a feature's effect."
         },
         {
-          "description": "MDI does not account for feature interactions, meaning it might not accurately reflect the importance of features that are only relevant when combined with others."
+          "description": "Scores vary from tree to tree, and the scikit-learn example plots this spread as error bars. A forest with few trees, or a small training set, can therefore give a ranking that shifts when the model is refitted."
+        },
+        {
+          "description": "Correlated predictors compete for splits. One can mask another's importance, and changing the fitted ensemble or candidate-feature settings can change their relative ranks."
         }
       ],
       "resources": [
@@ -130,12 +137,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's feature importance ranking reflects which patient characteristics most consistently separate clinical outcomes across decision boundaries",
+          "text": "The five features with the highest mean decrease in impurity in the readmission-risk forest are the clinical risk factors that the clinical team documented as expected drivers.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The environmental forecast model's predictions prioritize meteorological variables that create homogeneous regional clusters",
+          "text": "No identifier-like or many-valued field, such as customer ID or postcode, ranks in the top ten by mean decrease in impurity in the loan-default model.",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The mean-decrease-impurity ranking of the delivery-time forest is stable across 20 refits on bootstrap samples of the training data, with the same top five features each time.",
+          "domain": "transport",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Three meteorological variables account for over half of the total importance in the air-quality forecasting forest, and the model documentation names them.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         }
@@ -144,7 +161,7 @@
     {
       "slug": "coefficient-magnitudes-in-linear-models",
       "name": "Coefficient Magnitudes (in Linear Models)",
-      "description": "Coefficient Magnitudes assess feature influence in linear models by examining the absolute values of their coefficients. Features with larger absolute coefficients are considered to have a stronger impact on the prediction, while the sign of the coefficient indicates the direction of that influence (positive or negative). This technique provides a straightforward and transparent way to understand the direct linear relationship between each input feature and the model's output.",
+      "description": "Coefficient Magnitudes explains a linear model by reading its fitted coefficients. Each coefficient shows how much the prediction changes when its feature rises by one unit while every other feature stays fixed, and its sign gives the direction. Because a coefficient's size depends on the units of its feature, the features are first put on a common scale, for example by standardising them or by multiplying each coefficient by its feature's standard deviation. The features with the largest scaled coefficients are then read as having the strongest influence on the model's predictions. This gives a global view of the model without needing a separate explanation method.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -173,26 +190,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Interpreting which features influence housing price predictions in linear regression, such as identifying that 'number of bedrooms' has a larger positive impact than 'distance to city centre' based on coefficient magnitudes.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "An estate agency's data team standardises the inputs of a linear house-price model, then ranks the absolute coefficients to show valuers which property attributes move the estimate most. Valuers check that the signs match their experience, for example that more floor area raises the price, before the model guides asking prices."
         },
         {
-          "description": "Explaining the factors contributing to customer lifetime value (CLV) in a linear model, showing how 'average monthly spend' has a strong positive coefficient, making the model transparent for business stakeholders.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A lender's model-risk team documents a linear credit-scoring model for its regulator by publishing the standardised coefficient of every input. The reviewer can read off the direction and relative weight of each input without a separate explanation tool, and can query any input that carries more weight than policy allows."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A public health analyst fits a logistic regression to predict emergency readmission and reports standardised coefficients to clinicians, who see which patient characteristics push the predicted risk up or down. The analyst refits on resamples first, to check that the large coefficients keep their sign."
         }
       ],
       "limitations": [
         {
-          "description": "Only valid for linear relationships; it cannot capture complex non-linear patterns or interactions between features."
+          "description": "Raw magnitudes have output-per-input units and cannot be ranked across differently scaled variables. Express comparable input changes explicitly; changing metres to centimetres makes the corresponding coefficient smaller for the same predictions."
         },
         {
-          "description": "Highly sensitive to feature scaling; features with larger numerical ranges can appear more important even if their true impact is smaller."
+          "description": "Coefficients concern the encoded model inputs while other inputs are held fixed. If the model includes transformed variables or interactions, inspecting one coefficient does not give the whole effect of changing an original variable."
         },
         {
-          "description": "Can be misleading in the presence of multicollinearity, where correlated features may split importance or have unstable coefficients."
+          "description": "Correlated predictors can have unstable or shared coefficients even when predictions change little. Scaling does not remove this problem, and regularisation can change which correlated feature receives a large weight."
         },
         {
-          "description": "Does not imply causation; a strong correlation (large coefficient) does not necessarily mean a causal relationship."
+          "description": "Each coefficient is conditional on the other features in the model. A feature can have a negative coefficient while rising with the outcome on its own, so a coefficient read in isolation can mislead about the feature's plain relationship to the outcome."
+        },
+        {
+          "description": "A coefficient is a conditional association in the fitted model, not a causal effect. Its magnitude alone also does not give a particular applicant's contribution, which depends on that applicant's feature values."
         }
       ],
       "resources": [
@@ -266,27 +290,22 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's feature influences are quantifiable through direct examination of their linear coefficients",
-          "domain": "general",
+          "text": "Before coefficient sizes were used to rank influence in the valuation model, inputs were put on a common scale and strongly correlated input pairs were merged or reduced to one, so the ranking is not a product of units or collinearity.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The housing price estimator's reliance on specific property attributes is transparent to regulators through standardized coefficient magnitudes",
+          "text": "The credit-scoring model is a linear model whose standardised coefficients are published in its documentation, so a reviewer can trace each score to its inputs without a separate explanation method.",
           "domain": "finance",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The clinical risk model's predictive contributions from patient characteristics are directly interpretable from the regression parameters",
+          "text": "The direction of every input's coefficient in the readmission-risk model agrees with clinical expectation, and none of the five largest standardised coefficients changes sign across 100 bootstrap refits.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The system's feature importance rankings remain consistent when input variables are appropriately scaled",
-          "domain": "general",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The crop yield prediction model's dependence on environmental factors is directly measurable through their coefficient values",
+          "text": "Rainfall and soil nitrogen have the largest standardised coefficients in the crop-yield model, and their confidence intervals exclude zero.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         }
@@ -295,10 +314,9 @@
     {
       "slug": "gradient-saliency",
       "name": "Gradient Saliency",
-      "description": "Gradient saliency (also known as vanilla gradient saliency) produces visual explanations for image classification models by computing the gradient of the model's output with respect to input pixels. The resulting heatmap highlights pixels where small changes would most significantly affect the prediction. Originally proposed by Simonyan et al. (2013), this is the simplest gradient-based attribution method and serves as a baseline for more sophisticated approaches such as Integrated Gradients and Grad-CAM.",
+      "description": "Gradient saliency (also called vanilla gradient saliency) is the simplest gradient-based explanation for image classifiers, showing which pixels the score for a chosen class is most sensitive to. It takes the gradient of the class score (the network's output for that class before it becomes a probability) with respect to every input pixel, in one backward pass. The gradient says how much the score would change if that pixel changed slightly. The method keeps the size of each gradient and, for colour images, the largest across the colour channels, then shows one value per pixel as a heatmap. Because the sign is dropped, the map shows sensitivity but not whether a pixel supports or counts against the class.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -310,8 +328,6 @@
         "assurance-goal-category/explainability/property/comprehensibility",
         "assurance-goal-category/explainability/property/efficiency",
         "assurance-goal-category/explainability/visualization-methods/activation-maps",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "applicable-models/requirements/model-internals",
         "data-type/image",
         "evidence-type/visualisation",
@@ -326,30 +342,26 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing X-ray images in a pneumonia detection model to verify that the algorithm focuses on lung regions showing inflammatory patterns rather than irrelevant areas like medical equipment or patient positioning markers.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital imaging team validating a pneumonia detection model on chest X-rays computes gradient saliency for a sample of confirmed cases and checks whether the most sensitive pixels lie over the lungs rather than over tubes, monitoring leads or position markers. They use the result to decide whether the model is ready for a clinical pilot or needs retraining on cleaner images."
         },
         {
-          "description": "Examining skin lesion classification models to ensure the algorithm identifies diagnostic features (irregular borders, colour variation) rather than artifacts like rulers, hair, or skin markings that shouldn't influence medical decisions.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a dermatology AI system to verify it focuses on medical symptoms rather than skin colour when diagnosing conditions, ensuring equitable treatment across racial groups by revealing inappropriate attention to demographic features.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "An agricultural technology company testing a plant disease classifier on leaf photographs taken in the field computes gradient saliency for the images it misclassifies. It checks whether the sensitive pixels sit on the diseased leaf area or on soil, trays and hands in the frame, and decides whether to collect photographs with more varied backgrounds."
         }
       ],
       "limitations": [
         {
-          "description": "Saliency maps are often noisy and can change dramatically with small input perturbations, making them unstable."
+          "description": "Maps are noisy and can change sharply for tiny changes to the image, so one map is weak evidence. A study of upper-limb X-ray classifiers found that plain-gradient maps were less accurate at locating abnormalities, and less repeatable, than radiologists' markings (Venkatesh et al., 2024). Look at many images and more than one trained model before drawing a conclusion about the model."
         },
         {
-          "description": "Highlighted regions may not correspond to semantically meaningful or human-understandable features."
+          "description": "The gradient is local. Where the model's output has flattened, for example once a feature is already strongly present, the gradient is near zero, so a pixel the model relies on can get almost no score. Sundararajan et al. (2017) show this with a one-ReLU example, which is why methods such as Integrated Gradients measure the change from a baseline instead."
         },
         {
-          "description": "Only indicates local gradient information, not causal importance or actual decision-making logic."
+          "description": "Because only the size of each gradient is kept, the map cannot say whether a pixel supports or counts against the chosen class. Evidence that argues against the prediction looks the same as evidence for it, so a map cannot show that a pixel was used in the way a reviewer assumes."
         },
         {
-          "description": "May highlight irrelevant pixels that happen to have high gradients due to model artifacts rather than meaningful patterns."
+          "description": "A high score means the output is sensitive to a small change in that pixel, not that the model relied on it or that removing it would change the decision. Pixel-level scores are scattered and often capture only the most discriminative part of an object (Simonyan et al., 2013), so they rarely outline a whole lesion or object a reviewer can name."
         }
       ],
       "resources": [
@@ -422,39 +434,28 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical imaging system's diagnostic predictions are attributable to specific pixel-level regions within the anatomical structures under examination",
+          "text": "For the pneumonia model's confirmed cases in the validation sample, gradient saliency places the most sensitive pixels over the lung fields and not over tubes, leads or position markers, in at least the proportion of cases the acceptance criteria set",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The autonomous vehicle's object detection decisions focus on fine-grained visual features rather than irrelevant background elements or environmental artifacts",
-          "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The facial recognition system's identity predictions do not rely disproportionately on demographic-indicating facial features across different population groups",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The agricultural disease classifier's predictions are traceable to individual pixels showing visible pathological symptoms rather than contextual farm equipment or environmental conditions",
+          "text": "The plant disease classifier's gradient saliency maps for its misclassified field photographs show sensitivity concentrated on the leaf area and not on soil, trays or hands in the frame",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The dermatology screening tool's risk assessments identify fine-scale visual patterns in lesion characteristics independent of skin tone variations",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
+          "text": "Gradient saliency maps used as evidence for this classifier were repeated on models retrained with different random seeds, and the sensitive regions agree across runs above the stated threshold",
+          "domain": "general",
+          "assuranceGoal": "explainability"
         }
       ]
     },
     {
       "slug": "gradient-weighted-class-activation-mapping",
       "name": "Gradient-weighted Class Activation Mapping",
-      "description": "Grad-CAM creates visual heatmaps showing which regions of an image a convolutional neural network focuses on when making a specific classification. Unlike pixel-level techniques, Grad-CAM produces coarser region-based explanations by using gradients from the predicted class to weight the CNN's final feature maps, then projecting these weighted activations back to create an overlay on the original image. This provides intuitive visual explanations of where the model is 'looking' for evidence of different classes.",
+      "description": "Grad-CAM (Gradient-weighted Class Activation Mapping) draws a heatmap over an image showing which regions most raise a convolutional neural network's score for a chosen class. The last convolutional layer produces a stack of feature maps, each a coarse grid recording where one learned pattern appears. Grad-CAM takes the gradient of the class score with respect to each map (how much the score changes as that map's values change), averages it to give the map a weight, and adds the weighted maps together. It keeps only the positive values, so the result marks regions that count in favour of the class, then enlarges the grid to the image's size and lays it over the image. The output is coarse, showing broad regions rather than pixels, and any class can be chosen, including one the model did not predict.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/convolutional",
@@ -469,8 +470,6 @@
         "assurance-goal-category/explainability/property/efficiency",
         "assurance-goal-category/explainability/property/sparsity",
         "assurance-goal-category/explainability/visualization-methods/activation-maps",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "applicable-models/requirements/model-internals",
         "data-type/image",
         "evidence-type/visualisation",
@@ -485,30 +484,26 @@
       ],
       "example_use_cases": [
         {
-          "description": "Validating that a melanoma detection model focuses on the actual skin lesion rather than surrounding healthy skin, medical equipment, or artifacts when making cancer/benign classifications.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A dermatology AI team validating a melanoma classifier overlays Grad-CAM on dermoscopy images and compares the highlighted region with the lesion outline drawn by a clinician. Cases where the heat falls on a ruler, hair or skin markings are collected, and the team decides whether the training images need cleaning before the model goes to clinical evaluation."
         },
         {
-          "description": "Debugging an autonomous vehicle's traffic sign recognition system by visualising whether the model correctly focuses on the sign itself rather than background objects, shadows, or irrelevant visual elements.",
-          "goal": "Explainability"
-        },
-        {
-          "description": "Auditing a medical imaging system for racial bias by examining whether diagnostic predictions inappropriately focus on skin tone regions rather than actual pathological features, ensuring equitable healthcare AI deployment.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "A team developing the traffic sign recogniser for a driver assistance system overlays Grad-CAM on the test images it misclassifies. When the heat sits on the background or a shadow rather than on the sign, they add training images with similar backgrounds and lighting, then recheck the overlays before the release decision."
         }
       ],
       "limitations": [
         {
-          "description": "Requires access to the CNN's internal feature maps and gradients, limiting use to white-box scenarios."
+          "description": "Needs the network's gradients and its last convolutional feature maps, so it cannot be run on a model reached only through an API, or on architectures without convolutional layers. The user must also choose which layer to use, and the paper reports that maps become progressively worse for earlier layers (Selvaraju et al., Sec 3)."
         },
         {
-          "description": "Resolution is constrained by the final convolutional layer's feature map size, producing coarser localisation than pixel-level methods."
+          "description": "The map has the resolution of the last convolutional layer (14 by 14 for VGG-16 and AlexNet), then is enlarged to the image. Small or irregular findings, such as a few-millimetre lesion or a thin sign pole, fall inside one or two cells, so the overlay cannot show whether the model attended to the finding or to its surroundings."
         },
         {
-          "description": "Only applicable to CNN architectures with clearly defined convolutional layers, not suitable for other neural network types."
+          "description": "In a chest X-ray benchmark Grad-CAM generally located pathologies better than six other saliency methods but worse than radiologists, with the largest gap for small, complex-shaped findings, and it located them better when the model was confident (Saporta et al., 2022). The overlays are least reliable for the uncertain, hard cases where a reviewer most wants an explanation."
         },
         {
-          "description": "May highlight regions that correlate with the class but aren't causally important for the model's decision-making process."
+          "description": "A bright region means features there raise the class score under a local linear approximation, not that the model relied on them. In the paper's own check, Grad-CAM's ranking of image patches agreed only moderately with occlusion, which masks patches and re-scores the image (rank correlation 0.254, Sec 5.3). The ReLU also hides regions that count against the class."
         }
       ],
       "resources": [
@@ -615,28 +610,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The diagnostic model's predictions are grounded in visually identifiable image regions that align with clinical features",
+          "text": "For the melanoma classifier's validation images, the Grad-CAM region for the predicted class overlaps the clinician-drawn lesion outline in at least the proportion of cases set in the acceptance criteria",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The perception system's object classifications are traceable to specific spatial regions within the visual field",
+          "text": "For the traffic sign recogniser's misclassified test images, the Grad-CAM region falls on the sign face and not the background in all but a reported fraction of cases, and each remaining case has been reviewed",
           "domain": "autonomous systems",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The medical imaging system's predictions do not disproportionately weight irrelevant visual characteristics across patient groups",
-          "domain": "healthcare",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The environmental monitoring system's land cover classifications are anchored to interpretable spatial patterns in satellite imagery",
+          "text": "The land-cover classifier's Grad-CAM region for each class in the labelled satellite tiles falls on the matching surface type and not on shadows or neighbouring land",
           "domain": "environmental",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The vision model's decision-making process reveals which image regions contribute most strongly to each class prediction",
-          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]

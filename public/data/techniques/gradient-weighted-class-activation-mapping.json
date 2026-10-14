@@ -1,10 +1,9 @@
 {
   "slug": "gradient-weighted-class-activation-mapping",
   "name": "Gradient-weighted Class Activation Mapping",
-  "description": "Grad-CAM creates visual heatmaps showing which regions of an image a convolutional neural network focuses on when making a specific classification. Unlike pixel-level techniques, Grad-CAM produces coarser region-based explanations by using gradients from the predicted class to weight the CNN's final feature maps, then projecting these weighted activations back to create an overlay on the original image. This provides intuitive visual explanations of where the model is 'looking' for evidence of different classes.",
+  "description": "Grad-CAM (Gradient-weighted Class Activation Mapping) draws a heatmap over an image showing which regions most raise a convolutional neural network's score for a chosen class. The last convolutional layer produces a stack of feature maps, each a coarse grid recording where one learned pattern appears. Grad-CAM takes the gradient of the class score with respect to each map (how much the score changes as that map's values change), averages it to give the map a weight, and adds the weighted maps together. It keeps only the positive values, so the result marks regions that count in favour of the class, then enlarges the grid to the image's size and lays it over the image. The output is coarse, showing broad regions rather than pixels, and any class can be chosen, including one the model did not predict.",
   "assurance_goals": [
-    "Explainability",
-    "Fairness"
+    "Explainability"
   ],
   "tags": [
     "applicable-models/architecture/neural-networks/convolutional",
@@ -19,8 +18,6 @@
     "assurance-goal-category/explainability/property/efficiency",
     "assurance-goal-category/explainability/property/sparsity",
     "assurance-goal-category/explainability/visualization-methods/activation-maps",
-    "assurance-goal-category/fairness",
-    "assurance-goal-category/fairness/bias-diagnosis",
     "applicable-models/requirements/model-internals",
     "data-type/image",
     "evidence-type/visualisation",
@@ -35,30 +32,26 @@
   ],
   "example_use_cases": [
     {
-      "description": "Validating that a melanoma detection model focuses on the actual skin lesion rather than surrounding healthy skin, medical equipment, or artifacts when making cancer/benign classifications.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A dermatology AI team validating a melanoma classifier overlays Grad-CAM on dermoscopy images and compares the highlighted region with the lesion outline drawn by a clinician. Cases where the heat falls on a ruler, hair or skin markings are collected, and the team decides whether the training images need cleaning before the model goes to clinical evaluation."
     },
     {
-      "description": "Debugging an autonomous vehicle's traffic sign recognition system by visualising whether the model correctly focuses on the sign itself rather than background objects, shadows, or irrelevant visual elements.",
-      "goal": "Explainability"
-    },
-    {
-      "description": "Auditing a medical imaging system for racial bias by examining whether diagnostic predictions inappropriately focus on skin tone regions rather than actual pathological features, ensuring equitable healthcare AI deployment.",
-      "goal": "Fairness"
+      "goal": "Explainability",
+      "description": "A team developing the traffic sign recogniser for a driver assistance system overlays Grad-CAM on the test images it misclassifies. When the heat sits on the background or a shadow rather than on the sign, they add training images with similar backgrounds and lighting, then recheck the overlays before the release decision."
     }
   ],
   "limitations": [
     {
-      "description": "Requires access to the CNN's internal feature maps and gradients, limiting use to white-box scenarios."
+      "description": "Needs the network's gradients and its last convolutional feature maps, so it cannot be run on a model reached only through an API, or on architectures without convolutional layers. The user must also choose which layer to use, and the paper reports that maps become progressively worse for earlier layers (Selvaraju et al., Sec 3)."
     },
     {
-      "description": "Resolution is constrained by the final convolutional layer's feature map size, producing coarser localisation than pixel-level methods."
+      "description": "The map has the resolution of the last convolutional layer (14 by 14 for VGG-16 and AlexNet), then is enlarged to the image. Small or irregular findings, such as a few-millimetre lesion or a thin sign pole, fall inside one or two cells, so the overlay cannot show whether the model attended to the finding or to its surroundings."
     },
     {
-      "description": "Only applicable to CNN architectures with clearly defined convolutional layers, not suitable for other neural network types."
+      "description": "In a chest X-ray benchmark Grad-CAM generally located pathologies better than six other saliency methods but worse than radiologists, with the largest gap for small, complex-shaped findings, and it located them better when the model was confident (Saporta et al., 2022). The overlays are least reliable for the uncertain, hard cases where a reviewer most wants an explanation."
     },
     {
-      "description": "May highlight regions that correlate with the class but aren't causally important for the model's decision-making process."
+      "description": "A bright region means features there raise the class score under a local linear approximation, not that the model relied on them. In the paper's own check, Grad-CAM's ranking of image patches agreed only moderately with occlusion, which masks patches and re-scores the image (rank correlation 0.254, Sec 5.3). The ReLU also hides regions that count against the class."
     }
   ],
   "resources": [
@@ -165,28 +158,18 @@
   ],
   "sample_claims": [
     {
-      "text": "The diagnostic model's predictions are grounded in visually identifiable image regions that align with clinical features",
+      "text": "For the melanoma classifier's validation images, the Grad-CAM region for the predicted class overlaps the clinician-drawn lesion outline in at least the proportion of cases set in the acceptance criteria",
       "domain": "healthcare",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The perception system's object classifications are traceable to specific spatial regions within the visual field",
+      "text": "For the traffic sign recogniser's misclassified test images, the Grad-CAM region falls on the sign face and not the background in all but a reported fraction of cases, and each remaining case has been reviewed",
       "domain": "autonomous systems",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The medical imaging system's predictions do not disproportionately weight irrelevant visual characteristics across patient groups",
-      "domain": "healthcare",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The environmental monitoring system's land cover classifications are anchored to interpretable spatial patterns in satellite imagery",
+      "text": "The land-cover classifier's Grad-CAM region for each class in the labelled satellite tiles falls on the matching surface type and not on shadows or neighbouring land",
       "domain": "environmental",
-      "assuranceGoal": "explainability"
-    },
-    {
-      "text": "The vision model's decision-making process reveals which image regions contribute most strongly to each class prediction",
-      "domain": "general",
       "assuranceGoal": "explainability"
     }
   ]
