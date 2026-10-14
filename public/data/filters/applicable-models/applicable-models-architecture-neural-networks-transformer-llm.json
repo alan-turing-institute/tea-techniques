@@ -890,10 +890,9 @@
     {
       "slug": "embedding-bias-analysis",
       "name": "Embedding Bias Analysis",
-      "description": "Embedding bias analysis examines learned representations to identify biases, spurious correlations, and problematic clustering patterns in vector embeddings. This technique uses dimensionality reduction, clustering analysis, and geometric fairness metrics to examine whether embeddings encode sensitive attributes, place certain groups in disadvantaged regions of representation space, or learn stereotypical associations. Analysis reveals whether embeddings used for retrieval, recommendation, or downstream tasks contain fairness issues that will propagate to applications.",
+      "description": "Embedding bias analysis tests whether the numerical representations a model uses for words, images or documents link social groups to stereotyped attributes. An embedding places each item at a point in a many-dimensional space so that similar items sit close together. The best-known test, the Word Embedding Association Test (Caliskan et al., 2017), compares how close two sets of target words, such as engineering and nursing occupations, sit to two sets of attribute words, such as male and female terms, and reports an effect size and a significance level. Other analyses project embeddings onto a gender or ethnicity direction, or cluster them to see whether groups separate. The scores describe the representation itself, and any link to bias in an application built on it has to be tested separately.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -903,8 +902,6 @@
         "applicable-models/requirements/model-internals",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/bias-measurement",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "data-type/text",
         "data-type/image",
         "data-requirements/sensitive-attributes",
@@ -918,43 +915,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Auditing word embeddings for biased gender associations like 'doctor' being closer to 'male' than 'female', identifying problematic stereotypes that could affect downstream NLP applications.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A team building a CV-screening tool must choose between two pretrained word embedding sets. It runs association tests on each, comparing how close male and female terms sit to career and family words, and drops or mitigates the set with the larger stereotyped association before building on it."
         },
         {
-          "description": "Transparently documenting embedding space properties including which attributes are encoded and what associations exist, enabling informed decisions about appropriate use cases.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "Analysing clinical note embeddings in a medical diagnosis support system to detect whether disease associations cluster along demographic lines (for example, certain conditions being systematically closer to particular age or ethnic groups in the embedding space), which could lead to biased treatment recommendations."
         },
         {
-          "description": "Analyzing clinical note embeddings in a medical diagnosis support system to detect whether disease associations cluster along demographic lines (e.g., certain conditions being systematically closer to particular age or ethnic groups in the embedding space), which could lead to biased treatment recommendations.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Auditing loan application embeddings to detect whether protected characteristics (ethnicity, gender, age) cluster near creditworthiness concepts in ways that could enable indirect discrimination in lending decisions.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "Auditing loan application embeddings to detect whether protected characteristics (ethnicity, gender, age) cluster near creditworthiness concepts in ways that could enable indirect discrimination in lending decisions."
         }
       ],
       "limitations": [
         {
-          "description": "Defining ground truth for 'fair' or 'unbiased' embedding geometries is challenging and may depend on application-specific requirements."
+          "description": "Bias found in an embedding space does not reliably predict bias in the systems built on it. Goldfarb-Tarrant et al. (2021) found no consistent correlation between association-test scores and gaps between groups in downstream tasks, so a clean or a biased result here needs a separate test on the application itself."
         },
         {
-          "description": "Debiasing embeddings can reduce performance on downstream tasks or remove useful information along with unwanted biases."
+          "description": "Results depend on the word or sentence lists chosen to represent each group and attribute. Swapping one published list of pleasant words for another moved the effect size in the original study from 1.50 to 1.28, so a single list can overstate or understate bias, and lists written in one culture or language may not transfer."
         },
         {
-          "description": "High-dimensional embedding spaces are difficult to visualize and interpret comprehensively, potentially missing subtle bias patterns."
+          "description": "A passing score does not show that bias is absent. Tests and projections look only for the pattern they are built to find, and Gonen and Goldberg (2019) showed that gender information removed by projection could still be recovered from the distances between words."
         },
         {
-          "description": "Embeddings may encode bias in complex, non-linear ways that simple geometric metrics fail to capture."
+          "description": "There is no agreed threshold for an acceptable association. An effect size describes how strongly two groups of terms differ in closeness, not how much harm follows, so what counts as a pass depends on the application and has to be set and justified by the team."
         },
         {
-          "description": "Requires access to model internals and training data to extract and analyze embeddings, making this technique infeasible for black-box commercial models or systems where proprietary data cannot be shared."
-        },
-        {
-          "description": "Analyzing large-scale embedding spaces can be computationally expensive and requires sophisticated understanding of both vector space geometry and the specific domain to interpret results meaningfully."
-        },
-        {
-          "description": "Effective bias analysis requires representative test datasets covering relevant demographic groups and attributes, which may be difficult to obtain for sensitive domains or protected characteristics."
+          "description": "Needs the embedding vectors themselves, so it cannot be run on a system that exposes only final decisions or text. Pretrained vectors can be tested without the training data, as the original study did with published GloVe vectors."
         }
       ],
       "resources": [
@@ -1041,35 +1028,28 @@
       ],
       "sample_claims": [
         {
-          "text": "The recommendation system's item embeddings do not cluster products along demographic lines in ways that limit cross-group exposure",
+          "text": "Association tests on the embeddings used by the CV-screening tool show no gender association between occupation terms and male or female terms above the effect size the team agreed to act on.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The document retrieval system's embedding space geometry does not position certain demographic groups in disadvantaged regions affecting search relevance",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The medical language model's clinical term embeddings maintain equitable distances across patient demographic attributes",
+          "text": "The clinical term embeddings in the diagnosis support model show no association between diagnosis terms and age or ethnicity terms above the agreed threshold, and the result holds with a second set of term lists.",
           "domain": "healthcare",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The content moderation system's embedding space properties are documented including encoded sensitive attributes and their spatial relationships",
-          "domain": "general",
-          "assuranceGoal": "transparency"
+          "text": "Protected-characteristic terms do not sit systematically closer to creditworthiness terms than to their opposites in the lending model's text embeddings, under the word lists documented in the audit.",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
         }
       ]
     },
     {
       "slug": "few-shot-fairness-evaluation",
       "name": "Few-Shot Fairness Evaluation",
-      "description": "Few-shot fairness evaluation assesses whether in-context learning with few-shot examples introduces or amplifies biases in model predictions. This technique systematically varies demographic characteristics in few-shot examples and measures how these variations affect model outputs for different groups. Evaluation includes testing prompt sensitivity (how example selection impacts fairness), stereotype amplification (whether biased examples disproportionately affect outputs), and consistency (whether similar inputs receive equitable treatment regardless of example composition).",
+      "description": "Few-shot fairness evaluation tests whether the worked examples placed in a prompt change how fairly a language model treats different demographic groups. The evaluator builds many versions of the same prompt, varying which examples appear and how each demographic group is represented among them. Each version is run on the same test inputs, and group-level results are compared across versions. Typical checks include the gap in outcomes between groups, whether outputs echo stereotypes present in the examples, and whether an input gets the same treatment when only a demographic term in it is swapped. The result shows how sensitive the model's fairness is to the choice of examples, and which compositions make outcomes more or less even.",
       "assurance_goals": [
-        "Fairness",
-        "Reliability",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/transformer/llm",
@@ -1078,10 +1058,6 @@
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/bias-measurement",
         "evidence-type/fairness-metric",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
         "data-type/text",
@@ -1095,55 +1071,34 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing whether a resume screening LLM's few-shot examples inadvertently introduce gender bias by showing more male examples for technical positions, affecting how it evaluates subsequent applicants.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "Testing whether a resume screening LLM's few-shot examples inadvertently introduce gender bias by showing more male examples for technical positions, affecting how it evaluates subsequent applicants."
         },
         {
-          "description": "Ensuring a customer service classifier maintains reliable performance across demographic groups regardless of which few-shot examples users or developers choose to include in prompts.",
-          "goal": "Reliability"
+          "goal": "Fairness",
+          "description": "Evaluating whether a medical triage LLM's few-shot examples for symptom assessment inadvertently encode demographic biases (e.g., more examples of cardiac symptoms in male patients), leading to differential urgency assessments across patient populations."
         },
         {
-          "description": "Documenting how few-shot example selection affects fairness metrics, transparently reporting sensitivity to example composition in deployment guidelines.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "Assessing whether few-shot examples in a loan application review assistant systematically present more favourable examples for certain demographic profiles, biasing the model's assessment of creditworthiness for subsequent applications."
         },
         {
-          "description": "Evaluating whether a medical triage LLM's few-shot examples for symptom assessment inadvertently encode demographic biases (e.g., more examples of cardiac symptoms in male patients), leading to differential urgency assessments across patient populations.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Testing whether few-shot examples used in a legal case summarization system introduce racial or socioeconomic bias in how defendant backgrounds or case circumstances are characterized, affecting case outcome predictions.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Assessing whether few-shot examples in a loan application review assistant systematically present more favourable examples for certain demographic profiles, biasing the model's assessment of creditworthiness for subsequent applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Verifying that an automated essay grading system maintains consistent standards across student demographics when few-shot examples inadvertently represent particular writing styles, dialects, or cultural references more prominently.",
-          "goal": "Reliability"
+          "goal": "Fairness",
+          "description": "Testing whether an automated essay grading system keeps consistent standards across student demographics when its few-shot examples over-represent particular writing styles, dialects or cultural references."
         }
       ],
       "limitations": [
         {
-          "description": "Vast number of possible few-shot example combinations makes exhaustive testing infeasible, requiring sampling strategies that may miss important configurations."
+          "description": "The number of possible example sets, orderings and wordings is far too large to test exhaustively. The evaluation samples configurations and can miss the combinations that cause the worst disparities, so results describe what was tested rather than every prompt the system will meet."
         },
         {
-          "description": "Fairness may be highly sensitive to subtle differences in example wording or formatting, making it difficult to provide robust guarantees."
+          "description": "Fairness measures can shift with small changes in example wording, order or prompt format, and with ordinary sampling variation in the model's replies. A gap between two example sets may be noise unless each is run repeatedly, and results seldom carry over to a different prompt template, instruction style or model version."
         },
         {
-          "description": "Trade-offs between example diversity and task performance may force choices between fairness and accuracy."
+          "description": "Needs test inputs labelled with demographic attributes, or pairs of inputs that differ only in a demographic term. These can be unavailable, costly to build or sensitive to hold, and they must reflect how the system will actually be prompted, which takes domain expertise to judge."
         },
         {
-          "description": "Results may not generalise across different prompt templates or instruction formats, requiring separate evaluation for each prompting strategy."
-        },
-        {
-          "description": "Requires carefully labeled datasets with demographic annotations to measure fairness across groups, which may be unavailable, expensive to create, or raise privacy concerns in sensitive domains."
-        },
-        {
-          "description": "Designing representative test sets that capture realistic few-shot example distributions requires deep domain expertise and understanding of how the system will be used in practice."
-        },
-        {
-          "description": "Evaluating fairness across multiple demographic groups with various few-shot configurations can be computationally expensive, particularly for large language models with high inference costs."
+          "description": "Each extra example set multiplies the number of model calls, because every set must be run on enough inputs for each group being compared. With large models and high inference costs, thorough coverage is expensive, which tempts teams to test fewer configurations."
         }
       ],
       "resources": [
@@ -1210,28 +1165,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The language model produces equitable outcomes across demographic groups regardless of which few-shot examples are provided in the prompt",
-          "domain": "general",
+          "text": "Across the sampled sets of few-shot examples, the gap in shortlisting rates between gender groups stays within the agreed tolerance for the resume screening assistant.",
+          "domain": "employment",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The recruitment system's candidate assessments remain unbiased when the composition of demonstration examples varies in demographic representation",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The model maintains consistent performance across protected groups under diverse configurations of in-context learning examples",
+          "text": "Changing the demographic mix of the examples in the triage prompt does not move urgency ratings for otherwise identical patient descriptions that differ only in sex beyond the agreed tolerance.",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "fairness"
         },
         {
-          "text": "The system's fairness characteristics across different prompt example compositions are quantified and documented",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The content generation model's outputs exhibit equitable treatment of demographic groups when few-shot examples contain varying levels of representation",
-          "domain": "general",
+          "text": "None of the tested example sets widens the gap in favourable recommendations between demographic groups beyond the gap seen with no examples in the prompt.",
+          "domain": "finance",
           "assuranceGoal": "fairness"
         }
       ]

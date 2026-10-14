@@ -205,10 +205,9 @@
     {
       "slug": "path-specific-counterfactual-fairness-assessment",
       "name": "Path-Specific Counterfactual Fairness Assessment",
-      "description": "A causal fairness evaluation technique that assesses algorithmic discrimination by examining specific causal pathways in a model's decision-making process. Unlike general counterfactual fairness, this approach enables practitioners to identify and intervene on particular causal paths that may introduce bias whilst preserving other legitimate pathways. The method uses causal graphs to distinguish between direct discrimination (through protected attributes) and indirect discrimination (through seemingly neutral factors that correlate with protected attributes), allowing for more nuanced fairness assessments in complex causal settings.",
+      "description": "Path-specific counterfactual fairness assessment tests whether a protected attribute, such as sex or race, influences a decision along routes that the assessor judges unfair. The assessor first draws a causal graph, a diagram of which variables influence which, and marks each route from the protected attribute to the decision as acceptable or unacceptable. In a classic admissions example, women applied more often to departments with low admission rates, so the effect of sex through department choice was treated as acceptable, while any direct effect of sex was not. The technique then estimates how the decision would change if the protected attribute were switched, counting only the effect that travels along the unacceptable routes. A large estimate points to unfair influence along those routes, and the estimate is only as sound as the graph and the choice of routes.",
       "assurance_goals": [
-        "Fairness",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -216,8 +215,6 @@
         "applicable-models/requirements/black-box",
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/bias-measurement",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "data-requirements/causal-graph",
         "data-requirements/sensitive-attributes",
         "data-type/tabular",
@@ -233,23 +230,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating hiring algorithms by identifying which causal pathways from education and experience legitimately affect job performance versus those that introduce gender or racial bias, enabling targeted interventions that preserve merit-based selection whilst eliminating discriminatory pathways.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A company auditing its CV-screening model draws a causal graph from gender to the shortlisting decision. Routes through qualifications are marked acceptable, while the direct route and the route through career-break length are marked unacceptable. The estimated effect along the unacceptable routes tells the audit team whether the model disadvantages women beyond what job-relevant qualifications explain."
         },
         {
-          "description": "Analysing loan approval models to provide transparent evidence of which factors legitimately influence creditworthiness versus those that create indirect discrimination, enabling clear explanations to regulators about causal mechanisms underlying fair lending decisions.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "A research team auditing ventilation decisions in intensive care uses recorded patient data to estimate how much of the effect of patient race on starting invasive ventilation passes through pulse-oximeter readings, which tend to overstate oxygen levels in dark-skinned patients, and how much through other routes."
         }
       ],
       "limitations": [
         {
-          "description": "Requires identifying which causal pathways are 'allowable' and which are not—a subjective decision; analyzing specific paths adds complexity to the causal model and the fairness criterion."
+          "description": "Which routes count as unacceptable is a value judgement the assessor must make and defend, and different reasonable choices give different verdicts on the same model. The technique does not settle that question. It only measures the effect along the routes it is given."
         },
         {
-          "description": "Causal graph construction relies on domain expertise and cannot be validated from observational data alone; if the graph incorrectly encodes causal structure or omits relevant edges, the path-specific assessment may certify an unfair model as compliant with no internal mechanism to detect the error, and this uncertainty is rarely surfaced in compliance documentation."
+          "description": "The causal graph comes from domain knowledge and cannot be fully checked against observational data. If the graph has a wrong arrow or omits a relevant variable, the assessment can certify an unfair model as compliant, and nothing inside the method flags the error."
         },
         {
-          "description": "Path-specific causal effects are frequently non-identifiable from observational data alone; when unobserved confounders exist between a sensitive attribute and mediating variables or outcomes, the effect along a specific pathway cannot be uniquely recovered without additional parametric assumptions, reducing the technique to bounding rather than point-estimation of discrimination."
+          "description": "Path-specific effects are often not identifiable from observational data alone. When unobserved confounders sit between the protected attribute and the mediating variables or the outcome, the effect along a specific route cannot be uniquely recovered without further parametric assumptions, so the result becomes a bound rather than a point estimate."
+        },
+        {
+          "description": "Estimating the effect along a route means fitting a model for each variable on it. Outside linear or low-dimensional settings the calculation is hard and relies on approximations, and the answer is only as good as the fitted model's match to the data."
+        },
+        {
+          "description": "An average effect can hide opposing individual effects. A population-level result does not establish the paper's individual counterfactual criterion for every person."
         }
       ],
       "resources": [
@@ -333,22 +336,17 @@
       ],
       "sample_claims": [
         {
-          "text": "The hiring system's decisions are not influenced by gender through educational pathways whilst preserving the legitimate influence of qualifications on employment outcomes",
-          "domain": "general",
+          "text": "The effect of applicant gender on shortlisting along the routes judged unacceptable, the direct route and the route through career-break length, is statistically indistinguishable from zero.",
+          "domain": "employment",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The loan approval model's risk assessment isolates the direct influence of creditworthiness from indirect effects of demographic characteristics propagating through correlated factors",
+          "text": "Switching an applicant's ethnicity changes the modelled approval probability by less than the agreed tolerance along every route the review panel marked as unacceptable.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The decision process documents which factors legitimately affect outcomes versus those that create indirect discrimination through upstream correlations",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The model's treatment recommendations remain consistent across patient demographics when controlling for symptom severity and medical history whilst allowing clinically relevant differences to influence care decisions",
+          "text": "The share of the effect of patient race on the decision to start invasive ventilation that passes through pulse-oximeter readings is estimated, with a stated confidence interval, from the hospital records.",
           "domain": "healthcare",
           "assuranceGoal": "fairness"
         }

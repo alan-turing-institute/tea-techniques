@@ -1,7 +1,7 @@
 {
   "slug": "equal-opportunity-difference",
   "name": "Equal Opportunity Difference",
-  "description": "A fairness metric that quantifies discrimination by measuring the difference in true positive rates (recall) between protected and privileged groups. Based on Hardt et al.'s equality of opportunity framework, this metric computes the maximum difference in TPR across demographic groups, with a value of 0 indicating perfect fairness. The technique provides a mathematical measure of whether qualified individuals from different groups have equal chances of receiving positive predictions.",
+  "description": "Equal Opportunity Difference checks whether a model is equally likely to give a favourable prediction to the people whose true outcome is favourable, such as loan applicants who would repay, in each demographic group. For each group it calculates the true positive rate: of the people whose true outcome is positive, the share the model also predicts as positive. The score is the gap between two groups' rates, usually the unprivileged group's minus the privileged group's, and 0 means the rates match. Some libraries report the largest gap across all groups instead. The metric follows the equality of opportunity criterion of Hardt, Price and Srebro (2016), and it says nothing about people whose true outcome is negative, so a score of 0 does not show that the model is fair overall.",
   "assurance_goals": [
     "Fairness"
   ],
@@ -23,8 +23,16 @@
   ],
   "example_use_cases": [
     {
-      "description": "Evaluating a loan approval model to ensure that qualified applicants from different ethnic backgrounds have equal approval rates, measuring whether a 90% TPR for qualified white applicants is matched by similar rates for qualified minority applicants.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A bank's model risk team evaluates a loan approval model on past loans with known repayment outcomes. It measures whether applicants who went on to repay were approved at the same rate in each ethnic group, for example 90% for one group against a markedly lower rate for another, before the model is released."
+    },
+    {
+      "goal": "Fairness",
+      "description": "A hospital evaluating a model that flags chest X-rays for suspected pneumonia compares its sensitivity, the share of confirmed cases it flags, between male and female patients and between age bands on a labelled validation set. A gap means affected patients in one group are more likely to be missed, which the clinical safety board weighs before deployment."
+    },
+    {
+      "goal": "Fairness",
+      "description": "A university department checks a model that flags first-year students at risk of dropping out so they can be offered support. Using last year's records, it measures what share of students who actually dropped out were flagged, separately for students who are the first in their family to attend university and for other students."
     }
   ],
   "limitations": [
@@ -32,16 +40,16 @@
       "description": "Only considers true positive rates and ignores false positive rate disparities, potentially allowing discrimination in the form of unequal false alarm rates between groups."
     },
     {
-      "description": "Requires accurate ground truth labels for the positive class, which may be biased or unavailable in some domains."
+      "description": "The true outcome labels must be reliable for every group. Where they record past decisions, such as repayment known only for applicants previously approved, or are measured differently between groups, equal true positive rates can reproduce the bias already in the labels."
     },
     {
-      "description": "Improving TPR for one group might increase FPR for that group, creating trade-offs between different types of fairness."
+      "description": "True positive rates use only the people whose true outcome is positive, so a rare outcome leaves few cases in each group. Gaps can then be noise, and splitting by several attributes at once, such as age within gender, makes this worse."
     },
     {
-      "description": "Does not account for intersectional fairness across multiple protected attributes simultaneously."
+      "description": "Closing a gap by lowering one group's decision threshold raises that group's true positive rate but also its false positive rate. Fixing this metric can therefore open a gap in another, and the metric gives no warning when it does."
     },
     {
-      "description": "May not capture fairness concerns for the negative class or individuals who should not receive positive predictions."
+      "description": "A score of 0 does not show that the model is fair. The measure uses only predictions, true outcomes and group membership, and Hardt et al. show that situations with different fairness readings can give identical numbers, so a result needs scrutiny of how the outcome was produced."
     }
   ],
   "resources": [
@@ -166,13 +174,23 @@
   ],
   "sample_claims": [
     {
-      "text": "The hiring system identifies qualified candidates at equivalent rates across demographic groups",
+      "text": "The hiring audit reports the true-positive-rate gap between the specified groups among candidates labelled qualified.",
       "domain": "general",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The diagnostic model detects disease in affected patients consistently regardless of patient ethnicity",
+      "text": "The diagnostic model's disease-detection rates meet the stated gap tolerance for the declared ethnic groups on the labelled evaluation set.",
       "domain": "healthcare",
+      "assuranceGoal": "fairness"
+    },
+    {
+      "text": "On the validation sample, the credit model approves applicants who go on to repay at rates that differ across ethnic groups by no more than the agreed tolerance.",
+      "domain": "finance",
+      "assuranceGoal": "fairness"
+    },
+    {
+      "text": "The early-warning model flags students who go on to drop out at similar rates for first-generation students and for other students.",
+      "domain": "education",
       "assuranceGoal": "fairness"
     }
   ]

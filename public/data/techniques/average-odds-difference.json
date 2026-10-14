@@ -1,7 +1,7 @@
 {
   "slug": "average-odds-difference",
   "name": "Average Odds Difference",
-  "description": "Average Odds Difference measures fairness by calculating the average difference in both false positive rates and true positive rates between different demographic groups. This metric captures how consistently a model performs across groups for both positive and negative predictions. A value of 0 indicates perfect fairness under the equalized odds criterion, while larger absolute values indicate greater disparities in model performance between groups.",
+  "description": "Average Odds Difference summarises how differently a model treats two demographic groups, using two error rates. The true positive rate is the share of people whose true outcome is positive whom the model also predicts as positive. The false positive rate is the share of people whose true outcome is negative whom the model wrongly predicts as positive. The score is the mean of the gap in each rate between the groups, usually the unprivileged group minus the privileged group, so 0 means the two gaps are absent or cancel out. Hardt, Price and Srebro (2016) call the stricter requirement that both gaps are zero equalised odds, and a score near 0 does not guarantee it.",
   "assurance_goals": [
     "Fairness"
   ],
@@ -23,12 +23,16 @@
   ],
   "example_use_cases": [
     {
-      "description": "Evaluating criminal risk assessment tools to ensure equal false positive rates (wrongly flagging low-risk individuals as high-risk) and true positive rates (correctly identifying high-risk individuals) across racial and ethnic groups.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A court-services analytics team audits a pre-trial risk tool on past cases with known outcomes. It reports the average odds difference between racial groups together with the two gaps it averages: how often defendants who later reoffended were rated high risk, and how often those who did not were wrongly rated high risk. The findings go to the oversight board that decides whether the tool stays in use."
     },
     {
-      "description": "Auditing hiring algorithms to verify that both the rate of correctly identifying qualified candidates and the rate of incorrectly rejecting qualified candidates remain consistent across gender and demographic groups.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A recruitment firm audits its CV-screening tool on past applications whose suitability hiring managers later confirmed. For men and women it compares how often suitable applicants were advanced and how often unsuitable applicants were advanced, and it tracks the average of the two gaps each quarter to decide whether the tool needs retraining."
+    },
+    {
+      "goal": "Fairness",
+      "description": "A hospital compares a sepsis early-warning model across patient ethnic groups before rollout. It checks the share of true sepsis cases flagged and the share of non-sepsis patients falsely flagged, since missed cases and false alarms both carry costs, and uses the average gap to rank candidate models."
     }
   ],
   "limitations": [
@@ -36,16 +40,16 @@
       "description": "Averaging effect can mask important disparities when false positive and true positive rate differences compensate for each other, potentially hiding significant bias in one direction."
     },
     {
-      "description": "Requires access to ground truth labels and sensitive attribute information, which may not be available in all deployment scenarios or may be subject to privacy constraints."
+      "description": "The rates are only as trustworthy as the outcome labels, which can differ in quality between groups. Where outcomes are recorded only for people previously approved or hired, such as repayment for granted loans, the gaps describe a selected subset rather than the whole applicant pool. The sensitive attribute must also be available and lawful to use."
     },
     {
-      "description": "Does not account for base rate differences between groups, meaning equal error rates may not translate to equal treatment when group prevalences differ significantly."
+      "description": "When groups differ in how many members truly have the positive outcome, equal error rates generally cannot be achieved together with scores that mean the same thing in every group (Hardt et al. discuss this result of Kleinberg et al.). Pushing the metric towards 0 can therefore leave a risk score less well calibrated for one group, a trade-off the metric does not weigh."
     },
     {
-      "description": "Focuses solely on prediction accuracy disparities without considering whether the underlying decision-making process or feature selection introduces systematic bias against certain groups."
+      "description": "A score of 0 does not show that the model is fair. The measure uses only predictions, true outcomes and group membership, and Hardt et al. show that situations with very different fairness readings can give identical numbers, so any result needs scrutiny of how the outcome was produced."
     },
     {
-      "description": "May encourage optimization for fairness metrics at the expense of overall model performance, potentially reducing utility for the primary prediction task."
+      "description": "Closing the gaps can mean degrading the better-served group instead of improving the other. Hardt et al. show that a predictor meeting equalised odds is only as good as the weakest group's performance, so reaching a score of 0 this way can cost accuracy for everyone."
     }
   ],
   "resources": [
@@ -173,17 +177,17 @@
   ],
   "sample_claims": [
     {
-      "text": "The criminal risk assessment system maintains equivalent error rates for both false alarms and correct identifications across racial and ethnic groups",
+      "text": "On the validation cases, the pre-trial risk tool's true positive and false positive rate gaps between racial groups are each within the agreed tolerance, and their average is reported alongside them.",
       "domain": "public sector",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The hiring model's accuracy in both accepting qualified candidates and rejecting unqualified candidates is consistent across all protected demographic categories",
+      "text": "The CV-screening tool's average odds difference between men and women is within the agreed tolerance, and neither its true positive nor its false positive rate gap exceeds the limit set for it.",
       "domain": "general",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The credit scoring model's true approval rate for creditworthy applicants and false approval rate for non-creditworthy applicants remain equitable across protected groups",
+      "text": "The credit scoring model's average odds difference across protected groups on the validation sample is within the agreed tolerance, with creditworthy and non-creditworthy applicants each approved at similar rates in every group.",
       "domain": "finance",
       "assuranceGoal": "fairness"
     }

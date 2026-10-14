@@ -1,7 +1,7 @@
 {
   "slug": "meta-fair-classifier",
   "name": "Meta Fair Classifier",
-  "description": "An in-processing fairness technique that employs meta-learning to modify any existing classifier for optimising fairness metrics whilst maintaining predictive performance. The method learns how to adjust model parameters or decision boundaries to satisfy fairness constraints such as demographic parity or equalised odds through iterative optimisation. This approach is particularly valuable when retrofitting fairness to pre-trained models that perform well but exhibit bias, as it can incorporate fairness without requiring complete retraining from scratch.",
+  "description": "The meta fair classifier is a general-purpose training algorithm for fair classification. The user chooses a fairness metric, such as the statistical rate (each group's share of favourable outcomes) or the false discovery rate (the share of positive predictions that are wrong), and a target between 0 and 1 for how close to equal the groups' values must be. From labelled training examples that include the protected attribute, the algorithm fits a model of the data, solves a series of constrained optimisation problems, and returns the most accurate classifier that meets the target. It trains a new classifier rather than adjusting an existing one. The original paper proves the result comes close to the best classifier that meets the target, up to the error in the fitted model of the data.",
   "assurance_goals": [
     "Fairness"
   ],
@@ -24,25 +24,33 @@
   ],
   "example_use_cases": [
     {
-      "description": "Retrofitting an existing hiring algorithm to achieve demographic parity across gender and ethnicity groups by using meta-learning to adjust decision boundaries, ensuring equitable candidate selection whilst maintaining the model's ability to identify qualified applicants.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A recruitment platform trains a shortlisting classifier with a statistical-rate target of 0.8, so that the selection rate for any gender group is at least 80% of the highest group's rate, and measures how much accuracy it gives up to reach that target."
+    },
+    {
+      "goal": "Fairness",
+      "description": "A probation service building a recidivism risk classifier constrains false discovery rate parity, so that among people flagged as high risk, the share who do not go on to reoffend is similar across racial groups."
+    },
+    {
+      "goal": "Fairness",
+      "description": "A hospital building a classifier for heart conditions constrains false discovery rate parity, so that false alarms, which send people for unnecessary medical attention, do not fall more heavily on women than on men."
     }
   ],
   "limitations": [
     {
-      "description": "Meta-learning approach can be complex to implement, requiring expertise in both the underlying classifier and meta-optimisation techniques."
+      "description": "It is a self-contained learner, not a wrapper. It cannot adjust a model you already run, and the paper lists extension to other classifier types as future work. It also needs the protected attribute for every training example, and teams must be willing to replace their model with the one it produces."
     },
     {
-      "description": "Requires extensive hyperparameter tuning to balance fairness constraints with predictive performance, making optimisation challenging."
+      "description": "The AIF360 implementation supports only statistical rate and false discovery rate, and raises an error for any other metric. The paper's framework covers more, but other criteria, such as equalised odds, mean extra implementation work or choosing a different technique."
     },
     {
-      "description": "May result in longer training times compared to simpler fairness techniques due to the iterative meta-learning process."
+      "description": "The guarantee depends on how well the fitted model of the data matches the real distribution, and the paper's bound carries error terms for any mismatch. In its experiments, a simple fitted model gave lower accuracy than competing methods at the same fairness level."
     },
     {
-      "description": "Performance depends heavily on the quality and characteristics of the base classifier being modified, limiting effectiveness with poorly-performing models."
+      "description": "Results can vary from run to run. In a credit-scoring comparison, repeated runs sometimes missed the fairness target, which made averaging the results unusable."
     },
     {
-      "description": "Theoretical guarantees about fairness-accuracy trade-offs may not hold in practice due to finite sample effects and optimisation challenges."
+      "description": "The method solves a separate constrained optimisation problem for each value on a grid set by the tolerance, and the number multiplies for each additional fairness metric constrained at once. Combining several criteria quickly makes training slow."
     }
   ],
   "resources": [
@@ -138,18 +146,18 @@
   ],
   "sample_claims": [
     {
-      "text": "The hiring model achieves equitable selection rates across demographic groups through learned parameter adjustments that preserve candidate assessment accuracy",
-      "domain": "general",
+      "text": "On held-out data, the shortlisting classifier's selection rate for each gender group is at least 80% of the highest group's rate.",
+      "domain": "employment",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The fraud detection system satisfies equalised odds constraints across protected groups without requiring retraining from scratch",
-      "domain": "finance",
+      "text": "Among people the recidivism model flags as high risk, the share who do not reoffend differs between racial groups by no more than the agreed tolerance.",
+      "domain": "public sector",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The environmental risk assessment model's fairness constraints are satisfied across geographic regions whilst maintaining predictive performance for resource allocation",
-      "domain": "environmental",
+      "text": "The share of false alarms among the heart-condition classifier's positive predictions is similar for women and men, with the accuracy cost against an unconstrained classifier reported.",
+      "domain": "healthcare",
       "assuranceGoal": "fairness"
     }
   ]

@@ -1828,7 +1828,7 @@
     {
       "slug": "exponentiated-gradient-reduction",
       "name": "Exponentiated Gradient Reduction",
-      "description": "An in-processing fairness technique based on Agarwal et al.'s reductions approach that transforms fair classification into a sequence of cost-sensitive classification problems. The method uses an exponentiated gradient algorithm to iteratively reweight training data, returning a randomised classifier that achieves the lowest empirical error whilst satisfying fairness constraints. This reduction-based framework provides theoretical guarantees about both accuracy and constraint violation, making it suitable for various fairness criteria including demographic parity and equalised odds.",
+      "description": "Exponentiated gradient reduction trains a classifier that satisfies a chosen fairness criterion, such as demographic parity (equal rates of favourable outcomes across groups) or equalised odds (equal error rates across groups), while keeping error as low as it can. It reduces the problem to a series of ordinary training runs on the same data, each with different example weights. Between runs, a multiplicative update, the exponentiated gradient step, increases the weight on fairness constraints that are currently violated, and a standard classifier is retrained on the reweighted data. The output is a randomised classifier, a weighted mix of the classifiers trained along the way, with one drawn at random for each prediction. The original paper proves that its error and its fairness violation come close to the best achievable, up to a tolerance the user sets and the statistical error from a finite training set.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -1854,25 +1854,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Training a hiring algorithm with demographic parity constraints to ensure equal selection rates across gender groups, using iterative reweighting to balance fairness and predictive accuracy whilst maintaining legal compliance.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A recruitment team trains a shortlisting model under a demographic parity constraint so that selection rates are equal across gender groups, and sweeps the method's tolerance setting to see how much accuracy each step towards equality costs."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A justice agency building a recidivism risk model trains a logistic regression under a demographic parity constraint on race, then compares accuracy and fairness metrics against the unconstrained model on the same data before deciding whether to deploy it."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A lender trying equalised odds, true-positive-rate difference and demographic parity as constraints on its credit-scoring model picks the one that gives the best balance of accuracy and profit on its own data, since the best choice differs between datasets."
         }
       ],
       "limitations": [
         {
-          "description": "Requires convex base learners for theoretical guarantees about convergence and optimality, limiting the choice of underlying models."
+          "description": "The guarantees assume the base learner can solve each weighted training problem close to exactly. Real learners only approximate this, so the stated bounds on error and fairness violation are approximate in practice. The learner must also accept per-example weights, which rules out some model types."
         },
         {
-          "description": "Produces randomised classifiers that may give different predictions for identical inputs, which can be problematic in applications requiring consistent decisions."
+          "description": "The result is a randomised mix of classifiers, so the same input can receive different predictions on repeat requests. This is hard to defend where decisions must be repeatable, as in appeals or audits."
         },
         {
-          "description": "Convergence can be slow and sensitive to hyperparameter choices, particularly the learning rate and tolerance settings."
+          "description": "Needs the protected attribute for every training example, although not at prediction time. It enforces one fairness criterion at a time, and the original paper leaves trading off several criteria as an open problem."
         },
         {
-          "description": "Involves iterative retraining with adjusted weights, which can be computationally expensive for large datasets or complex models."
+          "description": "Each round retrains the base model, and the number of rounds needed grows with the square of the inverse of the tolerance, so halving the tolerance roughly quadruples training cost. Large datasets or slow models make tight tolerances expensive."
         },
         {
-          "description": "Fairness constraints may significantly reduce model accuracy, and the trade-off between fairness and performance is not always transparent to practitioners."
+          "description": "Constraint violation is controlled only up to sampling error, which is larger for small groups. In one credit-scoring comparison the best-performing constraint differed between datasets, so the right criterion has to be found by experiment on the data in hand."
         }
       ],
       "resources": [
@@ -1983,8 +1991,18 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The criminal justice risk assessment tool's predictions satisfy equitable treatment constraints with documented convergence properties",
+          "text": "On held-out data, the shortlisting model's selection rates differ between gender groups by no more than the agreed tolerance.",
+          "domain": "employment",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The recidivism model's true-positive and false-positive rates differ across racial groups by less than the agreed tolerance, and the accuracy cost against the unconstrained model is reported.",
           "domain": "public sector",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "Across a sweep of tolerance settings, the model's error and fairness violation trace out a reported trade-off curve, and the deployed setting is justified from it.",
+          "domain": "general",
           "assuranceGoal": "fairness"
         }
       ]

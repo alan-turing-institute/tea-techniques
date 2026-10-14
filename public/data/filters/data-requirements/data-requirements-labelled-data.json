@@ -314,7 +314,7 @@
     {
       "slug": "adversarial-debiasing",
       "name": "Adversarial Debiasing",
-      "description": "Adversarial debiasing reduces bias by training models using a competitive adversarial setup, similar to Generative Adversarial Networks (GANs). The technique involves two neural networks: a predictor that learns to make accurate predictions on the main task, and an adversary (bias detector) that attempts to predict protected attributes (such as race, gender, or age) from the predictor's internal representations. Through adversarial training, the predictor learns to produce representations that retain predictive power for the main task whilst being uninformative about protected characteristics, thereby reducing discriminatory bias.",
+      "description": "Adversarial debiasing trains a model so that its predictions carry as little information as possible about a protected attribute, such as sex or race. Two neural networks are trained together, a predictor that learns the main task, such as estimating default risk, and an adversary that tries to guess each person's protected attribute from the predictor's output. The predictor is updated to stay accurate while making the adversary's guesses fail, which pushes its outputs towards equal rates of favourable outcomes across groups (demographic parity). If the adversary is also given the true label, the predictor is penalised only for information about the attribute beyond what the label carries, which targets equal error rates across groups (equalised odds). The method needs the protected attribute for every training example and a model trained by gradient descent.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -339,33 +339,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Training a resume screening model for a technology company that evaluates candidates based on skills and experience whilst preventing the internal representations from encoding gender or ethnicity information, ensuring hiring decisions cannot be influenced by protected characteristics even indirectly through correlated features.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A technology company trains a CV-screening model with an adversary that tries to guess each applicant's gender from the model's shortlisting score, so that selection rates come out similar for men and women (demographic parity) instead of leaning on CV features that happen to correlate with gender."
         },
         {
-          "description": "Developing a credit scoring model for loan approvals that accurately predicts default risk whilst ensuring the model's internal features cannot be used to infer applicants' race or age, thereby preventing discriminatory lending practices whilst maintaining predictive accuracy.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A lender trains a default-risk model for loan approvals with an adversary that is given each applicant's score and true repayment outcome and tries to guess their age band, so that false-positive and false-negative rates are similar across age bands (equalised odds) while predictive accuracy is kept."
         },
         {
-          "description": "Creating a medical diagnosis model that makes accurate predictions about patient conditions whilst ensuring that the learned representations cannot reveal sensitive demographic information like gender or ethnicity, protecting patient privacy whilst maintaining clinical effectiveness.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A hospital group trains a COVID-19 screening model on emergency-department data with an adversary that tries to guess patient ethnicity from the model's score and the true test result, so that error rates are similar across ethnic groups while screening performance stays clinically useful."
         }
       ],
       "limitations": [
         {
-          "description": "Significantly more complex to implement than standard models, requiring expertise in adversarial training techniques and careful architecture design for both predictor and adversary networks."
+          "description": "The adversary only sees what it is given, usually the predictor's score and, for equalised odds, the true label. The method therefore targets one output-level criterion and gives no assurance that hidden layers are free of protected-attribute information, or that a different criterion holds."
         },
         {
-          "description": "Requires careful hyperparameter tuning to balance the competing objectives of task performance and bias mitigation, as overly strong adversarial training can harm predictive accuracy."
+          "description": "Needs the protected attribute for every training example, so it cannot be used where that attribute was never collected or may not be held."
         },
         {
-          "description": "Effectiveness heavily depends on the quality and design of the adversary network - a weak adversary may fail to detect subtle biases, whilst an overly strong adversary may eliminate useful information."
+          "description": "Demographic parity and equalised odds generally cannot both be met, so one must be chosen before training. Equal error rates can also come from worsening one group's rates: in the original Adult income experiment, the false-positive rate for women rose from 0.025 to 0.065."
         },
         {
-          "description": "Training can be unstable and may suffer from convergence issues common to adversarial training, requiring careful learning rate scheduling and regularisation techniques."
+          "description": "Training two networks against each other is unstable. The weight given to the adversary has to be tuned (adversary_loss_weight in AIF360), and a wrong setting can make training diverge or leave the result closer to a different criterion than the one intended."
         },
         {
-          "description": "Provides no formal guarantees about bias elimination and may not prevent all forms of discrimination, particularly when protected attributes can be inferred from other available features."
+          "description": "The paper's guarantee that outputs meet the chosen criterion holds only if both networks converge and the adversary is strong enough. A weak adversary leaves bias in place, and the convexity assumptions behind the proof do not hold for typical neural networks, so fairness has to be checked on held-out data after training."
         }
       ],
       "resources": [
@@ -446,28 +446,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's internal representations cannot be used to infer protected characteristics of individuals",
-          "domain": "general",
+          "text": "On held-out data, the shortlisting model's selection rates differ between gender groups by no more than the agreed tolerance, and its accuracy is within the agreed margin of the unconstrained model.",
+          "domain": "employment",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The hiring system's learned features maintain predictive power for job suitability whilst being statistically independent of candidate gender",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The credit scoring model's intermediate layers do not encode information about applicants' race or ethnicity",
+          "text": "The default-risk model's false-positive and false-negative rates differ between age bands by no more than the agreed tolerance on held-out data.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The diagnostic system achieves equitable performance across patient demographics without encoding sensitive attributes in its feature representations",
+          "text": "The COVID-19 screening model's error rates are similar across ethnic groups in each external hospital cohort, with negative predictive value above the clinical threshold set for screening.",
           "domain": "healthcare",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The facial recognition model's hidden representations are uninformative about protected characteristics whilst preserving identification accuracy",
-          "domain": "autonomous systems",
+          "text": "Compared with the same model trained without the adversary, the model's gap on the chosen fairness criterion is smaller on held-out data, at a reported cost in accuracy.",
+          "domain": "general",
           "assuranceGoal": "fairness"
         }
       ]
@@ -2253,7 +2248,7 @@
     {
       "slug": "meta-fair-classifier",
       "name": "Meta Fair Classifier",
-      "description": "An in-processing fairness technique that employs meta-learning to modify any existing classifier for optimising fairness metrics whilst maintaining predictive performance. The method learns how to adjust model parameters or decision boundaries to satisfy fairness constraints such as demographic parity or equalised odds through iterative optimisation. This approach is particularly valuable when retrofitting fairness to pre-trained models that perform well but exhibit bias, as it can incorporate fairness without requiring complete retraining from scratch.",
+      "description": "The meta fair classifier is a general-purpose training algorithm for fair classification. The user chooses a fairness metric, such as the statistical rate (each group's share of favourable outcomes) or the false discovery rate (the share of positive predictions that are wrong), and a target between 0 and 1 for how close to equal the groups' values must be. From labelled training examples that include the protected attribute, the algorithm fits a model of the data, solves a series of constrained optimisation problems, and returns the most accurate classifier that meets the target. It trains a new classifier rather than adjusting an existing one. The original paper proves the result comes close to the best classifier that meets the target, up to the error in the fitted model of the data.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -2276,25 +2271,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Retrofitting an existing hiring algorithm to achieve demographic parity across gender and ethnicity groups by using meta-learning to adjust decision boundaries, ensuring equitable candidate selection whilst maintaining the model's ability to identify qualified applicants.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A recruitment platform trains a shortlisting classifier with a statistical-rate target of 0.8, so that the selection rate for any gender group is at least 80% of the highest group's rate, and measures how much accuracy it gives up to reach that target."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A probation service building a recidivism risk classifier constrains false discovery rate parity, so that among people flagged as high risk, the share who do not go on to reoffend is similar across racial groups."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A hospital building a classifier for heart conditions constrains false discovery rate parity, so that false alarms, which send people for unnecessary medical attention, do not fall more heavily on women than on men."
         }
       ],
       "limitations": [
         {
-          "description": "Meta-learning approach can be complex to implement, requiring expertise in both the underlying classifier and meta-optimisation techniques."
+          "description": "It is a self-contained learner, not a wrapper. It cannot adjust a model you already run, and the paper lists extension to other classifier types as future work. It also needs the protected attribute for every training example, and teams must be willing to replace their model with the one it produces."
         },
         {
-          "description": "Requires extensive hyperparameter tuning to balance fairness constraints with predictive performance, making optimisation challenging."
+          "description": "The AIF360 implementation supports only statistical rate and false discovery rate, and raises an error for any other metric. The paper's framework covers more, but other criteria, such as equalised odds, mean extra implementation work or choosing a different technique."
         },
         {
-          "description": "May result in longer training times compared to simpler fairness techniques due to the iterative meta-learning process."
+          "description": "The guarantee depends on how well the fitted model of the data matches the real distribution, and the paper's bound carries error terms for any mismatch. In its experiments, a simple fitted model gave lower accuracy than competing methods at the same fairness level."
         },
         {
-          "description": "Performance depends heavily on the quality and characteristics of the base classifier being modified, limiting effectiveness with poorly-performing models."
+          "description": "Results can vary from run to run. In a credit-scoring comparison, repeated runs sometimes missed the fairness target, which made averaging the results unusable."
         },
         {
-          "description": "Theoretical guarantees about fairness-accuracy trade-offs may not hold in practice due to finite sample effects and optimisation challenges."
+          "description": "The method solves a separate constrained optimisation problem for each value on a grid set by the tolerance, and the number multiplies for each additional fairness metric constrained at once. Combining several criteria quickly makes training slow."
         }
       ],
       "resources": [
@@ -2390,18 +2393,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The hiring model achieves equitable selection rates across demographic groups through learned parameter adjustments that preserve candidate assessment accuracy",
-          "domain": "general",
+          "text": "On held-out data, the shortlisting classifier's selection rate for each gender group is at least 80% of the highest group's rate.",
+          "domain": "employment",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The fraud detection system satisfies equalised odds constraints across protected groups without requiring retraining from scratch",
-          "domain": "finance",
+          "text": "Among people the recidivism model flags as high risk, the share who do not reoffend differs between racial groups by no more than the agreed tolerance.",
+          "domain": "public sector",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The environmental risk assessment model's fairness constraints are satisfied across geographic regions whilst maintaining predictive performance for resource allocation",
-          "domain": "environmental",
+          "text": "The share of false alarms among the heart-condition classifier's positive predictions is similar for women and men, with the accuracy cost against an unconstrained classifier reported.",
+          "domain": "healthcare",
           "assuranceGoal": "fairness"
         }
       ]
@@ -2409,7 +2412,7 @@
     {
       "slug": "exponentiated-gradient-reduction",
       "name": "Exponentiated Gradient Reduction",
-      "description": "An in-processing fairness technique based on Agarwal et al.'s reductions approach that transforms fair classification into a sequence of cost-sensitive classification problems. The method uses an exponentiated gradient algorithm to iteratively reweight training data, returning a randomised classifier that achieves the lowest empirical error whilst satisfying fairness constraints. This reduction-based framework provides theoretical guarantees about both accuracy and constraint violation, making it suitable for various fairness criteria including demographic parity and equalised odds.",
+      "description": "Exponentiated gradient reduction trains a classifier that satisfies a chosen fairness criterion, such as demographic parity (equal rates of favourable outcomes across groups) or equalised odds (equal error rates across groups), while keeping error as low as it can. It reduces the problem to a series of ordinary training runs on the same data, each with different example weights. Between runs, a multiplicative update, the exponentiated gradient step, increases the weight on fairness constraints that are currently violated, and a standard classifier is retrained on the reweighted data. The output is a randomised classifier, a weighted mix of the classifiers trained along the way, with one drawn at random for each prediction. The original paper proves that its error and its fairness violation come close to the best achievable, up to a tolerance the user sets and the statistical error from a finite training set.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -2435,25 +2438,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Training a hiring algorithm with demographic parity constraints to ensure equal selection rates across gender groups, using iterative reweighting to balance fairness and predictive accuracy whilst maintaining legal compliance.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A recruitment team trains a shortlisting model under a demographic parity constraint so that selection rates are equal across gender groups, and sweeps the method's tolerance setting to see how much accuracy each step towards equality costs."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A justice agency building a recidivism risk model trains a logistic regression under a demographic parity constraint on race, then compares accuracy and fairness metrics against the unconstrained model on the same data before deciding whether to deploy it."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A lender trying equalised odds, true-positive-rate difference and demographic parity as constraints on its credit-scoring model picks the one that gives the best balance of accuracy and profit on its own data, since the best choice differs between datasets."
         }
       ],
       "limitations": [
         {
-          "description": "Requires convex base learners for theoretical guarantees about convergence and optimality, limiting the choice of underlying models."
+          "description": "The guarantees assume the base learner can solve each weighted training problem close to exactly. Real learners only approximate this, so the stated bounds on error and fairness violation are approximate in practice. The learner must also accept per-example weights, which rules out some model types."
         },
         {
-          "description": "Produces randomised classifiers that may give different predictions for identical inputs, which can be problematic in applications requiring consistent decisions."
+          "description": "The result is a randomised mix of classifiers, so the same input can receive different predictions on repeat requests. This is hard to defend where decisions must be repeatable, as in appeals or audits."
         },
         {
-          "description": "Convergence can be slow and sensitive to hyperparameter choices, particularly the learning rate and tolerance settings."
+          "description": "Needs the protected attribute for every training example, although not at prediction time. It enforces one fairness criterion at a time, and the original paper leaves trading off several criteria as an open problem."
         },
         {
-          "description": "Involves iterative retraining with adjusted weights, which can be computationally expensive for large datasets or complex models."
+          "description": "Each round retrains the base model, and the number of rounds needed grows with the square of the inverse of the tolerance, so halving the tolerance roughly quadruples training cost. Large datasets or slow models make tight tolerances expensive."
         },
         {
-          "description": "Fairness constraints may significantly reduce model accuracy, and the trade-off between fairness and performance is not always transparent to practitioners."
+          "description": "Constraint violation is controlled only up to sampling error, which is larger for small groups. In one credit-scoring comparison the best-performing constraint differed between datasets, so the right criterion has to be found by experiment on the data in hand."
         }
       ],
       "resources": [
@@ -2564,8 +2575,18 @@
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The criminal justice risk assessment tool's predictions satisfy equitable treatment constraints with documented convergence properties",
+          "text": "On held-out data, the shortlisting model's selection rates differ between gender groups by no more than the agreed tolerance.",
+          "domain": "employment",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The recidivism model's true-positive and false-positive rates differ across racial groups by less than the agreed tolerance, and the accuracy cost against the unconstrained model is reported.",
           "domain": "public sector",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "Across a sweep of tolerance settings, the model's error and fairness violation trace out a reported trade-off curve, and the deployed setting is justified from it.",
+          "domain": "general",
           "assuranceGoal": "fairness"
         }
       ]
@@ -3370,7 +3391,7 @@
     {
       "slug": "equal-opportunity-difference",
       "name": "Equal Opportunity Difference",
-      "description": "A fairness metric that quantifies discrimination by measuring the difference in true positive rates (recall) between protected and privileged groups. Based on Hardt et al.'s equality of opportunity framework, this metric computes the maximum difference in TPR across demographic groups, with a value of 0 indicating perfect fairness. The technique provides a mathematical measure of whether qualified individuals from different groups have equal chances of receiving positive predictions.",
+      "description": "Equal Opportunity Difference checks whether a model is equally likely to give a favourable prediction to the people whose true outcome is favourable, such as loan applicants who would repay, in each demographic group. For each group it calculates the true positive rate: of the people whose true outcome is positive, the share the model also predicts as positive. The score is the gap between two groups' rates, usually the unprivileged group's minus the privileged group's, and 0 means the rates match. Some libraries report the largest gap across all groups instead. The metric follows the equality of opportunity criterion of Hardt, Price and Srebro (2016), and it says nothing about people whose true outcome is negative, so a score of 0 does not show that the model is fair overall.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -3392,8 +3413,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating a loan approval model to ensure that qualified applicants from different ethnic backgrounds have equal approval rates, measuring whether a 90% TPR for qualified white applicants is matched by similar rates for qualified minority applicants.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A bank's model risk team evaluates a loan approval model on past loans with known repayment outcomes. It measures whether applicants who went on to repay were approved at the same rate in each ethnic group, for example 90% for one group against a markedly lower rate for another, before the model is released."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A hospital evaluating a model that flags chest X-rays for suspected pneumonia compares its sensitivity, the share of confirmed cases it flags, between male and female patients and between age bands on a labelled validation set. A gap means affected patients in one group are more likely to be missed, which the clinical safety board weighs before deployment."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A university department checks a model that flags first-year students at risk of dropping out so they can be offered support. Using last year's records, it measures what share of students who actually dropped out were flagged, separately for students who are the first in their family to attend university and for other students."
         }
       ],
       "limitations": [
@@ -3401,16 +3430,16 @@
           "description": "Only considers true positive rates and ignores false positive rate disparities, potentially allowing discrimination in the form of unequal false alarm rates between groups."
         },
         {
-          "description": "Requires accurate ground truth labels for the positive class, which may be biased or unavailable in some domains."
+          "description": "The true outcome labels must be reliable for every group. Where they record past decisions, such as repayment known only for applicants previously approved, or are measured differently between groups, equal true positive rates can reproduce the bias already in the labels."
         },
         {
-          "description": "Improving TPR for one group might increase FPR for that group, creating trade-offs between different types of fairness."
+          "description": "True positive rates use only the people whose true outcome is positive, so a rare outcome leaves few cases in each group. Gaps can then be noise, and splitting by several attributes at once, such as age within gender, makes this worse."
         },
         {
-          "description": "Does not account for intersectional fairness across multiple protected attributes simultaneously."
+          "description": "Closing a gap by lowering one group's decision threshold raises that group's true positive rate but also its false positive rate. Fixing this metric can therefore open a gap in another, and the metric gives no warning when it does."
         },
         {
-          "description": "May not capture fairness concerns for the negative class or individuals who should not receive positive predictions."
+          "description": "A score of 0 does not show that the model is fair. The measure uses only predictions, true outcomes and group membership, and Hardt et al. show that situations with different fairness readings can give identical numbers, so a result needs scrutiny of how the outcome was produced."
         }
       ],
       "resources": [
@@ -3535,13 +3564,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The hiring system identifies qualified candidates at equivalent rates across demographic groups",
+          "text": "The hiring audit reports the true-positive-rate gap between the specified groups among candidates labelled qualified.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The diagnostic model detects disease in affected patients consistently regardless of patient ethnicity",
+          "text": "The diagnostic model's disease-detection rates meet the stated gap tolerance for the declared ethnic groups on the labelled evaluation set.",
           "domain": "healthcare",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "On the validation sample, the credit model approves applicants who go on to repay at rates that differ across ethnic groups by no more than the agreed tolerance.",
+          "domain": "finance",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The early-warning model flags students who go on to drop out at similar rates for first-generation students and for other students.",
+          "domain": "education",
           "assuranceGoal": "fairness"
         }
       ]
@@ -3549,7 +3588,7 @@
     {
       "slug": "average-odds-difference",
       "name": "Average Odds Difference",
-      "description": "Average Odds Difference measures fairness by calculating the average difference in both false positive rates and true positive rates between different demographic groups. This metric captures how consistently a model performs across groups for both positive and negative predictions. A value of 0 indicates perfect fairness under the equalized odds criterion, while larger absolute values indicate greater disparities in model performance between groups.",
+      "description": "Average Odds Difference summarises how differently a model treats two demographic groups, using two error rates. The true positive rate is the share of people whose true outcome is positive whom the model also predicts as positive. The false positive rate is the share of people whose true outcome is negative whom the model wrongly predicts as positive. The score is the mean of the gap in each rate between the groups, usually the unprivileged group minus the privileged group, so 0 means the two gaps are absent or cancel out. Hardt, Price and Srebro (2016) call the stricter requirement that both gaps are zero equalised odds, and a score near 0 does not guarantee it.",
       "assurance_goals": [
         "Fairness"
       ],
@@ -3571,12 +3610,16 @@
       ],
       "example_use_cases": [
         {
-          "description": "Evaluating criminal risk assessment tools to ensure equal false positive rates (wrongly flagging low-risk individuals as high-risk) and true positive rates (correctly identifying high-risk individuals) across racial and ethnic groups.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A court-services analytics team audits a pre-trial risk tool on past cases with known outcomes. It reports the average odds difference between racial groups together with the two gaps it averages: how often defendants who later reoffended were rated high risk, and how often those who did not were wrongly rated high risk. The findings go to the oversight board that decides whether the tool stays in use."
         },
         {
-          "description": "Auditing hiring algorithms to verify that both the rate of correctly identifying qualified candidates and the rate of incorrectly rejecting qualified candidates remain consistent across gender and demographic groups.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "A recruitment firm audits its CV-screening tool on past applications whose suitability hiring managers later confirmed. For men and women it compares how often suitable applicants were advanced and how often unsuitable applicants were advanced, and it tracks the average of the two gaps each quarter to decide whether the tool needs retraining."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A hospital compares a sepsis early-warning model across patient ethnic groups before rollout. It checks the share of true sepsis cases flagged and the share of non-sepsis patients falsely flagged, since missed cases and false alarms both carry costs, and uses the average gap to rank candidate models."
         }
       ],
       "limitations": [
@@ -3584,16 +3627,16 @@
           "description": "Averaging effect can mask important disparities when false positive and true positive rate differences compensate for each other, potentially hiding significant bias in one direction."
         },
         {
-          "description": "Requires access to ground truth labels and sensitive attribute information, which may not be available in all deployment scenarios or may be subject to privacy constraints."
+          "description": "The rates are only as trustworthy as the outcome labels, which can differ in quality between groups. Where outcomes are recorded only for people previously approved or hired, such as repayment for granted loans, the gaps describe a selected subset rather than the whole applicant pool. The sensitive attribute must also be available and lawful to use."
         },
         {
-          "description": "Does not account for base rate differences between groups, meaning equal error rates may not translate to equal treatment when group prevalences differ significantly."
+          "description": "When groups differ in how many members truly have the positive outcome, equal error rates generally cannot be achieved together with scores that mean the same thing in every group (Hardt et al. discuss this result of Kleinberg et al.). Pushing the metric towards 0 can therefore leave a risk score less well calibrated for one group, a trade-off the metric does not weigh."
         },
         {
-          "description": "Focuses solely on prediction accuracy disparities without considering whether the underlying decision-making process or feature selection introduces systematic bias against certain groups."
+          "description": "A score of 0 does not show that the model is fair. The measure uses only predictions, true outcomes and group membership, and Hardt et al. show that situations with very different fairness readings can give identical numbers, so any result needs scrutiny of how the outcome was produced."
         },
         {
-          "description": "May encourage optimization for fairness metrics at the expense of overall model performance, potentially reducing utility for the primary prediction task."
+          "description": "Closing the gaps can mean degrading the better-served group instead of improving the other. Hardt et al. show that a predictor meeting equalised odds is only as good as the weakest group's performance, so reaching a score of 0 this way can cost accuracy for everyone."
         }
       ],
       "resources": [
@@ -3721,17 +3764,17 @@
       ],
       "sample_claims": [
         {
-          "text": "The criminal risk assessment system maintains equivalent error rates for both false alarms and correct identifications across racial and ethnic groups",
+          "text": "On the validation cases, the pre-trial risk tool's true positive and false positive rate gaps between racial groups are each within the agreed tolerance, and their average is reported alongside them.",
           "domain": "public sector",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The hiring model's accuracy in both accepting qualified candidates and rejecting unqualified candidates is consistent across all protected demographic categories",
+          "text": "The CV-screening tool's average odds difference between men and women is within the agreed tolerance, and neither its true positive nor its false positive rate gap exceeds the limit set for it.",
           "domain": "general",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The credit scoring model's true approval rate for creditworthy applicants and false approval rate for non-creditworthy applicants remain equitable across protected groups",
+          "text": "The credit scoring model's average odds difference across protected groups on the validation sample is within the agreed tolerance, with creditworthy and non-creditworthy applicants each approved at similar rates in every group.",
           "domain": "finance",
           "assuranceGoal": "fairness"
         }
@@ -4611,11 +4654,9 @@
     {
       "slug": "few-shot-fairness-evaluation",
       "name": "Few-Shot Fairness Evaluation",
-      "description": "Few-shot fairness evaluation assesses whether in-context learning with few-shot examples introduces or amplifies biases in model predictions. This technique systematically varies demographic characteristics in few-shot examples and measures how these variations affect model outputs for different groups. Evaluation includes testing prompt sensitivity (how example selection impacts fairness), stereotype amplification (whether biased examples disproportionately affect outputs), and consistency (whether similar inputs receive equitable treatment regardless of example composition).",
+      "description": "Few-shot fairness evaluation tests whether the worked examples placed in a prompt change how fairly a language model treats different demographic groups. The evaluator builds many versions of the same prompt, varying which examples appear and how each demographic group is represented among them. Each version is run on the same test inputs, and group-level results are compared across versions. Typical checks include the gap in outcomes between groups, whether outputs echo stereotypes present in the examples, and whether an input gets the same treatment when only a demographic term in it is swapped. The result shows how sensitive the model's fairness is to the choice of examples, and which compositions make outcomes more or less even.",
       "assurance_goals": [
-        "Fairness",
-        "Reliability",
-        "Transparency"
+        "Fairness"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks/transformer/llm",
@@ -4624,10 +4665,6 @@
         "assurance-goal-category/fairness",
         "assurance-goal-category/fairness/bias-measurement",
         "evidence-type/fairness-metric",
-        "assurance-goal-category/reliability",
-        "assurance-goal-category/reliability/robustness",
-        "assurance-goal-category/transparency",
-        "assurance-goal-category/transparency/assessment-results",
         "data-requirements/labelled-data",
         "data-requirements/sensitive-attributes",
         "data-type/text",
@@ -4641,55 +4678,34 @@
       ],
       "example_use_cases": [
         {
-          "description": "Testing whether a resume screening LLM's few-shot examples inadvertently introduce gender bias by showing more male examples for technical positions, affecting how it evaluates subsequent applicants.",
-          "goal": "Fairness"
+          "goal": "Fairness",
+          "description": "Testing whether a resume screening LLM's few-shot examples inadvertently introduce gender bias by showing more male examples for technical positions, affecting how it evaluates subsequent applicants."
         },
         {
-          "description": "Ensuring a customer service classifier maintains reliable performance across demographic groups regardless of which few-shot examples users or developers choose to include in prompts.",
-          "goal": "Reliability"
+          "goal": "Fairness",
+          "description": "Evaluating whether a medical triage LLM's few-shot examples for symptom assessment inadvertently encode demographic biases (e.g., more examples of cardiac symptoms in male patients), leading to differential urgency assessments across patient populations."
         },
         {
-          "description": "Documenting how few-shot example selection affects fairness metrics, transparently reporting sensitivity to example composition in deployment guidelines.",
-          "goal": "Transparency"
+          "goal": "Fairness",
+          "description": "Assessing whether few-shot examples in a loan application review assistant systematically present more favourable examples for certain demographic profiles, biasing the model's assessment of creditworthiness for subsequent applications."
         },
         {
-          "description": "Evaluating whether a medical triage LLM's few-shot examples for symptom assessment inadvertently encode demographic biases (e.g., more examples of cardiac symptoms in male patients), leading to differential urgency assessments across patient populations.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Testing whether few-shot examples used in a legal case summarization system introduce racial or socioeconomic bias in how defendant backgrounds or case circumstances are characterized, affecting case outcome predictions.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Assessing whether few-shot examples in a loan application review assistant systematically present more favourable examples for certain demographic profiles, biasing the model's assessment of creditworthiness for subsequent applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Verifying that an automated essay grading system maintains consistent standards across student demographics when few-shot examples inadvertently represent particular writing styles, dialects, or cultural references more prominently.",
-          "goal": "Reliability"
+          "goal": "Fairness",
+          "description": "Testing whether an automated essay grading system keeps consistent standards across student demographics when its few-shot examples over-represent particular writing styles, dialects or cultural references."
         }
       ],
       "limitations": [
         {
-          "description": "Vast number of possible few-shot example combinations makes exhaustive testing infeasible, requiring sampling strategies that may miss important configurations."
+          "description": "The number of possible example sets, orderings and wordings is far too large to test exhaustively. The evaluation samples configurations and can miss the combinations that cause the worst disparities, so results describe what was tested rather than every prompt the system will meet."
         },
         {
-          "description": "Fairness may be highly sensitive to subtle differences in example wording or formatting, making it difficult to provide robust guarantees."
+          "description": "Fairness measures can shift with small changes in example wording, order or prompt format, and with ordinary sampling variation in the model's replies. A gap between two example sets may be noise unless each is run repeatedly, and results seldom carry over to a different prompt template, instruction style or model version."
         },
         {
-          "description": "Trade-offs between example diversity and task performance may force choices between fairness and accuracy."
+          "description": "Needs test inputs labelled with demographic attributes, or pairs of inputs that differ only in a demographic term. These can be unavailable, costly to build or sensitive to hold, and they must reflect how the system will actually be prompted, which takes domain expertise to judge."
         },
         {
-          "description": "Results may not generalise across different prompt templates or instruction formats, requiring separate evaluation for each prompting strategy."
-        },
-        {
-          "description": "Requires carefully labeled datasets with demographic annotations to measure fairness across groups, which may be unavailable, expensive to create, or raise privacy concerns in sensitive domains."
-        },
-        {
-          "description": "Designing representative test sets that capture realistic few-shot example distributions requires deep domain expertise and understanding of how the system will be used in practice."
-        },
-        {
-          "description": "Evaluating fairness across multiple demographic groups with various few-shot configurations can be computationally expensive, particularly for large language models with high inference costs."
+          "description": "Each extra example set multiplies the number of model calls, because every set must be run on enough inputs for each group being compared. With large models and high inference costs, thorough coverage is expensive, which tempts teams to test fewer configurations."
         }
       ],
       "resources": [
@@ -4756,28 +4772,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The language model produces equitable outcomes across demographic groups regardless of which few-shot examples are provided in the prompt",
-          "domain": "general",
+          "text": "Across the sampled sets of few-shot examples, the gap in shortlisting rates between gender groups stays within the agreed tolerance for the resume screening assistant.",
+          "domain": "employment",
           "assuranceGoal": "fairness"
         },
         {
-          "text": "The recruitment system's candidate assessments remain unbiased when the composition of demonstration examples varies in demographic representation",
-          "domain": "finance",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The model maintains consistent performance across protected groups under diverse configurations of in-context learning examples",
+          "text": "Changing the demographic mix of the examples in the triage prompt does not move urgency ratings for otherwise identical patient descriptions that differ only in sex beyond the agreed tolerance.",
           "domain": "healthcare",
-          "assuranceGoal": "reliability"
+          "assuranceGoal": "fairness"
         },
         {
-          "text": "The system's fairness characteristics across different prompt example compositions are quantified and documented",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The content generation model's outputs exhibit equitable treatment of demographic groups when few-shot examples contain varying levels of representation",
-          "domain": "general",
+          "text": "None of the tested example sets widens the gap in favourable recommendations between demographic groups beyond the gap seen with no examples in the prompt.",
+          "domain": "finance",
           "assuranceGoal": "fairness"
         }
       ]

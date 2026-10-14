@@ -1,7 +1,7 @@
 {
   "slug": "adversarial-debiasing",
   "name": "Adversarial Debiasing",
-  "description": "Adversarial debiasing reduces bias by training models using a competitive adversarial setup, similar to Generative Adversarial Networks (GANs). The technique involves two neural networks: a predictor that learns to make accurate predictions on the main task, and an adversary (bias detector) that attempts to predict protected attributes (such as race, gender, or age) from the predictor's internal representations. Through adversarial training, the predictor learns to produce representations that retain predictive power for the main task whilst being uninformative about protected characteristics, thereby reducing discriminatory bias.",
+  "description": "Adversarial debiasing trains a model so that its predictions carry as little information as possible about a protected attribute, such as sex or race. Two neural networks are trained together, a predictor that learns the main task, such as estimating default risk, and an adversary that tries to guess each person's protected attribute from the predictor's output. The predictor is updated to stay accurate while making the adversary's guesses fail, which pushes its outputs towards equal rates of favourable outcomes across groups (demographic parity). If the adversary is also given the true label, the predictor is penalised only for information about the attribute beyond what the label carries, which targets equal error rates across groups (equalised odds). The method needs the protected attribute for every training example and a model trained by gradient descent.",
   "assurance_goals": [
     "Fairness"
   ],
@@ -26,33 +26,33 @@
   ],
   "example_use_cases": [
     {
-      "description": "Training a resume screening model for a technology company that evaluates candidates based on skills and experience whilst preventing the internal representations from encoding gender or ethnicity information, ensuring hiring decisions cannot be influenced by protected characteristics even indirectly through correlated features.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A technology company trains a CV-screening model with an adversary that tries to guess each applicant's gender from the model's shortlisting score, so that selection rates come out similar for men and women (demographic parity) instead of leaning on CV features that happen to correlate with gender."
     },
     {
-      "description": "Developing a credit scoring model for loan approvals that accurately predicts default risk whilst ensuring the model's internal features cannot be used to infer applicants' race or age, thereby preventing discriminatory lending practices whilst maintaining predictive accuracy.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A lender trains a default-risk model for loan approvals with an adversary that is given each applicant's score and true repayment outcome and tries to guess their age band, so that false-positive and false-negative rates are similar across age bands (equalised odds) while predictive accuracy is kept."
     },
     {
-      "description": "Creating a medical diagnosis model that makes accurate predictions about patient conditions whilst ensuring that the learned representations cannot reveal sensitive demographic information like gender or ethnicity, protecting patient privacy whilst maintaining clinical effectiveness.",
-      "goal": "Fairness"
+      "goal": "Fairness",
+      "description": "A hospital group trains a COVID-19 screening model on emergency-department data with an adversary that tries to guess patient ethnicity from the model's score and the true test result, so that error rates are similar across ethnic groups while screening performance stays clinically useful."
     }
   ],
   "limitations": [
     {
-      "description": "Significantly more complex to implement than standard models, requiring expertise in adversarial training techniques and careful architecture design for both predictor and adversary networks."
+      "description": "The adversary only sees what it is given, usually the predictor's score and, for equalised odds, the true label. The method therefore targets one output-level criterion and gives no assurance that hidden layers are free of protected-attribute information, or that a different criterion holds."
     },
     {
-      "description": "Requires careful hyperparameter tuning to balance the competing objectives of task performance and bias mitigation, as overly strong adversarial training can harm predictive accuracy."
+      "description": "Needs the protected attribute for every training example, so it cannot be used where that attribute was never collected or may not be held."
     },
     {
-      "description": "Effectiveness heavily depends on the quality and design of the adversary network - a weak adversary may fail to detect subtle biases, whilst an overly strong adversary may eliminate useful information."
+      "description": "Demographic parity and equalised odds generally cannot both be met, so one must be chosen before training. Equal error rates can also come from worsening one group's rates: in the original Adult income experiment, the false-positive rate for women rose from 0.025 to 0.065."
     },
     {
-      "description": "Training can be unstable and may suffer from convergence issues common to adversarial training, requiring careful learning rate scheduling and regularisation techniques."
+      "description": "Training two networks against each other is unstable. The weight given to the adversary has to be tuned (adversary_loss_weight in AIF360), and a wrong setting can make training diverge or leave the result closer to a different criterion than the one intended."
     },
     {
-      "description": "Provides no formal guarantees about bias elimination and may not prevent all forms of discrimination, particularly when protected attributes can be inferred from other available features."
+      "description": "The paper's guarantee that outputs meet the chosen criterion holds only if both networks converge and the adversary is strong enough. A weak adversary leaves bias in place, and the convexity assumptions behind the proof do not hold for typical neural networks, so fairness has to be checked on held-out data after training."
     }
   ],
   "resources": [
@@ -133,28 +133,23 @@
   ],
   "sample_claims": [
     {
-      "text": "The model's internal representations cannot be used to infer protected characteristics of individuals",
-      "domain": "general",
+      "text": "On held-out data, the shortlisting model's selection rates differ between gender groups by no more than the agreed tolerance, and its accuracy is within the agreed margin of the unconstrained model.",
+      "domain": "employment",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The hiring system's learned features maintain predictive power for job suitability whilst being statistically independent of candidate gender",
-      "domain": "general",
-      "assuranceGoal": "fairness"
-    },
-    {
-      "text": "The credit scoring model's intermediate layers do not encode information about applicants' race or ethnicity",
+      "text": "The default-risk model's false-positive and false-negative rates differ between age bands by no more than the agreed tolerance on held-out data.",
       "domain": "finance",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The diagnostic system achieves equitable performance across patient demographics without encoding sensitive attributes in its feature representations",
+      "text": "The COVID-19 screening model's error rates are similar across ethnic groups in each external hospital cohort, with negative predictive value above the clinical threshold set for screening.",
       "domain": "healthcare",
       "assuranceGoal": "fairness"
     },
     {
-      "text": "The facial recognition model's hidden representations are uninformative about protected characteristics whilst preserving identification accuracy",
-      "domain": "autonomous systems",
+      "text": "Compared with the same model trained without the adversary, the model's gap on the chosen fairness criterion is smaller on held-out data, at a reported cost in accuracy.",
+      "domain": "general",
       "assuranceGoal": "fairness"
     }
   ]

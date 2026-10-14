@@ -1590,7 +1590,7 @@
   {
     "slug": "demographic-parity-assessment",
     "name": "Demographic Parity Assessment",
-    "description": "Demographic Parity Assessment evaluates whether a model produces equal positive prediction rates across different demographic groups, regardless of underlying differences in qualifications or base rates. It quantifies fairness using metrics like Statistical Parity Difference (the absolute difference in positive outcome rates between groups) or Disparate Impact ratio (the ratio of positive rates). Unlike techniques that modify data or models, this is purely a measurement approach that highlights when protected groups receive favourable outcomes at different rates, helping organisations identify and document potential discrimination.",
+    "description": "Demographic Parity Assessment checks whether a model gives a favourable outcome, such as a loan approval or an interview invitation, to each demographic group at the same rate. It compares those rates without adjusting for how many people in each group would qualify. Statistical Parity Difference is the gap between group rates (a signed difference between two named groups in AIF360, the highest rate minus the lowest across all groups in Fairlearn), and the Disparate Impact ratio divides the lowest rate by the highest. A ratio below 0.8 is a common warning sign, following the four-fifths rule used by US employment regulators. A gap shows that outcomes differ between groups but not why, and equal rates do not show that individuals were treated fairly.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -1642,7 +1642,7 @@
   {
     "slug": "adversarial-debiasing",
     "name": "Adversarial Debiasing",
-    "description": "Adversarial debiasing reduces bias by training models using a competitive adversarial setup, similar to Generative Adversarial Networks (GANs). The technique involves two neural networks: a predictor that learns to make accurate predictions on the main task, and an adversary (bias detector) that attempts to predict protected attributes (such as race, gender, or age) from the predictor's internal representations. Through adversarial training, the predictor learns to produce representations that retain predictive power for the main task whilst being uninformative about protected characteristics, thereby reducing discriminatory bias.",
+    "description": "Adversarial debiasing trains a model so that its predictions carry as little information as possible about a protected attribute, such as sex or race. Two neural networks are trained together, a predictor that learns the main task, such as estimating default risk, and an adversary that tries to guess each person's protected attribute from the predictor's output. The predictor is updated to stay accurate while making the adversary's guesses fail, which pushes its outputs towards equal rates of favourable outcomes across groups (demographic parity). If the adversary is also given the true label, the predictor is penalised only for information about the attribute beyond what the label carries, which targets equal error rates across groups (equalised odds). The method needs the protected attribute for every training example and a model trained by gradient descent.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -1667,28 +1667,23 @@
     ],
     "sample_claims": [
       {
-        "text": "The model's internal representations cannot be used to infer protected characteristics of individuals",
-        "domain": "general",
+        "text": "On held-out data, the shortlisting model's selection rates differ between gender groups by no more than the agreed tolerance, and its accuracy is within the agreed margin of the unconstrained model.",
+        "domain": "employment",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The hiring system's learned features maintain predictive power for job suitability whilst being statistically independent of candidate gender",
-        "domain": "general",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The credit scoring model's intermediate layers do not encode information about applicants' race or ethnicity",
+        "text": "The default-risk model's false-positive and false-negative rates differ between age bands by no more than the agreed tolerance on held-out data.",
         "domain": "finance",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The diagnostic system achieves equitable performance across patient demographics without encoding sensitive attributes in its feature representations",
+        "text": "The COVID-19 screening model's error rates are similar across ethnic groups in each external hospital cohort, with negative predictive value above the clinical threshold set for screening.",
         "domain": "healthcare",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The facial recognition model's hidden representations are uninformative about protected characteristics whilst preserving identification accuracy",
-        "domain": "autonomous systems",
+        "text": "Compared with the same model trained without the adversary, the model's gap on the chosen fairness criterion is smaller on held-out data, at a reported cost in accuracy.",
+        "domain": "general",
         "assuranceGoal": "fairness"
       }
     ]
@@ -1696,7 +1691,7 @@
   {
     "slug": "counterfactual-fairness-assessment",
     "name": "Counterfactual Fairness Assessment",
-    "description": "Counterfactual Fairness Assessment tests a model against the criterion of Kusner et al. (2017): a model is counterfactually fair if each individual's prediction would have had the same distribution had their protected attribute, such as race or sex, been different, with everything that attribute causes changed accordingly. The assessor first writes down a causal model, a graph of which variables cause which, covering the protected attribute, the model's inputs and unobserved background factors, and fits its equations to data. For each individual, the fitted model is used to infer the background factors from what was observed (abduction), set the protected attribute to another value (action) and recompute every input the attribute influences (prediction), giving a counterfactual version of that person. The model under test is run on the factual and counterfactual inputs, and the gap between the two predictions, per individual or as a distance between the two prediction distributions, is the evidence: distributions that lie on top of each other indicate counterfactual fairness under the assumed causal model. Every causal effect of the attribute counts as unfair, including effects that run through inputs it influences, such as test scores, which is what separates this criterion from versions that allow some pathways.",
+    "description": "Counterfactual Fairness Assessment tests whether a model would have made the same predictions for a person had their protected attribute, such as race or sex, been different, with everything that attribute influences changed accordingly (Kusner et al., 2017). The assessor first draws a causal graph, a diagram of which variables cause which, covering the protected attribute, the model's inputs and unobserved background factors, and fits it to data. For each person, the fitted graph is used to infer their background factors, switch the attribute to another value and recompute every input it influences, which gives a counterfactual version of that person. The model is run on both versions, and the gap between the two predictions, person by person or as a distance between the two sets of predictions, is the evidence for or against counterfactual fairness under the assumed graph. Every causal effect of the attribute counts as unfair, including effects passing through inputs such as test scores, which separates this criterion from versions that allow some pathways.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -3787,7 +3782,7 @@
   {
     "slug": "meta-fair-classifier",
     "name": "Meta Fair Classifier",
-    "description": "An in-processing fairness technique that employs meta-learning to modify any existing classifier for optimising fairness metrics whilst maintaining predictive performance. The method learns how to adjust model parameters or decision boundaries to satisfy fairness constraints such as demographic parity or equalised odds through iterative optimisation. This approach is particularly valuable when retrofitting fairness to pre-trained models that perform well but exhibit bias, as it can incorporate fairness without requiring complete retraining from scratch.",
+    "description": "The meta fair classifier is a general-purpose training algorithm for fair classification. The user chooses a fairness metric, such as the statistical rate (each group's share of favourable outcomes) or the false discovery rate (the share of positive predictions that are wrong), and a target between 0 and 1 for how close to equal the groups' values must be. From labelled training examples that include the protected attribute, the algorithm fits a model of the data, solves a series of constrained optimisation problems, and returns the most accurate classifier that meets the target. It trains a new classifier rather than adjusting an existing one. The original paper proves the result comes close to the best classifier that meets the target, up to the error in the fitted model of the data.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -3810,18 +3805,18 @@
     ],
     "sample_claims": [
       {
-        "text": "The hiring model achieves equitable selection rates across demographic groups through learned parameter adjustments that preserve candidate assessment accuracy",
-        "domain": "general",
+        "text": "On held-out data, the shortlisting classifier's selection rate for each gender group is at least 80% of the highest group's rate.",
+        "domain": "employment",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The fraud detection system satisfies equalised odds constraints across protected groups without requiring retraining from scratch",
-        "domain": "finance",
+        "text": "Among people the recidivism model flags as high risk, the share who do not reoffend differs between racial groups by no more than the agreed tolerance.",
+        "domain": "public sector",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The environmental risk assessment model's fairness constraints are satisfied across geographic regions whilst maintaining predictive performance for resource allocation",
-        "domain": "environmental",
+        "text": "The share of false alarms among the heart-condition classifier's positive predictions is similar for women and men, with the accuracy cost against an unconstrained classifier reported.",
+        "domain": "healthcare",
         "assuranceGoal": "fairness"
       }
     ]
@@ -3829,7 +3824,7 @@
   {
     "slug": "exponentiated-gradient-reduction",
     "name": "Exponentiated Gradient Reduction",
-    "description": "An in-processing fairness technique based on Agarwal et al.'s reductions approach that transforms fair classification into a sequence of cost-sensitive classification problems. The method uses an exponentiated gradient algorithm to iteratively reweight training data, returning a randomised classifier that achieves the lowest empirical error whilst satisfying fairness constraints. This reduction-based framework provides theoretical guarantees about both accuracy and constraint violation, making it suitable for various fairness criteria including demographic parity and equalised odds.",
+    "description": "Exponentiated gradient reduction trains a classifier that satisfies a chosen fairness criterion, such as demographic parity (equal rates of favourable outcomes across groups) or equalised odds (equal error rates across groups), while keeping error as low as it can. It reduces the problem to a series of ordinary training runs on the same data, each with different example weights. Between runs, a multiplicative update, the exponentiated gradient step, increases the weight on fairness constraints that are currently violated, and a standard classifier is retrained on the reweighted data. The output is a randomised classifier, a weighted mix of the classifiers trained along the way, with one drawn at random for each prediction. The original paper proves that its error and its fairness violation come close to the best achievable, up to a tolerance the user sets and the statistical error from a finite training set.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -3860,8 +3855,18 @@
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The criminal justice risk assessment tool's predictions satisfy equitable treatment constraints with documented convergence properties",
+        "text": "On held-out data, the shortlisting model's selection rates differ between gender groups by no more than the agreed tolerance.",
+        "domain": "employment",
+        "assuranceGoal": "fairness"
+      },
+      {
+        "text": "The recidivism model's true-positive and false-positive rates differ across racial groups by less than the agreed tolerance, and the accuracy cost against the unconstrained model is reported.",
         "domain": "public sector",
+        "assuranceGoal": "fairness"
+      },
+      {
+        "text": "Across a sweep of tolerance settings, the model's error and fairness violation trace out a reported trade-off curve, and the deployed setting is justified from it.",
+        "domain": "general",
         "assuranceGoal": "fairness"
       }
     ]
@@ -4138,7 +4143,7 @@
   {
     "slug": "equal-opportunity-difference",
     "name": "Equal Opportunity Difference",
-    "description": "A fairness metric that quantifies discrimination by measuring the difference in true positive rates (recall) between protected and privileged groups. Based on Hardt et al.'s equality of opportunity framework, this metric computes the maximum difference in TPR across demographic groups, with a value of 0 indicating perfect fairness. The technique provides a mathematical measure of whether qualified individuals from different groups have equal chances of receiving positive predictions.",
+    "description": "Equal Opportunity Difference checks whether a model is equally likely to give a favourable prediction to the people whose true outcome is favourable, such as loan applicants who would repay, in each demographic group. For each group it calculates the true positive rate: of the people whose true outcome is positive, the share the model also predicts as positive. The score is the gap between two groups' rates, usually the unprivileged group's minus the privileged group's, and 0 means the rates match. Some libraries report the largest gap across all groups instead. The metric follows the equality of opportunity criterion of Hardt, Price and Srebro (2016), and it says nothing about people whose true outcome is negative, so a score of 0 does not show that the model is fair overall.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -4160,13 +4165,23 @@
     ],
     "sample_claims": [
       {
-        "text": "The hiring system identifies qualified candidates at equivalent rates across demographic groups",
+        "text": "The hiring audit reports the true-positive-rate gap between the specified groups among candidates labelled qualified.",
         "domain": "general",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The diagnostic model detects disease in affected patients consistently regardless of patient ethnicity",
+        "text": "The diagnostic model's disease-detection rates meet the stated gap tolerance for the declared ethnic groups on the labelled evaluation set.",
         "domain": "healthcare",
+        "assuranceGoal": "fairness"
+      },
+      {
+        "text": "On the validation sample, the credit model approves applicants who go on to repay at rates that differ across ethnic groups by no more than the agreed tolerance.",
+        "domain": "finance",
+        "assuranceGoal": "fairness"
+      },
+      {
+        "text": "The early-warning model flags students who go on to drop out at similar rates for first-generation students and for other students.",
+        "domain": "education",
         "assuranceGoal": "fairness"
       }
     ]
@@ -4174,7 +4189,7 @@
   {
     "slug": "average-odds-difference",
     "name": "Average Odds Difference",
-    "description": "Average Odds Difference measures fairness by calculating the average difference in both false positive rates and true positive rates between different demographic groups. This metric captures how consistently a model performs across groups for both positive and negative predictions. A value of 0 indicates perfect fairness under the equalized odds criterion, while larger absolute values indicate greater disparities in model performance between groups.",
+    "description": "Average Odds Difference summarises how differently a model treats two demographic groups, using two error rates. The true positive rate is the share of people whose true outcome is positive whom the model also predicts as positive. The false positive rate is the share of people whose true outcome is negative whom the model wrongly predicts as positive. The score is the mean of the gap in each rate between the groups, usually the unprivileged group minus the privileged group, so 0 means the two gaps are absent or cancel out. Hardt, Price and Srebro (2016) call the stricter requirement that both gaps are zero equalised odds, and a score near 0 does not guarantee it.",
     "assurance_goals": [
       "Fairness"
     ],
@@ -4196,17 +4211,17 @@
     ],
     "sample_claims": [
       {
-        "text": "The criminal risk assessment system maintains equivalent error rates for both false alarms and correct identifications across racial and ethnic groups",
+        "text": "On the validation cases, the pre-trial risk tool's true positive and false positive rate gaps between racial groups are each within the agreed tolerance, and their average is reported alongside them.",
         "domain": "public sector",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The hiring model's accuracy in both accepting qualified candidates and rejecting unqualified candidates is consistent across all protected demographic categories",
+        "text": "The CV-screening tool's average odds difference between men and women is within the agreed tolerance, and neither its true positive nor its false positive rate gap exceeds the limit set for it.",
         "domain": "general",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The credit scoring model's true approval rate for creditworthy applicants and false approval rate for non-creditworthy applicants remain equitable across protected groups",
+        "text": "The credit scoring model's average odds difference across protected groups on the validation sample is within the agreed tolerance, with creditworthy and non-creditworthy applicants each approved at similar rates in every group.",
         "domain": "finance",
         "assuranceGoal": "fairness"
       }
@@ -4215,10 +4230,9 @@
   {
     "slug": "path-specific-counterfactual-fairness-assessment",
     "name": "Path-Specific Counterfactual Fairness Assessment",
-    "description": "A causal fairness evaluation technique that assesses algorithmic discrimination by examining specific causal pathways in a model's decision-making process. Unlike general counterfactual fairness, this approach enables practitioners to identify and intervene on particular causal paths that may introduce bias whilst preserving other legitimate pathways. The method uses causal graphs to distinguish between direct discrimination (through protected attributes) and indirect discrimination (through seemingly neutral factors that correlate with protected attributes), allowing for more nuanced fairness assessments in complex causal settings.",
+    "description": "Path-specific counterfactual fairness assessment tests whether a protected attribute, such as sex or race, influences a decision along routes that the assessor judges unfair. The assessor first draws a causal graph, a diagram of which variables influence which, and marks each route from the protected attribute to the decision as acceptable or unacceptable. In a classic admissions example, women applied more often to departments with low admission rates, so the effect of sex through department choice was treated as acceptable, while any direct effect of sex was not. The technique then estimates how the decision would change if the protected attribute were switched, counting only the effect that travels along the unacceptable routes. A large estimate points to unfair influence along those routes, and the estimate is only as sound as the graph and the choice of routes.",
     "assurance_goals": [
-      "Fairness",
-      "Transparency"
+      "Fairness"
     ],
     "tags": [
       "applicable-models/architecture/model-agnostic",
@@ -4226,8 +4240,6 @@
       "applicable-models/requirements/black-box",
       "assurance-goal-category/fairness",
       "assurance-goal-category/fairness/bias-measurement",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/assessment-results",
       "data-requirements/causal-graph",
       "data-requirements/sensitive-attributes",
       "data-type/tabular",
@@ -4243,22 +4255,17 @@
     ],
     "sample_claims": [
       {
-        "text": "The hiring system's decisions are not influenced by gender through educational pathways whilst preserving the legitimate influence of qualifications on employment outcomes",
-        "domain": "general",
+        "text": "The effect of applicant gender on shortlisting along the routes judged unacceptable, the direct route and the route through career-break length, is statistically indistinguishable from zero.",
+        "domain": "employment",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The loan approval model's risk assessment isolates the direct influence of creditworthiness from indirect effects of demographic characteristics propagating through correlated factors",
+        "text": "Switching an applicant's ethnicity changes the modelled approval probability by less than the agreed tolerance along every route the review panel marked as unacceptable.",
         "domain": "finance",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The decision process documents which factors legitimately affect outcomes versus those that create indirect discrimination through upstream correlations",
-        "domain": "public sector",
-        "assuranceGoal": "transparency"
-      },
-      {
-        "text": "The model's treatment recommendations remain consistent across patient demographics when controlling for symptom severity and medical history whilst allowing clinically relevant differences to influence care decisions",
+        "text": "The share of the effect of patient race on the decision to start invasive ventilation that passes through pulse-oximeter readings is estimated, with a stated confidence interval, from the hospital records.",
         "domain": "healthcare",
         "assuranceGoal": "fairness"
       }
@@ -4688,10 +4695,9 @@
   {
     "slug": "embedding-bias-analysis",
     "name": "Embedding Bias Analysis",
-    "description": "Embedding bias analysis examines learned representations to identify biases, spurious correlations, and problematic clustering patterns in vector embeddings. This technique uses dimensionality reduction, clustering analysis, and geometric fairness metrics to examine whether embeddings encode sensitive attributes, place certain groups in disadvantaged regions of representation space, or learn stereotypical associations. Analysis reveals whether embeddings used for retrieval, recommendation, or downstream tasks contain fairness issues that will propagate to applications.",
+    "description": "Embedding bias analysis tests whether the numerical representations a model uses for words, images or documents link social groups to stereotyped attributes. An embedding places each item at a point in a many-dimensional space so that similar items sit close together. The best-known test, the Word Embedding Association Test (Caliskan et al., 2017), compares how close two sets of target words, such as engineering and nursing occupations, sit to two sets of attribute words, such as male and female terms, and reports an effect size and a significance level. Other analyses project embeddings onto a gender or ethnicity direction, or cluster them to see whether groups separate. The scores describe the representation itself, and any link to bias in an application built on it has to be tested separately.",
     "assurance_goals": [
-      "Fairness",
-      "Transparency"
+      "Fairness"
     ],
     "tags": [
       "applicable-models/architecture/neural-networks",
@@ -4701,8 +4707,6 @@
       "applicable-models/requirements/model-internals",
       "assurance-goal-category/fairness",
       "assurance-goal-category/fairness/bias-measurement",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/assessment-results",
       "data-type/text",
       "data-type/image",
       "data-requirements/sensitive-attributes",
@@ -4716,35 +4720,28 @@
     ],
     "sample_claims": [
       {
-        "text": "The recommendation system's item embeddings do not cluster products along demographic lines in ways that limit cross-group exposure",
+        "text": "Association tests on the embeddings used by the CV-screening tool show no gender association between occupation terms and male or female terms above the effect size the team agreed to act on.",
         "domain": "general",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The document retrieval system's embedding space geometry does not position certain demographic groups in disadvantaged regions affecting search relevance",
-        "domain": "public sector",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The medical language model's clinical term embeddings maintain equitable distances across patient demographic attributes",
+        "text": "The clinical term embeddings in the diagnosis support model show no association between diagnosis terms and age or ethnicity terms above the agreed threshold, and the result holds with a second set of term lists.",
         "domain": "healthcare",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The content moderation system's embedding space properties are documented including encoded sensitive attributes and their spatial relationships",
-        "domain": "general",
-        "assuranceGoal": "transparency"
+        "text": "Protected-characteristic terms do not sit systematically closer to creditworthiness terms than to their opposites in the lending model's text embeddings, under the word lists documented in the audit.",
+        "domain": "finance",
+        "assuranceGoal": "fairness"
       }
     ]
   },
   {
     "slug": "few-shot-fairness-evaluation",
     "name": "Few-Shot Fairness Evaluation",
-    "description": "Few-shot fairness evaluation assesses whether in-context learning with few-shot examples introduces or amplifies biases in model predictions. This technique systematically varies demographic characteristics in few-shot examples and measures how these variations affect model outputs for different groups. Evaluation includes testing prompt sensitivity (how example selection impacts fairness), stereotype amplification (whether biased examples disproportionately affect outputs), and consistency (whether similar inputs receive equitable treatment regardless of example composition).",
+    "description": "Few-shot fairness evaluation tests whether the worked examples placed in a prompt change how fairly a language model treats different demographic groups. The evaluator builds many versions of the same prompt, varying which examples appear and how each demographic group is represented among them. Each version is run on the same test inputs, and group-level results are compared across versions. Typical checks include the gap in outcomes between groups, whether outputs echo stereotypes present in the examples, and whether an input gets the same treatment when only a demographic term in it is swapped. The result shows how sensitive the model's fairness is to the choice of examples, and which compositions make outcomes more or less even.",
     "assurance_goals": [
-      "Fairness",
-      "Reliability",
-      "Transparency"
+      "Fairness"
     ],
     "tags": [
       "applicable-models/architecture/neural-networks/transformer/llm",
@@ -4753,10 +4750,6 @@
       "assurance-goal-category/fairness",
       "assurance-goal-category/fairness/bias-measurement",
       "evidence-type/fairness-metric",
-      "assurance-goal-category/reliability",
-      "assurance-goal-category/reliability/robustness",
-      "assurance-goal-category/transparency",
-      "assurance-goal-category/transparency/assessment-results",
       "data-requirements/labelled-data",
       "data-requirements/sensitive-attributes",
       "data-type/text",
@@ -4770,28 +4763,18 @@
     ],
     "sample_claims": [
       {
-        "text": "The language model produces equitable outcomes across demographic groups regardless of which few-shot examples are provided in the prompt",
-        "domain": "general",
+        "text": "Across the sampled sets of few-shot examples, the gap in shortlisting rates between gender groups stays within the agreed tolerance for the resume screening assistant.",
+        "domain": "employment",
         "assuranceGoal": "fairness"
       },
       {
-        "text": "The recruitment system's candidate assessments remain unbiased when the composition of demonstration examples varies in demographic representation",
-        "domain": "finance",
-        "assuranceGoal": "fairness"
-      },
-      {
-        "text": "The model maintains consistent performance across protected groups under diverse configurations of in-context learning examples",
+        "text": "Changing the demographic mix of the examples in the triage prompt does not move urgency ratings for otherwise identical patient descriptions that differ only in sex beyond the agreed tolerance.",
         "domain": "healthcare",
-        "assuranceGoal": "reliability"
+        "assuranceGoal": "fairness"
       },
       {
-        "text": "The system's fairness characteristics across different prompt example compositions are quantified and documented",
-        "domain": "public sector",
-        "assuranceGoal": "transparency"
-      },
-      {
-        "text": "The content generation model's outputs exhibit equitable treatment of demographic groups when few-shot examples contain varying levels of representation",
-        "domain": "general",
+        "text": "None of the tested example sets widens the gap in favourable recommendations between demographic groups beyond the gap seen with no examples in the prompt.",
+        "domain": "finance",
         "assuranceGoal": "fairness"
       }
     ]
