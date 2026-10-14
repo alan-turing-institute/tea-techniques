@@ -176,7 +176,7 @@
     {
       "slug": "ridge-regression-surrogates",
       "name": "Ridge Regression Surrogates",
-      "description": "This technique approximates a complex model by training a ridge regression (a linear model with L2 regularisation) on the original model's predictions. The ridge regression serves as a global surrogate that balances fidelity and interpretability, capturing the main linear relationships that the complex model learned whilst ignoring noise due to regularisation. This approach is particularly useful when stakeholders need to understand the overall behaviour of a complex model through transparent linear coefficients.",
+      "description": "A ridge regression surrogate approximates a complex model with a linear equation fitted to the complex model's own predictions. The complex model is run on a set of inputs, and ridge regression, a linear model with a penalty that keeps coefficients stable when features are correlated, is fitted to reproduce its outputs. Each coefficient then shows roughly how far a feature moves the complex model's output, averaged over those inputs. Fidelity, often reported as R-squared (the share of the model's variation the surrogate reproduces on held-out inputs), shows how far the coefficients can be trusted. They describe the complex model, not the real world.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -203,30 +203,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Approximating a complex ensemble model used for credit scoring with a ridge regression surrogate to identify the most influential features (income, credit history, debt-to-income ratio) and their linear relationships for regulatory compliance reporting.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A model-risk team at a bank fits a ridge surrogate to a gradient-boosted credit-scoring model's scores on a held-out sample, reports how closely the surrogate reproduces them, and uses the standardised coefficients to brief the model-risk committee on which inputs drive scores overall."
         },
         {
-          "description": "Creating a ridge regression surrogate of a neural network used for medical diagnosis to understand which patient symptoms and biomarkers have the strongest linear predictive relationships with disease outcomes.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital analytics team fits a ridge surrogate to a neural network that predicts readmission risk from tabular records, to check that the features driving the network's predictions overall, such as age and prior admissions, are plausible to clinicians. The findings concern the network, not what causes readmission."
         },
         {
-          "description": "Creating an interpretable approximation of a complex insurance pricing model for regulatory compliance, enabling stakeholders to understand and validate the decision-making process through transparent linear relationships.",
-          "goal": "Transparency"
+          "goal": "Explainability",
+          "description": "An energy company's forecasting team fits a ridge surrogate to a neural-network load forecaster using a year of hourly weather and calendar inputs, and reads the standardised coefficients to confirm that temperature and time of day dominate. A low R-squared during heatwaves leads the team to record that the surrogate does not describe the model in that regime."
+        },
+        {
+          "goal": "Transparency",
+          "description": "An insurer's compliance team gives a regulator a ridge surrogate of its pricing model together with held-out R-squared and a table of each feature's contribution to a sample of quotes, so the regulator can check the stated drivers against the model's actual outputs."
         }
       ],
       "limitations": [
         {
-          "description": "Linear approximation may miss important non-linear relationships and interactions captured by the original complex model."
+          "description": "A linear surrogate cannot represent interactions or thresholds. Where the complex model relies on them, the surrogate fits its predictions poorly and its coefficients describe a different model. Report held-out R-squared and treat a low value as a failed surrogate."
         },
         {
-          "description": "Requires a representative dataset to train the surrogate model, which may not be available or may be expensive to generate."
+          "description": "A good average fit can hide poor fit in parts of the input space, such as rare groups or extreme values, so the coefficients may be wrong for exactly the cases that matter. Check fidelity within subgroups and near decision boundaries."
         },
         {
-          "description": "Ridge regularisation may oversimplify the model by shrinking coefficients, potentially hiding important but less dominant features."
+          "description": "There is no agreed fidelity level above which a surrogate can be trusted. Whether 50%, 80% or 99% of variance explained is enough depends on the use, so the reviewer has to set and justify a cut-off."
         },
         {
-          "description": "Surrogate fidelity depends on how well linear relationships approximate the original model's behaviour across the entire input space."
+          "description": "Ridge shrinks every coefficient and shares weight between correlated features. Coefficient sizes depend on the penalty strength and on feature scaling, so compare them only after standardising the features, and report the penalty used."
+        },
+        {
+          "description": "The surrogate explains the complex model's behaviour on the sampled inputs, not the real-world link between features and outcomes. Reading its coefficients as causes, or as evidence about the data, will mislead."
         }
       ],
       "resources": [
@@ -276,39 +283,38 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's global behavior is approximated by a simpler representation that captures dominant linear relationships across all predictions",
-          "domain": "general",
+          "text": "A ridge surrogate reproduces the credit model's scores on held-out applications with an R-squared of at least 0.9, and its five largest standardised coefficients identify the inputs that drive scores overall.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit scoring model's decision logic can be explained through consistent linear weights applied uniformly across all applicant evaluations",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic system's predictions are attributable to weighted combinations of patient features that remain stable across the entire population",
+          "text": "The surrogate of the readmission-risk model reproduces the model's predictions closely within every age band tested, so its coefficients describe the model's behaviour for each of those bands.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The environmental forecasting model's feature influences are represented through simplified linear coefficients that prioritize robust patterns over noise",
-          "domain": "environmental",
-          "assuranceGoal": "transparency"
+          "text": "The demand-forecasting model depends mainly on temperature and time of day overall, as shown by a linear surrogate whose fit to the model has been measured, with the lower fit during heatwaves reported as a limit.",
+          "domain": "energy",
+          "assuranceGoal": "explainability"
         },
         {
-          "text": "The complex ensemble model's overall decision-making process is captured by an interpretable linear approximation that reveals primary feature contributions",
+          "text": "Where the linear surrogate's fit to the model falls below the stated threshold, the model is recorded as not summarised by a linear surrogate, and no coefficient is cited as an explanation of it.",
           "domain": "general",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The regulator holds the pricing model's ridge surrogate with its held-out R-squared and a table of each feature's contribution to a sample of quotes, and can check the stated drivers against the model's outputs.",
+          "domain": "insurance",
+          "assuranceGoal": "transparency"
         }
       ]
     },
     {
       "slug": "prototype-and-criticism-models",
       "name": "Prototype and Criticism Models",
-      "description": "Prototype and Criticism Models provide data understanding by identifying two complementary sets of examples: prototypes represent the most typical instances that best summarise common patterns in the data, whilst criticisms are outliers or edge cases that are poorly represented by the prototypes. For example, in a dataset of customer transactions, prototypes might be the most representative buying patterns (frequent small purchases, occasional large purchases), whilst criticisms could be unusual behaviours (bulk buyers, one-time high-value customers). This dual approach reveals both what is normal and what is exceptional, helping understand data coverage and model blind spots.",
+      "description": "Prototype and criticism methods summarise a dataset with a small set of real examples. Prototypes are instances chosen to represent the bulk of the data, so that together they match its overall distribution as closely as possible. Criticisms are the instances the prototypes represent worst, which shows what the summary leaves out. In a set of customer transactions, prototypes might be the usual buying patterns and criticisms might be bulk buyers or one-off high-value customers. A reviewer can read a few dozen examples instead of the whole dataset, but the method describes the data only, so how a model performs on the unusual cases needs a separate check.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -322,8 +328,6 @@
         "assurance-goal-category/explainability/instance-based/prototypes",
         "assurance-goal-category/explainability/property/comprehensibility",
         "assurance-goal-category/explainability/property/sparsity",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "data-type/any",
         "evidence-type/dataset-analysis",
         "evidence-type/structured-output",
@@ -335,30 +339,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing medical imaging datasets to identify prototype scans that represent typical healthy tissue patterns and criticism examples showing rare disease presentations, helping radiologists understand what the model considers 'normal' versus cases requiring special attention.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A radiology team summarises a medical imaging dataset with prototypes and criticisms. The prototypes show the typical scans that dominate the data, and the criticisms show rare presentations the data covers thinly. The team uses the criticisms to choose cases for a separate check of how accurate the model is on rare presentations."
         },
         {
-          "description": "Evaluating credit scoring models by finding prototype borrowers who represent typical low-risk profiles and criticism cases showing unusual but legitimate financial patterns that the model might misclassify, ensuring fair treatment of edge cases.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A credit risk team summarises its borrower records with prototypes (typical low-risk profiles) and criticisms (unusual but legitimate patterns, such as irregular self-employed income). It passes the criticism cases to a separate accuracy check, to see whether the scoring model handles them as well as typical borrowers."
         },
         {
-          "description": "Evaluating representation bias in hiring datasets by examining whether prototypes systematically exclude certain demographic groups and criticisms disproportionately represent minorities, revealing data collection inequities.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "An engineer preparing a visual inspection model for a production line computes prototypes and criticisms for each defect class on the model's image embeddings. The criticisms show unusual captures, such as odd lighting or partial views, which the team adds to the test set so the model is checked on them."
         }
       ],
       "limitations": [
         {
-          "description": "Selection of prototypes and criticisms is highly dependent on the choice of distance metric or similarity measure, which may not capture all meaningful relationships in the data."
+          "description": "Which examples are chosen depends on the similarity measure and its settings, so different reasonable choices give different prototypes and criticisms. The original paper lists the effect of the kernel choice as future work, so there is no settled guidance."
         },
         {
-          "description": "Computational complexity can become prohibitive for very large datasets, as the method often requires pairwise comparisons or optimisation over the entire dataset."
+          "description": "The method needs a similarity score between every pair of examples, so memory and time grow with the square of the dataset size. Large datasets may need to be sampled before the method is run."
         },
         {
-          "description": "The number of prototypes and criticisms to select is typically a hyperparameter that requires domain expertise to set appropriately."
+          "description": "The user sets the number of prototypes and criticisms. Too few leaves large parts of the data unrepresented, and too many defeats the purpose of a summary short enough for a person to read."
         },
         {
-          "description": "Results may not generalise well if the training data distribution differs significantly from the deployment data distribution."
+          "description": "It describes the data, not the model. Criticisms are the examples the prototypes represent worst, which is not the same as the examples the model gets wrong, so a separate evaluation is needed to learn how the model performs on them."
+        },
+        {
+          "description": "The original evidence that criticisms help people understand a dataset is a pilot study with four participants. Those who saw prototypes and criticisms were more accurate but slower than those who saw prototypes alone, so the benefit for a given audience is untested."
         }
       ],
       "resources": [
@@ -444,29 +451,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical imaging dataset's coverage is characterised by both typical tissue patterns and rare pathological presentations requiring specialised attention",
+          "text": "The training scans have been summarised by a reviewed set of prototypes and criticisms, and radiologists have confirmed that the criticisms are genuine rare presentations and not artefacts or mislabelled cases.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit model's validation set includes both representative borrower profiles and exceptional cases that deviate from standard lending patterns",
+          "text": "Every borrower profile flagged as a criticism has been reviewed by credit risk staff and either documented as legitimate or corrected, so the scoring model's evaluation can include atypical applicants.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The environmental monitoring system's training data reflects both common measurement conditions and unusual scenarios that test operational boundaries",
+          "text": "The monitoring system's training data covers the common measurement conditions shown by its prototypes, and the unusual conditions shown by its criticisms are reflected in the test set.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring dataset's representative candidates do not systematically exclude particular demographic groups whilst edge cases disproportionately represent minorities",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The system's performance on atypical cases is documented alongside its behaviour on prototypical examples",
+          "text": "A short, reviewable summary of the training data (the prototypes) represents its typical contents, and what the summary leaves out (the criticisms) has been listed alongside it.",
           "domain": "general",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "explainability"
         }
       ]
     },
@@ -638,7 +640,7 @@
     {
       "slug": "anchor",
       "name": "ANCHOR",
-      "description": "ANCHOR generates high-precision if-then rules that explain individual predictions by identifying the minimal set of feature conditions that guarantee a specific prediction with high confidence. It searches for 'anchor' conditions (e.g., 'age > 30 AND income < £50k') that ensure the model gives the same prediction at least 95% of the time when those conditions are met. This creates human-readable rules that users can trust as sufficient conditions for understanding why a particular decision was made.",
+      "description": "ANCHOR explains one prediction of a black-box classifier with an if-then rule, called an anchor, such as 'age > 30 AND income < £50k'. An anchor names a small set of feature conditions under which the model keeps giving the same prediction, whatever the other features are. To find one, the method fixes the conditions, varies the other features by sampling, asks the model for a prediction each time, and searches for the broadest rule that holds in at least a chosen share of the samples, commonly 95%. Each anchor comes with its estimated precision and its coverage, the share of cases to which it applies. Both figures describe the model's behaviour on the sampled variations, not on real cases, and continuous features are first grouped into ranges.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -666,30 +668,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Explaining loan application decisions with rules like 'IF credit_score > 650 AND debt_ratio < 0.4 THEN approval = 95% likely', giving applicants clear, actionable conditions they can understand and potentially improve.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A model-validation team at a lender computes anchors for a sample of declined applications from a gradient-boosted credit model. It checks that the conditions holding each decision, such as a low credit-score band together with recent missed payments, match credit policy, and reads each rule's coverage to see how many other applications it applies to."
         },
         {
-          "description": "Generating diagnostic rules for medical predictions such as 'IF fever > 38.5°C AND white_blood_cells > 12,000 THEN infection = 92% likely', helping clinicians validate automated diagnoses with trusted clinical indicators.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital data team explains individual alerts from a tabular sepsis-risk model with anchors, and a clinician checks whether the conditions in each rule, such as raised temperature and white-cell count, are clinically sensible or point to an artefact such as the ward an admission came from."
         },
         {
-          "description": "Creating transparent hiring decisions with rules like 'IF experience >= 3_years AND degree = relevant THEN hire = 89% likely', providing clear justification for recruitment decisions that can be audited for fairness.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "An employer's compliance team gives a reviewer the anchor behind a shortlisting prediction, with its precision and coverage. The reviewer tests the rule on other applications and can challenge it if it leans on an attribute that should not matter, such as age."
         }
       ],
       "limitations": [
         {
-          "description": "Limited to local explanations for individual instances, cannot provide global insights about overall model behaviour."
+          "description": "The stated precision is measured on perturbed samples from a chosen sampling distribution, not on real cases. If that distribution produces unrealistic inputs, or is skewed by an unbalanced training set, the figure can overstate how far the rule can be relied on."
         },
         {
-          "description": "Requires discretisation of continuous features, which can lose important nuanced information and create arbitrary thresholds."
+          "description": "An anchor covers only the inputs its conditions match, often a small share. In the original experiments average coverage ranged from about 1% to 29% on tabular data, so one anchor says little about the model as a whole. Choosing a set of anchors helps but adds effort."
         },
         {
-          "description": "May fail to find suitable anchor rules if precision requirements are too strict or if the prediction space is highly complex."
+          "description": "Predictions close to the model's decision boundary, or of rare classes, need long, very specific rules with little coverage, which add little insight. Strict precision thresholds make this more likely."
         },
         {
-          "description": "Computationally expensive as it requires extensive sampling to validate rule precision, especially for high-dimensional data."
+          "description": "Continuous features must be grouped into ranges before rules can be stated, and the grouping changes which anchors are found. Too coarse hides boundaries, and too fine gives narrow rules with little coverage."
+        },
+        {
+          "description": "Each anchor needs many queries to the model, so run time depends on how fast the model is and on the number of features. The method is built for classifiers, so a numeric output must first be turned into classes."
         }
       ],
       "resources": [
@@ -768,36 +773,36 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's individual predictions are supported by verifiable sufficient conditions with quantified confidence guarantees",
-          "domain": "general",
+          "text": "For a sample of declined loan applications, each decision of the credit model is held in place by a short rule over policy-relevant features, with estimated precision of at least 95% under the stated sampling distribution.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The lending system provides loan applicants with specific, actionable conditions that guarantee approval with stated probability",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic system's recommendations are justified by minimal sets of clinical indicators that ensure the decision under specified conditions",
+          "text": "Sepsis alerts raised by the risk model are each explained by a rule over clinical measurements, and a clinician reviewed a sample of rules and found none that relies on an administrative field such as ward or admission time.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring decision criteria are documented as precise if-then rules with empirically validated confidence bounds",
-          "domain": "public sector",
+          "text": "The set of rules chosen to explain the classifier covers at least half of the validation cases, so the main patterns it relies on have been examined.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Each shortlisting decision from the screening model can be given to a reviewer as a rule with its precision and coverage, so that the reviewer can test the rule on other applications.",
+          "domain": "employment",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The fraud detection system identifies sufficient feature combinations that reliably predict flagged transactions with quantified precision",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
+          "text": "Every reason given for an individual model output states its own coverage, so a reviewer knows which other cases the reason applies to and which it does not.",
+          "domain": "general",
+          "assuranceGoal": "transparency"
         }
       ]
     },
     {
       "slug": "rulefit",
       "name": "RuleFit",
-      "description": "RuleFit creates interpretable surrogate models that can explain complex black-box models or serve as interpretable alternatives. It works by learning a sparse linear model that combines automatically extracted decision rules with original features. The technique first builds tree ensembles to generate candidate rules, then uses LASSO regression to select the most important rules and features. The resulting model provides global explanations through human-readable rules (e.g., 'IF age > 50 AND income < 30k THEN ...') combined with linear feature weights, making complex model behaviour transparent and auditable.",
+      "description": "RuleFit builds a predictive model that a person can read: a short list of if-then rules plus a few ordinary feature weights. It first trains an ensemble of decision trees (many small trees whose outputs are combined) and turns each branch into a candidate rule, such as 'IF age > 50 AND income < £30k'. It then fits a linear model over those rules and the original features using the lasso, a penalty that sets many weights to exactly zero, so only the most useful terms remain. The surviving rules and weights can be read directly, and each term has an importance score, overall and for single predictions. Fitted to real outcomes, the result can replace an opaque model; fitted to an opaque model's predictions, it is a surrogate that approximates that model, and its fit should then be checked.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -828,30 +833,30 @@
       ],
       "example_use_cases": [
         {
-          "description": "Building customer churn prediction models with rules like 'IF contract_length < 12_months AND support_calls > 5 THEN churn_risk = high', allowing marketing teams to understand and act on the key drivers of customer attrition.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A telecoms analytics team fits RuleFit to the predictions of its gradient-boosted churn model rather than to the churn labels, to get a short list of rules that approximates the model. Marketing staff read the top rules, and the team reports how closely the rules reproduce the model's predictions before anyone relies on them."
         },
         {
-          "description": "Creating credit scoring models that combine traditional linear factors (income, age) with interpretable rules (IF recent_missed_payments = 0 AND account_age > 2_years THEN creditworthy), providing transparent lending decisions.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A lender replaces an opaque default-risk model with a RuleFit model fitted to repayment outcomes. For one declined application, the importance scores show which few rules and income or debt terms drove its score, and the validation team checks them against credit policy."
         },
         {
-          "description": "Developing regulatory-compliant medical diagnosis models where treatment recommendations combine clinical measurements with clear decision rules (IF blood_pressure > 140 AND diabetes = true THEN high_risk), enabling audit trails for healthcare decisions.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A hospital team builds an admission-risk model as a RuleFit model fitted directly to patient outcomes, so that clinicians and the ethics committee can read the whole model, a few rules such as 'IF systolic_bp > 140 AND diabetes = true' plus a handful of weights. The team counts the active rules first and keeps the model only if it is short enough to read."
         }
       ],
       "limitations": [
         {
-          "description": "Can generate large numbers of rules even with regularisation, potentially overwhelming users and reducing practical interpretability."
+          "description": "The lasso can leave many rules active, and a model with hundreds of active terms is no longer readable. Rules also approximate smooth linear trends poorly and need many pieces to do so. Count the non-zero terms before calling the model interpretable."
         },
         {
-          "description": "Performance may be inferior to complex ensemble methods when rule complexity is constrained for interpretability."
+          "description": "Rules overlap and are often correlated, so a rule's weight cannot be read on its own. 'Temperature above 15' is also true wherever 'temperature above 10' is. With correlated inputs, rules can also suggest interactions that are not in the real relationship."
         },
         {
-          "description": "Rule extraction quality depends heavily on the underlying tree ensemble, which may miss important feature interactions if not properly configured."
+          "description": "Tree size sets how long rules can be and which interactions can appear. Shallow trees give short, readable rules but miss high-order interactions, and deep trees capture them at the cost of long rules. No single depth suits every problem."
         },
         {
-          "description": "Requires careful hyperparameter tuning to balance between model complexity and interpretability, with no universal optimal setting."
+          "description": "Fitted to a black-box model's predictions, RuleFit only approximates that model. Without a fidelity check, such as agreement on held-out inputs, its rules describe the surrogate and may not describe the model they are meant to explain."
         }
       ],
       "resources": [
@@ -929,7 +934,7 @@
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The patient risk stratification system's predictions are traceable to explicit clinical decision rules that mirror diagnostic reasoning patterns",
+          "text": "The patient risk score can be reconstructed from its intercept, active clinical-input rules and linear terms using the recorded clipping and weights.",
           "domain": "healthcare",
           "assuranceGoal": "transparency"
         },
@@ -939,14 +944,9 @@
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The customer churn prediction system's global behavior is approximated by a small number of actionable business rules rather than opaque feature interactions",
+          "text": "The churn-score approximation exposes its weighted rules and linear terms, with agreement assessed against the original model on the stated dataset.",
           "domain": "general",
           "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The regulatory compliance model combines human-readable decision boundaries with weighted factors in a single auditable representation",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
         }
       ]
     },

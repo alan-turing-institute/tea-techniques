@@ -1783,7 +1783,7 @@
     {
       "slug": "ridge-regression-surrogates",
       "name": "Ridge Regression Surrogates",
-      "description": "This technique approximates a complex model by training a ridge regression (a linear model with L2 regularisation) on the original model's predictions. The ridge regression serves as a global surrogate that balances fidelity and interpretability, capturing the main linear relationships that the complex model learned whilst ignoring noise due to regularisation. This approach is particularly useful when stakeholders need to understand the overall behaviour of a complex model through transparent linear coefficients.",
+      "description": "A ridge regression surrogate approximates a complex model with a linear equation fitted to the complex model's own predictions. The complex model is run on a set of inputs, and ridge regression, a linear model with a penalty that keeps coefficients stable when features are correlated, is fitted to reproduce its outputs. Each coefficient then shows roughly how far a feature moves the complex model's output, averaged over those inputs. Fidelity, often reported as R-squared (the share of the model's variation the surrogate reproduces on held-out inputs), shows how far the coefficients can be trusted. They describe the complex model, not the real world.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -1810,30 +1810,37 @@
       ],
       "example_use_cases": [
         {
-          "description": "Approximating a complex ensemble model used for credit scoring with a ridge regression surrogate to identify the most influential features (income, credit history, debt-to-income ratio) and their linear relationships for regulatory compliance reporting.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A model-risk team at a bank fits a ridge surrogate to a gradient-boosted credit-scoring model's scores on a held-out sample, reports how closely the surrogate reproduces them, and uses the standardised coefficients to brief the model-risk committee on which inputs drive scores overall."
         },
         {
-          "description": "Creating a ridge regression surrogate of a neural network used for medical diagnosis to understand which patient symptoms and biomarkers have the strongest linear predictive relationships with disease outcomes.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital analytics team fits a ridge surrogate to a neural network that predicts readmission risk from tabular records, to check that the features driving the network's predictions overall, such as age and prior admissions, are plausible to clinicians. The findings concern the network, not what causes readmission."
         },
         {
-          "description": "Creating an interpretable approximation of a complex insurance pricing model for regulatory compliance, enabling stakeholders to understand and validate the decision-making process through transparent linear relationships.",
-          "goal": "Transparency"
+          "goal": "Explainability",
+          "description": "An energy company's forecasting team fits a ridge surrogate to a neural-network load forecaster using a year of hourly weather and calendar inputs, and reads the standardised coefficients to confirm that temperature and time of day dominate. A low R-squared during heatwaves leads the team to record that the surrogate does not describe the model in that regime."
+        },
+        {
+          "goal": "Transparency",
+          "description": "An insurer's compliance team gives a regulator a ridge surrogate of its pricing model together with held-out R-squared and a table of each feature's contribution to a sample of quotes, so the regulator can check the stated drivers against the model's actual outputs."
         }
       ],
       "limitations": [
         {
-          "description": "Linear approximation may miss important non-linear relationships and interactions captured by the original complex model."
+          "description": "A linear surrogate cannot represent interactions or thresholds. Where the complex model relies on them, the surrogate fits its predictions poorly and its coefficients describe a different model. Report held-out R-squared and treat a low value as a failed surrogate."
         },
         {
-          "description": "Requires a representative dataset to train the surrogate model, which may not be available or may be expensive to generate."
+          "description": "A good average fit can hide poor fit in parts of the input space, such as rare groups or extreme values, so the coefficients may be wrong for exactly the cases that matter. Check fidelity within subgroups and near decision boundaries."
         },
         {
-          "description": "Ridge regularisation may oversimplify the model by shrinking coefficients, potentially hiding important but less dominant features."
+          "description": "There is no agreed fidelity level above which a surrogate can be trusted. Whether 50%, 80% or 99% of variance explained is enough depends on the use, so the reviewer has to set and justify a cut-off."
         },
         {
-          "description": "Surrogate fidelity depends on how well linear relationships approximate the original model's behaviour across the entire input space."
+          "description": "Ridge shrinks every coefficient and shares weight between correlated features. Coefficient sizes depend on the penalty strength and on feature scaling, so compare them only after standardising the features, and report the penalty used."
+        },
+        {
+          "description": "The surrogate explains the complex model's behaviour on the sampled inputs, not the real-world link between features and outcomes. Reading its coefficients as causes, or as evidence about the data, will mislead."
         }
       ],
       "resources": [
@@ -1883,29 +1890,29 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's global behavior is approximated by a simpler representation that captures dominant linear relationships across all predictions",
-          "domain": "general",
+          "text": "A ridge surrogate reproduces the credit model's scores on held-out applications with an R-squared of at least 0.9, and its five largest standardised coefficients identify the inputs that drive scores overall.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit scoring model's decision logic can be explained through consistent linear weights applied uniformly across all applicant evaluations",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic system's predictions are attributable to weighted combinations of patient features that remain stable across the entire population",
+          "text": "The surrogate of the readmission-risk model reproduces the model's predictions closely within every age band tested, so its coefficients describe the model's behaviour for each of those bands.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The environmental forecasting model's feature influences are represented through simplified linear coefficients that prioritize robust patterns over noise",
-          "domain": "environmental",
-          "assuranceGoal": "transparency"
+          "text": "The demand-forecasting model depends mainly on temperature and time of day overall, as shown by a linear surrogate whose fit to the model has been measured, with the lower fit during heatwaves reported as a limit.",
+          "domain": "energy",
+          "assuranceGoal": "explainability"
         },
         {
-          "text": "The complex ensemble model's overall decision-making process is captured by an interpretable linear approximation that reveals primary feature contributions",
+          "text": "Where the linear surrogate's fit to the model falls below the stated threshold, the model is recorded as not summarised by a linear surrogate, and no coefficient is cited as an explanation of it.",
           "domain": "general",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The regulator holds the pricing model's ridge surrogate with its held-out R-squared and a table of each feature's contribution to a sample of quotes, and can check the stated drivers against the model's outputs.",
+          "domain": "insurance",
+          "assuranceGoal": "transparency"
         }
       ]
     },
@@ -2093,26 +2100,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Examining how house price predictions vary with property age for individual properties, revealing that whilst most houses follow a declining price trend with age, historic properties (built before 1900) show different patterns due to heritage value.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A valuation team checks a house-price model before using it for automated estimates. ICE lines for property age show most homes losing value as they age, but a group of pre-1900 homes gaining value. The team asks whether the model has learned a real heritage premium or is reacting to a handful of unusual sales."
         },
         {
-          "description": "Analysing how individual patients' diabetes risk predictions change with BMI, showing that whilst most patients follow the expected increasing risk pattern, some patients with specific genetic markers show different response curves.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital data science team reviews a diabetes risk model before clinicians use it. ICE lines of predicted risk against BMI rise steadily for most patients but stay flat for a small group. The team colours the lines by recorded characteristics, such as age band, to see what the flat group shares, then asks a clinician whether a flat response is plausible."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A credit risk validation team marks each applicant's actual income on that applicant's ICE line for a loan pricing model. For some applicant profiles the line changes steeply at incomes where no similar applicants appear in the training data. The team treats that part of the line as extrapolation and restricts the model's use to the supported range."
         }
       ],
       "limitations": [
         {
-          "description": "Plots can become cluttered and difficult to interpret when displaying many instances simultaneously."
+          "description": "With hundreds or thousands of cases the lines overlap into a dense band that hides individual behaviour. Plotting a sample of lines, shifting them to start at the same point, or colouring them by a second feature is usually needed before the plot can be read."
         },
         {
-          "description": "Does not provide automatic summarisation of overall effects, requiring manual visual inspection to identify patterns."
+          "description": "Each line changes one feature while holding the case's other features fixed. Where features are correlated, parts of a line describe combinations that never occur in the data, so the model is extrapolating there. Marking each case's actual feature value on its line shows which part of the line the data supports."
         },
         {
-          "description": "Still assumes all other features remain fixed at their observed values, which may not reflect realistic scenarios."
+          "description": "Lines that are not parallel show that the feature's effect depends on other features, but not which ones. Finding out means colouring the lines by candidate features one at a time, so the search is by trial and error."
         },
         {
-          "description": "Cannot reveal interactions between the plotted feature and other features for individual instances."
+          "description": "Judging whether lines differ by more than chance is done by eye, and a model can produce uneven lines from noise alone. The authors' formal check hides the real plot among plots made from additive fits, which needs the model to be refitted many times."
+        },
+        {
+          "description": "In its basic form the plot needs a model prediction for every case at every observed value of the feature, so the number of predictions grows with the square of the dataset size. Large datasets or slow models call for sampling."
         }
       ],
       "resources": [
@@ -2903,7 +2917,7 @@
     {
       "slug": "anchor",
       "name": "ANCHOR",
-      "description": "ANCHOR generates high-precision if-then rules that explain individual predictions by identifying the minimal set of feature conditions that guarantee a specific prediction with high confidence. It searches for 'anchor' conditions (e.g., 'age > 30 AND income < £50k') that ensure the model gives the same prediction at least 95% of the time when those conditions are met. This creates human-readable rules that users can trust as sufficient conditions for understanding why a particular decision was made.",
+      "description": "ANCHOR explains one prediction of a black-box classifier with an if-then rule, called an anchor, such as 'age > 30 AND income < £50k'. An anchor names a small set of feature conditions under which the model keeps giving the same prediction, whatever the other features are. To find one, the method fixes the conditions, varies the other features by sampling, asks the model for a prediction each time, and searches for the broadest rule that holds in at least a chosen share of the samples, commonly 95%. Each anchor comes with its estimated precision and its coverage, the share of cases to which it applies. Both figures describe the model's behaviour on the sampled variations, not on real cases, and continuous features are first grouped into ranges.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -2931,30 +2945,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Explaining loan application decisions with rules like 'IF credit_score > 650 AND debt_ratio < 0.4 THEN approval = 95% likely', giving applicants clear, actionable conditions they can understand and potentially improve.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A model-validation team at a lender computes anchors for a sample of declined applications from a gradient-boosted credit model. It checks that the conditions holding each decision, such as a low credit-score band together with recent missed payments, match credit policy, and reads each rule's coverage to see how many other applications it applies to."
         },
         {
-          "description": "Generating diagnostic rules for medical predictions such as 'IF fever > 38.5°C AND white_blood_cells > 12,000 THEN infection = 92% likely', helping clinicians validate automated diagnoses with trusted clinical indicators.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital data team explains individual alerts from a tabular sepsis-risk model with anchors, and a clinician checks whether the conditions in each rule, such as raised temperature and white-cell count, are clinically sensible or point to an artefact such as the ward an admission came from."
         },
         {
-          "description": "Creating transparent hiring decisions with rules like 'IF experience >= 3_years AND degree = relevant THEN hire = 89% likely', providing clear justification for recruitment decisions that can be audited for fairness.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "An employer's compliance team gives a reviewer the anchor behind a shortlisting prediction, with its precision and coverage. The reviewer tests the rule on other applications and can challenge it if it leans on an attribute that should not matter, such as age."
         }
       ],
       "limitations": [
         {
-          "description": "Limited to local explanations for individual instances, cannot provide global insights about overall model behaviour."
+          "description": "The stated precision is measured on perturbed samples from a chosen sampling distribution, not on real cases. If that distribution produces unrealistic inputs, or is skewed by an unbalanced training set, the figure can overstate how far the rule can be relied on."
         },
         {
-          "description": "Requires discretisation of continuous features, which can lose important nuanced information and create arbitrary thresholds."
+          "description": "An anchor covers only the inputs its conditions match, often a small share. In the original experiments average coverage ranged from about 1% to 29% on tabular data, so one anchor says little about the model as a whole. Choosing a set of anchors helps but adds effort."
         },
         {
-          "description": "May fail to find suitable anchor rules if precision requirements are too strict or if the prediction space is highly complex."
+          "description": "Predictions close to the model's decision boundary, or of rare classes, need long, very specific rules with little coverage, which add little insight. Strict precision thresholds make this more likely."
         },
         {
-          "description": "Computationally expensive as it requires extensive sampling to validate rule precision, especially for high-dimensional data."
+          "description": "Continuous features must be grouped into ranges before rules can be stated, and the grouping changes which anchors are found. Too coarse hides boundaries, and too fine gives narrow rules with little coverage."
+        },
+        {
+          "description": "Each anchor needs many queries to the model, so run time depends on how fast the model is and on the number of features. The method is built for classifiers, so a numeric output must first be turned into classes."
         }
       ],
       "resources": [
@@ -3033,36 +3050,36 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's individual predictions are supported by verifiable sufficient conditions with quantified confidence guarantees",
-          "domain": "general",
+          "text": "For a sample of declined loan applications, each decision of the credit model is held in place by a short rule over policy-relevant features, with estimated precision of at least 95% under the stated sampling distribution.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The lending system provides loan applicants with specific, actionable conditions that guarantee approval with stated probability",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic system's recommendations are justified by minimal sets of clinical indicators that ensure the decision under specified conditions",
+          "text": "Sepsis alerts raised by the risk model are each explained by a rule over clinical measurements, and a clinician reviewed a sample of rules and found none that relies on an administrative field such as ward or admission time.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring decision criteria are documented as precise if-then rules with empirically validated confidence bounds",
-          "domain": "public sector",
+          "text": "The set of rules chosen to explain the classifier covers at least half of the validation cases, so the main patterns it relies on have been examined.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Each shortlisting decision from the screening model can be given to a reviewer as a rule with its precision and coverage, so that the reviewer can test the rule on other applications.",
+          "domain": "employment",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The fraud detection system identifies sufficient feature combinations that reliably predict flagged transactions with quantified precision",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
+          "text": "Every reason given for an individual model output states its own coverage, so a reviewer knows which other cases the reason applies to and which it does not.",
+          "domain": "general",
+          "assuranceGoal": "transparency"
         }
       ]
     },
     {
       "slug": "rulefit",
       "name": "RuleFit",
-      "description": "RuleFit creates interpretable surrogate models that can explain complex black-box models or serve as interpretable alternatives. It works by learning a sparse linear model that combines automatically extracted decision rules with original features. The technique first builds tree ensembles to generate candidate rules, then uses LASSO regression to select the most important rules and features. The resulting model provides global explanations through human-readable rules (e.g., 'IF age > 50 AND income < 30k THEN ...') combined with linear feature weights, making complex model behaviour transparent and auditable.",
+      "description": "RuleFit builds a predictive model that a person can read: a short list of if-then rules plus a few ordinary feature weights. It first trains an ensemble of decision trees (many small trees whose outputs are combined) and turns each branch into a candidate rule, such as 'IF age > 50 AND income < £30k'. It then fits a linear model over those rules and the original features using the lasso, a penalty that sets many weights to exactly zero, so only the most useful terms remain. The surviving rules and weights can be read directly, and each term has an importance score, overall and for single predictions. Fitted to real outcomes, the result can replace an opaque model; fitted to an opaque model's predictions, it is a surrogate that approximates that model, and its fit should then be checked.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -3093,30 +3110,30 @@
       ],
       "example_use_cases": [
         {
-          "description": "Building customer churn prediction models with rules like 'IF contract_length < 12_months AND support_calls > 5 THEN churn_risk = high', allowing marketing teams to understand and act on the key drivers of customer attrition.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A telecoms analytics team fits RuleFit to the predictions of its gradient-boosted churn model rather than to the churn labels, to get a short list of rules that approximates the model. Marketing staff read the top rules, and the team reports how closely the rules reproduce the model's predictions before anyone relies on them."
         },
         {
-          "description": "Creating credit scoring models that combine traditional linear factors (income, age) with interpretable rules (IF recent_missed_payments = 0 AND account_age > 2_years THEN creditworthy), providing transparent lending decisions.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A lender replaces an opaque default-risk model with a RuleFit model fitted to repayment outcomes. For one declined application, the importance scores show which few rules and income or debt terms drove its score, and the validation team checks them against credit policy."
         },
         {
-          "description": "Developing regulatory-compliant medical diagnosis models where treatment recommendations combine clinical measurements with clear decision rules (IF blood_pressure > 140 AND diabetes = true THEN high_risk), enabling audit trails for healthcare decisions.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A hospital team builds an admission-risk model as a RuleFit model fitted directly to patient outcomes, so that clinicians and the ethics committee can read the whole model, a few rules such as 'IF systolic_bp > 140 AND diabetes = true' plus a handful of weights. The team counts the active rules first and keeps the model only if it is short enough to read."
         }
       ],
       "limitations": [
         {
-          "description": "Can generate large numbers of rules even with regularisation, potentially overwhelming users and reducing practical interpretability."
+          "description": "The lasso can leave many rules active, and a model with hundreds of active terms is no longer readable. Rules also approximate smooth linear trends poorly and need many pieces to do so. Count the non-zero terms before calling the model interpretable."
         },
         {
-          "description": "Performance may be inferior to complex ensemble methods when rule complexity is constrained for interpretability."
+          "description": "Rules overlap and are often correlated, so a rule's weight cannot be read on its own. 'Temperature above 15' is also true wherever 'temperature above 10' is. With correlated inputs, rules can also suggest interactions that are not in the real relationship."
         },
         {
-          "description": "Rule extraction quality depends heavily on the underlying tree ensemble, which may miss important feature interactions if not properly configured."
+          "description": "Tree size sets how long rules can be and which interactions can appear. Shallow trees give short, readable rules but miss high-order interactions, and deep trees capture them at the cost of long rules. No single depth suits every problem."
         },
         {
-          "description": "Requires careful hyperparameter tuning to balance between model complexity and interpretability, with no universal optimal setting."
+          "description": "Fitted to a black-box model's predictions, RuleFit only approximates that model. Without a fidelity check, such as agreement on held-out inputs, its rules describe the surrogate and may not describe the model they are meant to explain."
         }
       ],
       "resources": [
@@ -3194,7 +3211,7 @@
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The patient risk stratification system's predictions are traceable to explicit clinical decision rules that mirror diagnostic reasoning patterns",
+          "text": "The patient risk score can be reconstructed from its intercept, active clinical-input rules and linear terms using the recorded clipping and weights.",
           "domain": "healthcare",
           "assuranceGoal": "transparency"
         },
@@ -3204,21 +3221,16 @@
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The customer churn prediction system's global behavior is approximated by a small number of actionable business rules rather than opaque feature interactions",
+          "text": "The churn-score approximation exposes its weighted rules and linear terms, with agreement assessed against the original model on the stated dataset.",
           "domain": "general",
           "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The regulatory compliance model combines human-readable decision boundaries with weighted factors in a single auditable representation",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
         }
       ]
     },
     {
       "slug": "generalized-additive-models",
       "name": "Generalized Additive Models",
-      "description": "An intrinsically interpretable modelling technique that extends linear models by allowing flexible, nonlinear relationships between individual features and the target whilst maintaining the additive structure that preserves transparency. Each feature's effect is modelled separately as a smooth function, visualised as a curve showing how the feature influences predictions across its range. GAMs achieve this through spline functions or other smoothing techniques that capture complex patterns in individual variables without interactions, making them particularly valuable for domains requiring both predictive accuracy and model interpretability.",
+      "description": "A generalised additive model (GAM) builds its prediction by adding a baseline and one smooth curve for each input feature. It extends linear and logistic regression by letting each feature's effect bend, so the model can follow patterns such as risk that climbs steeply after a certain age. Each curve is learned from the data with a smoothing method, such as splines (flexible curves built from joined polynomial pieces). Plotting the curves shows how each feature moves the prediction across its range, so the model can be read directly without a separate explanation method. Because the curves are added together, the model does not capture the joint effect of two features unless a combined term is added by hand.",
       "assurance_goals": [
         "Transparency",
         "Explainability"
@@ -3249,29 +3261,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Predicting hospital readmission risk with a GAM that provides transparent, auditable risk assessments by showing how readmission probability varies nonlinearly with patient age, blood pressure, and medication adherence, enabling clinicians to understand and trust the model's reasoning for regulatory compliance.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A hospital builds its 30-day readmission model as a GAM so that its governance committee can audit it. The committee reviews one curve each for age, blood pressure and medication adherence, and queries any stretch where predicted risk falls as a known risk factor rises, since that can point to a data problem rather than a real effect."
         },
         {
-          "description": "Building a credit scoring model that explains loan decisions to applicants by visualising how income, credit history, and debt-to-income ratio individually affect approval likelihood, providing clear feature attributions that satisfy fair lending requirements and regulatory explainability mandates.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A lender uses a GAM for credit scoring so that it can tell a declined applicant how income, credit history and debt-to-income ratio each moved their score. Each factor has its own curve, so the explanation comes straight from the model and needs no separate explanation tool."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An environmental agency models river nitrate levels with a GAM and plots the curve for rainfall. The curve shows the effect levelling off above a certain rainfall, which analysts report to catchment managers instead of a single regression coefficient."
         }
       ],
       "limitations": [
         {
-          "description": "Cannot capture complex interactions between features unless explicitly modelled, limiting their ability to represent relationships where variables influence each other."
+          "description": "Each feature acts separately, so the model cannot represent effects that depend on two features together, such as the impact of a dose varying with age. Product terms can be added by hand, but each must be thought of in advance and adds a surface that is harder to read than a curve."
         },
         {
-          "description": "Setup requires domain expertise to decide which features need nonlinear treatment and appropriate smoothing parameters, making model specification more challenging than linear models."
+          "description": "The smoothness of each curve is a modelling choice. Cross-validation or penalised fitting selects it automatically, but too little smoothing gives wiggly curves that look like real effects and too much hides genuine bends, so each curve should be read with its confidence band."
         },
         {
-          "description": "Fitting process is computationally more expensive than linear models, particularly for large datasets with many features requiring smoothing."
+          "description": "When features are strongly related, such as income and age, a nonlinear form of collinearity called concurvity lets one curve absorb part of another's effect. The individual curves can then misstate how much each feature influences the prediction."
         },
         {
-          "description": "Risk of overfitting individual feature relationships if smoothing parameters are not properly regularised, potentially reducing generalisation performance."
+          "description": "A model with dozens of smooth terms produces dozens of curves. Reading them all is slow, so reviewers tend to inspect only the largest effects, and the transparency benefit shrinks as the number of terms grows."
         },
         {
-          "description": "Interpretation complexity increases with the number of nonlinear features, as understanding multiple smooth curves simultaneously becomes cognitively demanding."
+          "description": "Terms add on the chosen link scale. In a logistic GAM they are contributions to log-odds, not independent additions to readmission probability or guaranteed causal feature effects."
         }
       ],
       "resources": [
@@ -3357,24 +3373,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The clinical decision model's predictions are decomposable into individual feature contributions that can be visualized as smooth curves",
+          "text": "Every input to the readmission risk model acts through a single plotted curve, so a clinician can read off how predicted risk changes with each input without running a separate explanation method.",
           "domain": "healthcare",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The lending model reveals how each applicant attribute nonlinearly influences approval likelihood whilst maintaining an additive structure",
+          "text": "The direction of each applicant attribute's effect in the credit model, as plotted with its confidence band, matches what credit risk specialists expect, and any departure has been explained.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's decision logic is directly inspectable without requiring separate explanation methods",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The resource allocation model documents how each policy-relevant factor shapes outcomes through interpretable functional relationships",
+          "text": "The resource allocation model's score for any case is a baseline plus one contribution per policy factor, so each factor's share of a decision can be stated and audited.",
           "domain": "public sector",
           "assuranceGoal": "transparency"
+        },
+        {
+          "text": "Each nonlinear effect the model reports departs from a straight line by more than the width of its confidence band, so the bend is not an artefact of over-flexible smoothing.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
         }
       ]
     },
@@ -4206,7 +4222,7 @@
     {
       "slug": "t-sne",
       "name": "t-SNE",
-      "description": "t-SNE (t-Distributed Stochastic Neighbour Embedding) is a non-linear dimensionality reduction technique that creates 2D or 3D visualisations of high-dimensional data by preserving local neighbourhood relationships. The algorithm converts similarities between data points into joint probabilities in the high-dimensional space, then tries to minimise the divergence between these probabilities and those in the low-dimensional embedding. This approach excels at revealing cluster structures and local patterns, making it particularly effective for exploratory data analysis and understanding complex data relationships that linear methods like PCA might miss.",
+      "description": "t-SNE (t-distributed Stochastic Neighbour Embedding) turns high-dimensional data into a two- or three-dimensional map that can be plotted and inspected. It is a non-linear dimensionality reduction method, so it can unfold curved structure that linear methods such as principal component analysis, which find only straight-line directions of greatest variation, would flatten. For each pair of points it works out how likely they are to be neighbours in the original space. It then moves the points around on the map until the same neighbour probabilities hold there as closely as possible. Because it concentrates on keeping near neighbours together, clusters of similar items usually appear as visible groups, whether the points are raw data or a model's internal representations such as embeddings.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -4231,26 +4247,30 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analyzing genomic data with thousands of gene expression features to visualize how different cancer subtypes cluster together, revealing which tumors have similar molecular signatures and potentially similar treatment responses.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A genomics group maps the gene-expression profiles of several thousand tumour samples with t-SNE and checks whether samples of the same clinical subtype form groups before training a subtype classifier. Subtypes that overlap on the map tell the team where the classifier is likely to confuse them."
         },
         {
-          "description": "Exploring deep learning model embeddings to understand how a neural network represents different categories of images, showing whether the model groups similar objects (cars, animals, furniture) in meaningful clusters in its internal feature space.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "An image-classification team maps the final hidden-layer activations of a trained network with t-SNE, colouring points by predicted class. It checks whether cars, animals and furniture fall into separate regions and which classes the network places close together, before reviewing misclassifications."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A trust-and-safety team maps the sentence embeddings used by a content-moderation model, colouring each post by the moderators' label. It checks whether flagged posts form their own group or sit among harmless posts on the same topic, and so decides whether the embedding needs retraining."
         }
       ],
       "limitations": [
         {
-          "description": "Non-deterministic algorithm produces different results on each run, making it difficult to reproduce exact visualizations or compare results across studies."
+          "description": "Results depend on random initialisation and a non-convex optimisation, so separate runs can lay clusters out differently. Fix the random seed, or start from a principal component analysis, and compare several runs before drawing conclusions."
         },
         {
-          "description": "Prioritizes preserving local neighborhood structure at the expense of global relationships, potentially creating misleading impressions about overall data topology."
+          "description": "Only local neighbourhoods are reliably preserved. Cluster sizes and the gaps between clusters carry no dependable meaning, so reading distance between groups as similarity will mislead a reviewer."
         },
         {
-          "description": "Computationally expensive with O(n²) complexity, making it impractical for datasets with more than ~10,000 points without approximation methods."
+          "description": "Perplexity (roughly the number of neighbours each point considers) and the number of iterations change the picture a great deal. Low settings can make random noise look like clusters, so a single plot at a single setting is weak evidence."
         },
         {
-          "description": "Sensitive to hyperparameter choices (perplexity, learning rate, iterations) that can dramatically affect clustering patterns and require domain expertise to tune appropriately."
+          "description": "Standard t-SNE needs time and memory that grow with the square of the number of points, so datasets beyond roughly 10,000 points need an approximate variant or a subsample."
         }
       ],
       "resources": [
@@ -4350,28 +4370,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's internal representations reveal distinct local neighborhoods corresponding to clinically meaningful disease subtypes",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "Similar customer profiles cluster together in the reduced representation while maintaining separation between behaviorally distinct segments",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The high-dimensional embedding space exhibits locally coherent structure that corresponds to interpretable data groupings",
+          "text": "The image model's specified hidden-layer representations have been mapped to show local neighbourhoods and mixed-label regions for inspection.",
           "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The sensor data's local proximity relationships in the reduced visualization reflect genuine environmental similarity patterns",
-          "domain": "environmental",
+          "text": "The tumour expression map supports inspection of local groupings alongside recorded subtype labels, without treating plotted separation as treatment-response evidence.",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "Complex gene expression patterns are rendered into interpretable clusters that preserve biological relationships between nearby cell types",
-          "domain": "healthcare",
+          "text": "The customer-profile map documents exploratory neighbourhoods for the specified features, distance measure and perplexity.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         }
       ]
@@ -4379,11 +4389,9 @@
     {
       "slug": "neuron-activation-analysis",
       "name": "Neuron Activation Analysis",
-      "description": "Neuron activation analysis examines the firing patterns of individual neurons in neural networks by probing them with diverse inputs and analysing their activation responses. This technique helps understand what concepts, features, or patterns different neurons have learned to recognise, providing insights into the model's internal representations. For large language models, this can reveal neurons specialised for linguistic concepts, semantic categories, or even potentially harmful patterns, enabling targeted interventions and deeper model understanding.",
+      "description": "Neuron activation analysis examines when individual neurons in a neural network respond strongly. The analyst runs a set of inputs through the model, finds the inputs that activate a chosen neuron most and least, and looks for the concept that separates them, such as buildings in an image classifier or French text in a language model. Some methods test the match automatically, for example by scoring how closely a neuron's activation lines up with labelled examples of a concept. The result is a list of neurons with candidate meanings and the evidence behind each. These meanings are correlations between inputs and activations, so they show what a neuron responds to, not what it does to the model's output.",
       "assurance_goals": [
-        "Explainability",
-        "Safety",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -4394,10 +4402,6 @@
         "assurance-goal-category/explainability/explains/internal-mechanisms",
         "assurance-goal-category/explainability/property/comprehensibility",
         "assurance-goal-category/explainability/representation-analysis/concept-identification",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-analysis",
         "data-type/text",
         "evidence-type/quantitative-metric",
         "evidence-type/visualisation",
@@ -4412,33 +4416,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing GPT-based models to identify specific neurons that activate on toxic or harmful content, enabling targeted interventions to reduce model toxicity whilst preserving general language capabilities for safer AI deployment.",
-          "goal": "Safety"
+          "goal": "Explainability",
+          "description": "An ML team inspects a scene classifier trained to sort building and street images. For each neuron in a late layer they compare the images that activate it most with those that do not, using object labels from the dataset. Some neurons line up with a clear concept such as a building and others only weakly, which tells the team how much of the layer can be read."
         },
         {
-          "description": "Examining activation patterns in multilingual language models to detect neurons that exhibit systematic biases when processing text from different linguistic communities, revealing implicit representation inequalities that could affect downstream applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Investigating individual neurons in medical language models to understand which clinical concepts and medical knowledge representations drive diagnostic suggestions, enabling healthcare professionals to validate the model's medical reasoning pathways.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital assurance team examines a clinical language model and finds neurons whose strongest activations come from text about a particular drug class or condition. A clinician reviews whether the concepts are the expected ones. The finding shows which clinical concepts the model represents internally, not that these neurons cause any particular suggestion."
         }
       ],
       "limitations": [
         {
-          "description": "Many neurons exhibit polysemantic behaviour, representing multiple unrelated concepts simultaneously, making it difficult to assign clear interpretable meanings to individual neural units."
+          "description": "Many neurons respond to several unrelated concepts, or play different roles depending on the surrounding input. A single label such as 'toxic language' can then be wrong or only part of the story, and consistent interpretation across scenarios is hard."
         },
         {
-          "description": "Important model behaviours are often distributed across many neurons rather than localised in single units, requiring analysis of neural circuits and interactions that can be exponentially complex."
+          "description": "Behaviour is often spread across many neurons instead of held in one, so a neuron-by-neuron view can miss it. Checking combinations of neurons is much harder than checking single ones, and the number of combinations grows quickly."
         },
         {
-          "description": "Computational costs scale dramatically with modern large language models containing billions of parameters, making comprehensive neuron-by-neuron analysis prohibitively expensive for complete model understanding."
+          "description": "The analysis shows which inputs make a neuron fire, not what the neuron contributes to the output. Showing that a neuron matters needs a separate experiment that switches it off or alters it and measures the effect."
         },
         {
-          "description": "Neuron activation patterns are highly context-dependent, with the same neuron potentially serving different roles based on surrounding input context, complicating consistent interpretation across diverse scenarios."
+          "description": "A neuron can only be matched to concepts the analyst has examples for. In image models this means a densely labelled dataset, and a neuron whose concept is missing from it goes unexplained or is mislabelled."
         },
         {
-          "description": "Interpretation of activation patterns often relies on subjective human analysis without rigorous validation methods, potentially leading to confirmation bias or misattribution of neural functions."
+          "description": "The method needs access to the model's internal activations, so it cannot be used on a model reached only through an API. Large language models have hundreds of thousands of neurons or more, so in practice only a chosen subset can be examined and labelled with care."
         }
       ],
       "resources": [
@@ -4547,29 +4547,19 @@
       ],
       "sample_claims": [
         {
-          "text": "The language model's internal representations reveal which individual computational units respond to specific semantic concepts relevant to clinical diagnosis",
+          "text": "For each sampled neuron in the clinical language model, the concept that best explains its strongest activations is recorded with a match score, and neurons below the agreed score are reported as not interpreted.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The content moderation system's harmful output patterns are attributable to identifiable neurons that can be selectively modified without degrading general language capabilities",
+          "text": "The concept labels assigned to the classifier's late-layer neurons hold on held-out images: the labelled neurons activate far more strongly on images of the concept than on images without it.",
           "domain": "general",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The multilingual model's neurons do not exhibit systematic activation biases when processing text from different linguistic communities",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The financial risk assessment model's internal computational units encode interpretable market concepts rather than opaque statistical artifacts",
-          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's specialized neurons for toxic content detection activate consistently across diverse phrasings and contexts of harmful patterns",
-          "domain": "general",
-          "assuranceGoal": "safety"
+          "text": "The language-model analysis documents the contexts producing high and low activation for each selected unit.",
+          "domain": "language processing",
+          "assuranceGoal": "explainability"
         }
       ]
     },
@@ -5404,10 +5394,9 @@
     {
       "slug": "prototype-and-criticism-models",
       "name": "Prototype and Criticism Models",
-      "description": "Prototype and Criticism Models provide data understanding by identifying two complementary sets of examples: prototypes represent the most typical instances that best summarise common patterns in the data, whilst criticisms are outliers or edge cases that are poorly represented by the prototypes. For example, in a dataset of customer transactions, prototypes might be the most representative buying patterns (frequent small purchases, occasional large purchases), whilst criticisms could be unusual behaviours (bulk buyers, one-time high-value customers). This dual approach reveals both what is normal and what is exceptional, helping understand data coverage and model blind spots.",
+      "description": "Prototype and criticism methods summarise a dataset with a small set of real examples. Prototypes are instances chosen to represent the bulk of the data, so that together they match its overall distribution as closely as possible. Criticisms are the instances the prototypes represent worst, which shows what the summary leaves out. In a set of customer transactions, prototypes might be the usual buying patterns and criticisms might be bulk buyers or one-off high-value customers. A reviewer can read a few dozen examples instead of the whole dataset, but the method describes the data only, so how a model performs on the unusual cases needs a separate check.",
       "assurance_goals": [
-        "Explainability",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/model-agnostic",
@@ -5421,8 +5410,6 @@
         "assurance-goal-category/explainability/instance-based/prototypes",
         "assurance-goal-category/explainability/property/comprehensibility",
         "assurance-goal-category/explainability/property/sparsity",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
         "data-type/any",
         "evidence-type/dataset-analysis",
         "evidence-type/structured-output",
@@ -5434,30 +5421,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing medical imaging datasets to identify prototype scans that represent typical healthy tissue patterns and criticism examples showing rare disease presentations, helping radiologists understand what the model considers 'normal' versus cases requiring special attention.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A radiology team summarises a medical imaging dataset with prototypes and criticisms. The prototypes show the typical scans that dominate the data, and the criticisms show rare presentations the data covers thinly. The team uses the criticisms to choose cases for a separate check of how accurate the model is on rare presentations."
         },
         {
-          "description": "Evaluating credit scoring models by finding prototype borrowers who represent typical low-risk profiles and criticism cases showing unusual but legitimate financial patterns that the model might misclassify, ensuring fair treatment of edge cases.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A credit risk team summarises its borrower records with prototypes (typical low-risk profiles) and criticisms (unusual but legitimate patterns, such as irregular self-employed income). It passes the criticism cases to a separate accuracy check, to see whether the scoring model handles them as well as typical borrowers."
         },
         {
-          "description": "Evaluating representation bias in hiring datasets by examining whether prototypes systematically exclude certain demographic groups and criticisms disproportionately represent minorities, revealing data collection inequities.",
-          "goal": "Fairness"
+          "goal": "Explainability",
+          "description": "An engineer preparing a visual inspection model for a production line computes prototypes and criticisms for each defect class on the model's image embeddings. The criticisms show unusual captures, such as odd lighting or partial views, which the team adds to the test set so the model is checked on them."
         }
       ],
       "limitations": [
         {
-          "description": "Selection of prototypes and criticisms is highly dependent on the choice of distance metric or similarity measure, which may not capture all meaningful relationships in the data."
+          "description": "Which examples are chosen depends on the similarity measure and its settings, so different reasonable choices give different prototypes and criticisms. The original paper lists the effect of the kernel choice as future work, so there is no settled guidance."
         },
         {
-          "description": "Computational complexity can become prohibitive for very large datasets, as the method often requires pairwise comparisons or optimisation over the entire dataset."
+          "description": "The method needs a similarity score between every pair of examples, so memory and time grow with the square of the dataset size. Large datasets may need to be sampled before the method is run."
         },
         {
-          "description": "The number of prototypes and criticisms to select is typically a hyperparameter that requires domain expertise to set appropriately."
+          "description": "The user sets the number of prototypes and criticisms. Too few leaves large parts of the data unrepresented, and too many defeats the purpose of a summary short enough for a person to read."
         },
         {
-          "description": "Results may not generalise well if the training data distribution differs significantly from the deployment data distribution."
+          "description": "It describes the data, not the model. Criticisms are the examples the prototypes represent worst, which is not the same as the examples the model gets wrong, so a separate evaluation is needed to learn how the model performs on them."
+        },
+        {
+          "description": "The original evidence that criticisms help people understand a dataset is a pilot study with four participants. Those who saw prototypes and criticisms were more accurate but slower than those who saw prototypes alone, so the benefit for a given audience is untested."
         }
       ],
       "resources": [
@@ -5543,29 +5533,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The medical imaging dataset's coverage is characterised by both typical tissue patterns and rare pathological presentations requiring specialised attention",
+          "text": "The training scans have been summarised by a reviewed set of prototypes and criticisms, and radiologists have confirmed that the criticisms are genuine rare presentations and not artefacts or mislabelled cases.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The credit model's validation set includes both representative borrower profiles and exceptional cases that deviate from standard lending patterns",
+          "text": "Every borrower profile flagged as a criticism has been reviewed by credit risk staff and either documented as legitimate or corrected, so the scoring model's evaluation can include atypical applicants.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The environmental monitoring system's training data reflects both common measurement conditions and unusual scenarios that test operational boundaries",
+          "text": "The monitoring system's training data covers the common measurement conditions shown by its prototypes, and the unusual conditions shown by its criticisms are reflected in the test set.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring dataset's representative candidates do not systematically exclude particular demographic groups whilst edge cases disproportionately represent minorities",
-          "domain": "public sector",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The system's performance on atypical cases is documented alongside its behaviour on prototypical examples",
+          "text": "A short, reviewable summary of the training data (the prototypes) represents its typical contents, and what the summary leaves out (the criticisms) has been listed alongside it.",
           "domain": "general",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "explainability"
         }
       ]
     },
@@ -5715,7 +5700,7 @@
     {
       "slug": "principal-component-analysis",
       "name": "Principal Component Analysis",
-      "description": "Principal Component Analysis transforms high-dimensional data into a lower-dimensional representation by finding the directions (principal components) that capture the maximum variance in the data. Each component is a linear combination of original features, with the first component explaining the most variance, the second component the most remaining variance orthogonal to the first, and so on. This technique reveals underlying patterns in data structure, enables visualisation of complex datasets, and helps identify which combinations of features drive the most variation in the data.",
+      "description": "Principal component analysis (PCA) summarises a dataset that has many numeric features by finding a few new axes along which the data varies most. Each axis, called a principal component, is a weighted mix of the original features. The first axis follows the direction of greatest spread in the data, the second follows the greatest remaining spread at right angles to the first, and so on. Plotting the data on the first two or three axes gives a view of its structure, and the weights show which features move together.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -5741,26 +5726,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing customer behavior data with dozens of variables (purchase frequency, spending patterns, demographics) to identify the 2-3 main dimensions that explain customer segmentation, revealing whether customers cluster by spending level, product preferences, or shopping frequency.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A retail analyst runs PCA on three dozen customer behaviour measures and finds that two components account for most of the variation. The weights show that one axis mixes spend and basket size and the other mixes visit frequency and recency, which gives the team a short list of dimensions to examine before building a segmentation model."
         },
         {
-          "description": "Reducing dimensionality of image data for facial recognition systems by finding the principal components that capture the most variation in face shapes and expressions, helping understand which facial features contribute most to distinguishing between individuals.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A team building a face verification system runs PCA on its training images and displays the leading components as images. If those components mainly capture lighting or background rather than face shape, the team knows the dataset's main variation reflects how the photos were taken, and can change what it collects."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A researcher auditing a word embedding takes the difference vectors for ten gendered word pairs, such as he and she, and runs PCA. The first component explains far more variance than the rest and far more than for random vectors, which suggests the embedding encodes gender mostly along one direction (Bolukbasi et al., 2016)."
         }
       ],
       "limitations": [
         {
-          "description": "Principal components are abstract linear combinations of original features that often lack clear real-world interpretation or meaning."
+          "description": "Each component mixes many original features, so it often has no clear real-world meaning, and the weights are hard to read when there are many features."
         },
         {
-          "description": "Only captures linear relationships between features, missing non-linear patterns and complex interactions in the data."
+          "description": "PCA captures only linear structure, so it can miss curved or clustered patterns in the data and interactions between features."
         },
         {
-          "description": "Results are highly sensitive to feature scaling - features with larger numerical ranges can dominate the principal components."
+          "description": "Results depend on feature scaling. PCA centres the data but does not rescale it, so a feature measured in large units can dominate the leading components. Standardise features first, or the components may reflect units and not structure."
         },
         {
-          "description": "Information loss is inherent when reducing dimensions, and choosing the optimal number of components requires balancing simplicity with retained variance."
+          "description": "PCA ranks directions by how much the data varies, not by how much they matter for an outcome. A high-variance component may be noise or irrelevant to a decision, and a low-variance one may carry the signal that separates classes, so leading components are not a guide to what a model needs."
+        },
+        {
+          "description": "Dropping components discards the variance they carry. Deciding how many to keep is a judgement call, for example a target share of variance explained, and it trades a simpler summary against lost detail."
         }
       ],
       "resources": [
@@ -5839,28 +5831,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The feature space reveals latent factors that explain correlated environmental measurements without relying on predetermined variable groupings",
+          "text": "The first three principal components of the sensor network readings account for 90 per cent or more of the variance, so a three-dimensional summary does not discard a material part of the data's structure.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's high-dimensional patient data is reducible to a small number of orthogonal patterns that capture most variation in clinical measurements",
+          "text": "Once the clinical measurements are standardised, no single measurement dominates the leading component, so the main pattern of variation in the patient data does not depend on a measurement's units.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The financial indicators decompose into uncorrelated variance components that reveal which measurement combinations drive portfolio risk",
+          "text": "The leading component of the portfolio's risk indicators loads on a recognisable group of related measures, so the main source of variation in the indicators can be named and discussed with the risk committee.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The image representation preserves maximal variance through linear transformations that identify which pixel combinations distinguish between object categories",
+          "text": "The training images' leading principal components have been inspected and are not dominated by capture artefacts such as lighting or sensor noise.",
           "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The customer behavior measurements organize into ordered variance patterns showing which feature combinations best separate distinct market segments",
-          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]
@@ -5868,7 +5855,7 @@
     {
       "slug": "umap",
       "name": "UMAP",
-      "description": "UMAP (Uniform Manifold Approximation and Projection) is a non-linear dimensionality reduction technique that creates 2D or 3D visualisations of high-dimensional data by constructing a mathematical model of the data's underlying manifold structure. Unlike t-SNE, UMAP preserves both local neighbourhood relationships and global topology more effectively, using techniques from topological data analysis and Riemannian geometry. This approach often produces more interpretable cluster layouts while maintaining meaningful distances between clusters, making it particularly valuable for exploratory data analysis and understanding complex dataset structures.",
+      "description": "UMAP (Uniform Manifold Approximation and Projection) is a non-linear dimensionality reduction method that turns high-dimensional data into a two- or three-dimensional map for plotting. It assumes the data lie on a lower-dimensional curved surface, called a manifold, and links each point to its nearest neighbours, giving each link a strength that says how likely the two points are to be neighbours. It then arranges the points on the map so that the link strengths there match those in the original space as closely as possible. Like t-SNE, it concentrates on keeping near neighbours together, so groups of similar items appear as clusters, whether the points are raw data or a model's embeddings. Its authors argue that it keeps more of the large-scale layout than t-SNE and runs faster, but gaps between clusters and cluster sizes should not be read as exact.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -5891,26 +5878,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing single-cell RNA sequencing data to visualise how different cell types cluster based on gene expression patterns, revealing developmental trajectories and identifying previously unknown cell subtypes in tissue samples.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A bioinformatics team projects single-cell expression data with UMAP and checks whether cell populations annotated by hand form distinct groups before using those labels to train a classifier. Populations that merge on the map are flagged as labels the classifier may struggle to separate."
         },
         {
-          "description": "Exploring customer segmentation by reducing hundreds of behavioural and demographic features to 2D space, showing how different customer groups relate to each other and identifying transition zones where customers might move between segments.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A language-technology team projects the sentence embeddings of a customer-support classifier with UMAP, colouring each message by the queue the model routes it to. It checks whether each queue is a coherent topic or a mix of unrelated ones, and decides whether to retrain the model."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A retail analytics team reduces several hundred behavioural and demographic features to two dimensions with UMAP and colours customers by the segments used in a churn model. It checks whether the segments occupy separate regions and where they overlap, so that segment boundaries are treated as soft."
         }
       ],
       "limitations": [
         {
-          "description": "Hyperparameter choices (n_neighbors, min_dist, metric) significantly influence the embedding structure and can lead to very different interpretations of the same data."
+          "description": "The number of neighbours sets the scale at which structure is detected. Small values show fine detail but fragment the data and read noise as structure, and large values blur small groups, so the same dataset can tell different stories. Report the settings used."
         },
         {
-          "description": "While preserving global structure better than t-SNE, distances in the reduced space still don't directly correspond to distances in the original feature space."
+          "description": "UMAP preserves neighbourhood topology, not distances or densities. Gaps between clusters and cluster sizes should not be read as quantities, and the map's axes have no meaning, so it cannot show which features separate the groups."
         },
         {
-          "description": "Performance can be sensitive to the choice of distance metric, which may not be obvious for complex or mixed data types."
+          "description": "It can find apparent structure in noise, especially in small or very noisy samples, where the authors warn of poor maps below about 500 points. A tidy-looking cluster is not evidence on its own."
         },
         {
-          "description": "Like other manifold learning techniques, it assumes the data lies on a lower-dimensional manifold, which may not hold for all datasets."
+          "description": "Results vary between runs and under subsampling because neighbour search and optimisation are stochastic. Fix the random seed and check that the conclusion survives a rerun on a subsample."
+        },
+        {
+          "description": "It rests on a chosen distance measure and on the data forming a connected, locally smooth manifold. Where the distance suits the data badly, for example mixed numeric and categorical features, the neighbour graph and so the map may mislead."
         }
       ],
       "resources": [
@@ -6019,23 +6013,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The high-dimensional dataset's underlying cluster relationships are visualized while preserving meaningful distances between distinct groups",
+          "text": "Cell populations annotated by the biology team form distinct, separable groups in a UMAP projection of the expression data, and the grouping holds across three settings of the neighbour count.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The data visualization reveals both local neighborhood patterns and global topology without sacrificing one for the other",
+          "text": "The fraud model's hidden-layer representations place flagged and unflagged transactions in largely separate regions of a UMAP projection, and the pattern repeats across five random seeds.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's learned representations can be explored through low-dimensional projections that preserve the manifold structure of the original feature space",
+          "text": "The perception model's embeddings of pedestrian and cyclist images form separate groups in a UMAP projection, and the overlapping region has been listed for review.",
           "domain": "autonomous systems",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "Complex dataset structures with non-linear relationships are comprehensible through two-dimensional visualizations that maintain topological fidelity",
-          "domain": "environmental",
+          "text": "Cases that the triage model assigns to different priority bands occupy separable regions in a UMAP projection of the case features, and cases lying between regions have been reviewed by a caseworker.",
+          "domain": "public sector",
           "assuranceGoal": "explainability"
         }
       ]

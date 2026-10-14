@@ -2104,7 +2104,7 @@
     {
       "slug": "principal-component-analysis",
       "name": "Principal Component Analysis",
-      "description": "Principal Component Analysis transforms high-dimensional data into a lower-dimensional representation by finding the directions (principal components) that capture the maximum variance in the data. Each component is a linear combination of original features, with the first component explaining the most variance, the second component the most remaining variance orthogonal to the first, and so on. This technique reveals underlying patterns in data structure, enables visualisation of complex datasets, and helps identify which combinations of features drive the most variation in the data.",
+      "description": "Principal component analysis (PCA) summarises a dataset that has many numeric features by finding a few new axes along which the data varies most. Each axis, called a principal component, is a weighted mix of the original features. The first axis follows the direction of greatest spread in the data, the second follows the greatest remaining spread at right angles to the first, and so on. Plotting the data on the first two or three axes gives a view of its structure, and the weights show which features move together.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -2130,26 +2130,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing customer behavior data with dozens of variables (purchase frequency, spending patterns, demographics) to identify the 2-3 main dimensions that explain customer segmentation, revealing whether customers cluster by spending level, product preferences, or shopping frequency.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A retail analyst runs PCA on three dozen customer behaviour measures and finds that two components account for most of the variation. The weights show that one axis mixes spend and basket size and the other mixes visit frequency and recency, which gives the team a short list of dimensions to examine before building a segmentation model."
         },
         {
-          "description": "Reducing dimensionality of image data for facial recognition systems by finding the principal components that capture the most variation in face shapes and expressions, helping understand which facial features contribute most to distinguishing between individuals.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A team building a face verification system runs PCA on its training images and displays the leading components as images. If those components mainly capture lighting or background rather than face shape, the team knows the dataset's main variation reflects how the photos were taken, and can change what it collects."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A researcher auditing a word embedding takes the difference vectors for ten gendered word pairs, such as he and she, and runs PCA. The first component explains far more variance than the rest and far more than for random vectors, which suggests the embedding encodes gender mostly along one direction (Bolukbasi et al., 2016)."
         }
       ],
       "limitations": [
         {
-          "description": "Principal components are abstract linear combinations of original features that often lack clear real-world interpretation or meaning."
+          "description": "Each component mixes many original features, so it often has no clear real-world meaning, and the weights are hard to read when there are many features."
         },
         {
-          "description": "Only captures linear relationships between features, missing non-linear patterns and complex interactions in the data."
+          "description": "PCA captures only linear structure, so it can miss curved or clustered patterns in the data and interactions between features."
         },
         {
-          "description": "Results are highly sensitive to feature scaling - features with larger numerical ranges can dominate the principal components."
+          "description": "Results depend on feature scaling. PCA centres the data but does not rescale it, so a feature measured in large units can dominate the leading components. Standardise features first, or the components may reflect units and not structure."
         },
         {
-          "description": "Information loss is inherent when reducing dimensions, and choosing the optimal number of components requires balancing simplicity with retained variance."
+          "description": "PCA ranks directions by how much the data varies, not by how much they matter for an outcome. A high-variance component may be noise or irrelevant to a decision, and a low-variance one may carry the signal that separates classes, so leading components are not a guide to what a model needs."
+        },
+        {
+          "description": "Dropping components discards the variance they carry. Deciding how many to keep is a judgement call, for example a target share of variance explained, and it trades a simpler summary against lost detail."
         }
       ],
       "resources": [
@@ -2228,28 +2235,23 @@
       ],
       "sample_claims": [
         {
-          "text": "The feature space reveals latent factors that explain correlated environmental measurements without relying on predetermined variable groupings",
+          "text": "The first three principal components of the sensor network readings account for 90 per cent or more of the variance, so a three-dimensional summary does not discard a material part of the data's structure.",
           "domain": "environmental",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's high-dimensional patient data is reducible to a small number of orthogonal patterns that capture most variation in clinical measurements",
+          "text": "Once the clinical measurements are standardised, no single measurement dominates the leading component, so the main pattern of variation in the patient data does not depend on a measurement's units.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The financial indicators decompose into uncorrelated variance components that reveal which measurement combinations drive portfolio risk",
+          "text": "The leading component of the portfolio's risk indicators loads on a recognisable group of related measures, so the main source of variation in the indicators can be named and discussed with the risk committee.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The image representation preserves maximal variance through linear transformations that identify which pixel combinations distinguish between object categories",
+          "text": "The training images' leading principal components have been inspected and are not dominated by capture artefacts such as lighting or sensor noise.",
           "domain": "autonomous systems",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The customer behavior measurements organize into ordered variance patterns showing which feature combinations best separate distinct market segments",
-          "domain": "general",
           "assuranceGoal": "explainability"
         }
       ]
@@ -4488,11 +4490,9 @@
     {
       "slug": "neuron-activation-analysis",
       "name": "Neuron Activation Analysis",
-      "description": "Neuron activation analysis examines the firing patterns of individual neurons in neural networks by probing them with diverse inputs and analysing their activation responses. This technique helps understand what concepts, features, or patterns different neurons have learned to recognise, providing insights into the model's internal representations. For large language models, this can reveal neurons specialised for linguistic concepts, semantic categories, or even potentially harmful patterns, enabling targeted interventions and deeper model understanding.",
+      "description": "Neuron activation analysis examines when individual neurons in a neural network respond strongly. The analyst runs a set of inputs through the model, finds the inputs that activate a chosen neuron most and least, and looks for the concept that separates them, such as buildings in an image classifier or French text in a language model. Some methods test the match automatically, for example by scoring how closely a neuron's activation lines up with labelled examples of a concept. The result is a list of neurons with candidate meanings and the evidence behind each. These meanings are correlations between inputs and activations, so they show what a neuron responds to, not what it does to the model's output.",
       "assurance_goals": [
-        "Explainability",
-        "Safety",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -4503,10 +4503,6 @@
         "assurance-goal-category/explainability/explains/internal-mechanisms",
         "assurance-goal-category/explainability/property/comprehensibility",
         "assurance-goal-category/explainability/representation-analysis/concept-identification",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-analysis",
         "data-type/text",
         "evidence-type/quantitative-metric",
         "evidence-type/visualisation",
@@ -4521,33 +4517,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing GPT-based models to identify specific neurons that activate on toxic or harmful content, enabling targeted interventions to reduce model toxicity whilst preserving general language capabilities for safer AI deployment.",
-          "goal": "Safety"
+          "goal": "Explainability",
+          "description": "An ML team inspects a scene classifier trained to sort building and street images. For each neuron in a late layer they compare the images that activate it most with those that do not, using object labels from the dataset. Some neurons line up with a clear concept such as a building and others only weakly, which tells the team how much of the layer can be read."
         },
         {
-          "description": "Examining activation patterns in multilingual language models to detect neurons that exhibit systematic biases when processing text from different linguistic communities, revealing implicit representation inequalities that could affect downstream applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Investigating individual neurons in medical language models to understand which clinical concepts and medical knowledge representations drive diagnostic suggestions, enabling healthcare professionals to validate the model's medical reasoning pathways.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital assurance team examines a clinical language model and finds neurons whose strongest activations come from text about a particular drug class or condition. A clinician reviews whether the concepts are the expected ones. The finding shows which clinical concepts the model represents internally, not that these neurons cause any particular suggestion."
         }
       ],
       "limitations": [
         {
-          "description": "Many neurons exhibit polysemantic behaviour, representing multiple unrelated concepts simultaneously, making it difficult to assign clear interpretable meanings to individual neural units."
+          "description": "Many neurons respond to several unrelated concepts, or play different roles depending on the surrounding input. A single label such as 'toxic language' can then be wrong or only part of the story, and consistent interpretation across scenarios is hard."
         },
         {
-          "description": "Important model behaviours are often distributed across many neurons rather than localised in single units, requiring analysis of neural circuits and interactions that can be exponentially complex."
+          "description": "Behaviour is often spread across many neurons instead of held in one, so a neuron-by-neuron view can miss it. Checking combinations of neurons is much harder than checking single ones, and the number of combinations grows quickly."
         },
         {
-          "description": "Computational costs scale dramatically with modern large language models containing billions of parameters, making comprehensive neuron-by-neuron analysis prohibitively expensive for complete model understanding."
+          "description": "The analysis shows which inputs make a neuron fire, not what the neuron contributes to the output. Showing that a neuron matters needs a separate experiment that switches it off or alters it and measures the effect."
         },
         {
-          "description": "Neuron activation patterns are highly context-dependent, with the same neuron potentially serving different roles based on surrounding input context, complicating consistent interpretation across diverse scenarios."
+          "description": "A neuron can only be matched to concepts the analyst has examples for. In image models this means a densely labelled dataset, and a neuron whose concept is missing from it goes unexplained or is mislabelled."
         },
         {
-          "description": "Interpretation of activation patterns often relies on subjective human analysis without rigorous validation methods, potentially leading to confirmation bias or misattribution of neural functions."
+          "description": "The method needs access to the model's internal activations, so it cannot be used on a model reached only through an API. Large language models have hundreds of thousands of neurons or more, so in practice only a chosen subset can be examined and labelled with care."
         }
       ],
       "resources": [
@@ -4656,29 +4648,19 @@
       ],
       "sample_claims": [
         {
-          "text": "The language model's internal representations reveal which individual computational units respond to specific semantic concepts relevant to clinical diagnosis",
+          "text": "For each sampled neuron in the clinical language model, the concept that best explains its strongest activations is recorded with a match score, and neurons below the agreed score are reported as not interpreted.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The content moderation system's harmful output patterns are attributable to identifiable neurons that can be selectively modified without degrading general language capabilities",
+          "text": "The concept labels assigned to the classifier's late-layer neurons hold on held-out images: the labelled neurons activate far more strongly on images of the concept than on images without it.",
           "domain": "general",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The multilingual model's neurons do not exhibit systematic activation biases when processing text from different linguistic communities",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The financial risk assessment model's internal computational units encode interpretable market concepts rather than opaque statistical artifacts",
-          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's specialized neurons for toxic content detection activate consistently across diverse phrasings and contexts of harmful patterns",
-          "domain": "general",
-          "assuranceGoal": "safety"
+          "text": "The language-model analysis documents the contexts producing high and low activation for each selected unit.",
+          "domain": "language processing",
+          "assuranceGoal": "explainability"
         }
       ]
     },

@@ -974,7 +974,7 @@
     {
       "slug": "t-sne",
       "name": "t-SNE",
-      "description": "t-SNE (t-Distributed Stochastic Neighbour Embedding) is a non-linear dimensionality reduction technique that creates 2D or 3D visualisations of high-dimensional data by preserving local neighbourhood relationships. The algorithm converts similarities between data points into joint probabilities in the high-dimensional space, then tries to minimise the divergence between these probabilities and those in the low-dimensional embedding. This approach excels at revealing cluster structures and local patterns, making it particularly effective for exploratory data analysis and understanding complex data relationships that linear methods like PCA might miss.",
+      "description": "t-SNE (t-distributed Stochastic Neighbour Embedding) turns high-dimensional data into a two- or three-dimensional map that can be plotted and inspected. It is a non-linear dimensionality reduction method, so it can unfold curved structure that linear methods such as principal component analysis, which find only straight-line directions of greatest variation, would flatten. For each pair of points it works out how likely they are to be neighbours in the original space. It then moves the points around on the map until the same neighbour probabilities hold there as closely as possible. Because it concentrates on keeping near neighbours together, clusters of similar items usually appear as visible groups, whether the points are raw data or a model's internal representations such as embeddings.",
       "assurance_goals": [
         "Explainability"
       ],
@@ -999,26 +999,30 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analyzing genomic data with thousands of gene expression features to visualize how different cancer subtypes cluster together, revealing which tumors have similar molecular signatures and potentially similar treatment responses.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A genomics group maps the gene-expression profiles of several thousand tumour samples with t-SNE and checks whether samples of the same clinical subtype form groups before training a subtype classifier. Subtypes that overlap on the map tell the team where the classifier is likely to confuse them."
         },
         {
-          "description": "Exploring deep learning model embeddings to understand how a neural network represents different categories of images, showing whether the model groups similar objects (cars, animals, furniture) in meaningful clusters in its internal feature space.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "An image-classification team maps the final hidden-layer activations of a trained network with t-SNE, colouring points by predicted class. It checks whether cars, animals and furniture fall into separate regions and which classes the network places close together, before reviewing misclassifications."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A trust-and-safety team maps the sentence embeddings used by a content-moderation model, colouring each post by the moderators' label. It checks whether flagged posts form their own group or sit among harmless posts on the same topic, and so decides whether the embedding needs retraining."
         }
       ],
       "limitations": [
         {
-          "description": "Non-deterministic algorithm produces different results on each run, making it difficult to reproduce exact visualizations or compare results across studies."
+          "description": "Results depend on random initialisation and a non-convex optimisation, so separate runs can lay clusters out differently. Fix the random seed, or start from a principal component analysis, and compare several runs before drawing conclusions."
         },
         {
-          "description": "Prioritizes preserving local neighborhood structure at the expense of global relationships, potentially creating misleading impressions about overall data topology."
+          "description": "Only local neighbourhoods are reliably preserved. Cluster sizes and the gaps between clusters carry no dependable meaning, so reading distance between groups as similarity will mislead a reviewer."
         },
         {
-          "description": "Computationally expensive with O(n²) complexity, making it impractical for datasets with more than ~10,000 points without approximation methods."
+          "description": "Perplexity (roughly the number of neighbours each point considers) and the number of iterations change the picture a great deal. Low settings can make random noise look like clusters, so a single plot at a single setting is weak evidence."
         },
         {
-          "description": "Sensitive to hyperparameter choices (perplexity, learning rate, iterations) that can dramatically affect clustering patterns and require domain expertise to tune appropriately."
+          "description": "Standard t-SNE needs time and memory that grow with the square of the number of points, so datasets beyond roughly 10,000 points need an approximate variant or a subsample."
         }
       ],
       "resources": [
@@ -1118,28 +1122,18 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's internal representations reveal distinct local neighborhoods corresponding to clinically meaningful disease subtypes",
-          "domain": "healthcare",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "Similar customer profiles cluster together in the reduced representation while maintaining separation between behaviorally distinct segments",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The high-dimensional embedding space exhibits locally coherent structure that corresponds to interpretable data groupings",
+          "text": "The image model's specified hidden-layer representations have been mapped to show local neighbourhoods and mixed-label regions for inspection.",
           "domain": "general",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The sensor data's local proximity relationships in the reduced visualization reflect genuine environmental similarity patterns",
-          "domain": "environmental",
+          "text": "The tumour expression map supports inspection of local groupings alongside recorded subtype labels, without treating plotted separation as treatment-response evidence.",
+          "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "Complex gene expression patterns are rendered into interpretable clusters that preserve biological relationships between nearby cell types",
-          "domain": "healthcare",
+          "text": "The customer-profile map documents exploratory neighbourhoods for the specified features, distance measure and perplexity.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         }
       ]
@@ -2805,11 +2799,9 @@
     {
       "slug": "neuron-activation-analysis",
       "name": "Neuron Activation Analysis",
-      "description": "Neuron activation analysis examines the firing patterns of individual neurons in neural networks by probing them with diverse inputs and analysing their activation responses. This technique helps understand what concepts, features, or patterns different neurons have learned to recognise, providing insights into the model's internal representations. For large language models, this can reveal neurons specialised for linguistic concepts, semantic categories, or even potentially harmful patterns, enabling targeted interventions and deeper model understanding.",
+      "description": "Neuron activation analysis examines when individual neurons in a neural network respond strongly. The analyst runs a set of inputs through the model, finds the inputs that activate a chosen neuron most and least, and looks for the concept that separates them, such as buildings in an image classifier or French text in a language model. Some methods test the match automatically, for example by scoring how closely a neuron's activation lines up with labelled examples of a concept. The result is a list of neurons with candidate meanings and the evidence behind each. These meanings are correlations between inputs and activations, so they show what a neuron responds to, not what it does to the model's output.",
       "assurance_goals": [
-        "Explainability",
-        "Safety",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -2820,10 +2812,6 @@
         "assurance-goal-category/explainability/explains/internal-mechanisms",
         "assurance-goal-category/explainability/property/comprehensibility",
         "assurance-goal-category/explainability/representation-analysis/concept-identification",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-analysis",
         "data-type/text",
         "evidence-type/quantitative-metric",
         "evidence-type/visualisation",
@@ -2838,33 +2826,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing GPT-based models to identify specific neurons that activate on toxic or harmful content, enabling targeted interventions to reduce model toxicity whilst preserving general language capabilities for safer AI deployment.",
-          "goal": "Safety"
+          "goal": "Explainability",
+          "description": "An ML team inspects a scene classifier trained to sort building and street images. For each neuron in a late layer they compare the images that activate it most with those that do not, using object labels from the dataset. Some neurons line up with a clear concept such as a building and others only weakly, which tells the team how much of the layer can be read."
         },
         {
-          "description": "Examining activation patterns in multilingual language models to detect neurons that exhibit systematic biases when processing text from different linguistic communities, revealing implicit representation inequalities that could affect downstream applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Investigating individual neurons in medical language models to understand which clinical concepts and medical knowledge representations drive diagnostic suggestions, enabling healthcare professionals to validate the model's medical reasoning pathways.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital assurance team examines a clinical language model and finds neurons whose strongest activations come from text about a particular drug class or condition. A clinician reviews whether the concepts are the expected ones. The finding shows which clinical concepts the model represents internally, not that these neurons cause any particular suggestion."
         }
       ],
       "limitations": [
         {
-          "description": "Many neurons exhibit polysemantic behaviour, representing multiple unrelated concepts simultaneously, making it difficult to assign clear interpretable meanings to individual neural units."
+          "description": "Many neurons respond to several unrelated concepts, or play different roles depending on the surrounding input. A single label such as 'toxic language' can then be wrong or only part of the story, and consistent interpretation across scenarios is hard."
         },
         {
-          "description": "Important model behaviours are often distributed across many neurons rather than localised in single units, requiring analysis of neural circuits and interactions that can be exponentially complex."
+          "description": "Behaviour is often spread across many neurons instead of held in one, so a neuron-by-neuron view can miss it. Checking combinations of neurons is much harder than checking single ones, and the number of combinations grows quickly."
         },
         {
-          "description": "Computational costs scale dramatically with modern large language models containing billions of parameters, making comprehensive neuron-by-neuron analysis prohibitively expensive for complete model understanding."
+          "description": "The analysis shows which inputs make a neuron fire, not what the neuron contributes to the output. Showing that a neuron matters needs a separate experiment that switches it off or alters it and measures the effect."
         },
         {
-          "description": "Neuron activation patterns are highly context-dependent, with the same neuron potentially serving different roles based on surrounding input context, complicating consistent interpretation across diverse scenarios."
+          "description": "A neuron can only be matched to concepts the analyst has examples for. In image models this means a densely labelled dataset, and a neuron whose concept is missing from it goes unexplained or is mislabelled."
         },
         {
-          "description": "Interpretation of activation patterns often relies on subjective human analysis without rigorous validation methods, potentially leading to confirmation bias or misattribution of neural functions."
+          "description": "The method needs access to the model's internal activations, so it cannot be used on a model reached only through an API. Large language models have hundreds of thousands of neurons or more, so in practice only a chosen subset can be examined and labelled with care."
         }
       ],
       "resources": [
@@ -2973,29 +2957,19 @@
       ],
       "sample_claims": [
         {
-          "text": "The language model's internal representations reveal which individual computational units respond to specific semantic concepts relevant to clinical diagnosis",
+          "text": "For each sampled neuron in the clinical language model, the concept that best explains its strongest activations is recorded with a match score, and neurons below the agreed score are reported as not interpreted.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The content moderation system's harmful output patterns are attributable to identifiable neurons that can be selectively modified without degrading general language capabilities",
+          "text": "The concept labels assigned to the classifier's late-layer neurons hold on held-out images: the labelled neurons activate far more strongly on images of the concept than on images without it.",
           "domain": "general",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The multilingual model's neurons do not exhibit systematic activation biases when processing text from different linguistic communities",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The financial risk assessment model's internal computational units encode interpretable market concepts rather than opaque statistical artifacts",
-          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's specialized neurons for toxic content detection activate consistently across diverse phrasings and contexts of harmful patterns",
-          "domain": "general",
-          "assuranceGoal": "safety"
+          "text": "The language-model analysis documents the contexts producing high and low activation for each selected unit.",
+          "domain": "language processing",
+          "assuranceGoal": "explainability"
         }
       ]
     },

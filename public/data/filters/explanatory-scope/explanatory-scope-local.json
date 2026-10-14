@@ -1193,26 +1193,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Examining how house price predictions vary with property age for individual properties, revealing that whilst most houses follow a declining price trend with age, historic properties (built before 1900) show different patterns due to heritage value.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A valuation team checks a house-price model before using it for automated estimates. ICE lines for property age show most homes losing value as they age, but a group of pre-1900 homes gaining value. The team asks whether the model has learned a real heritage premium or is reacting to a handful of unusual sales."
         },
         {
-          "description": "Analysing how individual patients' diabetes risk predictions change with BMI, showing that whilst most patients follow the expected increasing risk pattern, some patients with specific genetic markers show different response curves.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital data science team reviews a diabetes risk model before clinicians use it. ICE lines of predicted risk against BMI rise steadily for most patients but stay flat for a small group. The team colours the lines by recorded characteristics, such as age band, to see what the flat group shares, then asks a clinician whether a flat response is plausible."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A credit risk validation team marks each applicant's actual income on that applicant's ICE line for a loan pricing model. For some applicant profiles the line changes steeply at incomes where no similar applicants appear in the training data. The team treats that part of the line as extrapolation and restricts the model's use to the supported range."
         }
       ],
       "limitations": [
         {
-          "description": "Plots can become cluttered and difficult to interpret when displaying many instances simultaneously."
+          "description": "With hundreds or thousands of cases the lines overlap into a dense band that hides individual behaviour. Plotting a sample of lines, shifting them to start at the same point, or colouring them by a second feature is usually needed before the plot can be read."
         },
         {
-          "description": "Does not provide automatic summarisation of overall effects, requiring manual visual inspection to identify patterns."
+          "description": "Each line changes one feature while holding the case's other features fixed. Where features are correlated, parts of a line describe combinations that never occur in the data, so the model is extrapolating there. Marking each case's actual feature value on its line shows which part of the line the data supports."
         },
         {
-          "description": "Still assumes all other features remain fixed at their observed values, which may not reflect realistic scenarios."
+          "description": "Lines that are not parallel show that the feature's effect depends on other features, but not which ones. Finding out means colouring the lines by candidate features one at a time, so the search is by trial and error."
         },
         {
-          "description": "Cannot reveal interactions between the plotted feature and other features for individual instances."
+          "description": "Judging whether lines differ by more than chance is done by eye, and a model can produce uneven lines from noise alone. The authors' formal check hides the real plot among plots made from additive fits, which needs the model to be refitted many times."
+        },
+        {
+          "description": "In its basic form the plot needs a model prediction for every case at every observed value of the feature, so the number of predictions grows with the square of the dataset size. Large datasets or slow models call for sampling."
         }
       ],
       "resources": [
@@ -2310,7 +2317,7 @@
     {
       "slug": "anchor",
       "name": "ANCHOR",
-      "description": "ANCHOR generates high-precision if-then rules that explain individual predictions by identifying the minimal set of feature conditions that guarantee a specific prediction with high confidence. It searches for 'anchor' conditions (e.g., 'age > 30 AND income < £50k') that ensure the model gives the same prediction at least 95% of the time when those conditions are met. This creates human-readable rules that users can trust as sufficient conditions for understanding why a particular decision was made.",
+      "description": "ANCHOR explains one prediction of a black-box classifier with an if-then rule, called an anchor, such as 'age > 30 AND income < £50k'. An anchor names a small set of feature conditions under which the model keeps giving the same prediction, whatever the other features are. To find one, the method fixes the conditions, varies the other features by sampling, asks the model for a prediction each time, and searches for the broadest rule that holds in at least a chosen share of the samples, commonly 95%. Each anchor comes with its estimated precision and its coverage, the share of cases to which it applies. Both figures describe the model's behaviour on the sampled variations, not on real cases, and continuous features are first grouped into ranges.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -2338,30 +2345,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Explaining loan application decisions with rules like 'IF credit_score > 650 AND debt_ratio < 0.4 THEN approval = 95% likely', giving applicants clear, actionable conditions they can understand and potentially improve.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A model-validation team at a lender computes anchors for a sample of declined applications from a gradient-boosted credit model. It checks that the conditions holding each decision, such as a low credit-score band together with recent missed payments, match credit policy, and reads each rule's coverage to see how many other applications it applies to."
         },
         {
-          "description": "Generating diagnostic rules for medical predictions such as 'IF fever > 38.5°C AND white_blood_cells > 12,000 THEN infection = 92% likely', helping clinicians validate automated diagnoses with trusted clinical indicators.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital data team explains individual alerts from a tabular sepsis-risk model with anchors, and a clinician checks whether the conditions in each rule, such as raised temperature and white-cell count, are clinically sensible or point to an artefact such as the ward an admission came from."
         },
         {
-          "description": "Creating transparent hiring decisions with rules like 'IF experience >= 3_years AND degree = relevant THEN hire = 89% likely', providing clear justification for recruitment decisions that can be audited for fairness.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "An employer's compliance team gives a reviewer the anchor behind a shortlisting prediction, with its precision and coverage. The reviewer tests the rule on other applications and can challenge it if it leans on an attribute that should not matter, such as age."
         }
       ],
       "limitations": [
         {
-          "description": "Limited to local explanations for individual instances, cannot provide global insights about overall model behaviour."
+          "description": "The stated precision is measured on perturbed samples from a chosen sampling distribution, not on real cases. If that distribution produces unrealistic inputs, or is skewed by an unbalanced training set, the figure can overstate how far the rule can be relied on."
         },
         {
-          "description": "Requires discretisation of continuous features, which can lose important nuanced information and create arbitrary thresholds."
+          "description": "An anchor covers only the inputs its conditions match, often a small share. In the original experiments average coverage ranged from about 1% to 29% on tabular data, so one anchor says little about the model as a whole. Choosing a set of anchors helps but adds effort."
         },
         {
-          "description": "May fail to find suitable anchor rules if precision requirements are too strict or if the prediction space is highly complex."
+          "description": "Predictions close to the model's decision boundary, or of rare classes, need long, very specific rules with little coverage, which add little insight. Strict precision thresholds make this more likely."
         },
         {
-          "description": "Computationally expensive as it requires extensive sampling to validate rule precision, especially for high-dimensional data."
+          "description": "Continuous features must be grouped into ranges before rules can be stated, and the grouping changes which anchors are found. Too coarse hides boundaries, and too fine gives narrow rules with little coverage."
+        },
+        {
+          "description": "Each anchor needs many queries to the model, so run time depends on how fast the model is and on the number of features. The method is built for classifiers, so a numeric output must first be turned into classes."
         }
       ],
       "resources": [
@@ -2440,40 +2450,38 @@
       ],
       "sample_claims": [
         {
-          "text": "The model's individual predictions are supported by verifiable sufficient conditions with quantified confidence guarantees",
-          "domain": "general",
+          "text": "For a sample of declined loan applications, each decision of the credit model is held in place by a short rule over policy-relevant features, with estimated precision of at least 95% under the stated sampling distribution.",
+          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The lending system provides loan applicants with specific, actionable conditions that guarantee approval with stated probability",
-          "domain": "finance",
-          "assuranceGoal": "transparency"
-        },
-        {
-          "text": "The diagnostic system's recommendations are justified by minimal sets of clinical indicators that ensure the decision under specified conditions",
+          "text": "Sepsis alerts raised by the risk model are each explained by a rule over clinical measurements, and a clinician reviewed a sample of rules and found none that relies on an administrative field such as ward or admission time.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The hiring decision criteria are documented as precise if-then rules with empirically validated confidence bounds",
-          "domain": "public sector",
+          "text": "The set of rules chosen to explain the classifier covers at least half of the validation cases, so the main patterns it relies on have been examined.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Each shortlisting decision from the screening model can be given to a reviewer as a rule with its precision and coverage, so that the reviewer can test the rule on other applications.",
+          "domain": "employment",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The fraud detection system identifies sufficient feature combinations that reliably predict flagged transactions with quantified precision",
-          "domain": "finance",
-          "assuranceGoal": "explainability"
+          "text": "Every reason given for an individual model output states its own coverage, so a reviewer knows which other cases the reason applies to and which it does not.",
+          "domain": "general",
+          "assuranceGoal": "transparency"
         }
       ]
     },
     {
       "slug": "neuron-activation-analysis",
       "name": "Neuron Activation Analysis",
-      "description": "Neuron activation analysis examines the firing patterns of individual neurons in neural networks by probing them with diverse inputs and analysing their activation responses. This technique helps understand what concepts, features, or patterns different neurons have learned to recognise, providing insights into the model's internal representations. For large language models, this can reveal neurons specialised for linguistic concepts, semantic categories, or even potentially harmful patterns, enabling targeted interventions and deeper model understanding.",
+      "description": "Neuron activation analysis examines when individual neurons in a neural network respond strongly. The analyst runs a set of inputs through the model, finds the inputs that activate a chosen neuron most and least, and looks for the concept that separates them, such as buildings in an image classifier or French text in a language model. Some methods test the match automatically, for example by scoring how closely a neuron's activation lines up with labelled examples of a concept. The result is a list of neurons with candidate meanings and the evidence behind each. These meanings are correlations between inputs and activations, so they show what a neuron responds to, not what it does to the model's output.",
       "assurance_goals": [
-        "Explainability",
-        "Safety",
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
         "applicable-models/architecture/neural-networks",
@@ -2484,10 +2492,6 @@
         "assurance-goal-category/explainability/explains/internal-mechanisms",
         "assurance-goal-category/explainability/property/comprehensibility",
         "assurance-goal-category/explainability/representation-analysis/concept-identification",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/bias-diagnosis",
-        "assurance-goal-category/safety",
-        "assurance-goal-category/safety/hazard-analysis",
         "data-type/text",
         "evidence-type/quantitative-metric",
         "evidence-type/visualisation",
@@ -2502,33 +2506,29 @@
       ],
       "example_use_cases": [
         {
-          "description": "Analysing GPT-based models to identify specific neurons that activate on toxic or harmful content, enabling targeted interventions to reduce model toxicity whilst preserving general language capabilities for safer AI deployment.",
-          "goal": "Safety"
+          "goal": "Explainability",
+          "description": "An ML team inspects a scene classifier trained to sort building and street images. For each neuron in a late layer they compare the images that activate it most with those that do not, using object labels from the dataset. Some neurons line up with a clear concept such as a building and others only weakly, which tells the team how much of the layer can be read."
         },
         {
-          "description": "Examining activation patterns in multilingual language models to detect neurons that exhibit systematic biases when processing text from different linguistic communities, revealing implicit representation inequalities that could affect downstream applications.",
-          "goal": "Fairness"
-        },
-        {
-          "description": "Investigating individual neurons in medical language models to understand which clinical concepts and medical knowledge representations drive diagnostic suggestions, enabling healthcare professionals to validate the model's medical reasoning pathways.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A hospital assurance team examines a clinical language model and finds neurons whose strongest activations come from text about a particular drug class or condition. A clinician reviews whether the concepts are the expected ones. The finding shows which clinical concepts the model represents internally, not that these neurons cause any particular suggestion."
         }
       ],
       "limitations": [
         {
-          "description": "Many neurons exhibit polysemantic behaviour, representing multiple unrelated concepts simultaneously, making it difficult to assign clear interpretable meanings to individual neural units."
+          "description": "Many neurons respond to several unrelated concepts, or play different roles depending on the surrounding input. A single label such as 'toxic language' can then be wrong or only part of the story, and consistent interpretation across scenarios is hard."
         },
         {
-          "description": "Important model behaviours are often distributed across many neurons rather than localised in single units, requiring analysis of neural circuits and interactions that can be exponentially complex."
+          "description": "Behaviour is often spread across many neurons instead of held in one, so a neuron-by-neuron view can miss it. Checking combinations of neurons is much harder than checking single ones, and the number of combinations grows quickly."
         },
         {
-          "description": "Computational costs scale dramatically with modern large language models containing billions of parameters, making comprehensive neuron-by-neuron analysis prohibitively expensive for complete model understanding."
+          "description": "The analysis shows which inputs make a neuron fire, not what the neuron contributes to the output. Showing that a neuron matters needs a separate experiment that switches it off or alters it and measures the effect."
         },
         {
-          "description": "Neuron activation patterns are highly context-dependent, with the same neuron potentially serving different roles based on surrounding input context, complicating consistent interpretation across diverse scenarios."
+          "description": "A neuron can only be matched to concepts the analyst has examples for. In image models this means a densely labelled dataset, and a neuron whose concept is missing from it goes unexplained or is mislabelled."
         },
         {
-          "description": "Interpretation of activation patterns often relies on subjective human analysis without rigorous validation methods, potentially leading to confirmation bias or misattribution of neural functions."
+          "description": "The method needs access to the model's internal activations, so it cannot be used on a model reached only through an API. Large language models have hundreds of thousands of neurons or more, so in practice only a chosen subset can be examined and labelled with care."
         }
       ],
       "resources": [
@@ -2637,29 +2637,19 @@
       ],
       "sample_claims": [
         {
-          "text": "The language model's internal representations reveal which individual computational units respond to specific semantic concepts relevant to clinical diagnosis",
+          "text": "For each sampled neuron in the clinical language model, the concept that best explains its strongest activations is recorded with a match score, and neurons below the agreed score are reported as not interpreted.",
           "domain": "healthcare",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The content moderation system's harmful output patterns are attributable to identifiable neurons that can be selectively modified without degrading general language capabilities",
+          "text": "The concept labels assigned to the classifier's late-layer neurons hold on held-out images: the labelled neurons activate far more strongly on images of the concept than on images without it.",
           "domain": "general",
-          "assuranceGoal": "safety"
-        },
-        {
-          "text": "The multilingual model's neurons do not exhibit systematic activation biases when processing text from different linguistic communities",
-          "domain": "general",
-          "assuranceGoal": "fairness"
-        },
-        {
-          "text": "The financial risk assessment model's internal computational units encode interpretable market concepts rather than opaque statistical artifacts",
-          "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's specialized neurons for toxic content detection activate consistently across diverse phrasings and contexts of harmful patterns",
-          "domain": "general",
-          "assuranceGoal": "safety"
+          "text": "The language-model analysis documents the contexts producing high and low activation for each selected unit.",
+          "domain": "language processing",
+          "assuranceGoal": "explainability"
         }
       ]
     },

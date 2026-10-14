@@ -9,7 +9,7 @@
     {
       "slug": "rulefit",
       "name": "RuleFit",
-      "description": "RuleFit creates interpretable surrogate models that can explain complex black-box models or serve as interpretable alternatives. It works by learning a sparse linear model that combines automatically extracted decision rules with original features. The technique first builds tree ensembles to generate candidate rules, then uses LASSO regression to select the most important rules and features. The resulting model provides global explanations through human-readable rules (e.g., 'IF age > 50 AND income < 30k THEN ...') combined with linear feature weights, making complex model behaviour transparent and auditable.",
+      "description": "RuleFit builds a predictive model that a person can read: a short list of if-then rules plus a few ordinary feature weights. It first trains an ensemble of decision trees (many small trees whose outputs are combined) and turns each branch into a candidate rule, such as 'IF age > 50 AND income < £30k'. It then fits a linear model over those rules and the original features using the lasso, a penalty that sets many weights to exactly zero, so only the most useful terms remain. The surviving rules and weights can be read directly, and each term has an importance score, overall and for single predictions. Fitted to real outcomes, the result can replace an opaque model; fitted to an opaque model's predictions, it is a surrogate that approximates that model, and its fit should then be checked.",
       "assurance_goals": [
         "Explainability",
         "Transparency"
@@ -40,30 +40,30 @@
       ],
       "example_use_cases": [
         {
-          "description": "Building customer churn prediction models with rules like 'IF contract_length < 12_months AND support_calls > 5 THEN churn_risk = high', allowing marketing teams to understand and act on the key drivers of customer attrition.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A telecoms analytics team fits RuleFit to the predictions of its gradient-boosted churn model rather than to the churn labels, to get a short list of rules that approximates the model. Marketing staff read the top rules, and the team reports how closely the rules reproduce the model's predictions before anyone relies on them."
         },
         {
-          "description": "Creating credit scoring models that combine traditional linear factors (income, age) with interpretable rules (IF recent_missed_payments = 0 AND account_age > 2_years THEN creditworthy), providing transparent lending decisions.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A lender replaces an opaque default-risk model with a RuleFit model fitted to repayment outcomes. For one declined application, the importance scores show which few rules and income or debt terms drove its score, and the validation team checks them against credit policy."
         },
         {
-          "description": "Developing regulatory-compliant medical diagnosis models where treatment recommendations combine clinical measurements with clear decision rules (IF blood_pressure > 140 AND diabetes = true THEN high_risk), enabling audit trails for healthcare decisions.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A hospital team builds an admission-risk model as a RuleFit model fitted directly to patient outcomes, so that clinicians and the ethics committee can read the whole model, a few rules such as 'IF systolic_bp > 140 AND diabetes = true' plus a handful of weights. The team counts the active rules first and keeps the model only if it is short enough to read."
         }
       ],
       "limitations": [
         {
-          "description": "Can generate large numbers of rules even with regularisation, potentially overwhelming users and reducing practical interpretability."
+          "description": "The lasso can leave many rules active, and a model with hundreds of active terms is no longer readable. Rules also approximate smooth linear trends poorly and need many pieces to do so. Count the non-zero terms before calling the model interpretable."
         },
         {
-          "description": "Performance may be inferior to complex ensemble methods when rule complexity is constrained for interpretability."
+          "description": "Rules overlap and are often correlated, so a rule's weight cannot be read on its own. 'Temperature above 15' is also true wherever 'temperature above 10' is. With correlated inputs, rules can also suggest interactions that are not in the real relationship."
         },
         {
-          "description": "Rule extraction quality depends heavily on the underlying tree ensemble, which may miss important feature interactions if not properly configured."
+          "description": "Tree size sets how long rules can be and which interactions can appear. Shallow trees give short, readable rules but miss high-order interactions, and deep trees capture them at the cost of long rules. No single depth suits every problem."
         },
         {
-          "description": "Requires careful hyperparameter tuning to balance between model complexity and interpretability, with no universal optimal setting."
+          "description": "Fitted to a black-box model's predictions, RuleFit only approximates that model. Without a fidelity check, such as agreement on held-out inputs, its rules describe the surrogate and may not describe the model they are meant to explain."
         }
       ],
       "resources": [
@@ -141,7 +141,7 @@
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The patient risk stratification system's predictions are traceable to explicit clinical decision rules that mirror diagnostic reasoning patterns",
+          "text": "The patient risk score can be reconstructed from its intercept, active clinical-input rules and linear terms using the recorded clipping and weights.",
           "domain": "healthcare",
           "assuranceGoal": "transparency"
         },
@@ -151,14 +151,9 @@
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The customer churn prediction system's global behavior is approximated by a small number of actionable business rules rather than opaque feature interactions",
+          "text": "The churn-score approximation exposes its weighted rules and linear terms, with agreement assessed against the original model on the stated dataset.",
           "domain": "general",
           "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The regulatory compliance model combines human-readable decision boundaries with weighted factors in a single auditable representation",
-          "domain": "public sector",
-          "assuranceGoal": "transparency"
         }
       ]
     },
@@ -1300,7 +1295,7 @@
     {
       "slug": "generalized-additive-models",
       "name": "Generalized Additive Models",
-      "description": "An intrinsically interpretable modelling technique that extends linear models by allowing flexible, nonlinear relationships between individual features and the target whilst maintaining the additive structure that preserves transparency. Each feature's effect is modelled separately as a smooth function, visualised as a curve showing how the feature influences predictions across its range. GAMs achieve this through spline functions or other smoothing techniques that capture complex patterns in individual variables without interactions, making them particularly valuable for domains requiring both predictive accuracy and model interpretability.",
+      "description": "A generalised additive model (GAM) builds its prediction by adding a baseline and one smooth curve for each input feature. It extends linear and logistic regression by letting each feature's effect bend, so the model can follow patterns such as risk that climbs steeply after a certain age. Each curve is learned from the data with a smoothing method, such as splines (flexible curves built from joined polynomial pieces). Plotting the curves shows how each feature moves the prediction across its range, so the model can be read directly without a separate explanation method. Because the curves are added together, the model does not capture the joint effect of two features unless a combined term is added by hand.",
       "assurance_goals": [
         "Transparency",
         "Explainability"
@@ -1331,29 +1326,33 @@
       ],
       "example_use_cases": [
         {
-          "description": "Predicting hospital readmission risk with a GAM that provides transparent, auditable risk assessments by showing how readmission probability varies nonlinearly with patient age, blood pressure, and medication adherence, enabling clinicians to understand and trust the model's reasoning for regulatory compliance.",
-          "goal": "Transparency"
+          "goal": "Transparency",
+          "description": "A hospital builds its 30-day readmission model as a GAM so that its governance committee can audit it. The committee reviews one curve each for age, blood pressure and medication adherence, and queries any stretch where predicted risk falls as a known risk factor rises, since that can point to a data problem rather than a real effect."
         },
         {
-          "description": "Building a credit scoring model that explains loan decisions to applicants by visualising how income, credit history, and debt-to-income ratio individually affect approval likelihood, providing clear feature attributions that satisfy fair lending requirements and regulatory explainability mandates.",
-          "goal": "Explainability"
+          "goal": "Explainability",
+          "description": "A lender uses a GAM for credit scoring so that it can tell a declined applicant how income, credit history and debt-to-income ratio each moved their score. Each factor has its own curve, so the explanation comes straight from the model and needs no separate explanation tool."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An environmental agency models river nitrate levels with a GAM and plots the curve for rainfall. The curve shows the effect levelling off above a certain rainfall, which analysts report to catchment managers instead of a single regression coefficient."
         }
       ],
       "limitations": [
         {
-          "description": "Cannot capture complex interactions between features unless explicitly modelled, limiting their ability to represent relationships where variables influence each other."
+          "description": "Each feature acts separately, so the model cannot represent effects that depend on two features together, such as the impact of a dose varying with age. Product terms can be added by hand, but each must be thought of in advance and adds a surface that is harder to read than a curve."
         },
         {
-          "description": "Setup requires domain expertise to decide which features need nonlinear treatment and appropriate smoothing parameters, making model specification more challenging than linear models."
+          "description": "The smoothness of each curve is a modelling choice. Cross-validation or penalised fitting selects it automatically, but too little smoothing gives wiggly curves that look like real effects and too much hides genuine bends, so each curve should be read with its confidence band."
         },
         {
-          "description": "Fitting process is computationally more expensive than linear models, particularly for large datasets with many features requiring smoothing."
+          "description": "When features are strongly related, such as income and age, a nonlinear form of collinearity called concurvity lets one curve absorb part of another's effect. The individual curves can then misstate how much each feature influences the prediction."
         },
         {
-          "description": "Risk of overfitting individual feature relationships if smoothing parameters are not properly regularised, potentially reducing generalisation performance."
+          "description": "A model with dozens of smooth terms produces dozens of curves. Reading them all is slow, so reviewers tend to inspect only the largest effects, and the transparency benefit shrinks as the number of terms grows."
         },
         {
-          "description": "Interpretation complexity increases with the number of nonlinear features, as understanding multiple smooth curves simultaneously becomes cognitively demanding."
+          "description": "Terms add on the chosen link scale. In a logistic GAM they are contributions to log-odds, not independent additions to readmission probability or guaranteed causal feature effects."
         }
       ],
       "resources": [
@@ -1439,24 +1438,24 @@
       ],
       "sample_claims": [
         {
-          "text": "The clinical decision model's predictions are decomposable into individual feature contributions that can be visualized as smooth curves",
+          "text": "Every input to the readmission risk model acts through a single plotted curve, so a clinician can read off how predicted risk changes with each input without running a separate explanation method.",
           "domain": "healthcare",
           "assuranceGoal": "transparency"
         },
         {
-          "text": "The lending model reveals how each applicant attribute nonlinearly influences approval likelihood whilst maintaining an additive structure",
+          "text": "The direction of each applicant attribute's effect in the credit model, as plotted with its confidence band, matches what credit risk specialists expect, and any departure has been explained.",
           "domain": "finance",
           "assuranceGoal": "explainability"
         },
         {
-          "text": "The model's decision logic is directly inspectable without requiring separate explanation methods",
-          "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The resource allocation model documents how each policy-relevant factor shapes outcomes through interpretable functional relationships",
+          "text": "The resource allocation model's score for any case is a baseline plus one contribution per policy factor, so each factor's share of a decision can be stated and audited.",
           "domain": "public sector",
           "assuranceGoal": "transparency"
+        },
+        {
+          "text": "Each nonlinear effect the model reports departs from a straight line by more than the width of its confidence band, so the bend is not an artefact of over-flexible smoothing.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
         }
       ]
     },

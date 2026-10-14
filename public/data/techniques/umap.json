@@ -1,7 +1,7 @@
 {
   "slug": "umap",
   "name": "UMAP",
-  "description": "UMAP (Uniform Manifold Approximation and Projection) is a non-linear dimensionality reduction technique that creates 2D or 3D visualisations of high-dimensional data by constructing a mathematical model of the data's underlying manifold structure. Unlike t-SNE, UMAP preserves both local neighbourhood relationships and global topology more effectively, using techniques from topological data analysis and Riemannian geometry. This approach often produces more interpretable cluster layouts while maintaining meaningful distances between clusters, making it particularly valuable for exploratory data analysis and understanding complex dataset structures.",
+  "description": "UMAP (Uniform Manifold Approximation and Projection) is a non-linear dimensionality reduction method that turns high-dimensional data into a two- or three-dimensional map for plotting. It assumes the data lie on a lower-dimensional curved surface, called a manifold, and links each point to its nearest neighbours, giving each link a strength that says how likely the two points are to be neighbours. It then arranges the points on the map so that the link strengths there match those in the original space as closely as possible. Like t-SNE, it concentrates on keeping near neighbours together, so groups of similar items appear as clusters, whether the points are raw data or a model's embeddings. Its authors argue that it keeps more of the large-scale layout than t-SNE and runs faster, but gaps between clusters and cluster sizes should not be read as exact.",
   "assurance_goals": [
     "Explainability"
   ],
@@ -24,26 +24,33 @@
   ],
   "example_use_cases": [
     {
-      "description": "Analysing single-cell RNA sequencing data to visualise how different cell types cluster based on gene expression patterns, revealing developmental trajectories and identifying previously unknown cell subtypes in tissue samples.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A bioinformatics team projects single-cell expression data with UMAP and checks whether cell populations annotated by hand form distinct groups before using those labels to train a classifier. Populations that merge on the map are flagged as labels the classifier may struggle to separate."
     },
     {
-      "description": "Exploring customer segmentation by reducing hundreds of behavioural and demographic features to 2D space, showing how different customer groups relate to each other and identifying transition zones where customers might move between segments.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A language-technology team projects the sentence embeddings of a customer-support classifier with UMAP, colouring each message by the queue the model routes it to. It checks whether each queue is a coherent topic or a mix of unrelated ones, and decides whether to retrain the model."
+    },
+    {
+      "goal": "Explainability",
+      "description": "A retail analytics team reduces several hundred behavioural and demographic features to two dimensions with UMAP and colours customers by the segments used in a churn model. It checks whether the segments occupy separate regions and where they overlap, so that segment boundaries are treated as soft."
     }
   ],
   "limitations": [
     {
-      "description": "Hyperparameter choices (n_neighbors, min_dist, metric) significantly influence the embedding structure and can lead to very different interpretations of the same data."
+      "description": "The number of neighbours sets the scale at which structure is detected. Small values show fine detail but fragment the data and read noise as structure, and large values blur small groups, so the same dataset can tell different stories. Report the settings used."
     },
     {
-      "description": "While preserving global structure better than t-SNE, distances in the reduced space still don't directly correspond to distances in the original feature space."
+      "description": "UMAP preserves neighbourhood topology, not distances or densities. Gaps between clusters and cluster sizes should not be read as quantities, and the map's axes have no meaning, so it cannot show which features separate the groups."
     },
     {
-      "description": "Performance can be sensitive to the choice of distance metric, which may not be obvious for complex or mixed data types."
+      "description": "It can find apparent structure in noise, especially in small or very noisy samples, where the authors warn of poor maps below about 500 points. A tidy-looking cluster is not evidence on its own."
     },
     {
-      "description": "Like other manifold learning techniques, it assumes the data lies on a lower-dimensional manifold, which may not hold for all datasets."
+      "description": "Results vary between runs and under subsampling because neighbour search and optimisation are stochastic. Fix the random seed and check that the conclusion survives a rerun on a subsample."
+    },
+    {
+      "description": "It rests on a chosen distance measure and on the data forming a connected, locally smooth manifold. Where the distance suits the data badly, for example mixed numeric and categorical features, the neighbour graph and so the map may mislead."
     }
   ],
   "resources": [
@@ -152,23 +159,23 @@
   ],
   "sample_claims": [
     {
-      "text": "The high-dimensional dataset's underlying cluster relationships are visualized while preserving meaningful distances between distinct groups",
+      "text": "Cell populations annotated by the biology team form distinct, separable groups in a UMAP projection of the expression data, and the grouping holds across three settings of the neighbour count.",
       "domain": "healthcare",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The data visualization reveals both local neighborhood patterns and global topology without sacrificing one for the other",
+      "text": "The fraud model's hidden-layer representations place flagged and unflagged transactions in largely separate regions of a UMAP projection, and the pattern repeats across five random seeds.",
       "domain": "finance",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The model's learned representations can be explored through low-dimensional projections that preserve the manifold structure of the original feature space",
+      "text": "The perception model's embeddings of pedestrian and cyclist images form separate groups in a UMAP projection, and the overlapping region has been listed for review.",
       "domain": "autonomous systems",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "Complex dataset structures with non-linear relationships are comprehensible through two-dimensional visualizations that maintain topological fidelity",
-      "domain": "environmental",
+      "text": "Cases that the triage model assigns to different priority bands occupy separable regions in a UMAP projection of the case features, and cases lying between regions have been reviewed by a caseworker.",
+      "domain": "public sector",
       "assuranceGoal": "explainability"
     }
   ]

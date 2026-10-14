@@ -1,7 +1,7 @@
 {
   "slug": "ridge-regression-surrogates",
   "name": "Ridge Regression Surrogates",
-  "description": "This technique approximates a complex model by training a ridge regression (a linear model with L2 regularisation) on the original model's predictions. The ridge regression serves as a global surrogate that balances fidelity and interpretability, capturing the main linear relationships that the complex model learned whilst ignoring noise due to regularisation. This approach is particularly useful when stakeholders need to understand the overall behaviour of a complex model through transparent linear coefficients.",
+  "description": "A ridge regression surrogate approximates a complex model with a linear equation fitted to the complex model's own predictions. The complex model is run on a set of inputs, and ridge regression, a linear model with a penalty that keeps coefficients stable when features are correlated, is fitted to reproduce its outputs. Each coefficient then shows roughly how far a feature moves the complex model's output, averaged over those inputs. Fidelity, often reported as R-squared (the share of the model's variation the surrogate reproduces on held-out inputs), shows how far the coefficients can be trusted. They describe the complex model, not the real world.",
   "assurance_goals": [
     "Explainability",
     "Transparency"
@@ -28,30 +28,37 @@
   ],
   "example_use_cases": [
     {
-      "description": "Approximating a complex ensemble model used for credit scoring with a ridge regression surrogate to identify the most influential features (income, credit history, debt-to-income ratio) and their linear relationships for regulatory compliance reporting.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A model-risk team at a bank fits a ridge surrogate to a gradient-boosted credit-scoring model's scores on a held-out sample, reports how closely the surrogate reproduces them, and uses the standardised coefficients to brief the model-risk committee on which inputs drive scores overall."
     },
     {
-      "description": "Creating a ridge regression surrogate of a neural network used for medical diagnosis to understand which patient symptoms and biomarkers have the strongest linear predictive relationships with disease outcomes.",
-      "goal": "Explainability"
+      "goal": "Explainability",
+      "description": "A hospital analytics team fits a ridge surrogate to a neural network that predicts readmission risk from tabular records, to check that the features driving the network's predictions overall, such as age and prior admissions, are plausible to clinicians. The findings concern the network, not what causes readmission."
     },
     {
-      "description": "Creating an interpretable approximation of a complex insurance pricing model for regulatory compliance, enabling stakeholders to understand and validate the decision-making process through transparent linear relationships.",
-      "goal": "Transparency"
+      "goal": "Explainability",
+      "description": "An energy company's forecasting team fits a ridge surrogate to a neural-network load forecaster using a year of hourly weather and calendar inputs, and reads the standardised coefficients to confirm that temperature and time of day dominate. A low R-squared during heatwaves leads the team to record that the surrogate does not describe the model in that regime."
+    },
+    {
+      "goal": "Transparency",
+      "description": "An insurer's compliance team gives a regulator a ridge surrogate of its pricing model together with held-out R-squared and a table of each feature's contribution to a sample of quotes, so the regulator can check the stated drivers against the model's actual outputs."
     }
   ],
   "limitations": [
     {
-      "description": "Linear approximation may miss important non-linear relationships and interactions captured by the original complex model."
+      "description": "A linear surrogate cannot represent interactions or thresholds. Where the complex model relies on them, the surrogate fits its predictions poorly and its coefficients describe a different model. Report held-out R-squared and treat a low value as a failed surrogate."
     },
     {
-      "description": "Requires a representative dataset to train the surrogate model, which may not be available or may be expensive to generate."
+      "description": "A good average fit can hide poor fit in parts of the input space, such as rare groups or extreme values, so the coefficients may be wrong for exactly the cases that matter. Check fidelity within subgroups and near decision boundaries."
     },
     {
-      "description": "Ridge regularisation may oversimplify the model by shrinking coefficients, potentially hiding important but less dominant features."
+      "description": "There is no agreed fidelity level above which a surrogate can be trusted. Whether 50%, 80% or 99% of variance explained is enough depends on the use, so the reviewer has to set and justify a cut-off."
     },
     {
-      "description": "Surrogate fidelity depends on how well linear relationships approximate the original model's behaviour across the entire input space."
+      "description": "Ridge shrinks every coefficient and shares weight between correlated features. Coefficient sizes depend on the penalty strength and on feature scaling, so compare them only after standardising the features, and report the penalty used."
+    },
+    {
+      "description": "The surrogate explains the complex model's behaviour on the sampled inputs, not the real-world link between features and outcomes. Reading its coefficients as causes, or as evidence about the data, will mislead."
     }
   ],
   "resources": [
@@ -101,29 +108,29 @@
   ],
   "sample_claims": [
     {
-      "text": "The model's global behavior is approximated by a simpler representation that captures dominant linear relationships across all predictions",
-      "domain": "general",
+      "text": "A ridge surrogate reproduces the credit model's scores on held-out applications with an R-squared of at least 0.9, and its five largest standardised coefficients identify the inputs that drive scores overall.",
+      "domain": "finance",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The credit scoring model's decision logic can be explained through consistent linear weights applied uniformly across all applicant evaluations",
-      "domain": "finance",
-      "assuranceGoal": "transparency"
-    },
-    {
-      "text": "The diagnostic system's predictions are attributable to weighted combinations of patient features that remain stable across the entire population",
+      "text": "The surrogate of the readmission-risk model reproduces the model's predictions closely within every age band tested, so its coefficients describe the model's behaviour for each of those bands.",
       "domain": "healthcare",
       "assuranceGoal": "explainability"
     },
     {
-      "text": "The environmental forecasting model's feature influences are represented through simplified linear coefficients that prioritize robust patterns over noise",
-      "domain": "environmental",
-      "assuranceGoal": "transparency"
+      "text": "The demand-forecasting model depends mainly on temperature and time of day overall, as shown by a linear surrogate whose fit to the model has been measured, with the lower fit during heatwaves reported as a limit.",
+      "domain": "energy",
+      "assuranceGoal": "explainability"
     },
     {
-      "text": "The complex ensemble model's overall decision-making process is captured by an interpretable linear approximation that reveals primary feature contributions",
+      "text": "Where the linear surrogate's fit to the model falls below the stated threshold, the model is recorded as not summarised by a linear surrogate, and no coefficient is cited as an explanation of it.",
       "domain": "general",
       "assuranceGoal": "explainability"
+    },
+    {
+      "text": "The regulator holds the pricing model's ridge surrogate with its held-out R-squared and a table of each feature's contribution to a sample of quotes, and can check the stated drivers against the model's outputs.",
+      "domain": "insurance",
+      "assuranceGoal": "transparency"
     }
   ]
 }
