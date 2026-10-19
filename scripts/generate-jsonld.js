@@ -332,10 +332,23 @@ export async function generateJsonLd(hydratedTechniques, assuranceGoals) {
       ...resourceNodes,
     ],
   };
-  await fs.writeFile(
-    path.join(ldDir, 'graph.jsonld'),
-    JSON.stringify(graph, null, 2)
-  );
+  const graphText = JSON.stringify(graph, null, 2);
+  let previousIndex;
+  try {
+    if (
+      (await fs.readFile(path.join(ldDir, 'graph.jsonld'), 'utf8')) ===
+      graphText
+    ) {
+      previousIndex = JSON.parse(
+        await fs.readFile(path.join(ldDir, 'index.json'), 'utf8')
+      );
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) {
+      throw error;
+    }
+  }
+  await fs.writeFile(path.join(ldDir, 'graph.jsonld'), graphText);
 
   // --- API discovery document ---
   const index = {
@@ -361,6 +374,14 @@ export async function generateJsonLd(hydratedTechniques, assuranceGoals) {
     },
     note: 'GitHub Pages serves .jsonld files as application/octet-stream. Consumers should parse as JSON regardless of Content-Type.',
   };
+  // A no-op regeneration should not change even the discovery timestamp.
+  if (
+    previousIndex &&
+    JSON.stringify({ ...previousIndex, generated: index.generated }) ===
+      JSON.stringify(index)
+  ) {
+    index.generated = previousIndex.generated;
+  }
   await fs.writeFile(
     path.join(ldDir, 'index.json'),
     JSON.stringify(index, null, 2)

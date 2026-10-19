@@ -58,7 +58,7 @@ export default async function TechniquePage({ params }: TechniquePageProps) {
     notFound();
   }
 
-  const relatedTechniques = await getRelatedTechniques(technique, 6);
+  const relatedTechniques = await getRelatedTechniques(technique, 3);
 
   // Define sections for table of contents
   const sections = [

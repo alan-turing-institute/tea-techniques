@@ -140,9 +140,13 @@ Rules:
 
 ## 7. Related techniques
 
-The data generator computes `related_techniques` from tag overlap and embedding
-similarity, and writes at most three slugs. Nobody hand-edits the field. Until
-the computation lands, the curated list stays as it is.
+`pnpm generate-data` rewrites `related_techniques` with the top three other
+techniques, ranked by equal parts weighted tag Jaccard (assurance-goal tags
+weigh 2, other tags 1, catch-all tags 0) and cosine similarity of each technique's
+normalised mean vector from the committed Qwen3 embeddings.
+Pairs involving a technique without vectors use tag overlap alone; ties are
+broken by slug, and relationships need not be reciprocal.
+Nobody hand-edits the field.
 
 ## 8. Acronym, sample claims and ratings
 

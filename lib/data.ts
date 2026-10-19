@@ -149,10 +149,10 @@ export async function getTechniquesByExactTag(
   return techniques.filter((technique) => technique.tags?.includes(tagName));
 }
 
-// Get related techniques by curated slug list
+// Get related techniques in generated ranking order
 export async function getRelatedTechniques(
   technique: Technique,
-  limit = 6
+  limit = 3
 ): Promise<Technique[]> {
   if (!technique.related_techniques?.length) {
     return [];
@@ -161,7 +161,10 @@ export async function getRelatedTechniques(
   const allTechniques = await getAllTechniques();
   const slugsToFind = technique.related_techniques.slice(0, limit);
 
-  return allTechniques.filter((t) => slugsToFind.includes(t.slug));
+  const bySlug = new Map(allTechniques.map((item) => [item.slug, item]));
+  return slugsToFind
+    .map((slug) => bySlug.get(slug))
+    .filter((item): item is Technique => item !== undefined);
 }
 
 // Search techniques

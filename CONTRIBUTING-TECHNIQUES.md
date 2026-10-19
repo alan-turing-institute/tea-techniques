@@ -229,7 +229,7 @@ Resource intensity for running the technique (1-5 scale). As with `complexity_ra
 
 ### 12. `related_techniques` (Generated)
 
-Slugs of related techniques, at most three. This field is computed when the data is generated, from tag overlap and embedding similarity, and should not be hand-edited; a hand-written list is overwritten on the next `pnpm generate-data`. Until the computation lands, leave the field as it is on existing records and omit it on new ones.
+Slugs of related techniques, at most three, in descending similarity order. `pnpm generate-data` runs `scripts/generate-related.js` first and rewrites this field from tag overlap and embedding similarity. Do not hand-edit it; omit it on new records and let the generator fill it.
 
 ## Pre-Submission Checklist
 
