@@ -53,6 +53,8 @@ jobs:
     name: Build
     needs: quality-gates
     runs-on: ubuntu-latest
+    # A hung step holds the pages concurrency group that deployments share.
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -75,11 +77,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The stdio MCP server fetches public/data/ld/embeddings.json from the site. It is
-      # made here, from the graph this job builds, and is not in git. The packages for
-      # the embedding model are optional dependencies and need their install scripts.
+      # The stdio MCP server fetches public/data/ld/embeddings.json from the site. This job
+      # makes it from the graph it publishes; git does not hold it. The generate step needs
+      # the optional ONNX packages, which a plain install includes. Their install scripts
+      # only fetch GPU files that the CPU model never loads.
       - name: Install mcp-server dependencies
-        run: pnpm --dir mcp-server install --frozen-lockfile
+        run: pnpm --dir mcp-server install --frozen-lockfile --ignore-scripts
 
       - name: Read the MiniLM revision
         id: minilm
@@ -98,7 +101,12 @@ jobs:
           path: mcp-server/.cache/huggingface
           key: minilm-${{ steps.minilm.outputs.revision }}
 
-      # A failure here fails the build, so a stale or missing file is never published.
+      # The site build regenerates graph.jsonld from techniques.json. Doing it here first
+      # makes the vectors from the graph that is published.
+      - name: Generate the graph
+        run: pnpm generate-data
+
+      # A failure here fails the job, so the site is not published without the file.
       - name: Generate the MiniLM vectors
         working-directory: mcp-server
         run: |
@@ -106,15 +114,17 @@ jobs:
             --data-commit="$GITHUB_SHA" \
             --output=../public/data/ld/embeddings.json
 
-      - name: Check the MiniLM vectors
-        run: pnpm --dir mcp-server exec vitest run tests/vectors-files.test.ts
-        env:
-          TEA_REQUIRE_PUBLISHED_VECTORS: '1'
-
       - name: Build project
         run: NODE_ENV=production pnpm build
         env:
           NODE_ENV: production
+
+      # Compares the file with the graph the site build wrote. A mismatch fails the job
+      # before the artifact is uploaded.
+      - name: Check the MiniLM vectors
+        run: pnpm --dir mcp-server exec vitest run tests/vectors-files.test.ts
+        env:
+          TEA_REQUIRE_PUBLISHED_VECTORS: '1'
 
       - name: Upload artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
