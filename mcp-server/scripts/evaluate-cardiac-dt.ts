@@ -7,7 +7,8 @@
  *
  * By default the claims are embedded in-process with the stdio server's model and
  * searched against the MiniLM vectors in `<data-dir>/ld/embeddings.json`. The website
- * build makes that file; from a clone, make it with `pnpm generate-embeddings --model=minilm`.
+ * build makes that file; from a clone, make it with the MiniLM command under
+ * "Regenerating the vectors" in mcp-server/README.md.
  * With `--model=qwen3 --queries=openrouter` they are embedded the way the HTTP
  * service's callers do it: through OpenRouter, with the catalogue's query prefix,
  * and sent as `queryEmbedding` against the Qwen3 vectors in `<data-dir>/ld/embeddings.json`.
