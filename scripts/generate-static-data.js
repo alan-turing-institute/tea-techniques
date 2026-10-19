@@ -4,19 +4,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generateJsonLd } from './generate-jsonld.js';
+import { generateRelated } from './generate-related.js';
+import { CATCH_ALL_TAGS } from './tag-constants.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-/**
- * Catch-all tags: techniques tagged with these match any specific value
- * in the same category (mirrors lib/constants.ts for use in this JS script).
- */
-const CATCH_ALL_TAGS = {
-  'lifecycle-stage': 'lifecycle-stage/all',
-  'data-type': 'data-type/any',
-  'assurance-goal-category': 'assurance-goal-category/general',
-};
 
 // Paths
 const rootDir = path.resolve(__dirname, '..');
@@ -25,6 +17,8 @@ const techniquesPath = path.join(dataDir, 'techniques.json');
 
 async function generateStaticData() {
   try {
+    await generateRelated();
+
     // Read the source techniques data
     const techniquesData = JSON.parse(
       await fs.readFile(techniquesPath, 'utf-8')
