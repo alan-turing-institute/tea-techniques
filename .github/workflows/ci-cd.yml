@@ -55,21 +55,61 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3.0.0
         with:
           version: 10
 
+      # mcp-server needs Node 22, which the site build also runs on.
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'pnpm'
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            mcp-server/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # The stdio MCP server fetches public/data/ld/embeddings.json from the site. It is
+      # made here, from the graph this job builds, and is not in git. The packages for
+      # the embedding model are optional dependencies and need their install scripts.
+      - name: Install mcp-server dependencies
+        run: pnpm --dir mcp-server install --frozen-lockfile
+
+      - name: Read the MiniLM revision
+        id: minilm
+        working-directory: mcp-server
+        run: |
+          revision=$(pnpm exec tsx -e "import { IN_PROCESS_MODEL } from './src/embedding/specs.ts'; console.log(IN_PROCESS_MODEL.revision)")
+          if [[ ! "$revision" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Unexpected MiniLM revision: $revision" >&2
+            exit 1
+          fi
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the MiniLM model
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: mcp-server/.cache/huggingface
+          key: minilm-${{ steps.minilm.outputs.revision }}
+
+      # A failure here fails the build, so a stale or missing file is never published.
+      - name: Generate the MiniLM vectors
+        working-directory: mcp-server
+        run: |
+          pnpm generate-embeddings --model=minilm --data-dir=../public/data \
+            --data-commit="$GITHUB_SHA" \
+            --output=../public/data/ld/embeddings.json
+
+      - name: Check the MiniLM vectors
+        run: pnpm --dir mcp-server exec vitest run tests/vectors-files.test.ts
+        env:
+          TEA_REQUIRE_PUBLISHED_VECTORS: '1'
 
       - name: Build project
         run: NODE_ENV=production pnpm build
@@ -78,7 +118,7 @@ jobs:
 
       - name: Upload artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: ./out
 
