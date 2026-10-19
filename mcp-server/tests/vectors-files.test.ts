@@ -87,7 +87,10 @@ describe('vectors files', () => {
       loadEmbeddings({ local: true, dataDir: publishedDir }),
       loadGraphData({ local: true, dataDir: publishedDir }),
     ]);
-    expect(index?.corpusSha256).toBe(
+    expect(
+      index?.corpusSha256,
+      'The vectors file is stale: rerun the MiniLM command under "Regenerating the vectors" in mcp-server/README.md'
+    ).toBe(
       corpusHash(buildCorpus(new KnowledgeGraph(graph).getAllTechniques()))
     );
   });
