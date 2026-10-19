@@ -1,8 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { loadGraphData } from '../src/data/loader.js';
 import { buildCorpus, corpusHash } from '../src/embedding/corpus.js';
 import { loadEmbeddings } from '../src/embedding/loader.js';
 import {
@@ -16,22 +14,14 @@ import {
 } from '../src/embedding/model.js';
 import { PROBE_TEXTS } from '../src/embedding/probes.js';
 import { computeRRFScores } from '../src/embedding/search.js';
-import {
-  CATALOGUE_MODEL,
-  DOCUMENT_FORMAT,
-  IN_PROCESS_MODEL,
-} from '../src/embedding/specs.js';
-import {
-  EmbeddingsFileSchema,
-  readStoredVector,
-} from '../src/embedding/types.js';
+import { CATALOGUE_MODEL, DOCUMENT_FORMAT } from '../src/embedding/specs.js';
+import { readStoredVector } from '../src/embedding/types.js';
 import { encodeVector } from '../src/embedding/vectors.js';
 import { KnowledgeGraph } from '../src/graph/index.js';
 import type { JsonLdGraph } from '../src/graph/types.js';
 import fixture from './fixtures/test-graph.json' with { type: 'json' };
 
 const SHA256_HEX = /^[0-9a-f]{64}$/;
-const COMMIT_SHA = /^[0-9a-f]{40}$/;
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -188,64 +178,6 @@ describe('embedding compatibility and offline loading', () => {
     ).getAllTechniques();
     expect(buildCorpus(techniques)[0].text).toBe(
       `title: ${techniques[0].name} | text: ${techniques[0].description}`
-    );
-  });
-});
-
-describe('committed vectors files', () => {
-  const files = [
-    [
-      'the HTTP service catalogue',
-      '../vectors/embeddings.qwen3.json',
-      CATALOGUE_MODEL,
-    ],
-    [
-      'the stdio server catalogue',
-      '../../public/data/ld/embeddings.json',
-      IN_PROCESS_MODEL,
-    ],
-  ] as const;
-  it.each(files)(
-    '%s records its model, prefixes, data commit and corpus hash',
-    async (_label, location, spec) => {
-      const file = EmbeddingsFileSchema.parse(
-        JSON.parse(
-          await fs.readFile(new URL(location, import.meta.url), 'utf8')
-        )
-      );
-      expect(file).toMatchObject({
-        modelId: spec.modelId,
-        modelRepo: spec.repo,
-        modelRevision: spec.revision,
-        dtype: spec.dtype,
-        dimensions: spec.dimensions,
-        queryPrefix: spec.queryPrefix,
-        documentFormat: spec.documentFormat,
-      });
-      expect(file.dataCommit).toMatch(COMMIT_SHA);
-      expect(file.corpusSha256).toMatch(SHA256_HEX);
-      expect(file.probes?.map((p) => p.text)).toEqual(PROBE_TEXTS);
-    }
-  );
-  it('lets the stdio server load the published file', async () => {
-    const dataDir = fileURLToPath(
-      new URL('../../public/data', import.meta.url)
-    );
-    expect((await loadEmbeddings({ local: true, dataDir }))?.modelId).toBe(
-      MODEL_ID
-    );
-  });
-  it('makes the published vectors from the published graph', async () => {
-    const dataDir = fileURLToPath(
-      new URL('../../public/data', import.meta.url)
-    );
-    const [index, graph] = await Promise.all([
-      loadEmbeddings({ local: true, dataDir }),
-      loadGraphData({ local: true, dataDir }),
-    ]);
-    // Regenerate with `pnpm generate-embeddings --model=minilm` after a data change.
-    expect(index?.corpusSha256).toBe(
-      corpusHash(buildCorpus(new KnowledgeGraph(graph).getAllTechniques()))
     );
   });
 });

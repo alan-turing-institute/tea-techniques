@@ -61,7 +61,7 @@ Two models make vectors, because the better one is too large to run on a typical
 
 | | Stdio server | HTTP service |
 |---|---|---|
-| Vectors file | `public/data/ld/embeddings.json`, published with the graph | `vectors/embeddings.qwen3.json`, copied into the image |
+| Vectors file | `public/data/ld/embeddings.json`, made by the website build and published with the graph | `vectors/embeddings.qwen3.json`, copied into the image |
 | Model | `Xenova/all-MiniLM-L12-v2`, 384 dimensions | `Qwen/Qwen3-Embedding-4B`, 2560 dimensions |
 | Embeds questions | in-process, when the caller sends no vector | never; the caller sends the vector |
 
@@ -117,6 +117,8 @@ pnpm install
 pnpm dev          # Run from source with tsx
 pnpm dev --local  # Load data from local project files
 ```
+
+A clone holds the graph but not the stdio server's vectors file, which the website build makes. For semantic search with `--local`, make the file first with the MiniLM command under [Regenerating the vectors](#regenerating-the-vectors). Without it the server logs that embeddings are unavailable and uses keyword retrieval.
 
 ## License
 
@@ -235,7 +237,9 @@ docker stats --no-stream
 
 Generating it needs about 14 GB of free memory and took about 8 minutes for the 813 entries on 16 threads, so it runs on a build host and not in the image build.
 
-**The stdio server's vectors.** `public/data/ld/embeddings.json` (about 6.6 MB) is made by `Xenova/all-MiniLM-L12-v2` at revision `beeb2e4b69e95f188a15cc2e90d09fd035dac229`, fp32, mean pooling, normalized, 384 dimensions, over the published graph. Questions carry no prefix. It stores plain number arrays, so earlier releases of this package can read it.
+**The stdio server's vectors.** `public/data/ld/embeddings.json` (about 6.5 MB) is made by `Xenova/all-MiniLM-L12-v2` at revision `beeb2e4b69e95f188a15cc2e90d09fd035dac229`, fp32, mean pooling, normalized, 384 dimensions, over the published graph. Questions carry no prefix. It stores plain number arrays, so earlier releases of this package can read it.
+
+The website build makes the file and git does not hold it. On every push and pull request to `main`, the Build job in `.github/workflows/ci-cd.yml` regenerates the graph from `techniques.json` (`pnpm generate-data`), generates the file from that graph, and records the commit being built as the data commit. After the site build it runs `tests/vectors-files.test.ts`, which checks that the loader accepts the file and that the file's corpus hash equals the hash of the graph that build wrote. A failure at any of these steps fails the job before the site is uploaded or deployed. The job caches the model download, keyed on the pinned revision. Where the file does not exist, as in the pull request test workflow, the tests of the published file skip and say so.
 
 ### Regenerating the vectors
 
@@ -244,7 +248,8 @@ Generating it needs about 14 GB of free memory and took about 8 minutes for the 
 pnpm generate-embeddings --model=qwen3 --model-dir=<snapshot dir> \
   --data-dir=<dir with ld/graph.jsonld and data-version> --output=vectors/embeddings.qwen3.json
 
-# The stdio server's file, from the published graph.
+# The stdio server's file, from the published graph. The website build runs this
+# command, with the commit being built as --data-commit; run it from a clone to use --local.
 pnpm generate-embeddings --model=minilm --data-dir=../public/data \
   --data-commit=$(git log -1 --format=%H -- ../public/data/ld/graph.jsonld) \
   --output=../public/data/ld/embeddings.json
@@ -273,7 +278,7 @@ RANKING_ENABLED=false pnpm evaluate-cardiac-dt --model=qwen3 --queries=openroute
   --data-dir=generated/data --output=generated/cardiac-qwen3.json
 ```
 
-Without those options it evaluates the stdio server: the claims are embedded in-process with MiniLM and searched against the published MiniLM vectors (`--data-dir` must hold the published graph and `embeddings.json`):
+Without those options it evaluates the stdio server: the claims are embedded in-process with MiniLM and searched against the published MiniLM vectors (`--data-dir` must hold the published graph and `embeddings.json`; for the default `public/data`, make the file first with the MiniLM command under [Regenerating the vectors](#regenerating-the-vectors)):
 
 ```sh
 RANKING_ENABLED=false pnpm evaluate-cardiac-dt --output=generated/cardiac-minilm.json
