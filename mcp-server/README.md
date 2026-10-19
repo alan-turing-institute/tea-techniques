@@ -308,15 +308,17 @@ Case files live in `evaluation/cases/<id>.rubric.json` (tracked in git). Each fi
 }
 ```
 
-`goal`, `notes` and `votes` are optional. Votes retain labels in a fixed labeller order and do not affect scoring. Unknown fields are ignored. Case ids must match filenames (without `.rubric.json`); claim ids must be unique within a case and claim text nonempty. Duplicate slugs within a label list are merged; conflicting labels and invalid votes stop the run with the filename and reason. Unknown graph slugs produce warnings on screen and in each case's `unknownSlugs` report field.
+`goal`, `notes`, `votes` and the three label lists (`good`, `acceptable`, `bad`) are optional; a missing list means no slugs. Votes retain labels in a fixed labeller order and do not affect scoring. Unknown fields are ignored. Case ids must match filenames (without `.rubric.json`); claim ids must be unique within a case and claim text must not be blank (it is embedded exactly as written). Duplicate slugs within a label list are merged; conflicting labels (the error names the claim and the slugs with their lists) and invalid votes stop the run with the filename and reason. Unknown graph slugs produce warnings on screen and in each case's `unknownSlugs` report field.
 
 From `mcp-server/`, run all cases, select cases, or compare two reports:
 
 ```sh
 pnpm evaluate
-pnpm evaluate --cases-dir=evaluation/cases --case=cardiac-dt,example --output=generated/run.json
+pnpm evaluate --cases-dir=evaluation/cases --case=cardiac-dt --output=generated/run.json
 pnpm evaluate compare generated/cardiac-minilm.json generated/ranked.json --output=generated/comparison.json
 ```
+
+`--case` takes case ids separated by commas, for example `--case=cardiac-dt,second-case` once `evaluation/cases/second-case.rubric.json` exists. An id with no file stops the run. A comparison input that cannot be read, is not JSON or is not an evaluation report stops the run with that file's name.
 
 The default report is `generated/evaluation.json`. It records schema version 1, retrieval configuration, per-claim results with labels and counts, case averages and unknown slugs, and both the average across all claims and the average of case averages. Comparison prints A, B and B minus A for shared claims, their case averages and both overall averages; aggregates use **shared claims only**. Claims found in just one report are listed separately; no shared claims is an error. The optional compare output stores this comparison as JSON. Claim identity is the pair of case id and claim id.
 
