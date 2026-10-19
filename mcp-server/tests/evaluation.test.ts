@@ -1,12 +1,17 @@
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   loadCases,
   parseCase,
   unknownSlugs,
 } from '../scripts/evaluation/cases.js';
-import { compareReports } from '../scripts/evaluation/compare.js';
+import {
+  compareReportFiles,
+  compareReports,
+} from '../scripts/evaluation/compare.js';
 import {
   formatComparison,
   formatReport,
@@ -44,9 +49,8 @@ afterEach(async () => {
   );
 });
 async function makeFolder() {
-  await fs.mkdir('generated', { recursive: true });
   const directory = await fs.mkdtemp(
-    path.resolve('generated/evaluation-test-')
+    path.join(os.tmpdir(), 'evaluation-test-')
   );
   folders.push(directory);
   return directory;
@@ -75,6 +79,57 @@ describe('case files', () => {
     expect(loaded[0]).not.toHaveProperty('provenance');
     expect(loaded[0].claims[0]).not.toHaveProperty('provenance');
     expect(loaded[0].claims[0].votes).toEqual({ good: ['good', 'acceptable'] });
+  });
+  it('loads the shipped case files', async () => {
+    const shipped = fileURLToPath(
+      new URL('../evaluation/cases', import.meta.url)
+    );
+    const cases = await loadCases(shipped);
+    const cardiac = cases.find((item) => item.id === 'cardiac-dt');
+    expect(cardiac?.claims.map((item) => item.id)).toEqual([
+      'P1.2',
+      'P2.2',
+      'P3.2',
+      'P4.1',
+      'P4.2',
+    ]);
+  });
+  it('stores claim text exactly as written', () => {
+    const text = '  Padded claim\n';
+    const parsed = parseCase(
+      { ...rubric, claims: [{ ...claim, text }] },
+      'sample.rubric.json'
+    );
+    expect(parsed.claims[0].text).toBe(text);
+  });
+  it('treats a missing label list as empty', () => {
+    const parsed = parseCase(
+      { ...rubric, claims: [{ id: 'C1', text: 'A claim', bad: ['x'] }] },
+      'sample.rubric.json'
+    );
+    expect(parsed.claims[0]).toMatchObject({
+      good: [],
+      acceptable: [],
+      bad: ['x'],
+    });
+  });
+  it('names the claim and each overlapping slug with its lists', () => {
+    const overlapping = {
+      ...rubric,
+      claims: [
+        claim,
+        {
+          ...claim,
+          id: 'C2',
+          good: ['a', 'b'],
+          acceptable: ['b', 'c'],
+          bad: ['a', 'c', 'd'],
+        },
+      ],
+    };
+    expect(() => parseCase(overlapping, 'sample.rubric.json')).toThrow(
+      'Claim C2: a slug appears in more than one label list: a (good, bad); b (good, acceptable); c (acceptable, bad)'
+    );
   });
   it.each([
     ['filename', { ...rubric, id: 'different' }],
@@ -122,7 +177,12 @@ describe('case files', () => {
   it('finds unknown label, note and vote slugs against the fixture graph', async () => {
     const graph = new KnowledgeGraph(
       JsonLdGraphSchema.parse(
-        JSON.parse(await fs.readFile('tests/fixtures/test-graph.json', 'utf8'))
+        JSON.parse(
+          await fs.readFile(
+            new URL('./fixtures/test-graph.json', import.meta.url),
+            'utf8'
+          )
+        )
       ) as JsonLdGraph
     );
     const known = new Set(
@@ -288,4 +348,20 @@ it('compares shared claims by case and claim id, with explicit missing lists', (
   expect(() =>
     compareReports(a, { ...a, cases: [...a.cases, a.cases[0]] })
   ).toThrow('Duplicate case');
+});
+it('names the report file when a comparison input cannot be used', async () => {
+  const directory = await makeFolder();
+  const valid = path.join(directory, 'valid.json');
+  const oldFormat = path.join(directory, 'old.json');
+  const broken = path.join(directory, 'broken.json');
+  await fs.writeFile(valid, JSON.stringify({ schema: 1, cases: [] }));
+  await fs.writeFile(oldFormat, JSON.stringify({ cases: [] }));
+  await fs.writeFile(broken, '{');
+  const unusable = [oldFormat, broken, path.join(directory, 'missing.json')];
+  await Promise.all(
+    unusable.flatMap((file) => [
+      expect(compareReportFiles(valid, file)).rejects.toThrow(`${file}:`),
+      expect(compareReportFiles(file, valid)).rejects.toThrow(`${file}:`),
+    ])
+  );
 });

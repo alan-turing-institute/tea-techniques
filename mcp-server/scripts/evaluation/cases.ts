@@ -5,11 +5,14 @@ import { z } from 'zod';
 export const labelSchema = z.enum(['good', 'acceptable', 'bad']);
 const slugs = z
   .array(z.string().min(1))
-  .transform((items) => [...new Set(items)]);
+  .transform((items) => [...new Set(items)])
+  .default([]);
 const claimSchema = z
   .object({
     id: z.string().trim().min(1),
-    text: z.string().trim().min(1),
+    text: z
+      .string()
+      .refine((text) => text.trim() !== '', 'Claim text must not be empty'),
     good: slugs,
     acceptable: slugs,
     bad: slugs,
@@ -17,11 +20,19 @@ const claimSchema = z
     votes: z.record(z.array(labelSchema)).optional(),
   })
   .superRefine((claim, ctx) => {
-    const all = [...claim.good, ...claim.acceptable, ...claim.bad];
-    if (new Set(all).size !== all.length) {
+    const listsBySlug = new Map<string, string[]>();
+    for (const list of labelSchema.options) {
+      for (const slug of claim[list]) {
+        listsBySlug.set(slug, [...(listsBySlug.get(slug) ?? []), list]);
+      }
+    }
+    const overlaps = [...listsBySlug]
+      .filter(([, lists]) => lists.length > 1)
+      .map(([slug, lists]) => `${slug} (${lists.join(', ')})`);
+    if (overlaps.length) {
       ctx.addIssue({
         code: 'custom',
-        message: 'A slug appears in multiple label lists',
+        message: `Claim ${claim.id}: a slug appears in more than one label list: ${overlaps.join('; ')}`,
       });
     }
   });

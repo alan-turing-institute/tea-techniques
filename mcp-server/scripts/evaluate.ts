@@ -9,7 +9,7 @@ import { KnowledgeGraph } from '../src/graph/index.js';
 import { embedWithOpenRouter } from './embed-hosts.js';
 
 import { loadCases, unknownSlugs } from './evaluation/cases.js';
-import { compareReports } from './evaluation/compare.js';
+import { compareReportFiles } from './evaluation/compare.js';
 import { formatComparison, formatReport } from './evaluation/printing.js';
 import {
   type ClaimEvaluation,
@@ -53,12 +53,7 @@ async function compare(): Promise<void> {
       'Usage: evaluate.ts compare <a.json> <b.json> [--output=…]'
     );
   }
-  const reports = await Promise.all(
-    args
-      .slice(1, 3)
-      .map(async (filename) => JSON.parse(await fs.readFile(filename, 'utf8')))
-  );
-  const comparison = compareReports(reports[0], reports[1]);
+  const comparison = await compareReportFiles(args[1], args[2]);
   log(formatComparison(comparison));
   if (arg('output', '')) {
     await writeReport(path.resolve(arg('output', '')), comparison);

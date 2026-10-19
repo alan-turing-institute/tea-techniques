@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import { z } from 'zod';
 import { average } from './scoring.js';
 
@@ -12,7 +13,7 @@ const reportSchema = z.object({
     })
   ),
 });
-function indexReport(value: unknown) {
+function indexReportBody(value: unknown) {
   const report = reportSchema.parse(value);
   const cases = new Set<string>();
   const claims = new Map<
@@ -38,16 +39,32 @@ function indexReport(value: unknown) {
   }
   return claims;
 }
+function indexReport(value: unknown, source: string) {
+  try {
+    return indexReportBody(value);
+  } catch (error) {
+    throw new Error(
+      `${source}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
 const difference = (scoreA: number, scoreB: number) => ({
   scoreA,
   scoreB,
   difference: scoreB - scoreA,
 });
 
-/** Compare shared claims only, so missing claims cannot skew the aggregates. */
-export function compareReports(a: unknown, b: unknown) {
-  const left = indexReport(a);
-  const right = indexReport(b);
+/**
+ * Compare shared claims only, so missing claims cannot skew the aggregates.
+ * `sources` names the two reports in error messages.
+ */
+export function compareReports(
+  a: unknown,
+  b: unknown,
+  sources: [string, string] = ['report A', 'report B']
+) {
+  const left = indexReport(a, sources[0]);
+  const right = indexReport(b, sources[1]);
   const claims = [...left.entries()].flatMap(([key, claim]) => {
     const other = right.get(key);
     return other
@@ -98,4 +115,20 @@ export function compareReports(a: unknown, b: unknown) {
     onlyInA: onlyIn(left, right),
     onlyInB: onlyIn(right, left),
   };
+}
+
+async function readReport(filename: string): Promise<unknown> {
+  try {
+    return JSON.parse(await fs.readFile(filename, 'utf8'));
+  } catch (error) {
+    throw new Error(
+      `${filename}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/** Read two report files and compare them; every error names its file. */
+export async function compareReportFiles(fileA: string, fileB: string) {
+  const [a, b] = await Promise.all([readReport(fileA), readReport(fileB)]);
+  return compareReports(a, b, [fileA, fileB]);
 }
