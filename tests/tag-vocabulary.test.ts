@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { getTagUrlPart } from '../lib/tag-utils';
+import { formatSlugToTitle } from '../lib/technique-utils';
 import type { Technique } from '../lib/types';
 import { wizardConfig } from '../lib/wizard/config';
 import { calculateMatchScore } from '../lib/wizard/filters';
@@ -18,6 +21,9 @@ const techniques: Technique[] = JSON.parse(
     'utf8'
   )
 );
+const STATS_LINE = /<p class="text-lg text-muted-foreground">([^<]*)<\/p>/;
+const ONE_SUBCATEGORY_STATS = /^1 subcategory • \d+ techniques$/;
+const MANY_TECHNIQUES_STATS = /^\d+ techniques$/;
 const goals = [...new Set(techniques.flatMap((t) => t.assurance_goals))];
 function state(goal: string): WizardState {
   return {
@@ -126,4 +132,50 @@ test('probabilistic architecture and paradigm have distinct filter URLs', () => 
     ),
     'paradigm-probabilistic'
   );
+});
+
+test('a value page lists its own techniques beside its sub-values', async () => {
+  (globalThis as { React?: unknown }).React = React;
+  const { default: DimensionPage } = await import(
+    '../app/categories/[goal]/[dimension]/page'
+  );
+  const render = async (goal: string, dimension: string) =>
+    renderToStaticMarkup(
+      await DimensionPage({ params: Promise.resolve({ goal, dimension }) })
+    );
+
+  const statsLine = (markup: string) => STATS_LINE.exec(markup)?.[1];
+
+  const withSubValues = await render('privacy', 'exposure-reduction');
+  assert.match(statsLine(withSubValues) ?? '', ONE_SUBCATEGORY_STATS);
+  assert.ok(
+    withSubValues.includes(
+      '/categories/privacy/exposure-reduction/data-minimisation'
+    )
+  );
+  for (const slug of ['k-anonymity', 'machine-unlearning']) {
+    assert.ok(
+      withSubValues.includes(`href="/techniques/${slug}"`),
+      `${slug} is listed`
+    );
+  }
+
+  const withoutSubValues = await render('safety', 'monitoring');
+  assert.match(statsLine(withoutSubValues) ?? '', MANY_TECHNIQUES_STATS);
+
+  const singleTechnique = await render('security', 'threat-analysis');
+  assert.equal(statsLine(singleTechnique), '1 technique');
+});
+
+test('slug titles use title case with lower-case joining words', () => {
+  assert.equal(
+    formatSlugToTitle('confidence-and-limits'),
+    'Confidence and Limits'
+  );
+  assert.equal(
+    formatSlugToTitle('performance-by-group'),
+    'Performance by Group'
+  );
+  assert.equal(formatSlugToTitle('exposure-reduction'), 'Exposure Reduction');
+  assert.equal(formatSlugToTitle('in-processing'), 'In Processing');
 });

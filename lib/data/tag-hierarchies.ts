@@ -1,3 +1,4 @@
+import { formatSlugToTitle } from '@/lib/technique-utils';
 import { tagDefinitions } from './tag-definitions';
 
 /**
@@ -452,16 +453,6 @@ export function groupTagsByDimension(
   }
 
   return grouped;
-}
-
-/**
- * Format a slug to title case (e.g. "attribution-methods" → "Attribution Methods")
- */
-export function formatSlugToTitle(slug: string): string {
-  return slug
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
 }
 
 /**

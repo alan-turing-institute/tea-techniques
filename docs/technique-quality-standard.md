@@ -147,8 +147,8 @@ weigh 2, other tags 1; `data-type/any` and the root
 normalised mean vector from the committed Qwen3 embeddings.
 Pairs involving a technique without vectors use tag overlap alone; ties are
 broken by slug, and relationships need not be reciprocal.
-General remains at weight 0 in related scoring until the related lists are
-re-checked after the 9 November data cut. General is an ordinary goal in filters.
+General is an ordinary goal in filters, and its values weigh 2 in related
+scoring like those of any other goal.
 Nobody hand-edits the field.
 
 ## 8. Acronym, sample claims and ratings

@@ -72,6 +72,10 @@ export const wizardConfig: WizardConfig = {
         'Representation Analysis': 'Analyze internal model representations',
         'Instance-Based Methods': 'Use examples to explain',
         'Causal Analysis': 'Examine causal relationships',
+        'Explanation Evaluation':
+          'Test whether an explanation is faithful to the model, stable and efficient',
+        'Human Evaluation':
+          'Test explanations with the people who use them, through studies, questionnaires or measures of their decisions',
       },
       type: 'single',
       filterTag: 'explainability-method',

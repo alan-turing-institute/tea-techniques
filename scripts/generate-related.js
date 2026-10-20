@@ -10,7 +10,8 @@ const GOAL_TAG_WEIGHT = 2;
 const OTHER_TAG_WEIGHT = 1;
 const ZERO_TAG_WEIGHT = 0;
 const RELATED_LIMIT = 3;
-// General stays at weight 0 until related lists are re-checked after the 9 November data cut.
+// The root General tag weighs 0 because it describes the kind of work rather
+// than shared subject matter.
 const zeroWeightTags = new Set([
   'data-type/any',
   'assurance-goal-category/general',

@@ -6,6 +6,7 @@ import { TechniquesDataTable } from '@/components/techniques-data-table';
 import { Badge } from '@/components/ui/badge';
 import { getTags, getTechniquesByExactTag } from '@/lib/data';
 import { tagDefinitions } from '@/lib/data/tag-definitions';
+import { formatSlugToTitle } from '@/lib/technique-utils';
 
 // Force static rendering for static export
 export const dynamic = 'force-static';
@@ -56,11 +57,9 @@ export async function generateMetadata({
 
   const goalName =
     resolvedParams.goal.charAt(0).toUpperCase() + resolvedParams.goal.slice(1);
-  const subcategoryName =
-    resolvedParams.subcategory
-      .at(-1)
-      ?.replace(/-/g, ' ')
-      .replace(/\b\w/g, (l) => l.toUpperCase()) || '';
+  const subcategoryName = formatSlugToTitle(
+    resolvedParams.subcategory.at(-1) ?? ''
+  );
 
   return {
     title: `${subcategoryName} - ${goalName} - TEA Techniques`,
@@ -85,11 +84,9 @@ export default async function CategorySubcategoryPage({
   const techniques = await getTechniquesByExactTag(tag.name);
   const goalName =
     resolvedParams.goal.charAt(0).toUpperCase() + resolvedParams.goal.slice(1);
-  const subcategoryName =
-    resolvedParams.subcategory
-      .at(-1)
-      ?.replace(/-/g, ' ')
-      .replace(/\b\w/g, (l) => l.toUpperCase()) || '';
+  const subcategoryName = formatSlugToTitle(
+    resolvedParams.subcategory.at(-1) ?? ''
+  );
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -114,9 +111,7 @@ export default async function CategorySubcategoryPage({
         </Link>
         {resolvedParams.subcategory.map((part, index) => {
           const isLast = index === resolvedParams.subcategory.length - 1;
-          const partName = part
-            .replace(/-/g, ' ')
-            .replace(/\b\w/g, (l) => l.toUpperCase());
+          const partName = formatSlugToTitle(part);
           const partPath = resolvedParams.subcategory
             .slice(0, index + 1)
             .join('/');
