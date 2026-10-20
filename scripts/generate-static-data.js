@@ -473,7 +473,7 @@ function getGoalDescription(goal) {
     Transparency:
       'Making AI systems and their decision-making processes open and understandable.',
     General:
-      'Techniques that govern, record or control the work of building and running an AI system, rather than assess one property of the model',
+      'Techniques that govern, record or control the work of building and running an AI system, rather than assess one property of the model.',
   };
   return descriptions[goal] || `Techniques related to ${goal.toLowerCase()}.`;
 }

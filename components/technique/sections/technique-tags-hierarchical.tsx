@@ -177,24 +177,32 @@ function HierarchicalTagGroup({
     );
   });
 
+  // A goal value tagged without a sub-value would print its name as both the
+  // group label and the badge, so only the badge is shown.
+  const isValueOnly =
+    uniqueTags.length === 1 &&
+    uniqueTags[0].startsWith('assurance-goal-category/') &&
+    uniqueTags[0].split('/').length === 3;
+
   return (
     <div className="flex flex-wrap items-start gap-2">
       <div className="flex min-w-fit items-center gap-2 font-medium text-muted-foreground text-sm">
         <Icon className="h-4 w-4" />
-        {config.description ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="cursor-help border-muted-foreground border-b border-dotted">
-                {config.name}:
-              </span>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-[280px]" sideOffset={5}>
-              {config.description}
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <span>{config.name}:</span>
-        )}
+        {!isValueOnly &&
+          (config.description ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-help border-muted-foreground border-b border-dotted">
+                  {config.name}:
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[280px]" sideOffset={5}>
+                {config.description}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <span>{config.name}:</span>
+          ))}
       </div>
       <div className="flex flex-wrap gap-2">
         {uniqueTags.map((tag) => {
