@@ -131,7 +131,7 @@ export const CONCEPT_TAGS: Record<string, string[]> = {
   // Uncertainty & calibration (uncertainty-quantification is a real tag path)
   uncertain: ['uncertainty-quantification'],
   confidence: ['uncertainty-quantification'],
-  calibrat: ['uncertainty-quantification', 'calibration'],
+  calibrat: ['uncertainty-quantification', 'reliability/calibration'],
   converge: ['uncertainty-quantification'],
   // Detection & monitoring (monitoring is a real tag path under lifecycle + safety)
   detect: ['monitoring'],
