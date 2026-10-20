@@ -23,7 +23,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDimensionsManifest } from '@/lib/data';
 import { tagDefinitions } from '@/lib/data/tag-definitions';
-import { formatSlugToTitle, TAG_HIERARCHIES } from '@/lib/data/tag-hierarchies';
+import { TAG_HIERARCHIES } from '@/lib/data/tag-hierarchies';
+import { formatSlugToTitle } from '@/lib/technique-utils';
 
 // Force static rendering for static export
 export const dynamic = 'force-static';
@@ -113,7 +114,9 @@ export default async function DimensionPage({ params }: DimensionPageProps) {
     return formatSlugToTitle(sub);
   };
 
-  const hasSubcategories = (dimensionData.subcategories?.length ?? 0) > 0;
+  const subcategoryCount = dimensionData.subcategories?.length ?? 0;
+  const hasSubcategories = subcategoryCount > 0;
+  const techniqueCount = dimensionData.count || 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -161,8 +164,8 @@ export default async function DimensionPage({ params }: DimensionPageProps) {
         {/* Statistics */}
         <p className="text-lg text-muted-foreground">
           {hasSubcategories &&
-            `${dimensionData.subcategories.length} subcategories • `}
-          {dimensionData.count || 0} techniques
+            `${subcategoryCount} subcategor${subcategoryCount === 1 ? 'y' : 'ies'} • `}
+          {techniqueCount} technique{techniqueCount === 1 ? '' : 's'}
         </p>
       </div>
 

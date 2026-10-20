@@ -1,5 +1,36 @@
 import type { Technique } from '@/lib/types';
 
+// Short joining words stay lower case in a title unless they come first.
+const LOWER_CASE_TITLE_WORDS = new Set([
+  'and',
+  'or',
+  'by',
+  'of',
+  'for',
+  'to',
+  'in',
+  'on',
+  'at',
+  'the',
+  'a',
+  'an',
+]);
+
+/**
+ * Format a slug as a title: each word is capitalised except short joining
+ * words (e.g. "confidence-and-limits" → "Confidence and Limits")
+ */
+export function formatSlugToTitle(slug: string): string {
+  return slug
+    .split('-')
+    .map((word, index) =>
+      index > 0 && LOWER_CASE_TITLE_WORDS.has(word)
+        ? word
+        : word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(' ');
+}
+
 export function extractTechniqueType(technique: Technique): string | null {
   const typeTag = technique.tags.find((tag) =>
     tag.startsWith('technique-type/')
@@ -9,11 +40,7 @@ export function extractTechniqueType(technique: Technique): string | null {
   }
 
   // Extract the type and format it nicely
-  const type = typeTag.replace('technique-type/', '');
-  return type
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  return formatSlugToTitle(typeTag.replace('technique-type/', ''));
 }
 
 export function extractApplicableModels(technique: Technique): string[] {
@@ -34,10 +61,7 @@ export function extractApplicableModels(technique: Technique): string[] {
         case 'gam':
           return 'GAM';
         default:
-          return model
-            .split('-')
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
+          return formatSlugToTitle(model);
       }
     });
 }
@@ -91,11 +115,7 @@ export function formatTagName(tag: string): string {
     return specialCases[name];
   }
 
-  // Convert kebab-case to Title Case
-  return name
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  return formatSlugToTitle(name);
 }
 
 // Get the category prefix from a tag
@@ -112,10 +132,7 @@ export function getTagValue(tag: string): string {
 
 // Format tag category for display
 export function formatTagCategory(category: string): string {
-  return category
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
+  return formatSlugToTitle(category);
 }
 
 // Group tags by their category

@@ -1,5 +1,5 @@
 import { tagDefinitions } from '@/lib/data/tag-definitions';
-import { formatSlugToTitle } from '@/lib/data/tag-hierarchies';
+import { formatSlugToTitle } from '@/lib/technique-utils';
 import type { Technique } from '@/lib/types';
 import { matchesOptionTag, matchesTagPath } from './tag-matching';
 import type { QuestionOption, WizardQuestion, WizardState } from './types';

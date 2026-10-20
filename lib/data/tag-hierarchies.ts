@@ -1,3 +1,4 @@
+import { formatSlugToTitle } from '@/lib/technique-utils';
 import { tagDefinitions } from './tag-definitions';
 
 /**
@@ -278,7 +279,7 @@ export const TAG_HIERARCHIES: Record<string, HierarchyConfig> = {
               const value = tag.split('/')[2];
               return [
                 value,
-                { name: formatSlugToSentence(value), description, order },
+                { name: formatSlugToTitle(value), description, order },
               ];
             })
         ),
@@ -452,25 +453,6 @@ export function groupTagsByDimension(
   }
 
   return grouped;
-}
-
-/**
- * Format a slug to title case (e.g. "attribution-methods" → "Attribution Methods")
- */
-export function formatSlugToTitle(slug: string): string {
-  return slug
-    .split('-')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-/**
- * Format a slug as a sentence with only the first word capitalised
- * (e.g. "confidence-and-limits" → "Confidence and limits")
- */
-function formatSlugToSentence(slug: string): string {
-  const sentence = slug.replaceAll('-', ' ');
-  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
 /**
