@@ -323,7 +323,7 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/explainability/model-simplification/pruning':
     'Removes unnecessary model components',
   'assurance-goal-category/explainability/model-simplification/knowledge-transfer':
-    'Transfers knowledge to simpler model',
+    'Transfers knowledge to a simpler model',
 
   // EXPLAINABILITY - TARGET DIMENSION
   'assurance-goal-category/explainability/explains':
