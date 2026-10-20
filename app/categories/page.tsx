@@ -44,16 +44,11 @@ export default async function CategoriesPage() {
   ]);
 
   // Count techniques per goal and convert to IndexPageChildItem format
-  const generalCount = techniques.filter((t) =>
-    t.assurance_goals?.includes('General')
-  ).length;
-
   const goalItems: IndexPageChildItem[] = goals.map((goal) => {
     const directCount = techniques.filter((t) =>
       t.assurance_goals?.includes(goal.name)
     ).length;
-    const techniqueCount =
-      goal.name !== 'General' ? directCount + generalCount : directCount;
+    const techniqueCount = directCount;
 
     // Get the appropriate icon from the goalIconsMap
     const IconComponent =

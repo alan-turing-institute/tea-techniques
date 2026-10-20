@@ -131,7 +131,7 @@ Rules:
   explanations with the people who use them and have no explanatory scope of
   their own.
 - Tags exist for discovery. A record carries a tag when a practitioner filtering
-  by it would expect to find this technique, and not otherwise. The catch-all
+  by it would expect to find this technique, and not otherwise. The only catch-all
   `data-type/any` belongs only on a technique that is genuinely indifferent to
   data type. A technique carries one to three lifecycle stage tags (each with
   its phase tag); `lifecycle-stage/other/cross-cutting` marks a practice that
@@ -142,10 +142,13 @@ Rules:
 
 `pnpm generate-data` rewrites `related_techniques` with the top three other
 techniques, ranked by equal parts weighted tag Jaccard (assurance-goal tags
-weigh 2, other tags 1, catch-all tags 0) and cosine similarity of each technique's
+weigh 2, other tags 1; `data-type/any` and the root
+`assurance-goal-category/general` tag weigh 0) and cosine similarity of each technique's
 normalised mean vector from the committed Qwen3 embeddings.
 Pairs involving a technique without vectors use tag overlap alone; ties are
 broken by slug, and relationships need not be reciprocal.
+General remains at weight 0 in related scoring until the related lists are
+re-checked after the 9 November data cut. General is an ordinary goal in filters.
 Nobody hand-edits the field.
 
 ## 8. Acronym, sample claims and ratings

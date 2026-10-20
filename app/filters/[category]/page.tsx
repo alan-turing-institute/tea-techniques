@@ -27,7 +27,6 @@ export async function generateStaticParams() {
     'data-requirements',
     'data-type',
     'explanatory-scope',
-    'fairness-approach',
   ];
 
   const categories = [...new Set(tags.map((tag) => tag.category))].filter(

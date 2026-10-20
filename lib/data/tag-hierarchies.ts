@@ -1,3 +1,5 @@
+import { tagDefinitions } from './tag-definitions';
+
 /**
  * Tag Hierarchies Configuration
  *
@@ -19,8 +21,8 @@
  * EXAMPLE:
  * fairness: {
  *   dimensions: {
- *     'bias-detection': { name: 'Detection Methods', order: 1 },
- *     'mitigation': { name: 'Mitigation Strategies', order: 2 }
+ *     'bias-measurement': { name: 'Bias Measurement', order: 1 },
+ *     'bias-diagnosis': { name: 'Bias Diagnosis', order: 2 }
  *   }
  * }
  */
@@ -103,24 +105,28 @@ export const TAG_HIERARCHIES: Record<string, HierarchyConfig> = {
         description: 'Techniques using example-based explanations',
         icon: 'database',
       },
-      'uncertainty-analysis': {
-        name: 'Uncertainty Analysis',
-        order: 6,
-        description: 'Techniques quantifying model confidence and robustness',
-        icon: 'alert-triangle',
-      },
       'causal-analysis': {
         name: 'Causal Analysis',
         order: 7,
         description: 'Techniques examining causal relationships',
         icon: 'git-branch',
       },
-      'model-simplification': {
-        name: 'Model Simplification',
+
+      'explanation-evaluation': {
+        name: 'Explanation Evaluation',
+        order: 6,
+        description:
+          tagDefinitions[
+            'assurance-goal-category/explainability/explanation-evaluation'
+          ],
+      },
+      'human-evaluation': {
+        name: 'Human Evaluation',
         order: 8,
         description:
-          'Techniques that create simpler, more interpretable models',
-        icon: 'minimize',
+          tagDefinitions[
+            'assurance-goal-category/explainability/human-evaluation'
+          ],
       },
 
       // TARGET DIMENSION - What aspect is being explained
@@ -236,7 +242,7 @@ export const TAG_HIERARCHIES: Record<string, HierarchyConfig> = {
         name: 'Other',
         order: 4,
         description:
-          'Cross-cutting techniques and governance activities that span multiple lifecycle stages',
+          'Techniques that apply across several stages; each also carries the stages it applies to',
         icon: 'more-horizontal',
       },
     },
@@ -249,45 +255,37 @@ export const TAG_HIERARCHIES: Record<string, HierarchyConfig> = {
     showEmptyDimensions: false,
   },
 
-  /**
-   * PLACEHOLDER FOR FUTURE HIERARCHIES
-   * Uncomment and modify when implementing hierarchical tagging for other goals
-   */
-
-  // fairness: {
-  //   dimensions: {
-  //     'bias-detection': {
-  //       name: 'Bias Detection',
-  //       order: 1,
-  //       description: 'Methods for identifying unfair bias in models',
-  //     },
-  //     'bias-mitigation': {
-  //       name: 'Bias Mitigation',
-  //       order: 2,
-  //       description: 'Techniques for reducing or eliminating bias',
-  //     },
-  //     'fairness-metrics': {
-  //       name: 'Fairness Metrics',
-  //       order: 3,
-  //       description: 'Quantitative measures of fairness',
-  //     },
-  //   },
-  // },
-
-  // safety: {
-  //   dimensions: {
-  //     'risk-assessment': {
-  //       name: 'Risk Assessment',
-  //       order: 1,
-  //       description: 'Techniques for identifying and evaluating risks',
-  //     },
-  //     'safety-verification': {
-  //       name: 'Safety Verification',
-  //       order: 2,
-  //       description: 'Methods for verifying safe operation',
-  //     },
-  //   },
-  // },
+  ...Object.fromEntries(
+    [
+      'safety',
+      'security',
+      'reliability',
+      'privacy',
+      'fairness',
+      'transparency',
+      'general',
+    ].map((goal) => [
+      goal,
+      {
+        dimensions: Object.fromEntries(
+          Object.entries(tagDefinitions)
+            .filter(
+              ([tag]) =>
+                tag.startsWith(`assurance-goal-category/${goal}/`) &&
+                tag.split('/').length === 3
+            )
+            .map(([tag, description], order) => {
+              const value = tag.split('/')[2];
+              return [
+                value,
+                { name: formatSlugToTitle(value), description, order },
+              ];
+            })
+        ),
+        showEmptyDimensions: false,
+      },
+    ])
+  ),
 };
 
 /**

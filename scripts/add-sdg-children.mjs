@@ -1,3 +1,4 @@
+// One-off migration, already applied, written for the pre-October vocabulary; must not be rerun.
 /**
  * Add child techniques for synthetic-data-generation umbrella.
  *

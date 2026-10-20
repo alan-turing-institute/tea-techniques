@@ -93,10 +93,10 @@ An array of assurance goals that the technique addresses.
 
 **Valid Values:** `["Explainability", "Fairness", "General", "Privacy", "Reliability", "Safety", "Security", "Transparency"]`
 
-`General` is for techniques that apply across goals (for example internal review boards) and should be listed on its own, not alongside the specific goals.
+`General`: Techniques that govern, record or control the work of building and running an AI system, rather than assess one property of the model. For example, `algorithm-review-boards`. General techniques also list the specific goals they serve.
 
 **Guidelines:**
-- **Include all relevant goals**: A technique can address multiple goals; include all that apply (e.g., SHAP addresses Explainability, Fairness, and Reliability)
+- **Include all relevant goals**: A technique can address multiple goals; include all that apply (e.g., SHAP addresses Explainability and Fairness)
 - **Match with use cases**: Ensure each assurance goal listed has at least one corresponding use case in `example_use_cases`
 - **Justify selections**: Consider whether the technique provides direct evidence for the goal or merely supports adjacent concerns
 
@@ -109,14 +109,13 @@ Hierarchical categorisation tags following the structured taxonomy.
 **Tag Categories:**
 1. `assurance-goal-category/*` — Goals and sub-categories (e.g., `explainability/attribution-methods/perturbation-based`)
 2. `applicable-models/*` — Model types (e.g., `architecture/neural-networks`, `requirements/model-internals`)
-3. `lifecycle-stage/*` — Project phases (e.g., `model-development`, `deployment`)
+3. `lifecycle-stage/*` — Project phases (e.g., `model-development`, `system-deployment`)
 4. `expertise-needed/*` — Required expertise (e.g., `statistics`, `domain-expertise`)
 5. `evidence-type/*` — Output types (e.g., `quantitative-metric`, `documentation`)
 6. `data-type/*` — Applicable data (e.g., `tabular`, `text`, `image`)
-7. `data-requirements/*` — Data dependencies (e.g., `access-to-model-internals`, `no-special-requirements`)
-8. `technique-type/*` — Fundamental approach (e.g., `algorithmic`, `stakeholder-engagement`)
+7. `data-requirements/*` — Data dependencies (e.g., `access-to-training-data`, `no-special-requirements`)
+8. `technique-type/*` — Fundamental approach (e.g., `algorithmic`, `process`)
 9. `explanatory-scope/*` — Explanation level (e.g., `local`, `global`)
-10. `fairness-approach/*` — Fairness perspective (e.g., `individual`, `group`, `causal`)
 
 **Guidelines:**
 - **Follow the established taxonomy**: every tag must be defined in `lib/data/tag-definitions.ts` (shown at [/docs/tag-reference](/docs/tag-reference)); a tag that is not defined there fails validation. Propose a new tag by adding its definition in the same change

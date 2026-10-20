@@ -1,4 +1,5 @@
 import type { Technique } from '@/lib/types';
+import { matchesOptionTag, matchesTagPath } from './tag-matching';
 import type { WizardState } from './types';
 
 // Calculate match score for a technique based on wizard answers
@@ -55,10 +56,6 @@ function scoreAssuranceGoal(
   technique: Technique,
   answer: string | string[]
 ): number {
-  // General techniques match any selected goal
-  if (technique.assurance_goals?.includes('General')) {
-    return 100;
-  }
   const answers = Array.isArray(answer) ? answer : [answer];
   return answers.some((goal) => technique.assurance_goals?.includes(goal))
     ? 100
@@ -114,13 +111,24 @@ function scoreExplainabilityMethod(
           tag.includes('/visualization-methods/') ||
           tag.includes('/representation-analysis/') ||
           tag.includes('/instance-based/') ||
-          tag.includes('/uncertainty-analysis/') ||
+          matchesTagPath(
+            tag,
+            'assurance-goal-category/explainability/explanation-evaluation'
+          ) ||
           tag.includes('/causal-analysis/') ||
-          tag.includes('/model-simplification/'))
+          matchesTagPath(
+            tag,
+            'assurance-goal-category/explainability/human-evaluation'
+          ))
     ) || [];
 
   const normalizedAnswer = answer.replace(/-/g, '-');
-  return methodTags.some((tag) => tag.includes(`/${normalizedAnswer}/`))
+  return methodTags.some((tag) =>
+    matchesTagPath(
+      tag,
+      `assurance-goal-category/explainability/${normalizedAnswer}`
+    )
+  )
     ? 100
     : 0;
 }
@@ -237,12 +245,8 @@ function hasLifecycleMatch(technique: Technique, stages: string[]): boolean {
   const lifecycleTags =
     technique.tags?.filter((tag) => tag.startsWith('lifecycle-stage/')) || [];
 
-  if (lifecycleTags.includes('lifecycle-stage/all')) {
-    return true;
-  }
-
   return stages.some((stage) =>
-    lifecycleTags.some((tag) => tag.includes(stage))
+    lifecycleTags.some((tag) => matchesOptionTag(tag, 'lifecycle-stage', stage))
   );
 }
 
@@ -251,7 +255,7 @@ function hasTechniqueTypeMatch(technique: Technique, type: string): boolean {
   const typeTags =
     technique.tags?.filter((tag) => tag.startsWith('technique-type/')) || [];
 
-  return typeTags.some((tag) => tag.includes(type));
+  return typeTags.some((tag) => matchesOptionTag(tag, 'technique-type', type));
 }
 
 // Sort techniques by relevance
@@ -309,12 +313,12 @@ function getModelAccessLabel(answer: string): string {
 // Helper function to get label for lifecycle stage
 function getLifecycleStageLabel(stage: string): string {
   switch (stage) {
-    case 'planning':
-      return 'Planning';
+    case 'project-design':
+      return 'Planning and design';
     case 'model-development':
       return 'Development';
-    case 'deployment':
-      return 'Deployment';
+    case 'system-deployment':
+      return 'Deployment and use';
     default:
       return stage;
   }
@@ -331,8 +335,8 @@ function getTechniqueTypeLabel(type: string): string {
       return 'Process/Documentation';
     case 'testing':
       return 'Testing/Validation';
-    case 'analysis':
-      return 'Analysis/Interpretation';
+    case 'visualisation':
+      return 'Visualisation';
     default:
       return type;
   }
@@ -399,10 +403,6 @@ function getAssuranceGoalReason(
   technique: Technique,
   answer: string | string[]
 ): string | null {
-  // General techniques support any goal
-  if (technique.assurance_goals?.includes('General')) {
-    return 'General (cross-cutting)';
-  }
   const answers = Array.isArray(answer) ? answer : [answer];
   const matchedGoals = answers.filter((goal) =>
     technique.assurance_goals?.includes(goal)
@@ -472,16 +472,16 @@ function getExplainabilityMethodReason(
     'visualization-methods': 'Visualization method',
     'representation-analysis': 'Representation analysis',
     'instance-based': 'Instance-based method',
-    'uncertainty-analysis': 'Uncertainty analysis',
+    'explanation-evaluation': 'Explanation Evaluation',
     'causal-analysis': 'Causal analysis',
-    'model-simplification': 'Model simplification',
+    'human-evaluation': 'Human Evaluation',
   };
 
   const methodTags =
     technique.tags?.filter(
       (tag) =>
         tag.startsWith('assurance-goal-category/explainability/') &&
-        tag.includes(`/${answer}/`)
+        matchesTagPath(tag, `assurance-goal-category/explainability/${answer}`)
     ) || [];
 
   return methodTags.length > 0 ? methodLabels[answer] || answer : null;
@@ -499,7 +499,6 @@ function getExplainabilityTargetReason(
     'feature-importance': 'Explains feature importance',
     'decision-boundaries': 'Shows decision boundaries',
     'internal-mechanisms': 'Reveals internal mechanisms',
-    'prediction-confidence': 'Quantifies prediction confidence',
     'data-patterns': 'Uncovers data patterns',
     'causal-pathways': 'Traces causal pathways',
   };
@@ -545,19 +544,4 @@ function getExplainabilityPropertiesReason(
   }
 
   return null;
-}
-
-// Check if technique is versatile (works in multiple contexts)
-export function isVersatileTechnique(technique: Technique): boolean {
-  const modelAgnostic = technique.tags?.some((tag) =>
-    tag.includes('applicable-models/architecture/model-agnostic')
-  );
-
-  const multipleGoals = (technique.assurance_goals?.length || 0) > 2;
-
-  const multipleLifecycles =
-    technique.tags?.filter((tag) => tag.startsWith('lifecycle-stage/'))
-      .length || 0;
-
-  return modelAgnostic || multipleGoals || multipleLifecycles > 1;
 }

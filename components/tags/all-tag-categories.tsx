@@ -65,12 +65,6 @@ const TAG_CATEGORIES = [
     description:
       'Whether the explanation is instance-specific (local) or model-wide (global)',
   },
-  {
-    key: 'fairness-approach',
-    name: 'Fairness Approaches',
-    description:
-      'Underlying approach to fairness for fairness-related techniques',
-  },
 ] as const;
 
 /**

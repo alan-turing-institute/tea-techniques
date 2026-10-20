@@ -41,7 +41,6 @@ export function AllTagDefinitions() {
     'data-type': 'Data Types',
     'technique-type': 'Technique Types',
     'explanatory-scope': 'Explanatory Scope',
-    'fairness-approach': 'Fairness Approaches',
   };
 
   return (

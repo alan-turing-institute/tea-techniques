@@ -25,13 +25,12 @@ const embeddingFile = {
   entries: [entry('a', [1, 0]), entry('a', [0, 1]), entry('b', [1, 0])],
 };
 
-test('weighted Jaccard weights goals, ignores catch-all tags and deduplicates', () => {
+test('weighted Jaccard weights goals, ignores the explicit zero-weight tags and deduplicates', () => {
   assert.equal(
     weightedJaccard(
       [
         'assurance-goal-category/fairness',
         'data-type/any',
-        'lifecycle-stage/all',
         'assurance-goal-category/general',
         'x',
         'x',

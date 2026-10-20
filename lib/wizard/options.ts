@@ -1,4 +1,7 @@
 import type { Technique } from '@/lib/types';
+import { tagDefinitions } from '../data/tag-definitions';
+import { formatSlugToTitle } from '../data/tag-hierarchies';
+import { matchesOptionTag, matchesTagPath } from './tag-matching';
 import type { QuestionOption, WizardQuestion, WizardState } from './types';
 
 // Load dynamic options based on question type and context
@@ -33,7 +36,10 @@ function getAssuranceGoalOptions(techniques: Technique[]): QuestionOption[] {
   const goalDescriptions = new Map<string, string>([
     ['Explainability', 'Understanding how AI makes decisions'],
     ['Fairness', 'Ensuring equitable treatment across groups'],
-    ['General', 'Cross-cutting techniques applicable to any assurance goal'],
+    [
+      'General',
+      'Techniques that govern, record or control the work of building and running an AI system, rather than assess one property of the model',
+    ],
     ['Privacy', 'Protecting personal information'],
     ['Reliability', 'Consistent and predictable performance'],
     ['Safety', 'Preventing harm and ensuring safe operation'],
@@ -80,129 +86,35 @@ function getAssuranceSubcategoryOptions(
         label: 'Feature Importance',
         description: 'Which features matter most',
       },
-      {
-        value: 'decision-rules',
-        label: 'Decision Rules',
-        description: 'How decisions are made',
-      },
-      {
-        value: 'counterfactuals',
-        label: 'Counterfactual Explanations',
-        description: 'What would change the outcome',
-      },
-      {
-        value: 'model-internals',
-        label: 'Model Internals',
-        description: 'Understanding model structure',
-      },
     ],
-    Fairness: [
-      {
-        value: 'demographic-parity',
-        label: 'Demographic Parity',
-        description: 'Equal outcomes across groups',
-      },
-      {
-        value: 'individual-fairness',
-        label: 'Individual Fairness',
-        description: 'Similar treatment for similar individuals',
-      },
-      {
-        value: 'bias-detection',
-        label: 'Bias Detection',
-        description: 'Finding unfair patterns',
-      },
-      {
-        value: 'bias-mitigation',
-        label: 'Bias Mitigation',
-        description: 'Reducing unfair behavior',
-      },
-    ],
-    Privacy: [
-      {
-        value: 'differential-privacy',
-        label: 'Differential Privacy',
-        description: 'Mathematical privacy guarantees',
-      },
-      {
-        value: 'data-minimization',
-        label: 'Data Minimization',
-        description: 'Using less personal data',
-      },
-      {
-        value: 'federated-learning',
-        label: 'Federated Learning',
-        description: 'Training without data sharing',
-      },
-    ],
-    Safety: [
-      {
-        value: 'adversarial-robustness',
-        label: 'Adversarial Robustness',
-        description: 'Resisting attacks',
-      },
-      {
-        value: 'uncertainty-quantification',
-        label: 'Uncertainty Quantification',
-        description: 'Knowing when uncertain',
-      },
-      {
-        value: 'safe-exploration',
-        label: 'Safe Exploration',
-        description: 'Learning without harm',
-      },
-    ],
-    Reliability: [
-      {
-        value: 'performance-monitoring',
-        label: 'Performance Monitoring',
-        description: 'Tracking system behavior',
-      },
-      {
-        value: 'drift-detection',
-        label: 'Drift Detection',
-        description: 'Identifying changes over time',
-      },
-      {
-        value: 'failure-prediction',
-        label: 'Failure Prediction',
-        description: 'Anticipating problems',
-      },
-    ],
-    Transparency: [
-      {
-        value: 'model-cards',
-        label: 'Model Documentation',
-        description: 'Comprehensive model information',
-      },
-      {
-        value: 'impact-assessment',
-        label: 'Impact Assessment',
-        description: 'Understanding consequences',
-      },
-      {
-        value: 'stakeholder-communication',
-        label: 'Stakeholder Communication',
-        description: 'Clear explanations for all',
-      },
-    ],
-    General: [],
   };
 
-  const subcategories = subcategoryMap[selectedGoal] || [];
+  const prefix = `assurance-goal-category/${selectedGoal.toLowerCase()}/`;
+  const subcategories =
+    selectedGoal === 'Explainability'
+      ? subcategoryMap.Explainability
+      : Object.entries(tagDefinitions)
+          .filter(
+            ([tag]) => tag.startsWith(prefix) && tag !== prefix.slice(0, -1)
+          )
+          .map(([tag, description]) => ({
+            value: tag.slice(prefix.length),
+            label: formatSlugToTitle(tag.split('/').at(-1) || ''),
+            description,
+          }));
 
-  // Add counts based on filtered techniques
-  return subcategories.map((subcategory) => {
-    // This would need more sophisticated tag mapping in real implementation
-    const count = techniques.filter((t) =>
-      t.tags?.some((tag) => tag.includes(subcategory.value))
-    ).length;
-
-    return {
+  return subcategories
+    .map((subcategory) => ({
       ...subcategory,
-      count: count || undefined,
-    };
-  });
+      count: techniques.filter((technique) =>
+        technique.tags?.some((tag) =>
+          selectedGoal === 'Explainability'
+            ? tag.includes(subcategory.value)
+            : matchesTagPath(tag, `${prefix}${subcategory.value}`)
+        )
+      ).length,
+    }))
+    .filter((option) => option.count > 0);
 }
 
 // Calculate counts for static options based on filtered techniques
@@ -240,8 +152,7 @@ function countTechniquesForOption(
       technique.tags?.filter((tag) => tag.startsWith(`${filterTag}/`)) || [];
 
     return relevantTags.some((tag) => {
-      const tagValue = tag.split('/').pop();
-      return tagValue === value || tag.endsWith(`/${value}`);
+      return matchesOptionTag(tag, filterTag, value);
     });
   }).length;
 }
@@ -294,24 +205,22 @@ function getExplainabilityMethodOptions(
       subcategories: ['prototypes', 'influence-analysis', 'counterfactual'],
     },
     {
-      value: 'uncertainty-analysis',
-      label: 'Uncertainty Analysis',
-      description: 'Quantify confidence and robustness',
-      subcategories: ['prediction-uncertainty', 'sensitivity-testing'],
-    },
-    {
       value: 'causal-analysis',
       label: 'Causal Analysis',
       description: 'Examine causal relationships',
       subcategories: ['mediation-analysis', 'interaction-effects'],
     },
-    {
-      value: 'model-simplification',
-      label: 'Model Simplification',
-      description: 'Create simpler, interpretable models',
-      subcategories: ['pruning', 'knowledge-transfer'],
-    },
   ];
+
+  for (const value of ['explanation-evaluation', 'human-evaluation']) {
+    methodCategories.push({
+      value,
+      label: formatSlugToTitle(value),
+      description:
+        tagDefinitions[`assurance-goal-category/explainability/${value}`],
+      subcategories: [],
+    });
+  }
 
   return methodCategories
     .map((method) => {
@@ -323,7 +232,7 @@ function getExplainabilityMethodOptions(
             ''
           );
           return (
-            tagPath.startsWith(`${method.value}/`) ||
+            matchesTagPath(tagPath, method.value) ||
             method.subcategories.some((sub) =>
               tagPath.startsWith(`${method.value}/${sub}`)
             )
@@ -360,11 +269,6 @@ function getExplainabilityTargetOptions(
       value: 'internal-mechanisms',
       label: 'Internal Mechanisms',
       description: 'How the model processes information internally',
-    },
-    {
-      value: 'prediction-confidence',
-      label: 'Prediction Confidence',
-      description: 'How certain/uncertain the model is',
     },
     {
       value: 'data-patterns',

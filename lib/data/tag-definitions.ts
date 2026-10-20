@@ -239,7 +239,7 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/explainability/attribution-methods':
     'Techniques that assign importance scores to inputs/features',
   'assurance-goal-category/explainability/attribution-methods/gradient-based':
-    'Uses gradients/derivatives to compute feature importance (e.g., Integrated Gradients, Saliency Maps)',
+    'Uses gradients/derivatives to compute feature importance (e.g., Integrated Gradients)',
   'assurance-goal-category/explainability/attribution-methods/perturbation-based':
     'Modifies inputs to measure impact on outputs (e.g., SHAP, Permutation Importance)',
   'assurance-goal-category/explainability/attribution-methods/model-specific':
@@ -251,7 +251,7 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/explainability/surrogate-models/local-surrogates':
     'Approximates model behaviour around specific instances (e.g., LIME)',
   'assurance-goal-category/explainability/surrogate-models/global-surrogates':
-    'Approximates entire model behaviour with simpler model (e.g., GAMs, Model Distillation)',
+    'Approximates entire model behaviour with simpler model (e.g., GAMs)',
   'assurance-goal-category/explainability/surrogate-models/rule-extraction':
     'Extracts interpretable rules from complex models (e.g., ANCHOR, RuleFit)',
 
@@ -261,9 +261,9 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/explainability/visualization-methods/feature-relationships':
     'Visualises how features affect predictions (e.g., PDP, ICE Plots)',
   'assurance-goal-category/explainability/visualization-methods/attention-patterns':
-    'Displays attention mechanisms in models (e.g., Attention Visualization in Transformers)',
+    'Displays attention mechanisms in models (e.g., Attention Weight Analysis)',
   'assurance-goal-category/explainability/visualization-methods/activation-maps':
-    'Creates visual heatmaps of model activations (e.g., Grad-CAM, Saliency Maps)',
+    'Creates visual heatmaps of model activations (e.g., Grad-CAM)',
 
   // Representation Analysis
   'assurance-goal-category/explainability/representation-analysis':
@@ -291,7 +291,7 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/explainability/uncertainty-analysis/prediction-uncertainty':
     'Measures confidence in predictions (e.g., Monte Carlo Dropout)',
   'assurance-goal-category/explainability/uncertainty-analysis/sensitivity-testing':
-    'Tests robustness to input changes (e.g., Prompt Sensitivity Analysis, Occlusion Sensitivity)',
+    'Tests robustness to input changes (e.g., Prompt Robustness Testing, Occlusion Sensitivity)',
 
   // Causal Analysis
   'assurance-goal-category/explainability/causal-analysis':
@@ -321,9 +321,9 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/explainability/model-simplification':
     'Techniques that create simpler, more interpretable models',
   'assurance-goal-category/explainability/model-simplification/pruning':
-    'Removes unnecessary model components (e.g., Model Pruning)',
+    'Removes unnecessary model components',
   'assurance-goal-category/explainability/model-simplification/knowledge-transfer':
-    'Transfers knowledge to simpler model (e.g., Model Distillation)',
+    'Transfers knowledge to simpler model (e.g.)',
 
   // EXPLAINABILITY - TARGET DIMENSION
   'assurance-goal-category/explainability/explains':

@@ -35,8 +35,12 @@ export function WizardResultCard({
     ) {
       return 'Works with your model type';
     }
-    if (reason.includes('Development') || reason.includes('Deployment')) {
-      return `Suitable for ${reason.toLowerCase()} stage`;
+    if (
+      ['Planning and design', 'Development', 'Deployment and use'].some(
+        (label) => reason.includes(label)
+      )
+    ) {
+      return `Suitable for ${reason.toLowerCase()}`;
     }
     if (reason.includes('Process') || reason.includes('Documentation')) {
       return 'Matches your technique type preference';

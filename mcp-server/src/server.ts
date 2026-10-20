@@ -294,7 +294,7 @@ export function createServer(graph: KnowledgeGraph): McpServer {
           .max(200)
           .optional()
           .describe(
-            'Lifecycle stage context (e.g. model-development, deployment)'
+            'Lifecycle stage context (e.g. model-development, system-deployment)'
           ),
         excludeModelTypes: z
           .array(z.string().max(200))

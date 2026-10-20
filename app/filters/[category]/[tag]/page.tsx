@@ -29,7 +29,6 @@ export async function generateStaticParams() {
     'data-requirements',
     'data-type',
     'explanatory-scope',
-    'fairness-approach',
   ];
 
   return tags

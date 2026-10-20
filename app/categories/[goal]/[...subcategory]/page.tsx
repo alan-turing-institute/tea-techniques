@@ -23,7 +23,7 @@ export async function generateStaticParams() {
       return false;
     }
     const parts = tag.name.split('/');
-    return parts.length >= 3; // Has subcategory
+    return parts.length >= 4; // One-segment paths belong to [dimension].
   });
 
   return subcategoryTags.map((tag) => {

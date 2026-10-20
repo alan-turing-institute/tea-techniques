@@ -629,12 +629,6 @@ function scoreUseCases(technique) {
     return useCases.length > 0 ? 1 : 0;
   }
 
-  // General techniques have goal-agnostic use cases with specific goal labels
-  // — having any use cases counts as full coverage
-  if (goals.includes('General')) {
-    return useCases.length > 0 ? 1 : 0;
-  }
-
   const goalsWithUseCase = new Set(useCases.map((uc) => uc.goal));
   const covered = goals.filter((g) => goalsWithUseCase.has(g)).length;
 
@@ -692,11 +686,6 @@ function scoreGoalTagDepth(technique) {
   let goalsWithDepth = 0;
 
   for (const goal of goals) {
-    // General goal has no deep taxonomy — exempt from depth-3 requirement
-    if (goal === 'General') {
-      goalsWithDepth++;
-      continue;
-    }
     const prefix = `assurance-goal-category/${goalToSlug(goal)}`;
     const hasDeepTag = (technique.tags || []).some((tag) => {
       if (!tag.startsWith(prefix)) {
@@ -775,11 +764,6 @@ function getUseCaseIssues(technique) {
 
   if (useCases.length === 0) {
     return ['No example use cases'];
-  }
-
-  // General techniques have use cases with specific goal labels — skip goal matching
-  if (goals.includes('General')) {
-    return [];
   }
 
   const goalsWithUseCase = new Set(useCases.map((uc) => uc.goal));

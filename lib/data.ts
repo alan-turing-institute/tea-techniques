@@ -115,14 +115,7 @@ export async function getTechniquesByGoal(
   goalName: string
 ): Promise<Technique[]> {
   const techniques = await getAllTechniques();
-  if (goalName === 'General') {
-    return techniques.filter((t) => t.assurance_goals?.includes('General'));
-  }
-  return techniques.filter(
-    (t) =>
-      t.assurance_goals?.includes(goalName) ||
-      t.assurance_goals?.includes('General')
-  );
+  return techniques.filter((t) => t.assurance_goals?.includes(goalName));
 }
 
 // Get techniques by tag (includes catch-all matches for filtering)

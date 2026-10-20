@@ -1,5 +1,6 @@
 import type { Technique } from '@/lib/types';
 import { wizardConfig } from './config';
+import { matchesOptionTag, matchesTagPath } from './tag-matching';
 import type { WizardQuestion, WizardState } from './types';
 
 export class WizardStateMachine {
@@ -243,9 +244,15 @@ export class WizardStateMachine {
               tag.includes('/visualization-methods/') ||
               tag.includes('/representation-analysis/') ||
               tag.includes('/instance-based/') ||
-              tag.includes('/uncertainty-analysis/') ||
+              matchesTagPath(
+                tag,
+                'assurance-goal-category/explainability/explanation-evaluation'
+              ) ||
               tag.includes('/causal-analysis/') ||
-              tag.includes('/model-simplification/'))
+              matchesTagPath(
+                tag,
+                'assurance-goal-category/explainability/human-evaluation'
+              ))
         );
       }
       case 'explainability-target': {
@@ -311,7 +318,7 @@ export class WizardStateMachine {
         // Convert answer to full tag path
         const fullAnswers = answers.map((ans) => {
           // If answer already contains the goal, use as-is
-          if (ans.includes('/')) {
+          if (ans.startsWith(`${filterTag}/`)) {
             return ans;
           }
           // Otherwise, construct the full path
@@ -323,10 +330,11 @@ export class WizardStateMachine {
             const values = this.getTechniqueValues(technique, filterTag);
             // Check if technique has any of the selected subcategory tags
             return fullAnswers.some((fullAnswer) =>
-              values.some((value) => value.startsWith(fullAnswer))
+              values.some((value) => matchesTagPath(value, fullAnswer))
             );
           }
         );
+        this.state.remainingTechniques = this.filteredTechniques.length;
         return;
       }
     }
@@ -367,7 +375,9 @@ export class WizardStateMachine {
             );
           }
           // For other explainability filters (like method), check if the tag contains the answer value
-          return techniqueValues.some((tag) => tag.includes(`/${ans}/`));
+          return techniqueValues.some((tag) =>
+            matchesTagPath(tag, `assurance-goal-category/explainability/${ans}`)
+          );
         });
       }
 
@@ -393,8 +403,7 @@ export class WizardStateMachine {
       // Check if technique matches any of the selected answers (for non-hierarchical tags)
       return answers.some((ans) =>
         techniqueValues.some((tag) => {
-          const tagValue = tag.split('/').pop();
-          return tagValue === ans || tag.endsWith(`/${ans}`);
+          return matchesOptionTag(tag, filterTag, ans);
         })
       );
     });

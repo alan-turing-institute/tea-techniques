@@ -17,6 +17,8 @@ import { ChevronRight } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { columns } from '@/components/techniques-columns';
+import { TechniquesDataTable } from '@/components/techniques-data-table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDimensionsManifest } from '@/lib/data';
@@ -192,11 +194,10 @@ export default async function DimensionPage({ params }: DimensionPageProps) {
           })}
         </div>
       ) : (
-        <div className="py-12 text-center">
-          <p className="text-muted-foreground">
-            No subcategories found in this dimension.
-          </p>
-        </div>
+        <TechniquesDataTable
+          columns={columns}
+          data={dimensionData.techniques}
+        />
       )}
 
       {/* Back Links */}

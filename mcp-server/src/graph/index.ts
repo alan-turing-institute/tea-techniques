@@ -127,43 +127,43 @@ function logQueryEmbeddingIgnored(reason: string): void {
 
 // --- Concept-to-tag mapping for claim-based suggestions ---
 
-const CONCEPT_TAGS: Record<string, string[]> = {
+export const CONCEPT_TAGS: Record<string, string[]> = {
   // Uncertainty & calibration (uncertainty-quantification is a real tag path)
   uncertain: ['uncertainty-quantification'],
   confidence: ['uncertainty-quantification'],
-  calibrat: ['uncertainty-quantification'],
+  calibrat: ['uncertainty-quantification', 'calibration'],
   converge: ['uncertainty-quantification'],
   // Detection & monitoring (monitoring is a real tag path under lifecycle + safety)
   detect: ['monitoring'],
   monitor: ['monitoring'],
   'out-of-distribution': ['monitoring'],
   anomal: ['monitoring'],
-  // Governance & process (process is technique-type, human-oversight is under safety)
-  interpret: ['process', 'system-implementation', 'human-oversight'],
+  // Governance & process (process is technique-type, safeguards is under safety)
+  interpret: ['process', 'system-implementation', 'safeguards'],
   clinician: [
     'process',
     'system-implementation',
-    'human-oversight',
+    'safeguards',
     'documentation',
   ],
-  stakeholder: ['process', 'system-implementation', 'human-oversight'],
+  stakeholder: ['process', 'system-implementation', 'safeguards'],
   actionable: ['process', 'system-implementation', 'documentation'],
-  governance: ['process', 'system-implementation', 'governance-disclosure'],
+  governance: ['process', 'system-implementation', 'governance-and-review'],
   // Explainability methods (attribution is a real tag path under explainability)
   explain: ['attribution', 'feature-importance'],
   'feature importance': ['attribution', 'feature-importance'],
   // Documentation & transparency (documentation is a real tag path)
-  document: ['documentation', 'governance-disclosure'],
-  audit: ['documentation', 'governance-disclosure'],
-  // Sensitivity & fidelity (sensitivity-testing is a real tag path)
-  sensitiv: ['sensitivity-testing'],
-  fidelity: ['sensitivity-testing', 'model-testing-and-validation'],
+  document: ['documentation', 'audit-trail'],
+  audit: ['documentation', 'audit-trail'],
+  // Sensitivity & fidelity (robustness is a real tag path)
+  sensitiv: ['robustness'],
+  fidelity: ['model-testing-and-validation'],
   // Validation, verification & testing
   validat: ['model-testing-and-validation'],
   verif: ['model-testing-and-validation', 'testing'],
   endpoint: ['model-testing-and-validation'],
   // Robustness
-  perturb: ['testing', 'sensitivity-testing'],
+  perturb: ['testing', 'robustness'],
 };
 
 // --- Helpers to reduce cognitive complexity ---
@@ -286,9 +286,7 @@ const NON_ML_EXCLUDE_TAGS = ['neural-networks', 'tree-based', 'linear-models'];
  * in the same category (mirrors lib/constants.ts for use in this ESM module).
  */
 const CATCH_ALL_TAGS: Record<string, string> = {
-  'lifecycle-stage': 'lifecycle-stage/all',
   'data-type': 'data-type/any',
-  'assurance-goal-category': 'assurance-goal-category/general',
 };
 
 /** Check if a technique has a catch-all tag for the category matching the search term. */
@@ -581,11 +579,7 @@ export class KnowledgeGraph {
 
     if (filters.goals?.length) {
       const goalIds = new Set(filters.goals.map((g) => `tea:goal/${g}`));
-      const generalGoalId = 'tea:goal/general';
-      results = results.filter(
-        (t) =>
-          t.goals.some((g) => goalIds.has(g)) || t.goals.includes(generalGoalId)
-      );
+      results = results.filter((t) => t.goals.some((g) => goalIds.has(g)));
     }
 
     if (filters.tags?.length) {

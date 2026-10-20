@@ -25,12 +25,10 @@ const CONCURRENT_REQUESTS = 10; // Limit concurrent requests to avoid overwhelmi
 
 // Map of last parts that have conflicts across categories (from tag-utils.ts)
 const CONFLICTING_LAST_PARTS = new Set([
-  'causal',
-  'group',
   'documentation',
-  'visualization',
   'testing',
   'monitoring',
+  'probabilistic',
 ]);
 
 // Categories that have filter routes
@@ -43,7 +41,6 @@ const FILTER_CATEGORIES = [
   'data-requirements',
   'data-type',
   'explanatory-scope',
-  'fairness-approach',
 ];
 
 interface TestResult {
@@ -71,6 +68,9 @@ function getTagUrlPart(tagName: string, category: string): string {
   const lastPart = parts.at(-1) || '';
 
   if (CONFLICTING_LAST_PARTS.has(lastPart)) {
+    if (category === 'applicable-models' && lastPart === 'probabilistic') {
+      return `${parts[1]}-${lastPart}`;
+    }
     if (category === 'assurance-goal-category' && parts.length >= 2) {
       return `${parts[1]}-${lastPart}`;
     }

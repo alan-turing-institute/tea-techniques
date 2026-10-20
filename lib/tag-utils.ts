@@ -6,12 +6,10 @@ import type { Tag } from './types';
 
 // Map of last parts that have conflicts across categories
 const CONFLICTING_LAST_PARTS = new Set([
-  'causal',
-  'group',
   'documentation',
-  'visualization',
   'testing',
   'monitoring',
+  'probabilistic',
 ]);
 
 /**
@@ -25,6 +23,9 @@ export function getTagUrlPart(tagName: string, category: string): string {
 
   // If this last part has conflicts, we need more context
   if (CONFLICTING_LAST_PARTS.has(lastPart)) {
+    if (category === 'applicable-models' && lastPart === 'probabilistic') {
+      return `${parts[1]}-${lastPart}`;
+    }
     // For assurance-goal-category, just use the second part (the goal)
     if (category === 'assurance-goal-category' && parts.length >= 2) {
       return `${parts[1]}-${lastPart}`;

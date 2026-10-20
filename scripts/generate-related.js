@@ -3,20 +3,23 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CATCH_ALL_TAGS } from './tag-constants.js';
 
 const TAG_SCORE_WEIGHT = 0.5;
 const EMBEDDING_SCORE_WEIGHT = 0.5;
 const GOAL_TAG_WEIGHT = 2;
 const OTHER_TAG_WEIGHT = 1;
-const CATCH_ALL_TAG_WEIGHT = 0;
+const ZERO_TAG_WEIGHT = 0;
 const RELATED_LIMIT = 3;
-const catchAllTags = new Set(Object.values(CATCH_ALL_TAGS));
+// General stays at weight 0 until related lists are re-checked after the 9 November data cut.
+const zeroWeightTags = new Set([
+  'data-type/any',
+  'assurance-goal-category/general',
+]);
 const rootDir = fileURLToPath(new URL('../', import.meta.url));
 
 function tagWeight(tag) {
-  if (catchAllTags.has(tag)) {
-    return CATCH_ALL_TAG_WEIGHT;
+  if (zeroWeightTags.has(tag)) {
+    return ZERO_TAG_WEIGHT;
   }
   return tag.startsWith('assurance-goal-category/')
     ? GOAL_TAG_WEIGHT
