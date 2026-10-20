@@ -1,6 +1,6 @@
+import { tagDefinitions } from '@/lib/data/tag-definitions';
+import { formatSlugToTitle } from '@/lib/data/tag-hierarchies';
 import type { Technique } from '@/lib/types';
-import { tagDefinitions } from '../data/tag-definitions';
-import { formatSlugToTitle } from '../data/tag-hierarchies';
 import { matchesOptionTag, matchesTagPath } from './tag-matching';
 import type { QuestionOption, WizardQuestion, WizardState } from './types';
 
@@ -78,39 +78,26 @@ function getAssuranceSubcategoryOptions(
     return [];
   }
 
-  // Map of goal subcategories
-  const subcategoryMap: Record<string, QuestionOption[]> = {
-    Explainability: [
-      {
-        value: 'feature-importance',
-        label: 'Feature Importance',
-        description: 'Which features matter most',
-      },
-    ],
-  };
+  // Explainability is asked its own questions instead, so it has no aspect options.
+  if (selectedGoal === 'Explainability') {
+    return [];
+  }
 
   const prefix = `assurance-goal-category/${selectedGoal.toLowerCase()}/`;
-  const subcategories =
-    selectedGoal === 'Explainability'
-      ? subcategoryMap.Explainability
-      : Object.entries(tagDefinitions)
-          .filter(
-            ([tag]) => tag.startsWith(prefix) && tag !== prefix.slice(0, -1)
-          )
-          .map(([tag, description]) => ({
-            value: tag.slice(prefix.length),
-            label: formatSlugToTitle(tag.split('/').at(-1) || ''),
-            description,
-          }));
+  const subcategories = Object.entries(tagDefinitions)
+    .filter(([tag]) => tag.startsWith(prefix) && tag !== prefix.slice(0, -1))
+    .map(([tag, description]) => ({
+      value: tag.slice(prefix.length),
+      label: formatSlugToTitle(tag.split('/').at(-1) || ''),
+      description,
+    }));
 
   return subcategories
     .map((subcategory) => ({
       ...subcategory,
       count: techniques.filter((technique) =>
         technique.tags?.some((tag) =>
-          selectedGoal === 'Explainability'
-            ? tag.includes(subcategory.value)
-            : matchesTagPath(tag, `${prefix}${subcategory.value}`)
+          matchesTagPath(tag, `${prefix}${subcategory.value}`)
         )
       ).length,
     }))
