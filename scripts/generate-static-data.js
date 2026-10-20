@@ -138,7 +138,9 @@ async function generateStaticData() {
 
     // Generate JSON-LD knowledge graph files
     await generateJsonLd(hydratedTechniques, assuranceGoals);
-  } catch (_error) {
+  } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: build script error output
+    console.error('generate-data failed:\n', error);
     process.exit(1);
   }
 }
