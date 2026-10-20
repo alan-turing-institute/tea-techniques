@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { test } from 'node:test';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { getTagUrlPart } from '../lib/tag-utils';
 import type { Technique } from '../lib/types';
 import { wizardConfig } from '../lib/wizard/config';
@@ -126,4 +128,32 @@ test('probabilistic architecture and paradigm have distinct filter URLs', () => 
     ),
     'paradigm-probabilistic'
   );
+});
+
+test('a value page lists its own techniques beside its sub-values', async () => {
+  (globalThis as { React?: unknown }).React = React;
+  const { default: DimensionPage } = await import(
+    '../app/categories/[goal]/[dimension]/page'
+  );
+  const render = async (goal: string, dimension: string) =>
+    renderToStaticMarkup(
+      await DimensionPage({ params: Promise.resolve({ goal, dimension }) })
+    );
+
+  const withSubValues = await render('privacy', 'exposure-reduction');
+  assert.ok(
+    withSubValues.includes(
+      '/categories/privacy/exposure-reduction/data-minimisation'
+    )
+  );
+  for (const slug of ['k-anonymity', 'machine-unlearning']) {
+    assert.ok(
+      withSubValues.includes(`href="/techniques/${slug}"`),
+      `${slug} is listed`
+    );
+  }
+
+  const withoutSubValues = await render('safety', 'monitoring');
+  assert.ok(withoutSubValues.includes('techniques</p>'));
+  assert.ok(!withoutSubValues.includes('subcategories'));
 });

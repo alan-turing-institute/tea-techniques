@@ -113,6 +113,8 @@ export default async function DimensionPage({ params }: DimensionPageProps) {
     return formatSlugToTitle(sub);
   };
 
+  const hasSubcategories = (dimensionData.subcategories?.length ?? 0) > 0;
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Breadcrumb */}
@@ -158,41 +160,49 @@ export default async function DimensionPage({ params }: DimensionPageProps) {
 
         {/* Statistics */}
         <p className="text-lg text-muted-foreground">
-          {dimensionData.subcategories?.length || 0} subcategories •{' '}
+          {hasSubcategories &&
+            `${dimensionData.subcategories.length} subcategories • `}
           {dimensionData.count || 0} techniques
         </p>
       </div>
 
-      {/* Subcategories Grid */}
-      {dimensionData?.subcategories &&
-      dimensionData.subcategories.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {dimensionData.subcategories.map((subcategory: string) => {
-            const fullTag = `assurance-goal-category/${goal}/${dimension}/${subcategory}`;
-            const definition = tagDefinitions[fullTag];
-            const subcategoryUrl = `/categories/${goal}/${dimension}/${subcategory}`;
+      {/* Subcategories Grid, followed by every technique tagged with the value */}
+      {hasSubcategories ? (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {dimensionData.subcategories.map((subcategory: string) => {
+              const fullTag = `assurance-goal-category/${goal}/${dimension}/${subcategory}`;
+              const definition = tagDefinitions[fullTag];
+              const subcategoryUrl = `/categories/${goal}/${dimension}/${subcategory}`;
 
-            return (
-              <Link href={subcategoryUrl} key={subcategory}>
-                <Card className="h-full transition-colors hover:bg-accent">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center justify-between text-lg">
-                      <span>{formatSubcategory(subcategory)}</span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </CardTitle>
-                  </CardHeader>
-                  {definition && (
-                    <CardContent>
-                      <p className="text-muted-foreground text-sm">
-                        {definition}
-                      </p>
-                    </CardContent>
-                  )}
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+              return (
+                <Link href={subcategoryUrl} key={subcategory}>
+                  <Card className="h-full transition-colors hover:bg-accent">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center justify-between text-lg">
+                        <span>{formatSubcategory(subcategory)}</span>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </CardTitle>
+                    </CardHeader>
+                    {definition && (
+                      <CardContent>
+                        <p className="text-muted-foreground text-sm">
+                          {definition}
+                        </p>
+                      </CardContent>
+                    )}
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+
+          <h2 className="mt-10 mb-4 font-semibold text-xl">Techniques</h2>
+          <TechniquesDataTable
+            columns={columns}
+            data={dimensionData.techniques}
+          />
+        </>
       ) : (
         <TechniquesDataTable
           columns={columns}
