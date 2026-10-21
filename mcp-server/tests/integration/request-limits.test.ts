@@ -28,6 +28,7 @@ interface Reply {
 /** Posts `chunks` to /mcp; without a content length the body is sent chunked. */
 function post(chunks: Buffer[], declareLength: boolean): Promise<Reply> {
   return new Promise((resolve, reject) => {
+    let reply: Reply | undefined;
     const request = http.request(
       {
         port,
@@ -43,20 +44,37 @@ function post(chunks: Buffer[], declareLength: boolean): Promise<Reply> {
         },
       },
       (response) => {
-        let body = '';
+        const received = { status: response.statusCode ?? 0, body: '' };
+        reply = received;
         response.on('data', (chunk) => {
-          body += chunk;
+          received.body += chunk;
         });
-        response.on('end', () =>
-          resolve({ status: response.statusCode ?? 0, body })
-        );
+        response.on('end', () => resolve(received));
       }
     );
-    request.on('error', reject);
-    for (const chunk of chunks) {
-      request.write(chunk);
+    request.on('error', (error: NodeJS.ErrnoException) => {
+      // The server can close the socket after replying while we are still writing.
+      if (reply && (error.code === 'EPIPE' || error.code === 'ECONNRESET')) {
+        resolve(reply);
+      } else {
+        reject(error);
+      }
+    });
+    async function sendBody() {
+      // Let the client read an early reply before queueing the entire oversized body.
+      for (const chunk of chunks) {
+        for (let offset = 0; offset < chunk.length; offset += 16 * 1024) {
+          if (reply || request.destroyed) {
+            return;
+          }
+          request.write(chunk.subarray(offset, offset + 16 * 1024));
+          // biome-ignore lint/nursery/noAwaitInLoop: pace writes so socket reads can run between them
+          await new Promise<void>((resume) => setTimeout(resume, 10));
+        }
+      }
+      request.end();
     }
-    request.end();
+    sendBody().catch(reject);
   });
 }
 
