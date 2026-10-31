@@ -252,6 +252,20 @@ function goalTagProblems(technique) {
   return problems;
 }
 
+// Every example use case is labelled with one of the technique's own goals.
+function exampleGoalProblems(technique) {
+  const listed = new Set(technique.assurance_goals || []);
+  const problems = [];
+  for (const [i, useCase] of (technique.example_use_cases || []).entries()) {
+    if (!listed.has(useCase.goal)) {
+      problems.push(
+        `example_use_cases[${i}] has goal "${useCase.goal}", which is not in assurance_goals`
+      );
+    }
+  }
+  return problems;
+}
+
 // A lifecycle stage tag implies its phase tag (other/... has no phase).
 function lifecycleProblems(technique) {
   const tags = new Set(technique.tags || []);
@@ -288,6 +302,9 @@ function collectTagProblems(techniques, defined) {
       }
     }
     for (const problem of goalTagProblems(technique)) {
+      goalProblems.push(`${technique.slug}: ${problem}`);
+    }
+    for (const problem of exampleGoalProblems(technique)) {
       goalProblems.push(`${technique.slug}: ${problem}`);
     }
   }
@@ -329,7 +346,7 @@ async function validateTagVocabulary() {
   if (goalProblems.length > 0) {
     logger.info(
       chalk.red(
-        `✗ goal and lifecycle tags: ${goalProblems.length} problem(s) (goal tags vs assurance_goals; stage tags without their phase)`
+        `✗ goals, use cases and lifecycle tags: ${goalProblems.length} problem(s) (goal tags vs assurance_goals; use-case goals vs assurance_goals; stage tags without their phase)`
       )
     );
     for (const problem of goalProblems) {
