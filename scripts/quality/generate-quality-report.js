@@ -32,6 +32,7 @@ import {
   OUTLIER_THRESHOLD,
   REQUIRE_GOAL_BASE_TAG,
   REQUIRED_SUBTAG_RULES,
+  RESOURCE_SLOTS,
   SCORE_THRESHOLDS,
   SHOULD_RULE_WEIGHT,
   UNIVERSAL_TAG_CATEGORIES,
@@ -1037,6 +1038,99 @@ function analyseResourceFreshness(techniques, zoteroItems) {
 }
 
 // ---------------------------------------------------------------------------
+// Module E2: Resource Slots
+// ---------------------------------------------------------------------------
+
+/** Build a map of citationKey → resource types, from `type:<slot>` tags. */
+function buildCitekeyTypeMap(zoteroItems) {
+  const typeMap = new Map();
+  for (const item of zoteroItems) {
+    const types = (item.tags || [])
+      .map((t) => t.tag)
+      .filter((tag) => tag?.startsWith('type:'))
+      .map((tag) => tag.slice('type:'.length));
+    typeMap.set(item.citationKey, types);
+  }
+  return typeMap;
+}
+
+/** Check one technique's resources against the slot model. */
+function checkTechniqueSlots(technique, typeMap) {
+  const counts = {};
+  const unresolved = [];
+  const untyped = [];
+  for (const key of technique.resources || []) {
+    const types = typeMap.get(key);
+    if (types === undefined) {
+      unresolved.push(key);
+      continue;
+    }
+    if (types.length === 0) {
+      untyped.push(key);
+    }
+    for (const type of types) {
+      counts[type] = (counts[type] || 0) + 1;
+    }
+  }
+  const softwareExempt = (technique.tags || []).some((tag) =>
+    RESOURCE_SLOTS.software_exempt_technique_types.includes(tag)
+  );
+  const missing = RESOURCE_SLOTS.required.filter(
+    (slot) => !(counts[slot] || (slot === 'software-package' && softwareExempt))
+  );
+  const applicationPapers = counts['application-paper'] || 0;
+  return {
+    slug: technique.slug,
+    missing,
+    application_papers: applicationPapers,
+    application_papers_over_max:
+      applicationPapers > RESOURCE_SLOTS.application_paper_max,
+    software_exempt: softwareExempt,
+    unresolved_keys: unresolved,
+    untyped_keys: untyped,
+  };
+}
+
+/** Analyse every technique's resources against the slot model. */
+function analyseResourceSlots(techniques, zoteroItems) {
+  const typeMap = buildCitekeyTypeMap(zoteroItems);
+  const perTechnique = techniques.map((t) => checkTechniqueSlots(t, typeMap));
+
+  const missingBySlot = Object.fromEntries(
+    RESOURCE_SLOTS.required.map((slot) => [
+      slot,
+      perTechnique.filter((t) => t.missing.includes(slot)).length,
+    ])
+  );
+  const complete = perTechnique.filter(
+    (t) => t.missing.length === 0 && !t.application_papers_over_max
+  ).length;
+
+  return {
+    rules: RESOURCE_SLOTS,
+    techniques_complete: complete,
+    techniques_incomplete: techniques.length - complete,
+    missing_by_slot: missingBySlot,
+    application_papers_over_max: perTechnique.filter(
+      (t) => t.application_papers_over_max
+    ).length,
+    software_exempt: perTechnique.filter((t) => t.software_exempt).length,
+    unresolved_keys: perTechnique.reduce(
+      (n, t) => n + t.unresolved_keys.length,
+      0
+    ),
+    untyped_keys: perTechnique.reduce((n, t) => n + t.untyped_keys.length, 0),
+    per_technique: perTechnique.filter(
+      (t) =>
+        t.missing.length > 0 ||
+        t.application_papers_over_max ||
+        t.unresolved_keys.length > 0 ||
+        t.untyped_keys.length > 0
+    ),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Module F: Review Staleness
 // ---------------------------------------------------------------------------
 
@@ -1227,6 +1321,9 @@ async function main() {
   logger.info('  Analysing resource freshness...');
   const resourceFreshness = analyseResourceFreshness(techniques, zoteroItems);
 
+  logger.info('  Checking resource slots...');
+  const resourceSlots = analyseResourceSlots(techniques, zoteroItems);
+
   // Build freshness score map for completeness integration
   const freshnessScoreBySlug = new Map();
   for (const entry of resourceFreshness.per_technique) {
@@ -1266,6 +1363,7 @@ async function main() {
     cross_references: crossReferences,
     completeness_scores: completenessScores,
     resource_freshness: resourceFreshness,
+    resource_slots: resourceSlots,
     review_staleness: reviewStaleness,
   };
 
@@ -1304,6 +1402,12 @@ async function main() {
   );
   logger.info(
     `  Avg resource freshness: ${resourceFreshness.avg_freshness_score ?? 'N/A'}`
+  );
+  const slotGaps = Object.entries(resourceSlots.missing_by_slot)
+    .map(([slot, n]) => `${slot} ${n}`)
+    .join(', ');
+  logger.info(
+    `  Resource slots complete: ${resourceSlots.techniques_complete}/${techniques.length} (missing: ${slotGaps}; over ${RESOURCE_SLOTS.application_paper_max} application papers: ${resourceSlots.application_papers_over_max}; unresolved keys: ${resourceSlots.unresolved_keys})`
   );
   logger.info(
     `  Techniques never reviewed: ${reviewStaleness.techniques_never_reviewed}`

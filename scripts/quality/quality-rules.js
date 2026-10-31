@@ -129,6 +129,27 @@ export const COMPLETENESS_WEIGHTS = {
 };
 
 /**
+ * Resource slots: every technique should have at least one resource of each
+ * `required` type and no more than `application_paper_max` application papers.
+ * A resource's type is the `type:<slot>` tag on its Zotero item. Techniques of
+ * a type listed in `software_exempt_technique_types` need no software package.
+ * Reported by the quality report; it does not change the completeness score.
+ */
+export const RESOURCE_SLOTS = {
+  required: [
+    'documentation',
+    'software-package',
+    'technical-paper',
+    'tutorial',
+  ],
+  application_paper_max: 2,
+  software_exempt_technique_types: [
+    'technique-type/process',
+    'technique-type/documentation',
+  ],
+};
+
+/**
  * Resource freshness: exponential decay half-life in years.
  * At age = HALF_LIFE, freshness score ≈ 0.37.
  */
