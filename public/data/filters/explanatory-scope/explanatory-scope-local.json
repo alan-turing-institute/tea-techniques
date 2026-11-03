@@ -1041,16 +1041,16 @@
           "description": "Explanations can be unstable due to random sampling, producing different results across multiple runs."
         },
         {
-          "description": "The linear surrogate may poorly approximate highly non-linear model behaviour in the local region."
-        },
-        {
-          "description": "Defining the neighbourhood size and perturbation strategy requires careful tuning for each data type."
+          "description": "The linear surrogate may poorly approximate highly non-linear model behaviour in the local region, and the neighbourhood size and perturbation strategy need careful tuning for each data type."
         },
         {
           "description": "Can be computationally expensive for explaining many instances due to repeated model queries."
         },
         {
           "description": "Assumes features are independent when generating perturbations, producing unrealistic out-of-distribution samples for datasets with correlated features. This can generate misleading attribution scores when inputs share strong correlations (e.g., age and income in credit scoring, comorbidities in clinical data)."
+        },
+        {
+          "description": "A model's builder can hide its bias from LIME. Slack et al. (2020) built classifiers that decided on race or gender alone but gave unbiased answers on the artificial points LIME generates, which an ordinary classifier can tell from real data. On three tabular datasets with one decoy feature, LIME ranked the decoy first for every held-out point in two and for 91% in the third, with predictions on real data unchanged. So a clean LIME result is not proof of an unbiased model."
         }
       ],
       "resources": [
@@ -1970,8 +1970,8 @@
       "computational_cost_rating": 2,
       "related_techniques": [
         "gradient-weighted-class-activation-mapping",
-        "neuron-activation-analysis",
-        "sparse-autoencoder-feature-analysis"
+        "sparse-autoencoder-feature-analysis",
+        "neuron-activation-analysis"
       ],
       "sample_claims": [
         {
@@ -2329,7 +2329,7 @@
         "assurance-goal-category/explainability/surrogate-models/rule-extraction",
         "assurance-goal-category/transparency",
         "assurance-goal-category/transparency/decision-reasons",
-        "data-requirements/no-special-requirements",
+        "data-requirements/access-to-training-data",
         "data-type/tabular",
         "evidence-type/structured-output",
         "expertise-needed/statistics",
@@ -2472,179 +2472,154 @@
       ]
     },
     {
-      "slug": "neuron-activation-analysis",
-      "name": "Neuron Activation Analysis",
-      "description": "Neuron activation analysis examines when individual neurons in a neural network respond strongly. The analyst runs a set of inputs through the model, finds the inputs that activate a chosen neuron most and least, and looks for the concept that separates them, such as buildings in an image classifier or French text in a language model. Some methods test the match automatically, for example by scoring how closely a neuron's activation lines up with labelled examples of a concept. The result is a list of neurons with candidate meanings and the evidence behind each. These meanings are correlations between inputs and activations, so they show what a neuron responds to, not what it does to the model's output.",
+      "slug": "rulefit",
+      "name": "RuleFit",
+      "description": "RuleFit builds a predictive model that a person can read: a short list of if-then rules plus a few ordinary feature weights. It first trains an ensemble of decision trees (many small trees whose outputs are combined) and turns each branch into a candidate rule, such as 'IF age > 50 AND income < £30k'. It then fits a linear model over those rules and the original features using the lasso, a penalty that sets many weights to exactly zero, so only the most useful terms remain. The surviving rules and weights can be read directly, and each term has an importance score, overall and for single predictions. Fitted to real outcomes, the result can replace an opaque model; fitted to an opaque model's predictions, it is a surrogate that approximates that model, and its fit should then be checked.",
       "assurance_goals": [
-        "Explainability"
+        "Explainability",
+        "Transparency"
       ],
       "tags": [
-        "applicable-models/architecture/neural-networks",
-        "applicable-models/requirements/model-internals",
-        "applicable-models/requirements/white-box",
+        "applicable-models/architecture/model-agnostic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/black-box",
+        "data-requirements/access-to-training-data",
         "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/data-patterns",
-        "assurance-goal-category/explainability/explains/internal-mechanisms",
+        "assurance-goal-category/explainability/explains/decision-boundaries",
+        "assurance-goal-category/explainability/explains/feature-importance",
         "assurance-goal-category/explainability/property/comprehensibility",
-        "assurance-goal-category/explainability/representation-analysis/concept-identification",
-        "data-type/text",
-        "evidence-type/quantitative-metric",
-        "evidence-type/visualisation",
-        "expertise-needed/ml-engineering",
-        "expertise-needed/deep-learning",
+        "assurance-goal-category/explainability/property/fidelity",
+        "assurance-goal-category/explainability/property/sparsity",
+        "assurance-goal-category/explainability/surrogate-models/global-surrogates",
+        "assurance-goal-category/explainability/surrogate-models/rule-extraction",
+        "assurance-goal-category/transparency",
+        "assurance-goal-category/transparency/readable-by-design",
+        "data-type/tabular",
+        "evidence-type/structured-output",
+        "expertise-needed/statistics",
         "explanatory-scope/global",
         "explanatory-scope/local",
         "technique-type/algorithmic",
-        "data-requirements/no-special-requirements",
         "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
         "lifecycle-stage/model-development/model-testing-and-validation"
       ],
       "example_use_cases": [
         {
           "goal": "Explainability",
-          "description": "An ML team inspects a scene classifier trained to sort building and street images. For each neuron in a late layer they compare the images that activate it most with those that do not, using object labels from the dataset. Some neurons line up with a clear concept such as a building and others only weakly, which tells the team how much of the layer can be read."
+          "description": "A telecoms analytics team fits RuleFit to the predictions of its gradient-boosted churn model rather than to the churn labels, to get a short list of rules that approximates the model. Marketing staff read the top rules, and the team reports how closely the rules reproduce the model's predictions before anyone relies on them."
         },
         {
           "goal": "Explainability",
-          "description": "A hospital assurance team examines a clinical language model and finds neurons whose strongest activations come from text about a particular drug class or condition. A clinician reviews whether the concepts are the expected ones. The finding shows which clinical concepts the model represents internally, not that these neurons cause any particular suggestion."
+          "description": "A lender replaces an opaque default-risk model with a RuleFit model fitted to repayment outcomes. For one declined application, the importance scores show which few rules and income or debt terms drove its score, and the validation team checks them against credit policy."
+        },
+        {
+          "goal": "Transparency",
+          "description": "A hospital team builds an admission-risk model as a RuleFit model fitted directly to patient outcomes, so that clinicians and the ethics committee can read the whole model, a few rules such as 'IF systolic_bp > 140 AND diabetes = true' plus a handful of weights. The team counts the active rules first and keeps the model only if it is short enough to read."
         }
       ],
       "limitations": [
         {
-          "description": "Many neurons respond to several unrelated concepts, or play different roles depending on the surrounding input. A single label such as 'toxic language' can then be wrong or only part of the story, and consistent interpretation across scenarios is hard."
+          "description": "The lasso can leave many rules active, and a model with hundreds of active terms is no longer readable. Rules also approximate smooth linear trends poorly and need many pieces to do so. Count the non-zero terms before calling the model interpretable."
         },
         {
-          "description": "Behaviour is often spread across many neurons instead of held in one, so a neuron-by-neuron view can miss it. Checking combinations of neurons is much harder than checking single ones, and the number of combinations grows quickly."
+          "description": "Rules overlap and are often correlated, so a rule's weight cannot be read on its own. 'Temperature above 15' is also true wherever 'temperature above 10' is. With correlated inputs, rules can also suggest interactions that are not in the real relationship."
         },
         {
-          "description": "The analysis shows which inputs make a neuron fire, not what the neuron contributes to the output. Showing that a neuron matters needs a separate experiment that switches it off or alters it and measures the effect."
+          "description": "Tree size sets how long rules can be and which interactions can appear. Shallow trees give short, readable rules but miss high-order interactions, and deep trees capture them at the cost of long rules. No single depth suits every problem."
         },
         {
-          "description": "A neuron can only be matched to concepts the analyst has examples for. In image models this means a densely labelled dataset, and a neuron whose concept is missing from it goes unexplained or is mislabelled."
-        },
-        {
-          "description": "The method needs access to the model's internal activations, so it cannot be used on a model reached only through an API. Large language models have hundreds of thousands of neurons or more, so in practice only a chosen subset can be examined and labelled with care."
+          "description": "Fitted to a black-box model's predictions, RuleFit only approximates that model. Without a fidelity check, such as agreement on held-out inputs, its rules describe the surrogate and may not describe the model they are meant to explain."
         }
       ],
       "resources": [
         {
-          "title": "Ecco",
-          "url": "https://ecco.readthedocs.io",
+          "title": "RuleFit — H2O documentation",
+          "url": "https://docs.h2o.ai/h2o/latest-stable/h2o-docs/data-science/rulefit.html",
           "source_type": "documentation",
-          "authors": [
-            "Ecco Developers"
-          ],
-          "publication_date": "2020",
-          "citationKey": "eccodevelopersEcco2020"
+          "citationKey": "RuleFitH2ODocumentation"
         },
         {
-          "title": "ecco",
-          "url": "https://github.com/jalammar/ecco",
+          "title": "rulefit",
+          "url": "https://github.com/christophM/rulefit",
           "source_type": "software_package",
-          "publication_date": "2020-11-07",
-          "citationKey": "jalammarEcco2020",
-          "abstract": "Explain, analyze, and visualize NLP language models. Ecco creates interactive visualizations directly in Jupyter notebooks explaining the behavior of Transformer-based language models (like GPT2, BERT, RoBERTA, T5, and T0)."
+          "publication_date": "2015-10-16",
+          "citationKey": "christophmRulefit2015",
+          "abstract": "Python implementation of the rulefit algorithm"
         },
         {
-          "title": "TransformerLens",
-          "url": "https://github.com/TransformerLensOrg/TransformerLens",
+          "title": "imodels",
+          "url": "https://github.com/csinva/imodels",
           "source_type": "software_package",
-          "publication_date": "2026-10-09T06:56:05Z",
-          "citationKey": "TransformerLens2026",
-          "abstract": "A library for mechanistic interpretability of GPT-style language models"
+          "publication_date": "2019-07-04",
+          "citationKey": "csinvaImodels2019",
+          "abstract": "Interpretable ML package 🔍 for concise, transparent, and accurate predictive modeling (sklearn-compatible)."
         },
         {
-          "title": "On the Value of Labeled Data and Symbolic Methods for Hidden Neuron Activation Analysis",
-          "url": "https://doi.org/10.1007/978-3-031-71170-1_12",
+          "title": "Predictive learning via rule ensembles",
+          "url": "https://doi.org/10.1214/07-aoas148",
           "source_type": "technical_paper",
           "authors": [
-            "Abhilekha Dalal",
-            "Rushrukh Rayan",
-            "Adrita Barua",
-            "Eugene Y. Vasserman",
-            "Md Kamruzzaman Sarker",
-            "Pascal Hitzler"
+            "Jerome H. Friedman",
+            "Bogdan E. Popescu"
           ],
-          "publication_date": "2024-04-21",
-          "citationKey": "dalalValueLabeledData2024",
-          "abstract": "A major challenge in Explainable AI is in correctly interpreting activations of hidden neurons: accurate interpretations would help answer the question of what a deep learning system internally detects as relevant in the input, demystifying the otherwise black-box nature of deep learning systems. The state of the art indicates that hidden node activations can, in some cases, be interpretable in a way that makes sense to humans, but systematic automated methods that would be able to hypothesize and verify interpretations of hidden neuron activations are underexplored. This is particularly the case for approaches that can both draw explanations from substantial background knowledge, and that are based on inherently explainable (symbolic) methods.   In this paper, we introduce a novel model-agnostic post-hoc Explainable AI method demonstrating that it provides meaningful interpretations. Our approach is based on using a Wikipedia-derived concept hierarchy with approximately 2 million classes as background knowledge, and utilizes OWL-reasoning-based Concept Induction for explanation generation. Additionally, we explore and compare the capabilities of off-the-shelf pre-trained multimodal-based explainable methods.   Our results indicate that our approach can automatically attach meaningful class expressions as explanations to individual neurons in the dense layer of a Convolutional Neural Network. Evaluation through statistical analysis and degree of concept activation in the hidden layer show that our method provides a competitive edge in both quantitative and qualitative aspects compared to prior work."
+          "publication_date": "2008-9-1",
+          "citationKey": "friedmanPredictiveLearningRule2008",
+          "abstract": "General regression and classification models are constructed as linear combinations of simple rules derived from the data. Each rule consists of a conjunction of a small number of simple statements concerning the values of individual input variables. These rule ensembles are shown to produce predictive accuracy comparable to the best methods. However, their principal advantage lies in interpretation. Because of its simple form, each rule is easy to understand, as is its influence on individual predictions, selected subsets of predictions, or globally over the entire space of joint input variable values. Similarly, the degree of relevance of the respective input variables can be assessed globally, locally in different regions of the input space, or at individual prediction points. Techniques are presented for automatically identifying those variables that are involved in interactions with other variables, the strength and degree of those interactions, as well as the identities of the other variables with which they interact. Graphical representations are used to visualize both main and interaction effects."
         },
         {
-          "title": "Network Dissection: Quantifying Interpretability of Deep Visual Representations",
-          "url": "https://doi.org/10.1109/cvpr.2017.354",
-          "source_type": "technical_paper",
-          "authors": [
-            "David Bau",
-            "Bolei Zhou",
-            "Aditya Khosla",
-            "Aude Oliva",
-            "Antonio Torralba"
-          ],
-          "publication_date": "2017-7",
-          "citationKey": "bauNetworkDissectionQuantifying2017",
-          "abstract": "We propose a general framework called Network Dissection for quantifying the interpretability of latent representations of CNNs by evaluating the alignment between individual hidden units and a set of semantic concepts. Given any CNN model, the proposed method draws on a data set of concepts to score the semantics of hidden units at each intermediate convolutional layer. The units with semantics are labeled across a broad range of visual concepts including objects, parts, scenes, textures, materials, and colors. We use the proposed method to test the hypothesis that interpretability is an axis-independent property of the representation space, then we apply the method to compare the latent representations of various networks when trained to solve different classification problems. We further analyze the effect of training iterations, compare networks trained with different initializations, and measure the effect of dropout and batch normalization on the interpretability of deep visual representations. We demonstrate that the proposed method can shed light on characteristics of CNN models and training methods that go beyond measurements of their discriminative power."
-        },
-        {
-          "title": "Neuron Activation Analysis with Ecco (Ecco_Neuron_Factors notebook)",
-          "url": "https://colab.research.google.com/github/jalammar/ecco/blob/main/notebooks/Ecco_Neuron_Factors.ipynb",
+          "title": "RuleFit — Interpretable Machine Learning (Molnar)",
+          "url": "https://christophm.github.io/interpretable-ml-book/rulefit.html",
           "source_type": "tutorial",
-          "citationKey": "NeuronActivationAnalysis"
+          "citationKey": "RuleFitInterpretableMachine"
         },
         {
-          "title": "Multimodal Neurons in Artificial Neural Networks",
-          "url": "https://doi.org/10.23915/distill.00030",
+          "title": "RuleFit-Based Nomogram Using Inflammatory Indicators for Predicting Survival in Nasopharyngeal Carcinoma, a Bi-Center Study",
+          "url": "https://doi.org/10.2147/jir.s366922",
           "source_type": "application_paper",
           "authors": [
-            "Gabriel Goh",
-            "Nick Cammarata",
-            "Chelsea Voss",
-            "Shan Carter",
-            "Michael Petrov",
-            "Ludwig Schubert",
-            "Alec Radford",
-            "Chris Olah"
+            "Chao Luo",
+            "Shuqi Li",
+            "Qin Zhao",
+            "Qiaowen Ou",
+            "Wenjie Huang",
+            "Guangying Ruan",
+            "Shaobo Liang",
+            "Lizhi Liu",
+            "Yu Zhang",
+            "Haojiang Li"
           ],
-          "publication_date": "2021-3-4",
-          "citationKey": "gohMultimodalNeuronsArtificial2021"
-        },
-        {
-          "title": "Finding Neurons in a Haystack: Case Studies with Sparse Probing",
-          "url": "https://doi.org/10.48550/arXiv.2305.01610",
-          "source_type": "application_paper",
-          "authors": [
-            "Wes Gurnee",
-            "Neel Nanda",
-            "Matthew Pauly",
-            "Katherine Harvey",
-            "Dmitrii Troitskii",
-            "Dimitris Bertsimas"
-          ],
-          "publication_date": "2023-06-02",
-          "citationKey": "gurneeFindingNeuronsHaystack2023",
-          "abstract": "Despite rapid adoption and deployment of large language models (LLMs), the internal computations of these models remain opaque and poorly understood. In this work, we seek to understand how high-level human-interpretable features are represented within the internal neuron activations of LLMs. We train $k$-sparse linear classifiers (probes) on these internal activations to predict the presence of features in the input; by varying the value of $k$ we study the sparsity of learned representations and how this varies with model scale. With $k=1$, we localize individual neurons which are highly relevant for a particular feature, and perform a number of case studies to illustrate general properties of LLMs. In particular, we show that early layers make use of sparse combinations of neurons to represent many features in superposition, that middle layers have seemingly dedicated neurons to represent higher-level contextual features, and that increasing scale causes representational sparsity to increase on average, but there are multiple types of scaling dynamics. In all, we probe for over 100 unique features comprising 10 different categories in 7 different models spanning 70 million to 6.9 billion parameters."
+          "publication_date": "2022-8",
+          "citationKey": "luoRuleFitBasedNomogramUsing2022",
+          "abstract": "Purpose: Traditional prognostic studies utilized different cut-off values, without evaluating potential information contained in inflammation-related hematological indicators. Using the interpretable machine-learning algorithm RuleFit, this study aimed to explore valuable inflammatory rules reflecting prognosis in nasopharyngeal carcinoma (NPC) patients. Patients and Methods: In total, 1706 biopsy-proven NPC patients treated in two independent hospitals (1320 and 386) between January 2010 and March 2014 were included. RuleFit was used to develop risk-predictive rules using hematological indicators with no distributive difference between the two centers. Time-event-dependent hematological rules were further selected by stepwise multivariate Cox analysis. Combining high-efficiency hematological rules and clinical predictors, a final model was established. Models based on other algorithms (AutoML, Lasso) and clinical predictors were built for comparison, as well as a reported nomogram. Area under the receiver operating characteristic curve (AUROC) and concordance index (C-index) were used to verify the predictive precision of different models. A site-based app was established for convenience. Results: RuleFit identified 22 combined baseline hematological rules, achieving AUROCs of 0.69 and 0.64 in the training and validation cohorts, respectively. By contrast, the AUROCs of the optimal contrast model based on AutoML were 1.00 and 0.58. For overall survival, the final model had a much higher C-index than the base model using TN staging in two cohorts (0.769 vs 0.717, P < 0.001; 0.752 vs 0.688, P < 0.001), and showing great generalizability in training and validation cohorts. The two models based on RuleFit rules performed best, compared with other models. As for other endpoints, the final model showed a similar trend. Kaplan–Meier curve exhibited 22.9% (390/1706) patients were “misclassified” by AJCC staging, but the final model could assess risk classification accurately. Conclusion: The proposed final models based on inflammation-related rules based on RuleFit showed significantly elevated predictive performance."
         }
       ],
-      "complexity_rating": 5,
-      "computational_cost_rating": 4,
+      "complexity_rating": 3,
+      "computational_cost_rating": 3,
       "related_techniques": [
-        "sparse-autoencoder-feature-analysis",
-        "concept-activation-vectors",
-        "attention-weight-analysis"
+        "anchor",
+        "ridge-regression-surrogates",
+        "generalized-additive-models"
       ],
       "sample_claims": [
         {
-          "text": "For each sampled neuron in the clinical language model, the concept that best explains its strongest activations is recorded with a match score, and neurons below the agreed score are reported as not interpreted.",
+          "text": "The credit risk model's decision logic is expressible as a sparse set of interpretable if-then rules combined with linear feature weights",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The patient risk score can be reconstructed from its intercept, active clinical-input rules and linear terms using the recorded clipping and weights.",
           "domain": "healthcare",
-          "assuranceGoal": "explainability"
+          "assuranceGoal": "transparency"
         },
         {
-          "text": "The concept labels assigned to the classifier's late-layer neurons hold on held-out images: the labelled neurons activate far more strongly on images of the concept than on images without it.",
+          "text": "The fraud detection model identifies risk through comprehensible rules that stakeholders can validate against domain knowledge",
+          "domain": "finance",
+          "assuranceGoal": "transparency"
+        },
+        {
+          "text": "The churn-score approximation exposes its weighted rules and linear terms, with agreement assessed against the original model on the stated dataset.",
           "domain": "general",
-          "assuranceGoal": "explainability"
-        },
-        {
-          "text": "The language-model analysis documents the contexts producing high and low activation for each selected unit.",
-          "domain": "language processing",
           "assuranceGoal": "explainability"
         }
       ]
@@ -2655,6 +2630,7 @@
       "description": "Causal mediation analysis traces which internal components of a language model carry the effect of a change in the input to the output. The analyst makes a controlled change to the input, such as swapping 'nurse' for 'man' in a prompt, and measures how the model's next-word probabilities shift. To find the indirect effect through one component (a single neuron, or an attention head, which is the part of the model that chooses which earlier words to focus on), they feed the model the original input but give that component the value it took on the changed input. To find the direct effect, they feed the changed input but hold that component at its original value. Repeating this across many components shows where in the network a behaviour is carried.",
       "assurance_goals": [
         "Explainability",
+        "Fairness",
         "Safety"
       ],
       "tags": [
@@ -2669,6 +2645,8 @@
         "assurance-goal-category/explainability/explains/internal-mechanisms",
         "assurance-goal-category/explainability/property/causality",
         "assurance-goal-category/explainability/property/fidelity",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
         "assurance-goal-category/safety",
         "assurance-goal-category/safety/hazard-analysis",
         "data-type/text",
@@ -2691,6 +2669,10 @@
         {
           "goal": "Explainability",
           "description": "A research team studying why a language model sometimes gets subject-verb agreement wrong in sentences with an intervening clause changes the number of the subject noun and measures the shift in the verb's probability. Mediation analysis then shows which neurons carry the number information, and whether the same neurons are used across sentence structures."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A recruitment platform's audit team finds that the open-weights language model behind its candidate-summary drafts completes prompts such as 'The nurse said that' with the stereotyped pronoun far more often than the other one. The team swaps each occupation word for a gendered word against the stereotype, such as 'man' for 'nurse', and uses mediation analysis to find which neurons carry the shift in the ratio between 'he' and 'she', so it knows where to look first when planning a fix."
         }
       ],
       "limitations": [
@@ -2792,9 +2774,9 @@
       "complexity_rating": 5,
       "computational_cost_rating": 4,
       "related_techniques": [
-        "neuron-activation-analysis",
+        "concept-activation-vectors",
         "sparse-autoencoder-feature-analysis",
-        "attention-weight-analysis"
+        "influence-functions"
       ],
       "sample_claims": [
         {
@@ -2806,6 +2788,11 @@
           "text": "The model's subject-verb agreement behaviour is carried by identifiable neurons that are reused across sentences of similar structure.",
           "domain": "language technology",
           "assuranceGoal": "explainability"
+        },
+        {
+          "text": "For the recruitment drafting model, the shift in the probability ratio between 'he' and 'she' caused by replacing an occupation word with a gendered one is traced to named neurons, with the indirect effect of each and the remaining direct effect reported, and the finding is reproduced on held-out occupation prompts.",
+          "domain": "employment",
+          "assuranceGoal": "fairness"
         },
         {
           "text": "The shift in the probability of the unsafe reply caused by the instruction phrasing is mediated mainly by identified components, and the finding is reproduced on held-out prompts.",
@@ -3021,7 +3008,7 @@
         "applicable-models/paradigm/generative",
         "applicable-models/requirements/black-box",
         "assurance-goal-category/explainability",
-        "assurance-goal-category/explainability/explains/internal-mechanisms",
+        "assurance-goal-category/explainability/explanation-evaluation",
         "assurance-goal-category/explainability/property/fidelity",
         "data-requirements/labelled-data",
         "data-type/text",
@@ -3149,8 +3136,8 @@
       ],
       "related_techniques": [
         "retrieval-augmented-generation-evaluation",
-        "prompt-robustness-testing",
-        "few-shot-fairness-evaluation"
+        "explanation-infidelity",
+        "prompt-robustness-testing"
       ],
       "sample_claims": [
         {

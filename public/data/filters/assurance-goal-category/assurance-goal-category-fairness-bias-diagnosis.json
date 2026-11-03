@@ -2,7 +2,7 @@
   "tag": {
     "name": "assurance-goal-category/fairness/bias-diagnosis",
     "slug": "assurance-goal-category-fairness-bias-diagnosis",
-    "count": 6,
+    "count": 7,
     "category": "assurance-goal-category"
   },
   "techniques": [
@@ -841,6 +841,188 @@
       ]
     },
     {
+      "slug": "causal-mediation-analysis-in-language-models",
+      "name": "Causal Mediation Analysis in Language Models",
+      "description": "Causal mediation analysis traces which internal components of a language model carry the effect of a change in the input to the output. The analyst makes a controlled change to the input, such as swapping 'nurse' for 'man' in a prompt, and measures how the model's next-word probabilities shift. To find the indirect effect through one component (a single neuron, or an attention head, which is the part of the model that chooses which earlier words to focus on), they feed the model the original input but give that component the value it took on the changed input. To find the direct effect, they feed the changed input but hold that component at its original value. Repeating this across many components shows where in the network a behaviour is carried.",
+      "assurance_goals": [
+        "Explainability",
+        "Fairness",
+        "Safety"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer",
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/model-internals",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/causal-analysis/mediation-analysis",
+        "assurance-goal-category/explainability/explains/causal-pathways",
+        "assurance-goal-category/explainability/explains/internal-mechanisms",
+        "assurance-goal-category/explainability/property/causality",
+        "assurance-goal-category/explainability/property/fidelity",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/bias-diagnosis",
+        "assurance-goal-category/safety",
+        "assurance-goal-category/safety/hazard-analysis",
+        "data-type/text",
+        "evidence-type/causal-analysis",
+        "explanatory-scope/global",
+        "explanatory-scope/local",
+        "expertise-needed/causal-inference",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/deep-learning",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/algorithmic",
+        "data-requirements/no-special-requirements"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Safety",
+          "description": "A safety team finds that a language model gives unsafe medical advice when a request is phrased as an instruction rather than a question. They compare outputs for the two phrasings and use mediation analysis to find which attention heads carry most of the shift in the probability of the unsafe reply, so a fix can target those heads and the analysis can be rerun to check it worked."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A research team studying why a language model sometimes gets subject-verb agreement wrong in sentences with an intervening clause changes the number of the subject noun and measures the shift in the verb's probability. Mediation analysis then shows which neurons carry the number information, and whether the same neurons are used across sentence structures."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A recruitment platform's audit team finds that the open-weights language model behind its candidate-summary drafts completes prompts such as 'The nurse said that' with the stereotyped pronoun far more often than the other one. The team swaps each occupation word for a gendered word against the stereotype, such as 'man' for 'nurse', and uses mediation analysis to find which neurons carry the shift in the ratio between 'he' and 'she', so it knows where to look first when planning a fix."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Needs white-box access and knowledge of the architecture. The analyst must read and overwrite activations at chosen points inside the model, so it cannot be used on a model offered only through an API, and a poorly chosen intervention point can give misleading conclusions."
+        },
+        {
+          "description": "Conclusions hold for the contrast tested. Swapping 'nurse' for 'man' and tracking one probability ratio tests a single contrast, and a different prompt set or outcome measure can point to different components. Effects also differ between models: larger GPT-2 models showed larger effects, and masked language models matched less well."
+        },
+        {
+          "description": "Every component and every prompt needs its own forward passes, so testing all the neurons or heads of a large model on many prompts is expensive. Analysts often test a subset or groups of components, which can miss effects elsewhere in the network."
+        },
+        {
+          "description": "Single-component effects do not simply add up. Vig et al. found that intervening on all neurons together produced an effect far larger than the sum of the single-neuron effects, so ranking components one at a time can understate or misplace where a behaviour is carried."
+        },
+        {
+          "description": "The split into direct and indirect effects is not guaranteed to be exact. In a non-linear network the total effect need not equal their sum, and Vig et al. report only an approximate match for GPT-2, so the split should be checked rather than assumed."
+        }
+      ],
+      "resources": [
+        {
+          "title": "pyvene documentation",
+          "url": "https://stanfordnlp.github.io/pyvene/",
+          "source_type": "documentation",
+          "citationKey": "PyveneDocumentation"
+        },
+        {
+          "title": "pyvene: A Library for Understanding and Improving PyTorch Models via Interventions",
+          "url": "https://github.com/stanfordnlp/pyvene",
+          "source_type": "software_package",
+          "publication_date": "2026-10-05T22:52:40Z",
+          "citationKey": "PyveneLibraryUnderstanding2026",
+          "abstract": "Stanford NLP Python library for understanding and improving PyTorch models via interventions"
+        },
+        {
+          "title": "CausalMediationAnalysis (code for Vig et al. 2020)",
+          "url": "https://github.com/sebastianGehrmann/CausalMediationAnalysis",
+          "source_type": "software_package",
+          "publication_date": "2026-07-15T15:19:41Z",
+          "citationKey": "gehrmannCausalMediationAnalysisCodeVig2026",
+          "abstract": "Code for the paper \"Causal Mediation Analysis for Interpreting Neural NLP: The Case of Gender Bias\""
+        },
+        {
+          "title": "Investigating Gender Bias in Language Models Using Causal Mediation Analysis",
+          "url": "https://proceedings.neurips.cc/paper/2020/hash/92650b2e92217715fe312e6fa7b90d82-Abstract.html",
+          "source_type": "technical_paper",
+          "authors": [
+            "Jesse Vig",
+            "Sebastian Gehrmann",
+            "Yonatan Belinkov",
+            "Sharon Qian",
+            "Daniel Nevo",
+            "Simas Sakenis",
+            "Jason Huang",
+            "Yaron Singer",
+            "Stuart Shieber"
+          ],
+          "publication_date": "2020-04-26",
+          "citationKey": "vigCausalMediationAnalysis2020",
+          "abstract": "Common methods for interpreting neural models in natural language processing typically examine either their structure or their behavior, but not both. We propose a methodology grounded in the theory of causal mediation analysis for interpreting which parts of a model are causally implicated in its behavior. It enables us to analyze the mechanisms by which information flows from input to output through various model components, known as mediators. We apply this methodology to analyze gender bias in pre-trained Transformer language models. We study the role of individual neurons and attention heads in mediating gender bias across three datasets designed to gauge a model's sensitivity to gender bias. Our mediation analysis reveals that gender bias effects are (i) sparse, concentrated in a small part of the network; (ii) synergistic, amplified or repressed by different components; and (iii) decomposable into effects flowing directly from the input and indirectly through the mediators."
+        },
+        {
+          "title": "Causal Tracing (ROME) — pyvene tutorial",
+          "url": "https://github.com/stanfordnlp/pyvene/blob/main/tutorials/advanced_tutorials/Causal_Tracing.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "CausalTracingROME",
+          "abstract": "Stanford NLP Python library for understanding and improving PyTorch models via interventions - stanfordnlp/pyvene"
+        },
+        {
+          "title": "Causal Analysis of Syntactic Agreement Mechanisms in Neural Language Models",
+          "url": "https://doi.org/10.18653/v1/2021.acl-long.144",
+          "source_type": "application_paper",
+          "authors": [
+            "Matthew Finlayson",
+            "Aaron Mueller",
+            "Sebastian Gehrmann",
+            "Stuart Shieber",
+            "Tal Linzen",
+            "Yonatan Belinkov"
+          ],
+          "publication_date": "2021",
+          "citationKey": "finlaysonCausalAnalysisSyntactic2021",
+          "abstract": "Targeted syntactic evaluations have demonstrated the ability of language models to perform subject-verb agreement given difficult contexts. To elucidate the mechanisms by which the models accomplish this behavior, this study applies causal mediation analysis to pre-trained neural language models. We investigate the magnitude of models’ preferences for grammatical inflections, as well as whether neurons process subject-verb agreement similarly across sentences with different syntactic structures. We uncover similarities and differences across architectures and model sizes—notably, that larger models do not necessarily learn stronger preferences. We also observe two distinct mechanisms for producing subject-verb agreement depending on the syntactic structure of the input sentence. Finally, we find that language models rely on similar sets of neurons when given sentences with similar syntactic structure."
+        },
+        {
+          "title": "Locating and Editing Factual Associations in GPT",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2022/hash/6f1d43d5a82a37e89b0665b33bf3a182-Abstract-Conference.html",
+          "source_type": "application_paper",
+          "authors": [
+            "Kevin Meng",
+            "David Bau",
+            "Alex Andonian",
+            "Yonatan Belinkov"
+          ],
+          "publication_date": "2022",
+          "citationKey": "mengLocatingEditingFactual2022"
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
+      "related_techniques": [
+        "concept-activation-vectors",
+        "sparse-autoencoder-feature-analysis",
+        "influence-functions"
+      ],
+      "sample_claims": [
+        {
+          "text": "On the tested prompts, most of the effect of the input change on the language model's output is carried by a small number of attention heads, each with a measured indirect effect.",
+          "domain": "general",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "The model's subject-verb agreement behaviour is carried by identifiable neurons that are reused across sentences of similar structure.",
+          "domain": "language technology",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "For the recruitment drafting model, the shift in the probability ratio between 'he' and 'she' caused by replacing an occupation word with a gendered one is traced to named neurons, with the indirect effect of each and the remaining direct effect reported, and the finding is reproduced on held-out occupation prompts.",
+          "domain": "employment",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The shift in the probability of the unsafe reply caused by the instruction phrasing is mediated mainly by identified components, and the finding is reproduced on held-out prompts.",
+          "domain": "generative AI",
+          "assuranceGoal": "safety"
+        },
+        {
+          "text": "After mitigation is applied to the components identified as carrying the unsafe behaviour, rerunning the same analysis shows a reduced indirect effect.",
+          "domain": "generative AI",
+          "assuranceGoal": "safety"
+        }
+      ]
+    },
+    {
       "slug": "concept-activation-vectors",
       "name": "Concept Activation Vectors",
       "description": "A concept activation vector (CAV) is a direction inside a neural network that stands for a human idea such as 'stripes'. The analyst supplies example inputs showing the concept and random counter-examples, and trains a simple linear classifier to separate the network's activations (the values a chosen layer produces) for the two sets. The CAV is the direction at right angles to that classifier's dividing boundary, pointing towards the concept examples. Testing with CAVs (TCAV) then reports, for one output class, the share of its inputs whose class score would rise if the activations moved in the concept's direction, and repeating this with many random counter-example sets and applying a significance test guards against a meaningless direction. Concept sets built from examples of a protected characteristic, such as gender or ethnicity, turn the test into a check of whether a class is sensitive to that characteristic, as the original paper demonstrates.",
@@ -1031,5 +1213,5 @@
       ]
     }
   ],
-  "count": 6
+  "count": 7
 }
