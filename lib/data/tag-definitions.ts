@@ -430,7 +430,7 @@ export const tagDefinitions: Record<string, string> = {
   'assurance-goal-category/fairness/bias-measurement':
     'Techniques that test for and quantify unequal treatment linked to protected attributes, in outputs, inputs or representations.',
   'assurance-goal-category/fairness/bias-diagnosis':
-    'Techniques that show which features, concepts or training examples make a model treat groups differently.',
+    'Techniques that show which features, concepts, training examples or internal components make a model treat groups differently.',
   'assurance-goal-category/fairness/performance-by-group':
     'Techniques that estimate or report accuracy, calibration or uncertainty separately for each group so gaps can be seen or closed.',
   'assurance-goal-category/fairness/pre-processing':

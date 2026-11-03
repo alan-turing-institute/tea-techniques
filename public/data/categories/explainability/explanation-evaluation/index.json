@@ -4,6 +4,172 @@
   "subcategories": [],
   "techniques": [
     {
+      "slug": "chain-of-thought-faithfulness-evaluation",
+      "name": "Chain-of-Thought Faithfulness Evaluation",
+      "description": "Chain-of-thought faithfulness evaluation tests whether the step-by-step reasoning a language model writes out is what actually produces its answer, rather than an account added afterwards. One set of tests alters the reasoning itself, by cutting it short, inserting a deliberate mistake, rewording it or replacing it with filler text, and checks whether the final answer changes. If the answer never changes, the reasoning is probably not doing the work. Another set adds a cue to the input that points to a particular answer, such as a user's stated guess, and checks whether the answer shifts while the explanation never mentions the cue. Each test gives a rate, such as how often the answer changes, and passing one rules out a single kind of unfaithfulness without showing that the reasoning is faithful or that its steps are correct.",
+      "assurance_goals": [
+        "Explainability"
+      ],
+      "tags": [
+        "applicable-models/architecture/neural-networks/transformer/llm",
+        "applicable-models/paradigm/generative",
+        "applicable-models/requirements/black-box",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/explanation-evaluation",
+        "assurance-goal-category/explainability/property/fidelity",
+        "data-requirements/labelled-data",
+        "data-type/text",
+        "evidence-type/qualitative-report",
+        "evidence-type/quantitative-metric",
+        "expertise-needed/domain-expertise",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "expertise-needed/evaluation-design",
+        "explanatory-scope/local",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation",
+        "technique-type/testing"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Explainability",
+          "description": "An education company's tutoring assistant shows pupils its step-by-step working beside each answer to a science question. Before telling pupils that the working explains the answer, the evaluation team cuts the working short and inserts a deliberate mistake on a test set, and records how often the final answer changes. Where it rarely does, as Lanham et al. found for grade-school science sets, the working is shown as an illustration, not as the reason."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A lender's model-validation team lets an underwriting assistant write a rationale for each recommendation that staff keep on file. It reruns validation cases with a line added saying a senior colleague favours approval. Where the recommendation moves towards the line but the rationale never mentions it, as Turpin et al. found for suggested answers, the rationale is not accepted as the record of why the case was decided."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A public body choosing between two sizes of one language-model family for a casework summarising tool wants staff to rely on the reasoning the model shows. On multiple-choice questions built from its own case files, it records how often each model's answer changes when its reasoning is removed, shuffling answer order to control for letter preference as Bentham et al. did, and prefers the model whose answers depend on its reasoning."
+        },
+        {
+          "goal": "Explainability",
+          "description": "A recruitment platform's audit team uses a language model to compare two candidates for shortlisting when the evidence for each is thin. Following the social-bias test in Turpin et al., it submits each pair twice with the weak evidence swapped between the candidates and counts pairs where the same candidate is picked both times. Those pairs show evidence weighed inconsistently, so the reasoning is not accepted as showing what drove the choice."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "Passing does not show faithfulness. Each test rules out one way the reasoning could be unfaithful, and the authors call the tests necessary but not sufficient. There is no independent view of the model's actual process to check against, so a clean result supports a narrower claim than 'the reasoning is faithful'."
+        },
+        {
+          "description": "Results do not carry over between models or tasks. Lanham et al. found that the reasoning changed the final answer under 10% of the time on three science question sets but over 60% on algebra word problems, and that faithfulness varied with model size. Re-measure for the model version and task type that will be deployed."
+        },
+        {
+          "description": "The answer-change score can reflect something other than faithfulness. Bentham et al. repeated Lanham et al.'s measure on three other model families. After correcting for a model's habit of favouring certain answer letters, apparent unfaithfulness in weaker models fell sharply, and the corrected score tracked accuracy (R-squared of 0.74)."
+        },
+        {
+          "description": "Input-cue tests find only the influences the evaluator thinks to add. Turpin et al. tried three cues, and say their setup only tests faithfulness against minor changes to the input. A model that passes can still be swayed by a cue nobody tried, and the cue must point to a wrong answer to show up as an accuracy drop."
+        },
+        {
+          "description": "The tests are costly and need control of generation. Lanham et al. sampled 100 reasoning chains per question and re-queried after each truncation; Turpin et al. subsampled for cost. Inserted mistakes were judged plausible in at least 80% of cases, so up to a fifth may test nothing, and Bentham et al. note the procedure needs manual intervention in decoding."
+        }
+      ],
+      "resources": [
+        {
+          "title": "cot-unfaithfulness (code for Turpin et al. 2023)",
+          "url": "https://github.com/milesaturpin/cot-unfaithfulness",
+          "source_type": "software_package",
+          "publication_date": "2026-08-13T22:17:11Z",
+          "citationKey": "turpinCotunfaithfulnessCodeTurpin2026"
+        },
+        {
+          "title": "Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting",
+          "url": "https://doi.org/10.48550/arXiv.2305.04388",
+          "source_type": "technical_paper",
+          "authors": [
+            "Miles Turpin",
+            "Julian Michael",
+            "Ethan Perez",
+            "Samuel R. Bowman"
+          ],
+          "publication_date": "2023-12-09",
+          "citationKey": "turpinLanguageModelsDont2023",
+          "abstract": "Large Language Models (LLMs) can achieve strong performance on many tasks by producing step-by-step reasoning before giving a final output, often referred to as chain-of-thought reasoning (CoT). It is tempting to interpret these CoT explanations as the LLM's process for solving a task. This level of transparency into LLMs' predictions would yield significant safety benefits. However, we find that CoT explanations can systematically misrepresent the true reason for a model's prediction. We demonstrate that CoT explanations can be heavily influenced by adding biasing features to model inputs--e.g., by reordering the multiple-choice options in a few-shot prompt to make the answer always \"(A)\"--which models systematically fail to mention in their explanations. When we bias models toward incorrect answers, they frequently generate CoT explanations rationalizing those answers. This causes accuracy to drop by as much as 36% on a suite of 13 tasks from BIG-Bench Hard, when testing with GPT-3.5 from OpenAI and Claude 1.0 from Anthropic. On a social-bias task, model explanations justify giving answers in line with stereotypes without mentioning the influence of these social biases. Our findings indicate that CoT explanations can be plausible yet misleading, which risks increasing our trust in LLMs without guaranteeing their safety. Building more transparent and explainable systems will require either improving CoT faithfulness through targeted efforts or abandoning CoT in favor of alternative methods."
+        },
+        {
+          "title": "Measuring Faithfulness in Chain-of-Thought Reasoning",
+          "url": "https://arxiv.org/abs/2307.13702",
+          "source_type": "technical_paper",
+          "authors": [
+            "Tamera Lanham",
+            "Anna Chen",
+            "Ansh Radhakrishnan",
+            "Benoit Steiner",
+            "Carson Denison",
+            "Danny Hernandez",
+            "Dustin Li",
+            "Esin Durmus",
+            "Evan Hubinger",
+            "Jackson Kernion",
+            "Kamilė Lukošiūtė",
+            "Karina Nguyen",
+            "Newton Cheng",
+            "Nicholas Joseph",
+            "Nicholas Schiefer",
+            "Oliver Rausch",
+            "Robin Larson",
+            "Sam McCandlish",
+            "Sandipan Kundu",
+            "Saurav Kadavath",
+            "Shannon Yang",
+            "Thomas Henighan",
+            "Timothy Maxwell",
+            "Timothy Telleen-Lawton",
+            "Tristan Hume",
+            "Zac Hatfield-Dodds",
+            "Jared Kaplan",
+            "Jan Brauner",
+            "Samuel R. Bowman",
+            "Ethan Perez"
+          ],
+          "publication_date": "2023/07/17",
+          "citationKey": "lanhamMeasuringFaithfulnessChainofThought2023",
+          "abstract": "Large language models (LLMs) perform better when they produce step-by-step, \"Chain-of-Thought\" (CoT) reasoning before answering a question, but it is unclear if the stated reasoning is a faithful explanation of the model's actual reasoning (i.e., its process for answering the question). We investigate hypotheses for how CoT reasoning may be unfaithful, by examining how the model predictions change when we intervene on the CoT (e.g., by adding mistakes or paraphrasing it). Models show large variation across tasks in how strongly they condition on the CoT when predicting their answer, sometimes relying heavily on the CoT and other times primarily ignoring it. CoT's performance boost does not seem to come from CoT's added test-time compute alone or from information encoded via the particular phrasing of the CoT. As models become larger and more capable, they produce less faithful reasoning on most tasks we study. Overall, our results suggest that CoT can be faithful if the circumstances such as the model size and task are carefully chosen."
+        },
+        {
+          "title": "Chain-of-Thought Unfaithfulness as Disguised Accuracy",
+          "url": "https://arxiv.org/abs/2402.14897",
+          "source_type": "application_paper",
+          "authors": [
+            "Oliver Bentham",
+            "Nathan Stringham",
+            "Ana Marasović"
+          ],
+          "publication_date": "2024/02/22",
+          "citationKey": "benthamChainofThoughtUnfaithfulnessDisguised2024",
+          "abstract": "Understanding the extent to which Chain-of-Thought (CoT) generations align with a large language model's (LLM) internal computations is critical for deciding whether to trust an LLM's output. As a proxy for CoT faithfulness, Lanham et al. (2023) propose a metric that measures a model's dependence on its CoT for producing an answer. Within a single family of proprietary models, they find that LLMs exhibit a scaling-then-inverse-scaling relationship between model size and their measure of faithfulness, and that a 13 billion parameter model exhibits increased faithfulness compared to models ranging from 810 million to 175 billion parameters in size. We evaluate whether these results generalize as a property of all LLMs. We replicate the experimental setup in their section focused on scaling experiments with three different families of models and, under specific conditions, successfully reproduce the scaling trends for CoT faithfulness they report. However, after normalizing the metric to account for a model's bias toward certain answer choices, unfaithfulness drops significantly for smaller less-capable models. This normalized faithfulness metric is also strongly correlated ($R^2$=0.74) with accuracy, raising doubts about its validity for evaluating faithfulness."
+        }
+      ],
+      "related_techniques": [
+        "retrieval-augmented-generation-evaluation",
+        "explanation-infidelity",
+        "prompt-robustness-testing"
+      ],
+      "sample_claims": [
+        {
+          "text": "On the held-out science questions, the tutoring assistant's final answer changed in at least the share of cases set in the test plan when its working was cut short or given an inserted mistake.",
+          "domain": "education",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Wherever the underwriting assistant's recommendation changed after a colleague's stated preference was added to the prompt, its written rationale named that preference, across all validation cases.",
+          "domain": "finance",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "For candidate pairs with their weak evidence swapped, the shortlisting assistant picked a different candidate in each version, or declined to choose in both, in at least the share of pairs set in the audit plan.",
+          "domain": "employment",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "On the same test questions, with answer order shuffled, the model chosen for the casework tool changed its answer when its reasoning was removed more often than the alternative model did.",
+          "domain": "public sector",
+          "assuranceGoal": "explainability"
+        }
+      ]
+    },
+    {
       "slug": "explainer-latency-benchmarking",
       "name": "Explainer Latency Benchmarking",
       "description": "Explainer latency benchmarking measures how long an explanation method takes to produce an explanation for a single prediction, on the hardware, software and settings it will run with, and compares the result with the time that the decision it supports allows. The evaluator first sets the time budget, the share of the time the decision allows that is left for the explanation once the prediction is ready, then runs the explainer exactly as it will be deployed (the same model, background data, number of samples and batch size) on a representative set of real inputs, timing each explanation from request to a result ready to display, after warm-up runs and with one-off set-up costs, such as building the explainer, recorded separately. Because the time varies with the model, the data, the hardware and the load on the system, each configuration is timed many times, as machine-learning inference benchmarks such as MLPerf Inference time a model, under realistic concurrent demand where the explainer runs as a shared service, and the result is reported as a distribution: the median, high percentiles such as the 95th or 99th, the slowest case and the share of explanations over budget. Canha et al.'s benchmark framework for explanation methods, which scores methods on properties measurable without human participants, includes this property under the name speed and rates it on a five-level scale with cut-offs at 0.1, 1, 5 and 10 seconds aligned with human response-time limits; the scale suits comparisons between methods, while a claim about a deployment needs the measured percentiles set against that deployment's own budget. The output is a latency profile for each explainer configuration, recorded with its hardware, software versions and load, which shows whether explanations will arrive in time and lets a team choose between explainers and settings on speed alongside the explanation quality measured by other tests.",
@@ -778,5 +944,5 @@
       ]
     }
   ],
-  "count": 5
+  "count": 6
 }

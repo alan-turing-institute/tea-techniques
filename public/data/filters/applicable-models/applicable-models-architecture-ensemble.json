@@ -7,152 +7,157 @@
   },
   "techniques": [
     {
-      "slug": "multi-accuracy-boosting",
-      "name": "Multi-Accuracy Boosting",
-      "description": "Multi-accuracy boosting is a post-processing method that corrects a trained classifier's systematic errors on subgroups of people, without retraining it. It needs only the classifier's predictions and a small labelled validation set. An auditor, usually a simple model such as a ridge regression or a shallow decision tree, learns to predict where the classifier's predictions are consistently too high or too low, which finds overlapping subgroups without anyone naming them in advance. Each round fits a small correction for the worst subgroup, as in boosting, and the loop stops when the auditor can find no subgroup whose average error exceeds a chosen tolerance. The result is multi-accuracy, meaning unbiased predictions on every subgroup the auditor can identify, which is not the same as equal accuracy across groups, and the audit itself reports where the original model failed.",
+      "slug": "mean-decrease-impurity",
+      "name": "Mean Decrease Impurity",
+      "description": "Mean Decrease Impurity (MDI) scores how much each feature contributes to a tree-based model, such as a random forest, by looking at how the model's decision trees split the training data. Each split sends cases into two groups, and a good split makes each group more uniform in its outcome, which is a drop in impurity, measured with a score such as Gini impurity. For each feature, MDI adds up the drops from every split that uses it, weights each by the share of training cases reaching that split, and averages over all trees. The scores are usually scaled to sum to one, so they show relative importance. Because they come from the training data, they describe how the model was built, not how well each feature predicts on new data.",
       "assurance_goals": [
-        "Fairness"
+        "Explainability"
       ],
       "tags": [
-        "applicable-models/architecture/ensemble",
-        "applicable-models/paradigm/discriminative",
-        "applicable-models/paradigm/supervised",
-        "data-requirements/access-to-training-data",
-        "applicable-models/requirements/black-box",
-        "assurance-goal-category/fairness",
-        "assurance-goal-category/fairness/post-processing",
-        "data-requirements/labelled-data",
-        "data-requirements/sensitive-attributes",
-        "data-type/any",
-        "expertise-needed/ml-engineering",
+        "assurance-goal-category/explainability",
+        "assurance-goal-category/explainability/attribution-methods/model-specific",
+        "assurance-goal-category/explainability/explains/feature-importance",
+        "assurance-goal-category/explainability/property/efficiency",
+        "assurance-goal-category/explainability/property/completeness",
+        "data-requirements/no-special-requirements",
+        "data-type/tabular",
+        "evidence-type/quantitative-metric",
         "expertise-needed/statistics",
-        "lifecycle-stage/model-development",
-        "lifecycle-stage/model-development/model-selection-and-training",
+        "explanatory-scope/global",
         "technique-type/algorithmic",
-        "evidence-type/model-artefact"
+        "applicable-models/architecture/tree-based",
+        "applicable-models/architecture/ensemble",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/white-box",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-testing-and-validation"
       ],
       "example_use_cases": [
         {
-          "goal": "Fairness",
-          "description": "A hospital buys a black-box diagnostic model it cannot retrain. Its data team holds a small labelled sample of local patients and runs the audit, which finds that predictions are systematically too low for older women. The team post-processes the model until no subgroup the auditor can find exceeds the agreed error tolerance, then checks that groups the model already served well did not get worse."
+          "goal": "Explainability",
+          "description": "Determining the most influential genetic markers in a decision tree model predicting disease susceptibility, by identifying which markers consistently lead to the purest splits between healthy and diseased patient groups."
         },
         {
-          "goal": "Fairness",
-          "description": "A lender uses a vendor's credit-risk model, and its data holds no sensitive attributes. A risk analyst audits the model on a labelled sample of recent applications with a decision-tree auditor, which finds subgroups defined by ordinary features where the errors concentrate. The correction is applied until those subgroups' average error falls within tolerance."
+          "goal": "Explainability",
+          "description": "A model-validation team reviews a gradient-boosted loan-default model and ranks its inputs by MDI before sign-off. They investigate any identifier-like or many-valued field, such as customer ID or postcode, that ranks near the top, because MDI favours such fields and they may reflect overfitting rather than real predictive signal."
+        },
+        {
+          "goal": "Explainability",
+          "description": "An environmental analytics team fits a random forest to forecast air quality and uses MDI to choose which weather stations' readings to drop from a simpler model. They then confirm on held-out data that accuracy holds, because MDI alone reflects the training data."
         }
       ],
       "limitations": [
         {
-          "description": "The guarantee covers only subgroups the auditor can identify from the features. If a group's errors follow a pattern too complex for the auditor, or the features carry little trace of group membership, the audit will pass the model while that group is still poorly served."
+          "description": "MDI favours features with many distinct values, because more possible split points give more chances of a good split by chance. Strobl and colleagues found that uninformative continuous or many-category variables were preferred over informative ones when predictors differed in type or number of categories."
         },
         {
-          "description": "Multi-accuracy bounds the average prediction error within each identified subgroup. It does not equalise error rates, so large gaps can remain. In the original paper's face-image test, error after correction was still 12.5% for dark-skinned women against 1.0% for light-skinned women."
+          "description": "Scores are calculated from the training data, so a feature can rank high because the model fitted noise in it. A high score does not show that the feature helps predictions on unseen data, and scikit-learn recommends permutation importance on held-out data as the alternative."
         },
         {
-          "description": "It needs a labelled validation sample that represents the population and is large enough for the groups of concern. The guarantee for a subgroup weakens as the subgroup's share of the sample shrinks, so rare groups are protected least."
+          "description": "MDI gives only a non-negative score for each feature. It does not show whether higher values of a feature raise or lower the prediction, so it cannot support a claim about the direction of a feature's effect."
         },
         {
-          "description": "Corrections are fitted on the small audit sample, so too many rounds or an over-flexible auditor will start fitting noise and can make performance worse on new data. The mcboost documentation says its calibration 'tends to overfit' and suggests a smaller step size or fewer iterations."
+          "description": "Scores vary from tree to tree, and the scikit-learn example plots this spread as error bars. A forest with few trees, or a small training set, can therefore give a ranking that shifts when the model is refitted."
         },
         {
-          "description": "The method corrects errors against the labels in the audit sample, so it cannot repair bias already built into those labels, such as past decisions recorded as outcomes. A fairer-looking score then still reproduces the earlier pattern."
+          "description": "Correlated predictors compete for splits. One can mask another's importance, and changing the fitted ensemble or candidate-feature settings can change their relative ranks."
         }
       ],
       "resources": [
         {
-          "title": "mcboost: Multi-Calibration Boosting for R (package documentation)",
-          "url": "https://mlr-org.github.io/mcboost/",
+          "title": "Feature importance evaluation — Ensembles: random forests — scikit-learn user guide",
+          "url": "https://scikit-learn.org/stable/modules/ensemble.html#feature-importance-evaluation",
           "source_type": "documentation",
-          "citationKey": "McboostMultiCalibrationBoosting",
-          "abstract": "Implements Multi-Calibration Boosting (2018) <https://proceedings.mlr.press/v80/hebert-johnson18a.html> and\n    Multi-Accuracy Boosting (2019) <arXiv:1805.12317> for the multi-calibration of a machine learning models prediction.\n    MCBoost' updates predictions for sub-groups in an iterative fashion in order to mitigate biases like poor calibration or large accuracy differences across subgroups.\n    Multi-Calibration works best in scenarios where the underlying data & labels are unbiased, but resulting models are.\n    This is often the case, e.g. when an algorithm fits a majority population while ignoring or under-fitting minority populations."
+          "citationKey": "FeatureImportanceEvaluation",
+          "abstract": "Ensemble methods combine the predictions of several base estimators built with a given learning algorithm in order to improve generalizability / robustness over a single estimator. Two very famous ..."
         },
         {
-          "title": "mcboost",
-          "url": "https://github.com/mlr-org/mcboost",
+          "title": "scikit-learn",
+          "url": "https://github.com/scikit-learn/scikit-learn",
           "source_type": "software_package",
-          "publication_date": "2020-12-28",
-          "citationKey": "mlr-orgMcboost2020",
-          "abstract": "Multi-Calibration & Multi-Accuracy Boosting for R"
+          "citationKey": "Scikitlearn",
+          "abstract": "scikit-learn: machine learning in Python. Contribute to scikit-learn/scikit-learn development by creating an account on GitHub."
         },
         {
-          "title": "MultiAccuracyBoost (authors' reference implementation)",
-          "url": "https://github.com/amiratag/MultiAccuracyBoost",
-          "source_type": "software_package",
-          "citationKey": "MultiAccuracyBoostAuthorsReference"
-        },
-        {
-          "title": "mcboost: Multi-Calibration Boosting for R",
-          "url": "https://doi.org/10.21105/joss.03453",
+          "title": "Bias in random forest variable importance measures: Illustrations, sources and a solution",
+          "url": "https://doi.org/10.1186/1471-2105-8-25",
           "source_type": "technical_paper",
           "authors": [
-            "Bernd Bischl",
-            "Susanne Dandl",
-            "Christoph Kern",
-            "Michael P. Kim",
-            "Florian Pfisterer",
-            "Matthew Sun"
+            "Carolin Strobl",
+            "Anne-Laure Boulesteix",
+            "Achim Zeileis",
+            "Torsten Hothorn"
           ],
-          "publication_date": "2021-08-24",
-          "citationKey": "bischlMcboostMultiCalibrationBoosting2021",
-          "abstract": "Given the increasing usage of automated prediction systems in the context of high-stakes decisions, a growing body of research focuses on methods for detecting and mitigating biases in algorithmic decision-making.One important framework to audit for and mitigate biases in predictions is that of Multi-Calibration, introduced by Hebert-Johnson et al. (2018).The underlying fairness notion, Multi-Calibration, promotes the idea of multi-group fairness and requires calibrated predictions not only for marginal populations, but also for subpopulations that may be defined by complex intersections of many attributes.A simpler variant of Multi-Calibration, referred to as Multi-Accuracy, requires unbiased predictions for large collections of subpopulations.Hebert-Johnson et al. (2018) proposed a boosting-style algorithm for learning multi-calibrated predictors.Kim et al. (2019) demonstrated how to turn this algorithm into a post-processing strategy to achieve multi-accuracy, demonstrating empirical effectiveness across various domains.This package provides a stable implementation of the multi-calibration algorithm, called MCBoost.In contrast to other Fair ML approaches, MC-Boost does not harm the overall utility of a prediction model, but rather aims at improving calibration and accuracy for large sets of subpopulations post-training.MCBoost comes with strong theoretical guarantees, which have been explored formally in Hebert-Johnson et al."
+          "publication_date": "2007-1-25",
+          "citationKey": "stroblBiasRandomForest2007",
+          "abstract": "BACKGROUND: Variable importance measures for random forests have been receiving increased attention as a means of variable selection in many classification tasks in bioinformatics and related scientific fields, for instance to select a subset of genetic markers relevant for the prediction of a certain disease. We show that random forest variable importance measures are a sensible means for variable selection in many applications, but are not reliable in situations where potential predictor variables vary in their scale of measurement or their number of categories. This is particularly important in genomics and computational biology, where predictors often include variables of different types, for example when predictors include both sequence data and continuous variables such as folding energy, or when amino acid sequence data show different numbers of categories. RESULTS: Simulation studies are presented illustrating that, when random forest variable importance measures are used with data of varying types, the results are misleading because suboptimal predictor variables may be artificially preferred in variable selection. The two mechanisms underlying this deficiency are biased variable selection in the individual classification trees used to build the random forest on one hand, and effects induced by bootstrap sampling with replacement on the other hand. CONCLUSION: We propose to employ an alternative implementation of random forests, that provides unbiased variable selection in the individual classification trees. When this method is applied using subsampling without replacement, the resulting variable importance measures can be used reliably for variable selection even in situations where the potential predictor variables vary in their scale of measurement or their number of categories. The usage of both random forest algorithms and their variable importance measures in the R system for statistical computing is illustrated and documented thoroughly in an application re-analyzing data from a study on RNA editing. Therefore the suggested method can be applied straightforwardly by scientists in bioinformatics research."
         },
         {
-          "title": "Multiaccuracy",
-          "url": "https://doi.org/10.1145/3306618.3314287",
+          "title": "Understanding variable importances in forests of randomized trees",
+          "url": "https://proceedings.neurips.cc/paper_files/paper/2013/hash/e3796ae838835da0b6f6ea37bcf8bcb7-Abstract.html",
           "source_type": "technical_paper",
           "authors": [
-            "Michael P. Kim",
-            "Amirata Ghorbani",
-            "James Zou"
+            "Gilles Louppe",
+            "Louis Wehenkel",
+            "Antonio Sutera",
+            "Pierre Geurts"
           ],
-          "publication_date": "2019-1-27",
-          "citationKey": "kimMultiaccuracy2019",
-          "abstract": "Prediction systems are successfully deployed in applications ranging from disease diagnosis, to predicting credit worthiness, to image recognition. Even when the overall accuracy is high, these systems may exhibit systematic biases that harm specific subpopulations; such biases may arise inadvertently due to underrepresentation in the data used to train a machine-learning model, or as the result of intentional malicious discrimination. We develop a rigorous framework of *multiaccuracy* auditing and post-processing to ensure accurate predictions across *identifiable subgroups*. Our algorithm, MULTIACCURACY-BOOST, works in any setting where we have black-box access to a predictor and a relatively small set of labeled data for auditing; importantly, this black-box framework allows for improved fairness and accountability of predictions, even when the predictor is minimally transparent. We prove that MULTIACCURACY-BOOST converges efficiently and show that if the initial model is accurate on an identifiable subgroup, then the post-processed model will be also. We experimentally demonstrate the effectiveness of the approach to improve the accuracy among minority subgroups in diverse applications (image classification, finance, population health). Interestingly, MULTIACCURACY-BOOST can improve subpopulation accuracy (e.g. for \"black women\") even when the sensitive features (e.g. \"race\", \"gender\") are not given to the algorithm explicitly."
+          "publication_date": "2013",
+          "citationKey": "louppeUnderstandingVariableImportances2013",
+          "abstract": "Despite growing interest and practical use in various scientific areas, variable importances derived from tree-based ensemble methods are not well understood from a theoretical point of view. In this work we characterize the Mean Decrease Impurity (MDI) variable importances as measured by an ensemble of totally randomized trees in asymptotic sample and ensemble size conditions. We derive a three-level decomposition of the  information jointly provided by all input variables about the output in terms of i) the MDI importance of each input variable, ii) the degree of interaction of a given input variable with the other input variables, iii) the different interaction terms of a given degree. We then show that this MDI importance of a variable is equal to zero if and only if the variable is irrelevant and that the MDI importance of a relevant variable is invariant with respect to the removal or the addition of irrelevant variables. We illustrate these properties on a simple example and discuss how they may change in the case of  non-totally randomized trees such as Random Forests and Extra-Trees."
         },
         {
-          "title": "Calibration for the (Computationally-Identifiable) Masses",
-          "url": "https://doi.org/10.48550/arXiv.1711.08513",
-          "source_type": "technical_paper",
-          "authors": [
-            "Úrsula Hébert-Johnson",
-            "Michael P. Kim",
-            "Omer Reingold",
-            "Guy N. Rothblum"
-          ],
-          "publication_date": "2018-03-16",
-          "citationKey": "hebert-johnsonCalibrationComputationallyIdentifiableMasses2018",
-          "abstract": "As algorithms increasingly inform and influence decisions made about individuals, it becomes increasingly important to address concerns that these algorithms might be discriminatory. The output of an algorithm can be discriminatory for many reasons, most notably: (1) the data used to train the algorithm might be biased (in various ways) to favor certain populations over others; (2) the analysis of this training data might inadvertently or maliciously introduce biases that are not borne out in the data. This work focuses on the latter concern. We develop and study multicalbration -- a new measure of algorithmic fairness that aims to mitigate concerns about discrimination that is introduced in the process of learning a predictor from data. Multicalibration guarantees accurate (calibrated) predictions for every subpopulation that can be identified within a specified class of computations. We think of the class as being quite rich; in particular, it can contain many overlapping subgroups of a protected group. We show that in many settings this strong notion of protection from discrimination is both attainable and aligned with the goal of obtaining accurate predictions. Along the way, we present new algorithms for learning a multicalibrated predictor, study the computational complexity of this task, and draw new connections to computational learning models such as agnostic learning."
-        },
-        {
-          "title": "MCBoost - Basics and Extensions (mcboost vignette)",
-          "url": "https://mlr-org.github.io/mcboost/articles/mcboost_basics_extensions.html",
+          "title": "Feature importances with a forest of trees — scikit-learn",
+          "url": "https://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_importances.html",
           "source_type": "tutorial",
-          "citationKey": "MCBoostBasicsExtensions",
-          "abstract": "mcboost"
+          "citationKey": "FeatureImportancesForest",
+          "abstract": "This example shows the use of a forest of trees to evaluate the importance of features on an artificial classification task. The blue bars are the feature importances of the forest, along with thei..."
+        },
+        {
+          "title": "A comparison of random forest and its Gini importance with standard chemometric methods for the feature selection and classification of spectral data",
+          "url": "https://doi.org/10.1186/1471-2105-10-213",
+          "source_type": "application_paper",
+          "authors": [
+            "Bjoern H Menze",
+            "B Michael Kelm",
+            "Ralf Masuch",
+            "Uwe Himmelreich",
+            "Peter Bachert",
+            "Wolfgang Petrich",
+            "Fred A Hamprecht"
+          ],
+          "publication_date": "2009-7-10",
+          "citationKey": "menzeComparisonRandomForest2009",
+          "abstract": "Background Regularized regression methods such as principal component or partial least squares regression perform well in learning tasks on high dimensional spectral data, but cannot explicitly eliminate irrelevant features. The random forest classifier with its associated Gini feature importance, on the other hand, allows for an explicit feature elimination, but may not be optimally adapted to spectral data due to the topology of its constituent classification trees which are based on orthogonal splits in feature space. Results We propose to combine the best of both approaches, and evaluated the joint use of a feature selection based on a recursive feature elimination using the Gini importance of random forests' together with regularized classification methods on spectral data sets from medical diagnostics, chemotaxonomy, biomedical analytics, food science, and synthetically modified spectral data. Here, a feature selection using the Gini feature importance with a regularized classification by discriminant partial least squares regression performed as well as or better than a filtering according to different univariate statistical tests, or using regression coefficients in a backward feature elimination. It outperformed the direct application of the random forest classifier, or the direct application of the regularized classifiers on the full set of features. Conclusion The Gini importance of the random forest provided superior means for measuring feature relevance on spectral data, but – on an optimal subset of features – the regularized classifiers might be preferable over the random forest classifier, in spite of their limitation to model linear dependencies only. A feature selection based on Gini importance, however, may precede a regularized linear classification to identify this optimal subset of features, and to earn a double benefit of both dimensionality reduction and the elimination of noise from the classification task."
         }
       ],
-      "complexity_rating": 5,
-      "computational_cost_rating": 4,
+      "complexity_rating": 2,
+      "computational_cost_rating": 1,
       "related_techniques": [
-        "fair-bayesian-optimisation",
-        "exponentiated-gradient-reduction",
-        "prejudice-remover-regulariser"
+        "coefficient-magnitudes-in-linear-models",
+        "permutation-importance",
+        "sobol-indices"
       ],
       "sample_claims": [
         {
-          "text": "After post-processing, the diagnostic model's average prediction error on every patient subgroup the auditor can identify, including older women, is within the agreed tolerance on held-out data.",
+          "text": "The five features with the highest mean decrease in impurity in the readmission-risk forest are the clinical risk factors that the clinical team documented as expected drivers.",
           "domain": "healthcare",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "explainability"
         },
         {
-          "text": "Post-processing did not raise the credit-risk model's error rate for any audited subgroup by more than the stated margin, so the correction did not trade one group's accuracy for another's.",
+          "text": "No identifier-like or many-valued field, such as customer ID or postcode, ranks in the top ten by mean decrease in impurity in the loan-default model.",
           "domain": "finance",
-          "assuranceGoal": "fairness"
+          "assuranceGoal": "explainability"
         },
         {
-          "text": "The model passes a multi-accuracy audit at the stated tolerance, using a decision-tree auditor on a validation sample of the stated size, with no identifiable subgroup above the tolerance.",
-          "domain": "general",
-          "assuranceGoal": "fairness"
+          "text": "The mean-decrease-impurity ranking of the delivery-time forest is stable across 20 refits on bootstrap samples of the training data, with the same top five features each time.",
+          "domain": "transport",
+          "assuranceGoal": "explainability"
+        },
+        {
+          "text": "Three meteorological variables account for over half of the total importance in the air-quality forecasting forest, and the model documentation names them.",
+          "domain": "environmental",
+          "assuranceGoal": "explainability"
         }
       ]
     }

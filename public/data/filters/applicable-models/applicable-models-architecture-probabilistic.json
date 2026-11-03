@@ -2,7 +2,7 @@
   "tag": {
     "name": "applicable-models/architecture/probabilistic",
     "slug": "applicable-models-architecture-probabilistic",
-    "count": 1,
+    "count": 2,
     "category": "applicable-models"
   },
   "techniques": [
@@ -154,8 +154,8 @@
       "computational_cost_rating": 2,
       "related_techniques": [
         "adversarial-debiasing",
-        "exponentiated-gradient-reduction",
-        "fair-bayesian-optimisation"
+        "meta-fair-classifier",
+        "exponentiated-gradient-reduction"
       ],
       "sample_claims": [
         {
@@ -179,7 +179,169 @@
           "assuranceGoal": "fairness"
         }
       ]
+    },
+    {
+      "slug": "meta-fair-classifier",
+      "name": "Meta Fair Classifier",
+      "description": "The meta fair classifier is a general-purpose training algorithm for fair classification. The user chooses a fairness metric, such as the statistical rate (each group's share of favourable outcomes) or the false discovery rate (the share of positive predictions that are wrong), and a target between 0 and 1 for how close to equal the groups' values must be. From labelled training examples that include the protected attribute, the algorithm fits a model of the data, solves a series of constrained optimisation problems, and returns the most accurate classifier that meets the target. It trains a new classifier rather than adjusting an existing one. The original paper proves the result comes close to the best classifier that meets the target, up to the error in the fitted model of the data.",
+      "assurance_goals": [
+        "Fairness"
+      ],
+      "tags": [
+        "applicable-models/architecture/probabilistic",
+        "applicable-models/paradigm/supervised",
+        "applicable-models/requirements/white-box",
+        "assurance-goal-category/fairness",
+        "assurance-goal-category/fairness/in-processing",
+        "data-requirements/labelled-data",
+        "data-requirements/sensitive-attributes",
+        "data-type/any",
+        "expertise-needed/ml-engineering",
+        "expertise-needed/statistics",
+        "lifecycle-stage/model-development",
+        "lifecycle-stage/model-development/model-selection-and-training",
+        "technique-type/algorithmic",
+        "evidence-type/model-artefact"
+      ],
+      "example_use_cases": [
+        {
+          "goal": "Fairness",
+          "description": "A recruitment platform trains a shortlisting classifier with a statistical-rate target of 0.8, so that the selection rate for any gender group is at least 80% of the highest group's rate, and measures how much accuracy it gives up to reach that target."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A probation service building a recidivism risk classifier constrains false discovery rate parity, so that among people flagged as high risk, the share who do not go on to reoffend is similar across racial groups."
+        },
+        {
+          "goal": "Fairness",
+          "description": "A hospital building a classifier for heart conditions constrains false discovery rate parity, so that false alarms, which send people for unnecessary medical attention, do not fall more heavily on women than on men."
+        }
+      ],
+      "limitations": [
+        {
+          "description": "It is a self-contained learner, not a wrapper. It cannot adjust a model you already run, and the paper lists extension to other classifier types as future work. It also needs the protected attribute for every training example, and teams must be willing to replace their model with the one it produces."
+        },
+        {
+          "description": "The AIF360 implementation supports only statistical rate and false discovery rate, and raises an error for any other metric. The paper's framework covers more, but other criteria, such as equalised odds, mean extra implementation work or choosing a different technique."
+        },
+        {
+          "description": "The guarantee depends on how well the fitted model of the data matches the real distribution, and the paper's bound carries error terms for any mismatch. In its experiments, a simple fitted model gave lower accuracy than competing methods at the same fairness level."
+        },
+        {
+          "description": "Results can vary from run to run. In a credit-scoring comparison, repeated runs sometimes missed the fairness target, which made averaging the results unusable."
+        },
+        {
+          "description": "The method solves a separate constrained optimisation problem for each value on a grid set by the tolerance, and the number multiplies for each additional fairness metric constrained at once. Combining several criteria quickly makes training slow."
+        }
+      ],
+      "resources": [
+        {
+          "title": "ρ-Fair Method — holisticai documentation",
+          "url": "https://holisticai.readthedocs.io/en/latest/getting_started/bias/mitigation/inprocessing/bc_meta_fair_classifier_rho_fair.html",
+          "source_type": "documentation",
+          "authors": [
+            "Holisticai Developers"
+          ],
+          "publication_date": "2024",
+          "citationKey": "holisticaidevelopersRFairMethodHolisticai2024"
+        },
+        {
+          "title": "aif360.algorithms.inprocessing — aif360 0.1.0 documentation",
+          "url": "https://aif360.readthedocs.io/en/stable/modules/generated/aif360.algorithms.inprocessing.MetaFairClassifier.html",
+          "source_type": "documentation",
+          "authors": [
+            "Aif360 Developers"
+          ],
+          "publication_date": "2018",
+          "citationKey": "aif360developersAif360algorithmsinprocessingAif3600102018"
+        },
+        {
+          "title": "AIF360",
+          "url": "https://github.com/Trusted-AI/AIF360",
+          "source_type": "software_package",
+          "publication_date": "2018-08-22",
+          "citationKey": "trusted-aiAIF3602018",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models."
+        },
+        {
+          "title": "holisticai",
+          "url": "https://github.com/holistic-ai/holisticai",
+          "source_type": "software_package",
+          "publication_date": "2023-01-26",
+          "citationKey": "holistic-aiHolisticai2023",
+          "abstract": "This is an open-source tool to assess and improve the trustworthiness of AI systems."
+        },
+        {
+          "title": "Classification with Fairness Constraints",
+          "url": "https://doi.org/10.1145/3287560.3287586",
+          "source_type": "technical_paper",
+          "authors": [
+            "L. Elisa Celis",
+            "Lingxiao Huang",
+            "Vijay Keswani",
+            "Nisheeth K. Vishnoi"
+          ],
+          "publication_date": "2019-1-29",
+          "citationKey": "celisClassificationFairnessConstraints2019",
+          "abstract": "Developing classification algorithms that are fair with respect to sensitive attributes of the data is an important problem due to the increased deployment of classification algorithms in societal contexts. Several recent works have focused on studying classification with respect to specific fairness metrics, modeled the corresponding fair classification problem as constrained optimization problems, and developed tailored algorithms to solve them. Despite this, there still remain important metrics for which there are no fair classifiers with theoretical guarantees; primarily because the resulting optimization problem is non-convex. The main contribution of this paper is a meta-algorithm for classification that can take as input a general class of fairness constraints with respect to multiple non-disjoint and multi-valued sensitive attributes, and which comes with provable guarantees. In particular, our algorithm can handle non-convex \"linear fractional\" constraints (which includes fairness constraints such as predictive parity) for which no prior algorithm was known. Key to our results is an algorithm for a family of classification problems with convex constraints along with a reduction from classification problems with linear fractional constraints to this family. Empirically, we observe that our algorithm is fast, can achieve near-perfect fairness with respect to various fairness metrics, and the loss in accuracy due to the imposed fairness constraints is often small."
+        },
+        {
+          "title": "AIF360 demo: Meta Fair Classifier (notebook)",
+          "url": "https://github.com/Trusted-AI/AIF360/blob/main/examples/demo_meta_classifier.ipynb",
+          "source_type": "tutorial",
+          "citationKey": "AIF360DemoMeta",
+          "abstract": "A comprehensive set of fairness metrics for datasets and machine learning models, explanations for these metrics, and algorithms to mitigate bias in datasets and models. - Trusted-AI/AIF360"
+        },
+        {
+          "title": "Algorithmic decision making methods for fair credit scoring",
+          "url": "https://doi.org/10.1109/ACCESS.2023.3286018",
+          "source_type": "application_paper",
+          "authors": [
+            "Darie Moldovan"
+          ],
+          "publication_date": "2022-09-16",
+          "citationKey": "moldovanAlgorithmicDecisionMaking2022",
+          "abstract": "The effectiveness of machine learning in evaluating the creditworthiness of loan applicants has been demonstrated for a long time. However, there is concern that the use of automated decision-making processes may result in unequal treatment of groups or individuals, potentially leading to discriminatory outcomes. This paper seeks to address this issue by evaluating the effectiveness of 12 leading bias mitigation methods across 5 different fairness metrics, as well as assessing their accuracy and potential profitability for financial institutions. Through our analysis, we have identified the challenges associated with achieving fairness while maintaining accuracy and profitabiliy, and have highlighted both the most successful and least successful mitigation methods. Ultimately, our research serves to bridge the gap between experimental machine learning and its practical applications in the finance industry."
+        },
+        {
+          "title": "Fairness in credit scoring: Assessment, implementation and profit implications",
+          "url": "https://doi.org/10.1016/j.ejor.2021.06.023",
+          "source_type": "application_paper",
+          "authors": [
+            "Nikita Kozodoi",
+            "Johannes Jacob",
+            "Stefan Lessmann"
+          ],
+          "publication_date": "2022-3",
+          "citationKey": "kozodoiFairnessCreditScoring2022",
+          "abstract": "The rise of algorithmic decision-making has spawned much research on fair machine learning (ML). Financial institutions use ML for building risk scorecards that support a range of credit-related decisions. Yet, the literature on fair ML in credit scoring is scarce. The paper makes three contributions. First, we revisit statistical fairness criteria and examine their adequacy for credit scoring. Second, we catalog algorithmic options for incorporating fairness goals in the ML model development pipeline. Last, we empirically compare different fairness processors in a profit-oriented credit scoring context using real-world data. The empirical results substantiate the evaluation of fairness measures, identify suitable options to implement fair credit scoring, and clarify the profit-fairness trade-off in lending decisions. We find that multiple fairness criteria can be approximately satisfied at once and recommend separation as a proper criterion for measuring the fairness of a scorecard. We also find fair in-processors to deliver a good balance between profit and fairness and show that algorithmic discrimination can be reduced to a reasonable level at a relatively low cost. The codes corresponding to the paper are available on GitHub."
+        }
+      ],
+      "complexity_rating": 5,
+      "computational_cost_rating": 4,
+      "related_techniques": [
+        "prejudice-remover-regulariser",
+        "fair-bayesian-optimisation",
+        "exponentiated-gradient-reduction"
+      ],
+      "sample_claims": [
+        {
+          "text": "On held-out data, the shortlisting classifier's selection rate for each gender group is at least 80% of the highest group's rate.",
+          "domain": "employment",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "Among people the recidivism model flags as high risk, the share who do not reoffend differs between racial groups by no more than the agreed tolerance.",
+          "domain": "public sector",
+          "assuranceGoal": "fairness"
+        },
+        {
+          "text": "The share of false alarms among the heart-condition classifier's positive predictions is similar for women and men, with the accuracy cost against an unconstrained classifier reported.",
+          "domain": "healthcare",
+          "assuranceGoal": "fairness"
+        }
+      ]
     }
   ],
-  "count": 1
+  "count": 2
 }
