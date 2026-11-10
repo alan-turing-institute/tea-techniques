@@ -166,7 +166,7 @@ Rebuild against another data cut with one command (replace the ref with a full c
 DATA_REF=<data-tag-or-commit> docker compose build mcp
 ```
 
-The default data cut is `d07d92fa9ed0b19c9289a3b6220a4aa6b893cb6e`, the cut the committed vectors were made from. A full 40-character SHA is used as given; a tag, branch or short SHA is resolved through the unauthenticated GitHub API, which allows 60 requests an hour per address. `/healthz.dataVersion` reports the commit. The claim-to-tag map used for keyword narrowing (`CONCEPT_TAGS`) names the consolidated tags `system-implementation` and `model-testing-and-validation`.
+The default data cut is `5de9359ad7f41ce228b53b2f502e156d848da625` (tag `data-2026-11-10`), whose corpus the committed vectors were made from. A full 40-character SHA is used as given; a tag, branch or short SHA is resolved through the unauthenticated GitHub API, which allows 60 requests an hour per address. `/healthz.dataVersion` reports the commit. The claim-to-tag map used for keyword narrowing (`CONCEPT_TAGS`) names the consolidated tags `system-implementation` and `model-testing-and-validation`.
 
 The runtime stage installs production dependencies without optional packages (`pnpm install --prod --no-optional`). `@huggingface/transformers` and `onnxruntime-node` are optional dependencies, so the image holds neither, nor any model files. The container starts with `TEA_OFFLINE=1`, which requires the vectors and graph to be present locally, makes no downloads and contacts no other service. `PORT` (default 3100) sets the listening port, and the image's health check reads it.
 
@@ -264,7 +264,7 @@ pnpm generate-embeddings --model=minilm --data-dir=../public/data \
 Run the HTTP service from source against the committed Qwen3 vectors (the directory needs the graph and the vectors file under `ld/`):
 
 ```sh
-BUILD_DATA_DIR=generated/data DATA_REF=d07d92fa9ed0b19c9289a3b6220a4aa6b893cb6e node scripts/fetch-build-data.mjs
+BUILD_DATA_DIR=generated/data DATA_REF=5de9359ad7f41ce228b53b2f502e156d848da625 node scripts/fetch-build-data.mjs
 cp vectors/embeddings.qwen3.json generated/data/ld/embeddings.json
 pnpm build
 DATA_DIR=generated/data TEA_OFFLINE=1 RANKING_ENABLED=false pnpm start:http
