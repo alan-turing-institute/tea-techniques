@@ -1,7 +1,7 @@
 # TEA Techniques - Claude Code Project Guide
 
 Interactive web app for exploring AI assurance techniques that support
-argument-based assurance. Fully static Next.js 14 application optimised for
+argument-based assurance. Fully static Next.js 15 application optimised for
 GitHub Pages.
 
 ## Quick Start
@@ -33,11 +33,12 @@ NODE_ENV=production pnpm build
 
 - **Source:** `/public/data/techniques.json` (ground truth)
 - **Generated:** ~280+ JSON files for optimal performance
-- **Structure:** 8 assurance goals, 162 techniques, generated filter files for every tag
+- **Structure:** 8 assurance goals, 162 techniques, generated filter files for
+  every tag
 
 ### Tech Stack
 
-- **Next.js 14** with static export
+- **Next.js 15** with static export
 - **TypeScript** (strict mode)
 - **Tailwind CSS** + **shadcn/ui** (New York style, 22 components)
 - **next-themes** for dark/light mode
@@ -52,7 +53,8 @@ The site uses different navigation components based on route:
 - **`header.tsx`** - Top navigation (some docs/about pages via PageLayout)
 - **`homepage-header.tsx`** - Homepage only
 
-When adding new routes, verify which layout is used and add navigation to the correct component.
+When adding new routes, verify which layout is used and add navigation to the
+correct component.
 
 ### Static Export Requirements
 
@@ -69,12 +71,7 @@ When adding new routes, verify which layout is used and add navigation to the co
 /lib/data.ts            # Data loading utilities (getTechniques, etc.)
 /components/ui/         # shadcn/ui components (New York style)
 /components/            # Custom components organized by feature
-/app/                   # Next.js 14 app directory (file-based routing)
-/.claude/               # Claude Code infrastructure
-  ├── skills/           # Reusable patterns (auto-activated)
-  ├── commands/         # Custom slash commands
-  ├── agents/           # Specialized subagents
-  └── hooks/            # Event-driven automation
+/app/                   # Next.js 15 app directory (file-based routing)
 ```
 
 ## Development Guidelines
@@ -118,273 +115,6 @@ pnpm lint        # Biome linting (ultracite config)
 pnpm build       # Build succeeds
 ```
 
-## Custom Slash Commands
-
-### Feature Development Workflow
-- `/feature-request` - Analyze feature request and create comprehensive dev docs
-- `/implement` - Implement feature from dev docs (plan-then-build approach)
-- `/debug` - Diagnose and fix TypeScript/lint/runtime/build errors
-- `/validate` - Validate code quality and feature completeness before commit
-
-### Documentation & Utilities
-- `/prime` - Understand codebase structure
-- `/load_ai_docs` - Load AI documentation from websites
-- `/research_docs` - Fetch documentation based on queries
-- `/create_dev_docs` - (Deprecated) Use `/feature-request` instead
-- `/update_dev_docs` - Update dev docs with progress before compaction
-- `/dev_docs_summary` - Show status summary of all active features
-
-## Specialized Agents
-
-### Feature Development Agents
-- `planning-agent` - Researches codebase, asks clarifying questions, writes comprehensive dev docs
-- `implementation-agent` - Presents implementation plan, builds features following Next.js 14 patterns
-- `debugging-agent` - Diagnoses and fixes TypeScript/lint/runtime/build errors
-- `validation-agent` - Validates code quality and feature completeness before commits
-
-### Documentation Agents
-- `documentation-writer` - Creates and updates documentation pages following tea-docs patterns
-- `docs-scraper` - Documentation fetching specialist
-- `research-docs-fetcher` - Research and documentation gathering
-
-## Prompt Templates
-
-Reusable patterns for consistent agent/skill/command development. Located in
-`.claude/templates/`:
-
-### Available Templates
-
-- **agent-initialization.md** - Structure for agent/skill setup (purpose,
-  variables, activation)
-- **result-reporting.md** - Consistent success/failure reporting format
-- **error-handling.md** - Error detection and reporting patterns
-- **workflow-structure.md** - Multi-step process patterns (Research → Process →
-  Save → Report)
-- **review-checklist.md** - Tiered quality checklists (🔴 Critical, 🟡
-  Important, 🟢 Nice-to-have)
-
-### Usage
-
-Reference templates in agents/skills using `@.claude/templates/`:
-
-```markdown
-## Workflow
-
-See @.claude/templates/workflow-structure.md for workflow patterns.
-
-1. **Step 1:** Fetch content
-2. **Step 2:** Process data
-3. **Step 3:** Save results
-4. **Step 4:** Report outcome
-
-## Report Format
-
-See @.claude/templates/result-reporting.md
-
-- ✅ Success: file_path - description
-- ❌ Failure: error_message
-```
-
-Templates ensure consistency, reduce duplication, and provide proven patterns
-for common scenarios.
-
-## Model Selection
-
-Claude Code uses different Claude models optimized for specific tasks:
-
-- **Sonnet 4.5** (default): Most agents and commands - balanced capability and
-  speed
-- **Haiku**: Fast, low-cost for simple analysis (currently using bash scripts
-  instead)
-- **Opus**: Complex planning and reasoning tasks
-- **Bash Scripts**: Hooks use bash for performance and cost optimization
-
-**Current setup:**
-
-- All agents use Sonnet 4.5
-- All hooks use bash scripts (near-zero cost)
-- Skills inherit session model (Sonnet 4.5)
-
-**Note:** Using Claude Code Max subscription (unlimited usage)
-
-## Skills (Auto-Activated)
-
-Skills automatically activate based on your request context:
-
-### feature-planning
-
-Translates PM requirements ("I want users to...") into technical plans with
-three synchronized dev docs (pm-overview, implementation, tasks).
-
-**Auto-activates on:**
-
-- "I want users to..."
-- "Add feature..."
-- "Plan for..."
-- "How would we build..."
-
-### nextjs-development-standards
-
-Next.js 14 static export patterns, shadcn/ui conventions, data loading best
-practices.
-
-**Auto-activates on:**
-
-- "Implement..."
-- "Build..."
-- "Create component..."
-- "How do I..."
-- "What's the pattern for..."
-
-### code-quality-checklist
-
-Quality standards and completion criteria with tiered requirements (🔴 Critical,
-🟡 Important, 🟢 Nice-to-have).
-
-**Auto-activates on:**
-
-- "Review..."
-- "Is this complete..."
-- "Ready to ship..."
-- "Does this meet standards..."
-
-### tea-docs
-
-Documentation writing patterns for TEA Techniques MDX pages. Ensures consistent
-structure, frontmatter, layouts, and MDX component usage.
-
-**Auto-activates on:**
-
-- "Write docs..."
-- "Create documentation..."
-- "Update docs..."
-- "Documentation page..."
-- "Doc page..."
-
-## Development Workflow
-
-### Quick Fix Workflow (Lightweight)
-
-**For small, specific changes without planning:**
-
-```bash
-/quickfix "Fix typo in header component"
-```
-
-- Launches `quickfix-agent`
-- Agent clarifies requirements if needed (AskUserQuestion)
-- Agent implements fix following project patterns
-- Auto-activates relevant skills (nextjs-development-standards, ui-design-system, code-quality-checklist, tea-docs)
-- Runs validation (type-check, lint)
-- Escalates to `/debug` if complex errors (6+)
-- Optionally runs `/validate` for comprehensive checks
-- Reports completion with file:line references
-
-**Use for:**
-- Typo fixes and text updates
-- Simple bugs (1-3 files)
-- Quick refactors
-- Configuration tweaks
-- Documentation updates
-- Minor UI adjustments
-
-**Use feature workflow for:**
-- New features requiring planning
-- Complex multi-component changes
-- Architectural changes
-
----
-
-### PM → Planning → Implementation → Validation → Commit
-
-**Complete Feature Development Workflow:**
-
-1. **PM requests feature:**
-   ```
-   /feature-request "I want users to filter techniques by multiple tags"
-   ```
-   - Launches `planning-agent`
-   - Agent researches codebase thoroughly
-   - Agent asks clarifying questions if needed
-   - Agent writes 3 synchronized dev docs to `.claude/plans/dev/active/[feature-name]/`
-
-2. **PM reviews:**
-   - Reviews `pm-overview.md` (functional description, no code)
-   - Confirms requirements and success criteria
-   - Approves for implementation
-
-3. **Implementation:**
-   ```
-   /implement multi-tag-filtering
-   ```
-   - Launches `implementation-agent`
-   - Agent reads all dev docs
-   - Agent presents implementation plan
-   - User approves plan
-   - Agent builds feature phase-by-phase
-   - Agent updates `tasks.md` as work completes
-   - `nextjs-development-standards` skill auto-activates
-
-4. **Debugging (if needed):**
-   ```
-   /debug
-   ```
-   - Launches `debugging-agent` to diagnose and fix errors
-   - Agent runs TypeScript, lint, build checks
-   - Agent fixes errors systematically
-   - Agent verifies all checks pass
-
-5. **Validation:**
-   ```
-   /validate multi-tag-filtering
-   ```
-   - Launches `validation-agent`
-   - Agent runs comprehensive quality checks
-   - Agent verifies feature completeness
-   - Agent checks accessibility and responsive design
-   - Agent provides pre-commit checklist
-   - `code-quality-checklist` standards applied
-
-6. **Commit & Deploy:**
-   - Manual testing if needed
-   - Commit changes if validation passes
-   - Push to GitHub and deploy
-
-### Dev Docs Structure
-
-For each feature in `.claude/plans/dev/active/[feature-name]/`:
-
-- **pm-overview.md** - Functional description, user flows, success criteria (no code)
-- **implementation.md** - Current vs new code, file paths, technical notes (with code)
-- **tasks.md** - Synchronized Phase → Task checklist
-
-All three files use identical Phase → Task structure for synchronization.
-
-**Dev docs location:** `.claude/plans/dev/active/[feature-name]/`
-**Templates location:** `.claude/plans/dev/templates/`
-
-### Quick Commands Summary
-
-```bash
-# Quick fix (typos, bugs, small refactors)
-/quickfix "Description of fix needed"
-
-# Start new feature
-/feature-request "Feature description here"
-
-# Implement approved feature
-/implement feature-name
-
-# Fix errors
-/debug
-
-# Validate before commit
-/validate feature-name
-
-# Check all active features
-/dev_docs_summary
-```
-
 ## Configuration Notes
 
 ### TypeScript
@@ -404,11 +134,6 @@ All three files use identical Phase → Task structure for synchronization.
 - Requires `NODE_ENV=production` for static exports
 - Prebuild: data generation + validation + sitemap
 - Output: Static HTML in `/out/` directory
-
-### Hooks
-
-- **UserPromptSubmit:** Haiku-based skill auto-activation
-- **PostToolUse:** Auto-format on Write/Edit (Biome ultracite)
 
 ## Data Loading Patterns
 
@@ -516,14 +241,7 @@ For detailed personal instructions and local configuration:
 
 - See `CLAUDE.local.md` (not checked in, your private notes)
 
-For comprehensive implementation guides:
-
-- `.claude/skills/feature-planning/` - Planning workflow and templates
-- `.claude/skills/nextjs-development-standards/` - Next.js patterns and examples
-- `.claude/skills/code-quality-checklist/` - Quality standards and checklists
-
 ---
 
 **Project Repository:** https://github.com/alan-turing-institute/tea-techniques
-**Documentation:** This file + `.claude/skills/` + `CLAUDE.local.md` **Last
-Updated:** 2025-11-13
+**Documentation:** This file + `CLAUDE.local.md`
