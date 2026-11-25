@@ -16,6 +16,7 @@ import {
   enrichOptionsWithCounts,
   loadDynamicOptions,
 } from '../lib/wizard/options';
+import { matchesModelTypeAnswer } from '../lib/wizard/tag-matching';
 import type { QuestionOption, WizardState } from '../lib/wizard/types';
 import { WizardStateMachine } from '../lib/wizard/wizard-machine';
 
@@ -184,6 +185,23 @@ function carriesModelType(technique: Technique, value: string) {
   );
 }
 
+// Independent reading of the hierarchy rule: a tag for the type, below it, or
+// a broader architecture tag that has no sub-type tag beside it.
+function reachesModelType(technique: Technique, value: string) {
+  const tags = technique.tags ?? [];
+  const target = `applicable-models/${value}`;
+  return tags.some((t) => {
+    if (t === target || t.startsWith(`${target}/`)) {
+      return true;
+    }
+    const broader =
+      target.startsWith(`${t}/`) &&
+      t.split('/').length >= 3 &&
+      t.startsWith('applicable-models/architecture/');
+    return broader && !tags.some((o) => o.startsWith(`${t}/`));
+  });
+}
+
 function modelTypeState(answer: string): WizardState {
   return {
     ...state('General'),
@@ -196,7 +214,7 @@ test('a named model type keeps its own techniques and the any-model ones', () =>
   for (const value of namedModelTypes) {
     const expected = techniques
       .filter(
-        (t) => carriesModelType(t, value) || t.tags?.includes(ANY_MODEL_TAG)
+        (t) => reachesModelType(t, value) || t.tags?.includes(ANY_MODEL_TAG)
       )
       .map((t) => t.slug)
       .sort();
@@ -244,6 +262,61 @@ test('type-tagged techniques sort before any-model ones at equal score', () => {
   const specific = sorted.map((t) => carriesModelType(t, answer));
   assert.ok(specific.some(Boolean) && specific.some((s) => !s));
   assert.equal(specific.indexOf(false) > specific.lastIndexOf(true), true);
+});
+
+const LLM = 'architecture/neural-networks/transformer/llm';
+const NN = 'applicable-models/architecture/neural-networks';
+const TRANSFORMER = `${NN}/transformer`;
+
+function made(slug: string, tags: string[]): Technique {
+  return { ...techniques[0], slug, tags };
+}
+
+function matchesFor(candidates: Technique[], answer: string) {
+  return candidates.filter((t) => matchesModelTypeAnswer(t.tags ?? [], answer));
+}
+
+test('a parent tag reaches a sub-type unless a sibling sub-type sits beside it', () => {
+  const bare = made('bare', [NN]);
+  const narrowed = made('narrowed', [NN, `${NN}/graph`]);
+  const middle = made('middle', [TRANSFORMER]);
+  const own = made('own', [NN, `${TRANSFORMER}/llm`]);
+  const slugs = matchesFor([bare, narrowed, middle, own], LLM).map(
+    (t) => t.slug
+  );
+  assert.deepEqual(slugs.sort(), ['bare', 'middle', 'own']);
+});
+
+test('the language-model results are the techniques the hierarchy reaches', () => {
+  const expected = techniques
+    .filter((t) => reachesModelType(t, LLM) || t.tags?.includes(ANY_MODEL_TAG))
+    .map((t) => t.slug)
+    .sort();
+  const actual = filterOption('model-architecture', 'General', LLM)
+    .map((t) => t.slug)
+    .sort();
+  assert.deepEqual(actual, expected);
+});
+
+test('a technique reached through a parent tag sorts before any-model ones', () => {
+  const parent = made('parent', [NN]);
+  const anyModel = made('any', [ANY_MODEL_TAG]);
+  const both = modelTypeState(LLM);
+  assert.equal(calculateMatchScore(parent, both), 100);
+  assert.equal(
+    calculateMatchScore(parent, both),
+    calculateMatchScore(anyModel, both)
+  );
+  const sorted = sortTechniquesByRelevance([anyModel, parent], both);
+  assert.deepEqual(
+    sorted.map((t) => t.slug),
+    ['parent', 'any']
+  );
+  assert.ok(
+    getMatchReasons(parent, modelTypeState(LLM)).includes(
+      'Large Language Models'
+    )
+  );
 });
 
 test('an any-model technique under a named type says it works with any model', () => {

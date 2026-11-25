@@ -5,10 +5,22 @@ export function matchesTagPath(tag: string, path: string): boolean {
 const MODEL_AGNOSTIC_TAG = 'applicable-models/architecture/model-agnostic';
 const MODEL_AGNOSTIC_ANSWER = 'architecture/model-agnostic';
 
-// True when the technique carries the tag for the named model type or one of
-// its sub-types.
+const ARCHITECTURE_PREFIX = 'applicable-models/architecture/';
+
+// True when the technique is tagged for the named model type through the tag
+// hierarchy: it carries that type's tag, a tag below it, or a tag for a
+// broader type above it. A broader tag counts only when the technique carries
+// none of that tag's own sub-types, since a broader tag beside one of its
+// sub-types narrows the technique to that sub-type.
 export function hasNamedModelTypeTag(tags: string[], answer: string): boolean {
-  return tags.some((tag) => matchesTagPath(tag, `applicable-models/${answer}`));
+  const answerTag = `applicable-models/${answer}`;
+  return tags.some(
+    (tag) =>
+      matchesTagPath(tag, answerTag) ||
+      (tag.startsWith(ARCHITECTURE_PREFIX) &&
+        answerTag.startsWith(`${tag}/`) &&
+        !tags.some((other) => other.startsWith(`${tag}/`)))
+  );
 }
 
 // Decides whether a technique matches an answer to the model-type question.

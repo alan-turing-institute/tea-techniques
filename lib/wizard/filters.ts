@@ -72,7 +72,7 @@ function scoreModelArchitecture(technique: Technique, answer: string): number {
     // Model-agnostic matches all techniques
     return 100;
   }
-  return hasModelArchitectureMatch(technique, answer) ? 100 : 0;
+  return matchesModelTypeAnswer(technique.tags ?? [], answer) ? 100 : 0;
 }
 
 function scoreModelAccess(technique: Technique, answer: string): number {
@@ -173,48 +173,6 @@ function scoreExplainabilityProperties(
 
   // Score based on how many requested properties match
   return matchCount > 0 ? (matchCount / answers.length) * 100 : 0;
-}
-
-// Check if technique matches model architecture
-function hasModelArchitectureMatch(
-  technique: Technique,
-  architecture: string
-): boolean {
-  const modelTags =
-    technique.tags?.filter((tag) => tag.startsWith('applicable-models/')) || [];
-
-  // Check for model-agnostic techniques
-  if (
-    modelTags.some(
-      (tag) => tag === 'applicable-models/architecture/model-agnostic'
-    )
-  ) {
-    return true;
-  }
-
-  // Direct match on the architecture path
-  if (modelTags.some((tag) => tag.includes(architecture))) {
-    return true;
-  }
-
-  // Handle parent/child relationships
-  // e.g., if user selects "neural-networks", match all neural network subtypes
-  if (architecture === 'architecture/neural-networks') {
-    return modelTags.some((tag) =>
-      tag.includes('/architecture/neural-networks')
-    );
-  }
-  if (architecture === 'architecture/tree-based') {
-    return modelTags.some((tag) => tag.includes('/architecture/tree-based'));
-  }
-  if (architecture === 'architecture/linear-models') {
-    return modelTags.some((tag) => tag.includes('/architecture/linear-models'));
-  }
-  if (architecture === 'architecture/probabilistic') {
-    return modelTags.some((tag) => tag.includes('/architecture/probabilistic'));
-  }
-
-  return false;
 }
 
 // Check if technique matches model access requirements
