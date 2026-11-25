@@ -663,18 +663,12 @@ function scoreResources(technique) {
 }
 
 function scoreRelatedTechniques(technique, slugSet) {
-  const related = (technique.related_techniques || []).filter((r) =>
-    slugSet.has(r)
-  );
-  const { full_score_count } = SCORE_THRESHOLDS.related_techniques;
-
-  if (related.length >= full_score_count) {
+  const listed = technique.related_techniques || [];
+  if (listed.length === 0) {
     return 1;
   }
-  if (related.length > 0) {
-    return round(related.length / full_score_count);
-  }
-  return 0;
+  const valid = listed.filter((r) => slugSet.has(r));
+  return round(valid.length / listed.length);
 }
 
 function scoreGoalTagDepth(technique) {
@@ -803,13 +797,12 @@ function collectContentIssues(technique, breakdown, slugSet) {
     );
   }
 
-  const validRelated = (technique.related_techniques || []).filter((r) =>
-    slugSet.has(r)
-  );
-  if (
-    validRelated.length < SCORE_THRESHOLDS.related_techniques.full_score_count
-  ) {
-    issues.push(`Only ${validRelated.length} valid related techniques`);
+  const listedRelated = technique.related_techniques || [];
+  const invalidRelated = listedRelated.filter((r) => !slugSet.has(r));
+  if (invalidRelated.length > 0) {
+    issues.push(
+      `${invalidRelated.length} related technique${invalidRelated.length === 1 ? ' is' : 's are'} not valid`
+    );
   }
 
   if (breakdown.goal_tag_depth < 1) {
