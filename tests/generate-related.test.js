@@ -76,12 +76,78 @@ test('top three exclude self, rank by score then slug, without mutating input', 
     slug,
     tags: slug === 'z' || slug === 'd' ? ['x'] : [],
   }));
-  const updated = computeRelated(techniques, new Map());
+  const same = new Map(techniques.map((t) => [t.slug, [1, 0]]));
+  const updated = computeRelated(techniques, same);
   assert.deepEqual(updated[0].related_techniques, ['d', 'a', 'b']);
   assert.deepEqual(updated[1].related_techniques, ['z', 'a', 'b']);
   assert.ok(techniques.every((t) => t.related_techniques === undefined));
   assert.deepEqual(
     computeRelated([techniques[0]], new Map())[0].related_techniques,
+    []
+  );
+});
+
+const vectorsAt = (similarities) =>
+  new Map([
+    ['t', [1, 0]],
+    ...Object.entries(similarities).map(([slug, x]) => [
+      slug,
+      [x, Math.sqrt(1 - x * x)],
+    ]),
+  ]);
+const withSlugs = (...slugs) => slugs.map((slug) => ({ slug, tags: [] }));
+const relatedOf = (techniques, vectors) =>
+  computeRelated(techniques, vectors)[0].related_techniques;
+
+test('an entry below the similarity floor is dropped and not replaced', () => {
+  const techniques = withSlugs('t', 'a', 'b', 'c', 'd');
+  const vectors = vectorsAt({ a: 0.9, b: 0.64, c: 0.8, d: 0.5 });
+  // Ranking takes a, c, b; b is below the floor, so it is dropped.
+  assert.deepEqual(relatedOf(techniques, vectors), ['a', 'c']);
+  assert.deepEqual(
+    relatedOf(
+      withSlugs('t', 'a', 'b', 'c', 'd'),
+      vectorsAt({ a: 0.9, b: 0.8, c: 0.5, d: 0.6 })
+    ),
+    ['a', 'b']
+  );
+});
+
+test('a dropped entry is not replaced by a fourth candidate above the floor', () => {
+  const techniques = [
+    { slug: 't', tags: ['x'] },
+    { slug: 'a', tags: ['x'] },
+    ...withSlugs('b', 'c', 'd'),
+  ];
+  // The shared tag ranks a first although its text similarity is below the
+  // floor; d ranks fourth and is above the floor.
+  const vectors = vectorsAt({ a: 0.3, b: 0.9, c: 0.8, d: 0.7 });
+  assert.deepEqual(relatedOf(techniques, vectors), ['b', 'c']);
+});
+
+test('an entry exactly at the floor is kept and order survives', () => {
+  const techniques = withSlugs('t', 'a', 'b', 'c');
+  const vectors = vectorsAt({ a: 0.65, b: 0.3, c: 0.9 });
+  assert.deepEqual(relatedOf(techniques, vectors), ['c', 'a']);
+});
+
+test('a list can end empty', () => {
+  assert.deepEqual(
+    relatedOf(withSlugs('t', 'a', 'b'), vectorsAt({ a: 0.4, b: 0.2 })),
+    []
+  );
+});
+
+test('a pair without a vector is not kept', () => {
+  const techniques = [
+    { slug: 't', tags: ['x'] },
+    { slug: 'a', tags: ['x'] },
+    { slug: 'b', tags: [] },
+  ];
+  const vectors = vectorsAt({ b: 0.9 });
+  assert.deepEqual(relatedOf(techniques, vectors), ['b']);
+  assert.deepEqual(
+    computeRelated(techniques, vectors)[1].related_techniques,
     []
   );
 });
@@ -110,8 +176,9 @@ test('a second file run changes nothing and other fields and formatting survive'
       techniques: 3,
       tagsOnly: 1,
       orphansBefore: 3,
-      orphans: 0,
+      orphans: 1,
       changed: 3,
+      lists: { three: 0, two: 0, one: 2, none: 1 },
     });
     const first = await fs.readFile(techniquesPath, 'utf8');
     const stripRelated = ({ related_techniques: _related, ...rest }) => rest;

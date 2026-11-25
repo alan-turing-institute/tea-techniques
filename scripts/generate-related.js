@@ -10,6 +10,9 @@ const GOAL_TAG_WEIGHT = 2;
 const OTHER_TAG_WEIGHT = 1;
 const ZERO_TAG_WEIGHT = 0;
 const RELATED_LIMIT = 3;
+// A ranked candidate is listed only when the text similarity of the pair is at
+// least this value.
+export const RELATED_SIMILARITY_FLOOR = 0.65;
 // The root General tag weighs 0 because it describes the kind of work rather
 // than shared subject matter.
 const zeroWeightTags = new Set([
@@ -103,8 +106,26 @@ export function computeRelated(techniques, vectors) {
       }))
       .sort((a, b) => b.score - a.score || a.slug.localeCompare(b.slug, 'en'))
       .slice(0, RELATED_LIMIT)
+      .filter(({ slug }) => {
+        const own = vectors.get(technique.slug);
+        const theirs = vectors.get(slug);
+        return (
+          Boolean(own && theirs) &&
+          cosineSimilarity(own, theirs) >= RELATED_SIMILARITY_FLOOR
+        );
+      })
       .map(({ slug }) => slug),
   }));
+}
+
+/** Count techniques by the length of their related list (3, 2, 1, 0). */
+export function listLengthCounts(techniques) {
+  const counts = { three: 0, two: 0, one: 0, none: 0 };
+  const names = ['none', 'one', 'two', 'three'];
+  for (const t of techniques) {
+    counts[names[Math.min((t.related_techniques ?? []).length, 3)]]++;
+  }
+  return counts;
 }
 
 export function orphanCount(techniques) {
@@ -139,10 +160,11 @@ export async function generateRelated({
     orphansBefore: orphanCount(techniques),
     orphans: orphanCount(updated),
     changed,
+    lists: listLengthCounts(updated),
   };
   // biome-ignore lint/suspicious/noConsole: build script summary
   console.log(
-    `Related techniques: ${summary.techniques} techniques; ${summary.tagsOnly} using tags only; orphans ${summary.orphansBefore} -> ${summary.orphans}; ${summary.changed} lists changed.`
+    `Related techniques: ${summary.techniques} techniques; ${summary.tagsOnly} using tags only; orphans ${summary.orphansBefore} -> ${summary.orphans}; ${summary.changed} lists changed; lists of three ${summary.lists.three}, two ${summary.lists.two}, one ${summary.lists.one}, none ${summary.lists.none}.`
   );
   return summary;
 }

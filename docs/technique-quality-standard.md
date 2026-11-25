@@ -131,25 +131,28 @@ Rules:
   explanations with the people who use them and have no explanatory scope of
   their own.
 - Tags exist for discovery. A record carries a tag when a practitioner filtering
-  by it would expect to find this technique, and not otherwise. The only catch-all
-  `data-type/any` belongs only on a technique that is genuinely indifferent to
-  data type. A technique carries one to three lifecycle stage tags (each with
-  its phase tag); `lifecycle-stage/other/cross-cutting` marks a practice that
-  runs throughout the lifecycle and is carried alongside the stages where its
-  evidence is produced, never alone.
+  by it would expect to find this technique, and not otherwise. The only
+  catch-all `data-type/any` belongs only on a technique that is genuinely
+  indifferent to data type. A technique carries one to three lifecycle stage
+  tags (each with its phase tag); `lifecycle-stage/other/cross-cutting` marks a
+  practice that runs throughout the lifecycle and is carried alongside the
+  stages where its evidence is produced, never alone.
 
 ## 7. Related techniques
 
-`pnpm generate-data` rewrites `related_techniques` with the top three other
+`pnpm generate-data` rewrites `related_techniques` with up to three other
 techniques, ranked by equal parts weighted tag Jaccard (assurance-goal tags
 weigh 2, other tags 1; `data-type/any` and the root
-`assurance-goal-category/general` tag weigh 0) and cosine similarity of each technique's
-normalised mean vector from the committed Qwen3 embeddings.
-Pairs involving a technique without vectors use tag overlap alone; ties are
-broken by slug, and relationships need not be reciprocal.
+`assurance-goal-category/general` tag weigh 0) and cosine similarity of each
+technique's normalised mean vector from the committed Qwen3 embeddings. Pairs
+involving a technique without vectors rank by tag overlap alone; ties are broken
+by slug, and relationships need not be reciprocal. Of the top three, an entry is
+kept only when the cosine similarity of the pair is at least 0.65, so a list
+holds three, two, one or no techniques. A pair without vectors is never kept. A
+dropped entry is not replaced. The quality score for related techniques is full
+when every listed slug is a real technique, including when the list is empty.
 General is an ordinary goal in filters, and its values weigh 2 in related
-scoring like those of any other goal.
-Nobody hand-edits the field.
+scoring like those of any other goal. Nobody hand-edits the field.
 
 ## 8. Acronym, sample claims and ratings
 

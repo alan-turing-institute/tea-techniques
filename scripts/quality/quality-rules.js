@@ -180,11 +180,6 @@ export const SCORE_THRESHOLDS = {
     full_score_count: 3,
   },
 
-  /** Number of valid related techniques for full score */
-  related_techniques: {
-    full_score_count: 3,
-  },
-
   /** Minimum tag depth for assurance goal tag depth scoring */
   goal_tag_depth: {
     min_depth: 3,
