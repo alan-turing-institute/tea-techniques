@@ -137,6 +137,11 @@ Rules:
   tags (each with its phase tag); `lifecycle-stage/other/cross-cutting` marks a
   practice that runs throughout the lifecycle and is carried alongside the
   stages where its evidence is produced, never alone.
+- A tag in a hierarchy applies to everything below it. A parent tag on its own
+  (such as `applicable-models/architecture/neural-networks`) means the technique
+  applies to every sub-type, so the guided search shows it for a sub-type answer
+  to the model-type question. A parent tag beside one of its own sub-type tags
+  narrows the scope to that sub-type.
 
 ## 7. Related techniques
 
