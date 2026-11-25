@@ -1,5 +1,10 @@
 import type { Technique } from '@/lib/types';
-import { matchesOptionTag, matchesTagPath } from './tag-matching';
+import {
+  hasNamedModelTypeTag,
+  matchesModelTypeAnswer,
+  matchesOptionTag,
+  matchesTagPath,
+} from './tag-matching';
 import type { WizardState } from './types';
 
 // Calculate match score for a technique based on wizard answers
@@ -268,8 +273,22 @@ export function sortTechniquesByRelevance(
     score: calculateMatchScore(technique, state),
   }));
 
-  // Sort by score (highest first)
-  techniquesWithScores.sort((a, b) => b.score - a.score);
+  // Sort by score (highest first); at equal score, techniques tagged for the
+  // named model type come before those matching only as any-model.
+  const modelAnswer = state.path.find(
+    (item) =>
+      item.question === 'model-architecture' &&
+      item.answer !== 'architecture/model-agnostic'
+  )?.answer;
+  const typeSpecific = (technique: Technique): number =>
+    typeof modelAnswer === 'string' &&
+    hasNamedModelTypeTag(technique.tags ?? [], modelAnswer)
+      ? 1
+      : 0;
+  techniquesWithScores.sort(
+    (a, b) =>
+      b.score - a.score || typeSpecific(b.technique) - typeSpecific(a.technique)
+  );
 
   return techniquesWithScores.map((item) => item.technique);
 }
@@ -417,8 +436,11 @@ function getModelArchitectureReason(
   if (answer === 'architecture/model-agnostic') {
     return 'Works with any model';
   }
-  if (hasModelArchitectureMatch(technique, answer)) {
+  if (hasNamedModelTypeTag(technique.tags ?? [], answer)) {
     return getModelArchitectureLabel(answer);
+  }
+  if (matchesModelTypeAnswer(technique.tags ?? [], answer)) {
+    return 'Works with any model';
   }
   return null;
 }
