@@ -1,7 +1,11 @@
 import { tagDefinitions } from '@/lib/data/tag-definitions';
 import { formatSlugToTitle } from '@/lib/technique-utils';
 import type { Technique } from '@/lib/types';
-import { matchesOptionTag, matchesTagPath } from './tag-matching';
+import {
+  matchesModelTypeAnswer,
+  matchesOptionTag,
+  matchesTagPath,
+} from './tag-matching';
 import type { QuestionOption, WizardQuestion, WizardState } from './types';
 
 // Load dynamic options based on question type and context
@@ -132,6 +136,10 @@ function countTechniquesForOption(
   return techniques.filter((technique) => {
     if (filterTag === 'assurance_goals') {
       return technique.assurance_goals?.includes(value);
+    }
+
+    if (filterTag === 'applicable-models/architecture') {
+      return matchesModelTypeAnswer(technique.tags ?? [], value);
     }
 
     // For tag-based filters

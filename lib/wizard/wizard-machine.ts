@@ -1,6 +1,10 @@
 import type { Technique } from '@/lib/types';
 import { wizardConfig } from './config';
-import { matchesOptionTag, matchesTagPath } from './tag-matching';
+import {
+  matchesModelTypeAnswer,
+  matchesOptionTag,
+  matchesTagPath,
+} from './tag-matching';
 import type { WizardQuestion, WizardState } from './types';
 
 export class WizardStateMachine {
@@ -381,16 +385,17 @@ export class WizardStateMachine {
         });
       }
 
+      // Model type: a named type also keeps techniques that work with any model
+      if (filterTag === 'applicable-models/architecture') {
+        return answers.some((ans) =>
+          matchesModelTypeAnswer(technique.tags ?? [], ans)
+        );
+      }
+
       // Special handling for applicable-models hierarchical tags
       if (filterTag.startsWith('applicable-models/')) {
         return answers.some((ans) => {
-          // For model-agnostic, check exact match
-          if (ans === 'architecture/model-agnostic') {
-            return techniqueValues.some(
-              (tag) => tag === 'applicable-models/architecture/model-agnostic'
-            );
-          }
-          // For other architecture/requirements/paradigm tags, check if tag contains the answer
+          // For architecture/requirements/paradigm tags, check if tag contains the answer
           // The answer format is like "architecture/tree-based" and tag is "applicable-models/architecture/tree-based"
           return techniqueValues.some((tag) => {
             // Build the expected full tag

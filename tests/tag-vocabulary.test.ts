@@ -7,12 +7,16 @@ import { getTagUrlPart } from '../lib/tag-utils';
 import { formatSlugToTitle } from '../lib/technique-utils';
 import type { Technique } from '../lib/types';
 import { wizardConfig } from '../lib/wizard/config';
-import { calculateMatchScore } from '../lib/wizard/filters';
+import {
+  calculateMatchScore,
+  getMatchReasons,
+  sortTechniquesByRelevance,
+} from '../lib/wizard/filters';
 import {
   enrichOptionsWithCounts,
   loadDynamicOptions,
 } from '../lib/wizard/options';
-import type { WizardState } from '../lib/wizard/types';
+import type { QuestionOption, WizardState } from '../lib/wizard/types';
 import { WizardStateMachine } from '../lib/wizard/wizard-machine';
 
 const techniques: Technique[] = JSON.parse(
@@ -165,6 +169,99 @@ test('a value page lists its own techniques beside its sub-values', async () => 
 
   const singleTechnique = await render('security', 'threat-analysis');
   assert.equal(statsLine(singleTechnique), '1 technique');
+});
+
+const ANY_MODEL_TAG = 'applicable-models/architecture/model-agnostic';
+const modelTypeQuestion = wizardConfig.questions['model-architecture'];
+const namedModelTypes = (modelTypeQuestion.options as { value: string }[])
+  .map((option) => option.value)
+  .filter((value) => value !== 'architecture/model-agnostic');
+
+function carriesModelType(technique: Technique, value: string) {
+  const tag = `applicable-models/${value}`;
+  return (technique.tags ?? []).some(
+    (t) => t === tag || t.startsWith(`${tag}/`)
+  );
+}
+
+function modelTypeState(answer: string): WizardState {
+  return {
+    ...state('General'),
+    path: [{ question: 'model-architecture', answer }],
+  };
+}
+
+test('a named model type keeps its own techniques and the any-model ones', () => {
+  assert.ok(namedModelTypes.length > 0);
+  for (const value of namedModelTypes) {
+    const expected = techniques
+      .filter(
+        (t) => carriesModelType(t, value) || t.tags?.includes(ANY_MODEL_TAG)
+      )
+      .map((t) => t.slug)
+      .sort();
+    const actual = filterOption('model-architecture', 'General', value)
+      .map((t) => t.slug)
+      .sort();
+    assert.deepEqual(actual, expected, value);
+  }
+});
+
+test('the count beside each model type equals the results it gives', () => {
+  const options = enrichOptionsWithCounts(
+    modelTypeQuestion.options as QuestionOption[],
+    modelTypeQuestion.filterTag ?? '',
+    techniques
+  );
+  for (const option of options) {
+    assert.equal(
+      option.count,
+      filterOption('model-architecture', 'General', option.value).length,
+      option.value
+    );
+  }
+});
+
+test('"Any Model / Not Sure" returns exactly the any-model techniques', () => {
+  const expected = techniques
+    .filter((t) => t.tags?.includes(ANY_MODEL_TAG))
+    .map((t) => t.slug)
+    .sort();
+  const actual = filterOption(
+    'model-architecture',
+    'General',
+    'architecture/model-agnostic'
+  )
+    .map((t) => t.slug)
+    .sort();
+  assert.deepEqual(actual, expected);
+});
+
+test('type-tagged techniques sort before any-model ones at equal score', () => {
+  const answer = 'architecture/linear-models';
+  const results = filterOption('model-architecture', 'General', answer);
+  const sorted = sortTechniquesByRelevance(results, modelTypeState(answer));
+  const specific = sorted.map((t) => carriesModelType(t, answer));
+  assert.ok(specific.some(Boolean) && specific.some((s) => !s));
+  assert.equal(specific.indexOf(false) > specific.lastIndexOf(true), true);
+});
+
+test('an any-model technique under a named type says it works with any model', () => {
+  const answer = 'architecture/linear-models';
+  const anyOnly = techniques.find(
+    (t) => t.tags?.includes(ANY_MODEL_TAG) && !carriesModelType(t, answer)
+  ) as Technique;
+  const typed = techniques.find((t) =>
+    carriesModelType(t, answer)
+  ) as Technique;
+  assert.ok(
+    getMatchReasons(anyOnly, modelTypeState(answer)).includes(
+      'Works with any model'
+    )
+  );
+  assert.ok(
+    getMatchReasons(typed, modelTypeState(answer)).includes('Linear Models')
+  );
 });
 
 test('slug titles use title case with lower-case joining words', () => {
