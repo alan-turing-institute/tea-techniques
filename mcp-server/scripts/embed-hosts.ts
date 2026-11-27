@@ -1,19 +1,10 @@
 /**
  * Embeds texts through a model host, the way a caller of the HTTP service does:
- * an Ollama server, or OpenRouter with a key read from a file and used only as a
- * bearer token. Used by the host check and the evaluation scripts.
+ * an Ollama server, or OpenRouter with a key taken from the OPENROUTER_API_KEY
+ * setting and used only as a bearer token. Used by the host check and the
+ * evaluation scripts.
  */
-import fs from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
-
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/embeddings';
-const DEFAULT_KEY_FILE = path.join(
-  os.homedir(),
-  '.config',
-  'openrouter',
-  'api-key'
-);
 const BATCH = 16;
 
 export async function embedWithOllama(
@@ -54,10 +45,14 @@ export async function embedWithOllama(
 
 export async function embedWithOpenRouter(
   model: string,
-  texts: string[],
-  keyFile = DEFAULT_KEY_FILE
+  texts: string[]
 ): Promise<{ vectors: number[][]; cost: number }> {
-  const key = (await fs.readFile(keyFile, 'utf8')).trim();
+  const key = (process.env.OPENROUTER_API_KEY ?? '').trim();
+  if (!key) {
+    throw new Error(
+      'OPENROUTER_API_KEY must be set to embed through OpenRouter'
+    );
+  }
   const vectors: number[][] = [];
   let cost = 0;
   for (let i = 0; i < texts.length; i += BATCH) {
