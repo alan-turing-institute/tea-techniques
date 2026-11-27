@@ -150,6 +150,8 @@ pnpm exec tsx scripts/check-embedding-host.ts --embeddings=vectors/embeddings.qw
 pnpm exec tsx scripts/check-embedding-host.ts --embeddings=vectors/embeddings.qwen3.json --host=openrouter --model=qwen/qwen3-embedding-4b
 ```
 
+The OpenRouter host needs `OPENROUTER_API_KEY` set in the environment; the key is used only as a bearer token.
+
 | Host and model | Lowest probe cosine | Check |
 |---|---|---|
 | OpenRouter `qwen/qwen3-embedding-4b` | 0.99993 | pass |
@@ -271,7 +273,7 @@ DATA_DIR=generated/data TEA_OFFLINE=1 RANKING_ENABLED=false pnpm start:http
 pnpm test
 ```
 
-The service refuses to start if the graph's corpus differs from the one the vectors were made from, so use the graph at the vectors' data commit (`dataCommit` in the file). Evaluate the 5 cardiac digital twin claims the way a caller of the HTTP service does, with query vectors from OpenRouter (the key is read from `~/.config/openrouter/api-key` and used only as a bearer token):
+The service refuses to start if the graph's corpus differs from the one the vectors were made from, so use the graph at the vectors' data commit (`dataCommit` in the file). Evaluate the 5 cardiac digital twin claims the way a caller of the HTTP service does, with query vectors from OpenRouter (set `OPENROUTER_API_KEY` in the environment; the key is used only as a bearer token):
 
 ```sh
 RANKING_ENABLED=false pnpm evaluate --case=cardiac-dt --model=qwen3 --queries=openrouter \
